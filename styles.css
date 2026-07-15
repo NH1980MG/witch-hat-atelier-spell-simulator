@@ -381,6 +381,10 @@ input:focus-visible {
   -webkit-touch-callout: none;
 }
 
+#magicCanvas.is-select-tool {
+  cursor: default;
+}
+
 .symbol-island,
 .placement-island,
 .details-island,
@@ -1630,7 +1634,7 @@ input:focus-visible {
     bottom: 18px;
     left: 50%;
     grid-auto-flow: column;
-    grid-template-columns: repeat(9, 42px);
+    grid-template-columns: repeat(10, 42px);
     transform: translateX(-50%);
   }
 

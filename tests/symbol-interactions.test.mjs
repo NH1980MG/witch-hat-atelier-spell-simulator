@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   canDropGlyph,
+  clampGlyphCenter,
   cloneActions,
   resizeGlyphSize,
   shouldArmLongPress,
@@ -36,6 +37,12 @@ test("canDropGlyph exige que le glyphe entier reste dans les limites", () => {
 
   assert.equal(canDropGlyph({ x: 50, y: 50 }, 20, bounds), true);
   assert.equal(canDropGlyph({ x: 10, y: 50 }, 20, bounds), false);
+});
+
+test("clampGlyphCenter garde tout le glyphe dans le parchemin", () => {
+  const bounds = { left: 0, right: 100, top: 0, bottom: 80 };
+  assert.deepEqual(clampGlyphCenter({ x: -10, y: 95 }, 12, bounds), { x: 12, y: 68 });
+  assert.deepEqual(clampGlyphCenter({ x: 50, y: 40 }, 12, bounds), { x: 50, y: 40 });
 });
 
 test("cloneActions copie aussi les points de trace", () => {

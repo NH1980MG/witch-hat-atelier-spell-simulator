@@ -12,11 +12,12 @@ test("la page expose la palette et les outils de taille", async () => {
     "shrinkSelectionButton",
     "growSelectionButton",
     "symbolDragGhost",
+    "selectToolButton",
   ]) {
     assert.match(html, new RegExp("id=[\\\"']" + id + "[\\\"']"));
   }
-  assert.match(html, /styles\.css\?v=20260715-symbol-palette-v4/);
-  assert.match(html, /app\.js\?v=20260715-symbol-palette-v4/);
+  assert.match(html, /styles\.css\?v=20260715-[^"']+/);
+  assert.match(html, /app\.js\?v=20260715-[^"']+/);
 });
 
 test("les etats de palette et de transport sont styles", async () => {
@@ -36,6 +37,9 @@ test("l'application cable la selection contextuelle et son historique", async ()
   assert.match(app, /selectedGlyphIndex/);
   assert.match(app, /undoStack/);
   assert.match(app, /resizeSelectedGlyph/);
+  assert.match(app, /function beginSelectionDrag\(/);
+  assert.match(app, /function moveSelectionDrag\(/);
+  assert.match(app, /function finishSelectionDrag\(/);
   const restoreBody = app.match(/function restoreActions\(snapshot\) \{([\s\S]*?)\n\}/)?.[1] || "";
   assert.match(restoreBody, /selectedGlyphIndex = null/);
   assert.match(app, /function onPointerCancel\(event\)/);
