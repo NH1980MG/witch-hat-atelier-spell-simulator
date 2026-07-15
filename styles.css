@@ -1643,6 +1643,13 @@ input:focus-visible {
 }
 
 @media (max-width: 620px) {
+  .simulator-page.placement-open.is-dragging-symbol .placement-drawer {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(calc(100% + 28px));
+    transition: none;
+  }
+
   .top-title {
     align-items: flex-start;
     flex-direction: column;

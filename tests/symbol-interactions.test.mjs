@@ -4,6 +4,8 @@ import {
   canDropGlyph,
   cloneActions,
   resizeGlyphSize,
+  shouldArmLongPress,
+  shouldDeferTouchTool,
   topmostGlyphIndexAtPoint,
 } from "../symbol-interactions.mjs";
 
@@ -42,4 +44,19 @@ test("cloneActions copie aussi les points de trace", () => {
 
   clone[0].points[0].x = 9;
   assert.equal(source[0].points[0].x, 1);
+});
+
+test("le clic long est reserve a un seul doigt principal", () => {
+  assert.equal(shouldArmLongPress("touch", 0, 1), true);
+  assert.equal(shouldArmLongPress("pen", 0, 1), false);
+  assert.equal(shouldArmLongPress("mouse", 0, 1), false);
+  assert.equal(shouldArmLongPress("touch", 0, 2), false);
+  assert.equal(shouldArmLongPress("touch", 2, 1), false);
+});
+
+test("les outils tactiles irreversibles attendent la fin du clic long", () => {
+  assert.equal(shouldDeferTouchTool("touch", "glyph"), true);
+  assert.equal(shouldDeferTouchTool("touch", "eraser"), true);
+  assert.equal(shouldDeferTouchTool("touch", "free"), false);
+  assert.equal(shouldDeferTouchTool("pen", "glyph"), false);
 });

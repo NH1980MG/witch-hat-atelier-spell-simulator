@@ -32,6 +32,14 @@ export function canDropGlyph(point, size, bounds) {
   );
 }
 
+export function shouldArmLongPress(pointerType, button, activePointerCount) {
+  return pointerType === "touch" && button === 0 && activePointerCount === 1;
+}
+
+export function shouldDeferTouchTool(pointerType, tool) {
+  return pointerType === "touch" && ["glyph", "eraser"].includes(tool);
+}
+
 export function cloneActions(actions) {
   return actions.map((action) => ({
     ...action,

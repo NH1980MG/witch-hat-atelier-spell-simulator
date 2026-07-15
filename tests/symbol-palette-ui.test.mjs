@@ -15,8 +15,8 @@ test("la page expose la palette et les outils de taille", async () => {
   ]) {
     assert.match(html, new RegExp("id=[\\\"']" + id + "[\\\"']"));
   }
-  assert.match(html, /styles\.css\?v=20260715-symbol-palette-v3/);
-  assert.match(html, /app\.js\?v=20260715-symbol-palette-v3/);
+  assert.match(html, /styles\.css\?v=20260715-symbol-palette-v4/);
+  assert.match(html, /app\.js\?v=20260715-symbol-palette-v4/);
 });
 
 test("les etats de palette et de transport sont styles", async () => {
@@ -26,6 +26,7 @@ test("les etats de palette et de transport sont styles", async () => {
   assert.match(css, /\.symbol-drag-ghost/);
   assert.match(css, /\.placement-card/);
   assert.match(css, /grid-template-columns:\s*repeat\(5, minmax\(42px, 1fr\)\)/);
+  assert.match(css, /\.simulator-page\.placement-open\.is-dragging-symbol \.placement-drawer/);
 });
 
 test("l'application cable la selection contextuelle et son historique", async () => {
@@ -37,6 +38,8 @@ test("l'application cable la selection contextuelle et son historique", async ()
   assert.match(app, /resizeSelectedGlyph/);
   const restoreBody = app.match(/function restoreActions\(snapshot\) \{([\s\S]*?)\n\}/)?.[1] || "";
   assert.match(restoreBody, /selectedGlyphIndex = null/);
+  assert.match(app, /function onPointerCancel\(event\)/);
+  assert.match(app, /addEventListener\("pointercancel", onPointerCancel\)/);
 });
 
 test("la palette cable le transport Scratch jusqu'au canevas", async () => {
@@ -53,5 +56,7 @@ test("la palette cable le transport Scratch jusqu'au canevas", async () => {
     assert.match(app, new RegExp("function " + functionName + "\\("));
   }
   assert.match(app, /canDropGlyph/);
+  assert.match(app, /state\.exporting = true/);
+  assert.match(app, /state\.exporting = false/);
   assert.match(readme, /glisser.*Scratch/i);
 });

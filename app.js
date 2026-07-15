@@ -2,7 +2,14 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { SYMBOL_AUDIT, SYMBOL_PATHS } from "./symbol-catalog.mjs?v=20260714-symbol-audit-v5";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs";
-import { canDropGlyph, cloneActions, resizeGlyphSize, topmostGlyphIndexAtPoint } from "./symbol-interactions.mjs";
+import {
+  canDropGlyph,
+  cloneActions,
+  resizeGlyphSize,
+  shouldArmLongPress,
+  shouldDeferTouchTool,
+  topmostGlyphIndexAtPoint,
+} from "./symbol-interactions.mjs";
 
 const colors = {
   edge: "#8c6b3f",
@@ -219,6 +226,8 @@ const state = {
   selectedGlyphIndex: null,
   symbolDrag: null,
   longPress: null,
+  deferredTouchTool: null,
+  exporting: false,
   animationFrame: 0,
   undoStack: [],
   redoStack: [],
@@ -761,6 +770,8 @@ function pointerCenter(points) {
 }
 
 function beginPanGesture() {
+  cancelLongPress();
+  state.deferredTouchTool = null;
   state.pointerDown = false;
   state.currentAction = null;
   state.preview = null;
@@ -5803,6 +5814,9 @@ function updateSelectionControls() {
 }
 
 function drawSelectedGlyph() {
+  if (state.exporting) {
+    return;
+  }
   const action = selectedGlyph();
   if (!action) {
     return;
@@ -5839,7 +5853,7 @@ function render() {
   ctx.fillRect(0, 0, width, height);
   drawWritingGrid(width, height);
 
-  const emptyCanvas = state.actions.length === 0 && !state.currentAction && !state.preview;
+  const emptyCanvas = !state.exporting && state.actions.length === 0 && !state.currentAction && !state.preview;
   if (emptyCanvas) {
     drawGuide(width, height);
   }
@@ -5853,11 +5867,11 @@ function render() {
     drawAction(action);
   }
 
-  if (state.currentAction) {
+  if (state.currentAction && !state.exporting) {
     drawAction(state.currentAction);
   }
 
-  if (state.preview) {
+  if (state.preview && !state.exporting) {
     drawAction(state.preview, true);
   }
 
@@ -5865,7 +5879,9 @@ function render() {
   drawActiveAura(width, height);
   drawActivation(width, height);
   ctx.restore();
-  drawMeasureCounter(width, height);
+  if (!state.exporting) {
+    drawMeasureCounter(width, height);
+  }
 }
 
 function currentElementData() {
@@ -6037,12 +6053,6 @@ function createGlyphAction(element, point, size = 16 + state.intensity * 3) {
     rotation,
     sector,
   };
-}
-
-function placeGlyph(point, element = currentElementData()) {
-  const action = createGlyphAction(element, point);
-  commitAction(action);
-  return action;
 }
 
 function actionBounds(action) {
@@ -6228,7 +6238,7 @@ function cancelLongPress() {
 }
 
 function armLongPress(event, point) {
-  if (event.pointerType === "mouse" || event.button !== 0) {
+  if (!shouldArmLongPress(event.pointerType, event.button, state.activePointers.size)) {
     return;
   }
   const startScreen = screenPointFromEvent(event);
@@ -6242,6 +6252,9 @@ function armLongPress(event, point) {
     state.start = null;
     state.currentAction = null;
     state.preview = null;
+    if (state.deferredTouchTool?.pointerId === pointerId) {
+      state.deferredTouchTool = null;
+    }
     selectGlyphAt(point);
   }, 500);
   state.longPress = { pointerId, startScreen, timer };
@@ -6300,6 +6313,15 @@ function onPointerDown(event) {
   state.currentAction = null;
   armLongPress(event, point);
 
+  if (shouldDeferTouchTool(event.pointerType, state.tool)) {
+    state.deferredTouchTool = {
+      pointerId: event.pointerId,
+      startScreen: screenPointFromEvent(event),
+      tool: state.tool,
+    };
+    return;
+  }
+
   if (state.tool === "free") {
     state.currentAction = {
       type: "free",
@@ -6311,17 +6333,29 @@ function onPointerDown(event) {
       points: [point],
     };
   } else if (state.tool === "glyph") {
-    state.currentAction = placeGlyph(point);
+    state.currentAction = createGlyphAction(currentElementData(), point);
   } else if (state.tool === "eraser") {
     eraseAt(point);
   }
 }
 
 function onPointerMove(event) {
+  const deferredTouch = state.deferredTouchTool?.pointerId === event.pointerId
+    ? state.deferredTouchTool
+    : null;
+  const currentScreen = screenPointFromEvent(event);
+  const movedBeyondLongPress = Boolean(
+    deferredTouch && distance(currentScreen, deferredTouch.startScreen) > 8
+  );
   if (state.longPress?.pointerId === event.pointerId) {
-    const currentScreen = screenPointFromEvent(event);
     if (distance(currentScreen, state.longPress.startScreen) > 8) {
       cancelLongPress();
+    }
+  }
+  if (movedBeyondLongPress) {
+    state.deferredTouchTool = null;
+    if (deferredTouch.tool === "glyph") {
+      state.currentAction = createGlyphAction(currentElementData(), state.start);
     }
   }
   if (state.activePointers.has(event.pointerId)) {
@@ -6329,6 +6363,10 @@ function onPointerMove(event) {
   }
   if (updatePanGesture()) {
     event.preventDefault();
+    return;
+  }
+
+  if (deferredTouch && !movedBeyondLongPress) {
     return;
   }
 
@@ -6365,7 +6403,18 @@ function onPointerMove(event) {
 }
 
 function onPointerUp(event) {
+  const deferredTouch = state.deferredTouchTool?.pointerId === event.pointerId
+    ? state.deferredTouchTool
+    : null;
   cancelLongPress();
+  if (deferredTouch) {
+    state.deferredTouchTool = null;
+    if (deferredTouch.tool === "glyph") {
+      state.currentAction = createGlyphAction(currentElementData(), state.start);
+    } else if (deferredTouch.tool === "eraser") {
+      eraseAt(clampPointToDrawingLimit(pointFromEvent(event)));
+    }
+  }
   state.activePointers.delete(event.pointerId);
   if (state.panGesture) {
     if (state.activePointers.size < 2) {
@@ -6391,8 +6440,7 @@ function onPointerUp(event) {
   } else if (tool === "glyph" && state.currentAction) {
     const action = state.currentAction;
     state.currentAction = null;
-    updateUsedList();
-    updateSpellState();
+    commitAction(action);
     setStatus(action.userAdjusted
       ? `${action.element}: taille et inclinaison enregistrees.`
       : `${action.element}: orientation radiale equilibree.`);
@@ -6400,6 +6448,22 @@ function onPointerUp(event) {
     commitAction(createAction(tool, state.start, point));
   }
 
+  state.start = null;
+  render();
+}
+
+function onPointerCancel(event) {
+  cancelLongPress();
+  if (state.deferredTouchTool?.pointerId === event.pointerId) {
+    state.deferredTouchTool = null;
+  }
+  state.activePointers.delete(event.pointerId);
+  if (state.activePointers.size < 2) {
+    state.panGesture = null;
+  }
+  state.pointerDown = false;
+  state.currentAction = null;
+  state.preview = null;
   state.start = null;
   render();
 }
@@ -7176,6 +7240,7 @@ function clearCanvas() {
   state.actions = [];
   state.currentAction = null;
   state.preview = null;
+  state.deferredTouchTool = null;
   state.circleCenter = null;
   state.activation = null;
   state.selectedGlyphIndex = null;
@@ -7189,7 +7254,14 @@ function clearCanvas() {
 function saveCanvas() {
   const link = document.createElement("a");
   link.download = "cercle-magique.png";
-  link.href = canvas.toDataURL("image/png");
+  try {
+    state.exporting = true;
+    render();
+    link.href = canvas.toDataURL("image/png");
+  } finally {
+    state.exporting = false;
+    render();
+  }
   link.click();
   setStatus("Planche archivee en PNG.");
 }
@@ -7339,7 +7411,7 @@ canvas.addEventListener("contextmenu", (event) => {
 canvas.addEventListener("pointerdown", onPointerDown);
 canvas.addEventListener("pointermove", onPointerMove);
 canvas.addEventListener("pointerup", onPointerUp);
-canvas.addEventListener("pointercancel", onPointerUp);
+canvas.addEventListener("pointercancel", onPointerCancel);
 canvas.addEventListener("wheel", onCanvasWheel, { passive: false });
 window.addEventListener("resize", resizeCanvas);
 window.addEventListener("resize", resizeThreeView);
