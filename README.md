@@ -45,7 +45,15 @@ meme point au lieu de partir hors champ.
 Raccourcis: `Cmd/Ctrl + Z` defait, `Cmd/Ctrl + Shift + Z` refait,
 `Cmd/Ctrl + S` archive, `A` active, `L` lit le cercle et `Echap` efface.
 
+Le bouton `Symboles a placer` ouvre la palette complete des 47 dessins. Prends
+une carte et fais-la glisser comme un bloc Scratch jusqu'au parchemin: un
+apercu en pointilles confirme la position avant le depot. Un depot hors de la
+zone de dessin est annule.
 
+Pour modifier la taille d'un symbole deja pose, selectionne-le avec un clic
+droit, ou avec un appui long sur ecran tactile, puis utilise les boutons `-` et
+`+` de la barre d'outils. Le redimensionnement fonctionne avec `Defaire` et
+`Refaire`.
 
 - `index.html` : page principale du site.
 - `bibliotheque.html` : bibliotheque de planches de reference de cercles.
@@ -67,5 +75,4 @@ node --check symbol-catalog.mjs
 node --check spell-grammar.mjs
 node scripts/validate-spell-matrix.mjs
 ```
-
 

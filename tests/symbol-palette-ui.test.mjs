@@ -15,6 +15,8 @@ test("la page expose la palette et les outils de taille", async () => {
   ]) {
     assert.match(html, new RegExp("id=[\\\"']" + id + "[\\\"']"));
   }
+  assert.match(html, /styles\.css\?v=20260715-symbol-palette-v3/);
+  assert.match(html, /app\.js\?v=20260715-symbol-palette-v3/);
 });
 
 test("les etats de palette et de transport sont styles", async () => {
@@ -23,6 +25,7 @@ test("les etats de palette et de transport sont styles", async () => {
   assert.match(css, /\.simulator-page\.placement-open/);
   assert.match(css, /\.symbol-drag-ghost/);
   assert.match(css, /\.placement-card/);
+  assert.match(css, /grid-template-columns:\s*repeat\(5, minmax\(42px, 1fr\)\)/);
 });
 
 test("l'application cable la selection contextuelle et son historique", async () => {
@@ -32,4 +35,23 @@ test("l'application cable la selection contextuelle et son historique", async ()
   assert.match(app, /selectedGlyphIndex/);
   assert.match(app, /undoStack/);
   assert.match(app, /resizeSelectedGlyph/);
+  const restoreBody = app.match(/function restoreActions\(snapshot\) \{([\s\S]*?)\n\}/)?.[1] || "";
+  assert.match(restoreBody, /selectedGlyphIndex = null/);
+});
+
+test("la palette cable le transport Scratch jusqu'au canevas", async () => {
+  const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
+  const readme = await readFile(new URL("../README.md", import.meta.url), "utf8");
+
+  for (const functionName of [
+    "renderPlacementList",
+    "startSymbolDrag",
+    "moveSymbolDrag",
+    "finishSymbolDrag",
+    "cancelSymbolDrag",
+  ]) {
+    assert.match(app, new RegExp("function " + functionName + "\\("));
+  }
+  assert.match(app, /canDropGlyph/);
+  assert.match(readme, /glisser.*Scratch/i);
 });

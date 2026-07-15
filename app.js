@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { SYMBOL_AUDIT, SYMBOL_PATHS } from "./symbol-catalog.mjs?v=20260714-symbol-audit-v5";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs";
-import { cloneActions, resizeGlyphSize, topmostGlyphIndexAtPoint } from "./symbol-interactions.mjs";
+import { canDropGlyph, cloneActions, resizeGlyphSize, topmostGlyphIndexAtPoint } from "./symbol-interactions.mjs";
 
 const colors = {
   edge: "#8c6b3f",
@@ -179,6 +179,11 @@ const close3dButton = document.querySelector("#close3dButton");
 const symbolToggleButton = document.querySelector("#symbolToggleButton");
 const symbolDrawer = document.querySelector("#symbolDrawer");
 const closeSymbolsButton = document.querySelector("#closeSymbolsButton");
+const placementList = document.querySelector("#placementList");
+const placementToggleButton = document.querySelector("#placementToggleButton");
+const placementDrawer = document.querySelector("#placementDrawer");
+const closePlacementButton = document.querySelector("#closePlacementButton");
+const symbolDragGhost = document.querySelector("#symbolDragGhost");
 const detailsToggleButton = document.querySelector("#detailsToggleButton");
 const detailsDrawer = document.querySelector("#detailsDrawer");
 const closeDetailsButton = document.querySelector("#closeDetailsButton");
@@ -212,6 +217,7 @@ const state = {
   activeSpell: null,
   recognizedSymbol: null,
   selectedGlyphIndex: null,
+  symbolDrag: null,
   longPress: null,
   animationFrame: 0,
   undoStack: [],
@@ -4151,6 +4157,10 @@ function setSymbolDrawer(open) {
   setOpenDrawer(open ? "symbols" : null);
 }
 
+function setPlacementDrawer(open) {
+  setOpenDrawer(open ? "placement" : null);
+}
+
 function setDetailsDrawer(open) {
   setOpenDrawer(open ? "details" : null);
 }
@@ -4161,15 +4171,22 @@ function setSupportDrawer(open) {
 
 function setOpenDrawer(drawer) {
   const symbolsOpen = drawer === "symbols";
+  const placementOpen = drawer === "placement";
   const detailsOpen = drawer === "details";
   const supportOpen = drawer === "support";
+  if (!placementOpen && state.symbolDrag) {
+    cancelSymbolDrag();
+  }
   document.body.classList.toggle("symbols-open", symbolsOpen);
+  document.body.classList.toggle("placement-open", placementOpen);
   document.body.classList.toggle("details-open", detailsOpen);
   document.body.classList.toggle("support-open", supportOpen);
   symbolToggleButton?.setAttribute("aria-expanded", String(symbolsOpen));
+  placementToggleButton?.setAttribute("aria-expanded", String(placementOpen));
   detailsToggleButton?.setAttribute("aria-expanded", String(detailsOpen));
   supportToggleButton?.setAttribute("aria-expanded", String(supportOpen));
   symbolDrawer?.setAttribute("aria-hidden", String(!symbolsOpen));
+  placementDrawer?.setAttribute("aria-hidden", String(!placementOpen));
   detailsDrawer?.setAttribute("aria-hidden", String(!detailsOpen));
   supportDrawer?.setAttribute("aria-hidden", String(!supportOpen));
   render();
@@ -5940,6 +5957,7 @@ function restoreActions(snapshot) {
   state.actions = cloneActions(snapshot);
   state.activeSpell = null;
   state.activation = null;
+  state.selectedGlyphIndex = null;
   refreshCircleCenter();
   updateSelectionControls();
   updateUsedList();
@@ -5992,9 +6010,7 @@ function isCompleteSeal(action) {
   return action.seal || action.type === "ring" || (action.type === "circle" && action.closed);
 }
 
-function placeGlyph(point) {
-  const element = currentElementData();
-  const size = 16 + state.intensity * 3;
+function createGlyphAction(element, point, size = 16 + state.intensity * 3) {
   const safePoint = clampPointToDrawingLimit(point, size * 1.1);
   const boundary = primarySpellBounds();
   const center = state.circleCenter || (boundary ? {
@@ -6005,7 +6021,7 @@ function placeGlyph(point) {
   const radial = element.kind === "sign" && Boolean(SIGN_PROFILES[element.name]?.radial);
   const rotation = radial ? radialAngle + Math.PI / 2 : 0;
   const sector = center ? Math.round(((radialAngle + Math.PI * 2) % (Math.PI * 2)) / (Math.PI / 4)) % 8 : null;
-  const action = {
+  return {
     type: "glyph",
     label: labels.glyph,
     element: element.name,
@@ -6021,6 +6037,10 @@ function placeGlyph(point) {
     rotation,
     sector,
   };
+}
+
+function placeGlyph(point, element = currentElementData()) {
+  const action = createGlyphAction(element, point);
   commitAction(action);
   return action;
 }
@@ -6409,17 +6429,21 @@ function elementIconMarkup(element) {
   return `<span class="symbol-rune">${element.rune}</span>`;
 }
 
-function renderInkList() {
-  inkList.innerHTML = "";
+function symbolGroups() {
   const signsByRole = (roles) => elements.filter((element) => {
     return element.kind === "sign" && roles.includes(SIGN_PROFILES[element.name]?.role);
   });
-  const groups = [
+  return [
     ["Sigils centraux", elements.filter((element) => element.kind === "sigil")],
     ["Forme et portee", signsByRole(["form", "scope", "supply"])],
     ["Mouvement et cible", signsByRole(["motion", "target"])],
     ["Etat et relations", signsByRole(["state", "relation", "power"])],
   ];
+}
+
+function renderInkList() {
+  inkList.innerHTML = "";
+  const groups = symbolGroups();
 
   for (const [title, groupElements] of groups) {
     const section = document.createElement("section");
@@ -6460,6 +6484,144 @@ function renderInkList() {
     inkList.append(section);
   }
   updateInkSelection();
+}
+
+function renderPlacementList() {
+  if (!placementList) {
+    return;
+  }
+  placementList.innerHTML = "";
+  for (const [title, groupElements] of symbolGroups()) {
+    const section = document.createElement("section");
+    section.className = "symbol-section";
+    const heading = document.createElement("h3");
+    heading.className = "symbol-section-title";
+    heading.textContent = title;
+    section.append(heading);
+
+    for (const element of groupElements) {
+      const button = document.createElement("button");
+      button.className = "placement-card";
+      button.type = "button";
+      button.dataset.symbol = element.name;
+      button.setAttribute("aria-label", "Glisser " + element.name + " vers le parchemin");
+      button.innerHTML =
+        '<span class="symbol-icon" style="--symbol-color:' + element.color + '">' +
+          elementIconMarkup(element) +
+        '</span><span class="symbol-copy"><span class="symbol-name">' +
+          element.name +
+        '</span><small>' +
+          (element.kind === "sigil" ? "sigil central" : element.category) +
+        '</small></span>';
+      button.addEventListener("pointerdown", (event) => startSymbolDrag(event, element));
+      button.addEventListener("dragstart", (event) => event.preventDefault());
+      button.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") {
+          return;
+        }
+        event.preventDefault();
+        state.element = element;
+        state.tool = "glyph";
+        updateInkSelection();
+        updateToolButtons();
+        setPlacementDrawer(false);
+        setStatus(element.name + " prepare. Clique sur le parchemin pour le placer.");
+      });
+      section.append(button);
+    }
+    placementList.append(section);
+  }
+}
+
+function clientPointInsideRect(clientX, clientY, rect) {
+  return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+}
+
+function startSymbolDrag(event, element) {
+  if (event.button !== 0 || state.symbolDrag) {
+    return;
+  }
+  event.preventDefault();
+  cancelLongPress();
+  state.element = element;
+  updateInkSelection();
+  const source = event.currentTarget;
+  source.setPointerCapture?.(event.pointerId);
+  state.symbolDrag = {
+    pointerId: event.pointerId,
+    element,
+    source,
+    size: 16 + state.intensity * 3,
+  };
+  symbolDragGhost.innerHTML =
+    '<span class="symbol-icon" style="--symbol-color:' + element.color + '">' +
+      elementIconMarkup(element) +
+    '</span>';
+  document.body.classList.add("is-dragging-symbol");
+  window.addEventListener("pointermove", moveSymbolDrag, { passive: false });
+  window.addEventListener("pointerup", finishSymbolDrag);
+  window.addEventListener("pointercancel", cancelSymbolDrag);
+  moveSymbolDrag(event);
+  setStatus(element.name + " en main. Glisse-le jusqu'au parchemin.");
+}
+
+function moveSymbolDrag(event) {
+  const drag = state.symbolDrag;
+  if (!drag || event.pointerId !== drag.pointerId) {
+    return;
+  }
+  event.preventDefault();
+  symbolDragGhost.style.left = event.clientX + "px";
+  symbolDragGhost.style.top = event.clientY + "px";
+
+  const canvasRect = canvas.getBoundingClientRect();
+  const drawerRect = placementDrawer?.getBoundingClientRect();
+  const overCanvas = clientPointInsideRect(event.clientX, event.clientY, canvasRect);
+  const overDrawer = drawerRect && clientPointInsideRect(event.clientX, event.clientY, drawerRect);
+  const point = pointFromEvent(event);
+  const { width, height } = canvasSize();
+  const valid = Boolean(
+    overCanvas &&
+    !overDrawer &&
+    canDropGlyph(point, drag.size, drawingLimitBounds(width, height))
+  );
+  state.preview = valid ? createGlyphAction(drag.element, point, drag.size) : null;
+  document.body.classList.toggle("is-valid-drop", valid);
+  render();
+}
+
+function finishSymbolDrag(event) {
+  if (!state.symbolDrag || event.pointerId !== state.symbolDrag.pointerId) {
+    return;
+  }
+  moveSymbolDrag(event);
+  const action = state.preview ? cloneActions([state.preview])[0] : null;
+  const elementName = state.symbolDrag.element.name;
+  cancelSymbolDrag();
+  if (action) {
+    commitAction(action);
+    setStatus(elementName + " depose sur le parchemin.");
+  } else {
+    setStatus("Depot annule: relache le symbole dans la zone de dessin.");
+  }
+}
+
+function cancelSymbolDrag(event) {
+  const drag = state.symbolDrag;
+  if (!drag || (event?.pointerId !== undefined && event.pointerId !== drag.pointerId)) {
+    return;
+  }
+  if (drag.source?.hasPointerCapture?.(drag.pointerId)) {
+    drag.source.releasePointerCapture(drag.pointerId);
+  }
+  window.removeEventListener("pointermove", moveSymbolDrag);
+  window.removeEventListener("pointerup", finishSymbolDrag);
+  window.removeEventListener("pointercancel", cancelSymbolDrag);
+  state.symbolDrag = null;
+  state.preview = null;
+  symbolDragGhost.innerHTML = "";
+  document.body.classList.remove("is-dragging-symbol", "is-valid-drop");
+  render();
 }
 
 function updateInkSelection() {
@@ -7098,6 +7260,8 @@ saveButton.addEventListener("click", saveCanvas);
 close3dButton.addEventListener("click", close3dView);
 symbolToggleButton?.addEventListener("click", () => setSymbolDrawer(true));
 closeSymbolsButton?.addEventListener("click", () => setSymbolDrawer(false));
+placementToggleButton?.addEventListener("click", () => setPlacementDrawer(true));
+closePlacementButton?.addEventListener("click", () => setPlacementDrawer(false));
 detailsToggleButton?.addEventListener("click", () => setDetailsDrawer(true));
 closeDetailsButton?.addEventListener("click", () => setDetailsDrawer(false));
 supportToggleButton?.addEventListener("click", () => setSupportDrawer(true));
@@ -7137,7 +7301,7 @@ document.addEventListener("keydown", (event) => {
     return;
   }
 
-  if (event.key === "Escape" && (document.body.classList.contains("symbols-open") || document.body.classList.contains("details-open") || document.body.classList.contains("support-open"))) {
+  if (event.key === "Escape" && (document.body.classList.contains("symbols-open") || document.body.classList.contains("placement-open") || document.body.classList.contains("details-open") || document.body.classList.contains("support-open"))) {
     event.preventDefault();
     setOpenDrawer(null);
     setStatus("Ilot ferme.");
@@ -7183,6 +7347,7 @@ window.visualViewport?.addEventListener("resize", resizeCanvas);
 window.screen.orientation?.addEventListener("change", resizeCanvas);
 
 renderInkList();
+renderPlacementList();
 renderSupportList();
 updateToolButtons();
 updateSelectionControls();
@@ -7193,6 +7358,7 @@ if (measureInput) {
 }
 close3dView();
 setSymbolDrawer(false);
+setPlacementDrawer(false);
 setSupportDrawer(false);
 resetCanvasPanToOrigin(false);
 applyCanvasScale();
