@@ -8,11 +8,11 @@
 
     <key>ProgramArguments</key>
     <array>
-      <string>/Users/nathanh/Projets/witch-hat-atelier-simulator/scripts/start-local-server.sh</string>
+      <string>/Users/nathanh/Projets/fan-made-Witch-hat-atelier-simulator/scripts/start-local-server.sh</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/nathanh/Projets/witch-hat-atelier-simulator</string>
+    <string>/Users/nathanh/Projets/fan-made-Witch-hat-atelier-simulator</string>
 
     <key>RunAtLoad</key>
     <true/>
@@ -21,9 +21,9 @@
     <true/>
 
     <key>StandardOutPath</key>
-    <string>/Users/nathanh/Projets/witch-hat-atelier-simulator/logs/server.out.log</string>
+    <string>/Users/nathanh/Projets/fan-made-Witch-hat-atelier-simulator/logs/server.out.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/Users/nathanh/Projets/witch-hat-atelier-simulator/logs/server.err.log</string>
+    <string>/Users/nathanh/Projets/fan-made-Witch-hat-atelier-simulator/logs/server.err.log</string>
   </dict>
 </plist>

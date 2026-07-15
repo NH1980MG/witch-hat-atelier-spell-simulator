@@ -17,8 +17,6 @@ remaining large `app.js` sections.
   picker, 2D canvas and sampled 3D ink.
 - All 47 drawings are mapped to their local capture suffix; the latest pass
   corrected Repetition, Glaives, Envelop, Enlarge, Rain, Purify and Stillness.
-- Complete visual review of all 42 local reference captures, documented in
-  `docs/local-reference-audit.md`.
 - Pure `spell-grammar.mjs` with separate material, supply, state, form, motion,
   target, scope, relation and power axes.
 - Automatic validation of 6,669 unique two-sign recipes and 6,144 distinct
@@ -86,8 +84,7 @@ remaining large `app.js` sections.
 - Manual and auto activation modes.
 - Undo, redo, clear, keyboard shortcuts, and PNG export.
 - Three.js 3D view with richer atelier/exterior environments.
-- Library switched to real Telepedia reference panels supplied by the user,
-  grouped by Vision, Mixed, Niche, Ancient forbidden, and Ancient non-forbidden.
+- Library page organized into a stable gallery layout for spell examples.
 - Tutorial and settings pages.
 - Legacy Python prototype removed; the HTTP static site is the only maintained
   version.
@@ -104,12 +101,11 @@ remaining large `app.js` sections.
 
 ### M1: Reference Catalog
 
-Status: complete for the current 42-file set.
+Status: complete for the current reference set.
 
 Tasks:
 
-- Keep the 42-file inventory synchronized with
-  `docs/local-reference-audit.md` when references change.
+- Keep the reference inventory synchronized when references change.
 
 Exit criteria:
 

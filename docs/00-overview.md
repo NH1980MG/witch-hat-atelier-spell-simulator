@@ -10,23 +10,15 @@ orbs that feel like the reference material without copying frames or panels.
 
 ## Documents
 
-- [Review](review.md): current repo assessment, risks, and recommended fixes.
 - [Product brief](product-brief.md): product intent, audience, goals, and scope.
-- [Research notes](research-notes.md): reference sources, source policy, and
-  mapping notes from signs to effects.
 - [Design direction](design-direction.md): interface, motion, 3D, and visual
   language guidance.
 - [Architecture](architecture.md): current architecture, target architecture,
   data flow, and proposed module boundaries.
 - [Spell effect catalog](spell-effect-catalog.md): effect grammar and first
   implementation targets, including water.
-- [Sign reference](sign-reference.md): audited drawing, role, confidence and
-  simulation mapping for all 38 signs.
-- [Local reference audit](local-reference-audit.md): visual inventory of all
-  42 private research captures.
-- [Reference manifest](reference-manifest.md): research sources, source policy,
-  and public/private asset tracking.
 - [QA plan](qa-plan.md): manual and future automated visual checks.
+- [Roadmap](roadmap.md): consolidated now/next/later milestone view.
 - [Release checklist](release-checklist.md): checks before GitHub or website
   publication.
 - [Progress tracker](progress-tracker.md): milestones, backlog, decisions, and

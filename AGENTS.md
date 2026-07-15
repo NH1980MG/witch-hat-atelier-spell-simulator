@@ -8,7 +8,8 @@ Supporting material is split by purpose:
 - `docs/` for design, QA, architecture, and release notes.
 - `scripts/` for local server, validation, and macOS launch-agent helpers.
 - `logs/` for local runtime output.
-- `Whitch hat/` and `assets/reference-panels/` contain reference material that should stay private.
+- Private study material and reference-derived screenshots should stay out of
+  any public branch.
 
 ## Build, Test, and Development Commands
 There is no `package.json` or build pipeline. Use these commands directly:
