@@ -85,6 +85,12 @@
             <button class="tool-button" data-tool="eraser" type="button" aria-label="Grattoir" title="Grattoir">
               <span aria-hidden="true">&#215;</span>
             </button>
+            <button class="tool-button selection-tool" id="shrinkSelectionButton" type="button" aria-label="Retrecir le symbole selectionne" title="Retrecir la selection" disabled>
+              <span aria-hidden="true">&#8722;</span>
+            </button>
+            <button class="tool-button selection-tool" id="growSelectionButton" type="button" aria-label="Agrandir le symbole selectionne" title="Agrandir la selection" disabled>
+              <span aria-hidden="true">+</span>
+            </button>
           </div>
           <canvas id="magicCanvas" aria-label="Parchemin de dessin"></canvas>
         </div>
@@ -92,6 +98,11 @@
         <button class="symbol-island" id="symbolToggleButton" type="button" aria-controls="symbolDrawer" aria-expanded="false">
           <span aria-hidden="true">&#9671;</span>
           Sigils et signes
+        </button>
+
+        <button class="placement-island" id="placementToggleButton" type="button" aria-controls="placementDrawer" aria-expanded="false">
+          <span aria-hidden="true">&#10022;</span>
+          Symboles a placer
         </button>
 
         <button class="details-island" id="detailsToggleButton" type="button" aria-controls="detailsDrawer" aria-expanded="false">
@@ -114,6 +125,18 @@
           </div>
 
           <div class="ink-list" id="inkList"></div>
+        </aside>
+
+        <aside class="sidebar placement-drawer" id="placementDrawer" aria-label="Palette de symboles a placer" aria-hidden="true">
+          <div class="panel-heading">
+            <div>
+              <h2>Symboles a placer</h2>
+              <p>Prends un symbole comme un bloc Scratch et glisse-le jusqu'au parchemin.</p>
+            </div>
+            <button class="drawer-close" id="closePlacementButton" type="button" aria-label="Fermer les symboles a placer">&times;</button>
+          </div>
+
+          <div class="placement-list" id="placementList"></div>
         </aside>
 
         <aside class="sidebar support-drawer" id="supportDrawer" aria-label="Choix du support magique" aria-hidden="true">
@@ -232,5 +255,6 @@
         <output class="status" id="statusText" aria-live="polite">Mode bouton: trace un cercle ferme puis appuie sur Activer.</output>
       </footer>
     </main>
+    <div class="symbol-drag-ghost" id="symbolDragGhost" aria-hidden="true"></div>
   </body>
 </html>
