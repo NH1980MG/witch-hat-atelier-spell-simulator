@@ -156,7 +156,48 @@ input:focus-visible {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
+  align-items: center;
   gap: 8px;
+}
+
+.language-switcher {
+  display: inline-grid;
+  grid-template-columns: repeat(2, 44px);
+  min-height: 44px;
+  overflow: hidden;
+  border: 1px solid rgba(199, 151, 54, 0.72);
+  border-radius: 999px;
+  background: rgba(255, 248, 234, 0.1);
+  flex: 0 0 auto;
+}
+
+.language-switcher button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--gold);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.language-switcher button + button {
+  border-left: 1px solid rgba(199, 151, 54, 0.5);
+}
+
+.language-switcher button:hover,
+.language-switcher button:focus-visible {
+  background: rgba(199, 151, 54, 0.2);
+}
+
+.language-switcher button.is-active,
+.language-switcher button.is-active:hover,
+.language-switcher button.is-active:focus-visible {
+  background: var(--gold);
+  color: var(--ink);
 }
 
 .header-link {
