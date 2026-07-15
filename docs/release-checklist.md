@@ -56,13 +56,10 @@ Use this before pushing to GitHub or publishing a static site.
 
 ## Deployment Notes
 
-- `.github/workflows/pages.yml` validates and packages only the public site
-  files before deploying from `main`.
-- The expected public URL is
-  `https://nh1980mg.github.io/fan-made-Witch-hat-atelier-simulator/`.
-
-- GitHub Pages can serve this project directly from the root folder.
-- `.nojekyll` should remain present.
-- The current Three.js dependency is CDN-based; test the published page with
-  network access.
-- For a stricter release, replace CDN imports with local vendored files.
+- The public site is maintained in the history-clean repository
+  `NH1980MG/witch-hat-atelier-simulator`; do not make this private research
+  repository public.
+- Public URL: `https://nh1980mg.github.io/witch-hat-atelier-simulator/`.
+- The public repository serves its `main` root through GitHub Pages and keeps
+  `.nojekyll` present.
+- Three.js is vendored locally under `vendor/three/`; no runtime CDN is needed.
