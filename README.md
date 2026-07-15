@@ -45,88 +45,7 @@ meme point au lieu de partir hors champ.
 Raccourcis: `Cmd/Ctrl + Z` defait, `Cmd/Ctrl + Shift + Z` refait,
 `Cmd/Ctrl + S` archive, `A` active, `L` lit le cercle et `Echap` efface.
 
-## Ouvrir le site
 
-Version publique GitHub Pages:
-
-```text
-https://nh1980mg.github.io/fan-made-Witch-hat-atelier-simulator/
-```
-
-La publication est effectuee automatiquement depuis `main` par le workflow
-`.github/workflows/pages.yml` apres validation du JavaScript et de la matrice
-des sorts.
-
-Seule URL de travail:
-
-```text
-http://127.0.0.1:8000/index.html
-```
-
-L'ouverture directe des fichiers n'est pas une version maintenue. Les pages
-redirigent vers le serveur local pour eviter les differences de securite et de
-cache entre navigateurs.
-
-Le site est statique: il peut etre publie tel quel sur GitHub
-Pages, Netlify, Vercel ou n'importe quel hebergeur de fichiers statiques.
-Avant une publication publique, consulte `SECURITY.md` et
-`docs/release-checklist.md` pour confirmer que les assets et les journaux
-locaux ont ete nettoyes.
-
-## Lancer le serveur local
-
-```bash
-python3 -m http.server 8000 --bind 127.0.0.1
-```
-
-Puis ouvre:
-
-```text
-http://127.0.0.1:8000/
-```
-
-## Demarrage automatique sur macOS
-
-Des scripts sont fournis pour installer le serveur comme service utilisateur
-macOS. Le service demarre a l'ouverture de session, y compris apres un
-redemarrage du laptop.
-
-Installer:
-
-```bash
-cd /path/to/fan-made-Witch-hat-atelier-simulator
-scripts/install-launch-agent.sh
-```
-
-Desinstaller:
-
-```bash
-cd /path/to/fan-made-Witch-hat-atelier-simulator
-scripts/uninstall-launch-agent.sh
-```
-
-Le service utilise `scripts/start-local-server.sh` et sert le site sur
-`http://127.0.0.1:8000/`. Les journaux sont ecrits dans `logs/`.
-
-## Documentation de travail
-
-Les documents de cadrage sont dans `docs/`:
-
-- `docs/00-overview.md` : carte des documents et principe de travail.
-- `docs/product-brief.md` : intention produit et objectifs.
-- `docs/design-direction.md` : direction UX, visuelle et animation.
-- `docs/architecture.md` : architecture actuelle et cible.
-- `docs/spell-effect-catalog.md` : grammaire diagramme -> effet 3D.
-- `docs/qa-plan.md` : plan de verification manuelle et visuelle.
-- `docs/release-checklist.md` : controles avant GitHub et publication web.
-- `docs/progress-tracker.md` : jalons, backlog et decisions.
-
-Objectif de la prochaine phase: utiliser les diagrammes comme moteur de
-manifestations 3D. Par exemple, un sigil d'eau combine avec Orbe, Colonne ou
-Levitation doit produire des animations d'eau distinctes, inspirees par la
-logique de Witch Hat Atelier mais dessinees et animees comme assets originaux.
-
-## Structure
 
 - `index.html` : page principale du site.
 - `bibliotheque.html` : bibliotheque de planches de reference de cercles.
@@ -149,5 +68,4 @@ node --check spell-grammar.mjs
 node scripts/validate-spell-matrix.mjs
 ```
 
-Le dernier controle doit annoncer 47 dessins, 6 669 recettes uniques, 6 144
-plans executables et 19 regles logiques validees.
+
