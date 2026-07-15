@@ -2,8 +2,10 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { SYMBOL_AUDIT, SYMBOL_PATHS } from "./symbol-catalog.mjs?v=20260714-symbol-audit-v5";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs";
+import { getLocale, t } from "./site-i18n.mjs?v=20260715-i18n-v1";
 import {
   canDropGlyph,
+  clampGlyphCenter,
   cloneActions,
   resizeGlyphSize,
   shouldArmLongPress,
@@ -105,6 +107,87 @@ const supportOptions = [
   },
 ];
 
+const englishElementNames = Object.freeze({
+  "Feu": "Fire",
+  "Eau": "Water",
+  "Terre": "Earth",
+  "Vent": "Wind",
+  "Lumiere": "Light",
+  "Cristal": "Crystal",
+  "Aeriforme": "Aeriform",
+  "Vent sous pied": "Wind underfoot",
+  "Repetition": "Repetition",
+  "Colonne": "Column",
+  "Dispersion": "Dispersion",
+  "Levitation": "Levitation",
+  "Traction": "Pull",
+  "Region": "Region",
+  "Convergence": "Convergence",
+  "Collection": "Collection",
+  "Nuage": "Billow",
+  "Crush": "Crush",
+  "Pantin": "Puppet",
+  "Flottement": "Float",
+  "Etirement": "Stretch / Weave",
+  "Spire physique": "Physical coil",
+  "Refroidissement": "Cooling",
+  "Renforcement": "Strengthen",
+  "Cible": "Sights",
+  "Enlacement": "Entwine",
+  "Signe de vent": "Wind sign",
+  "Aeriforme defini": "Defined aeriform",
+  "Rassemblement": "Gathering",
+  "Glaives": "Depth",
+  "Solidification": "Solidification",
+  "Lien": "Link",
+  "Arret": "Bind",
+  "Enveloppe": "Wrap",
+  "Dissimulation": "Concealment",
+  "Reflection": "Reflection",
+  "Diamant": "Diamond",
+  "Fenetre": "Window",
+  "Agrandissement": "Expansion",
+  "Viseur": "Crosshair",
+  "Radial": "Radial",
+  "Projectile": "Bolt",
+  "Pluie": "Rain",
+  "Orbe": "Orb",
+  "Purification": "Purification",
+  "Immobilite": "Stillness",
+  "Projection": "Projection",
+  "Energie brute": "Raw energy",
+});
+
+function elementDisplayName(elementOrName) {
+  const name = typeof elementOrName === "string" ? elementOrName : elementOrName?.name;
+  return getLocale() === "en" ? englishElementNames[name] || name : name;
+}
+
+function elementCategoryLabel(element) {
+  if (element.kind === "sigil") {
+    return t("symbols.category.sigil");
+  }
+  const categoryKeys = {
+    "Directionnel": "symbols.category.directional",
+    "Semi-directionnel": "symbols.category.semiDirectional",
+    "Non-directionnel": "symbols.category.nonDirectional",
+    "Asymetrique": "symbols.category.asymmetrical",
+  };
+  return t(categoryKeys[element.category] || "symbols.category.sign");
+}
+
+function supportDisplayName(support, short = false) {
+  return t(`support.${support.id}.${short ? "short" : "name"}`);
+}
+
+function supportDisplayTarget(support) {
+  return t(`support.${support.id}.target`);
+}
+
+function supportDisplayHint(support) {
+  return t(`support.${support.id}.hint`);
+}
+
 function supportImageMarkup(id) {
   const drawings = {
     none: `
@@ -139,6 +222,7 @@ function supportImageMarkup(id) {
 }
 
 const labels = {
+  select: "Selection",
   free: "Plume",
   circle: "Sceau",
   ring: "Double anneau",
@@ -224,6 +308,7 @@ const state = {
   activeSpell: null,
   recognizedSymbol: null,
   selectedGlyphIndex: null,
+  selectionDrag: null,
   symbolDrag: null,
   longPress: null,
   deferredTouchTool: null,
@@ -299,15 +384,20 @@ function currentSupport() {
 
 function supportStatusText() {
   const support = currentSupport();
-  return support.id === "none" ? "Support: aucun lien." : `Support: ${support.name} (${support.effectLabel}).`;
+  return support.id === "none"
+    ? t("status.supportNone")
+    : t("status.supportSelected", { name: supportDisplayName(support) });
 }
 
 function supportStatusLines() {
   const support = currentSupport();
   if (support.id === "none") {
-    return ["Support: aucun lien"];
+    return [t("status.supportNoneShort")];
   }
-  return [`Support: ${support.name}`, `Lien objet: ${support.effectLabel}`];
+  return [
+    t("status.supportLine", { name: supportDisplayName(support) }),
+    t("status.objectLink", { effect: t("support.shoe.effect") }),
+  ];
 }
 
 function primaryElementNameFromModel(model) {
@@ -771,6 +861,7 @@ function pointerCenter(points) {
 
 function beginPanGesture() {
   cancelLongPress();
+  cancelSelectionDrag(true);
   state.deferredTouchTool = null;
   state.pointerDown = false;
   state.currentAction = null;
@@ -6198,11 +6289,113 @@ function selectGlyphAt(point) {
   state.selectedGlyphIndex = index >= 0 ? index : null;
   updateSelectionControls();
   if (index >= 0) {
-    setStatus(state.actions[index].element + " selectionne. Utilise - ou + pour changer sa taille.");
+    setStatus(t("status.selectionReady", { name: elementDisplayName(state.actions[index].element) }));
   } else {
-    setStatus("Aucun symbole selectionne.");
+    setStatus(t("status.selectionEmpty"));
   }
   render();
+}
+
+function beginSelectionDrag(event, point) {
+  const index = topmostGlyphIndexAtPoint(state.actions, point);
+  state.selectedGlyphIndex = index >= 0 ? index : null;
+  updateSelectionControls();
+  if (index < 0) {
+    state.pointerDown = false;
+    state.selectionDrag = null;
+    setStatus(t("status.selectionEmpty"));
+    render();
+    return;
+  }
+  const action = state.actions[index];
+  state.selectionDrag = {
+    pointerId: event.pointerId,
+    index,
+    snapshot: cloneActions(state.actions),
+    grabOffsetX: action.x - point.x,
+    grabOffsetY: action.y - point.y,
+    startX: action.x,
+    startY: action.y,
+    moved: false,
+  };
+  setStatus(t("status.selectionReady", { name: elementDisplayName(action.element) }));
+  render();
+}
+
+function moveSelectionDrag(point) {
+  const drag = state.selectionDrag;
+  const action = drag ? state.actions[drag.index] : null;
+  if (!drag || action?.type !== "glyph") {
+    return;
+  }
+  const { width, height } = canvasSize();
+  const next = clampGlyphCenter({
+    x: point.x + drag.grabOffsetX,
+    y: point.y + drag.grabOffsetY,
+  }, action.size * 1.18, drawingLimitBounds(width, height));
+  action.x = next.x;
+  action.y = next.y;
+  drag.moved = drag.moved || Math.hypot(action.x - drag.startX, action.y - drag.startY) > 2;
+  state.activeSpell = null;
+  render();
+}
+
+function finishSelectionDrag(point) {
+  const drag = state.selectionDrag;
+  if (!drag) {
+    return;
+  }
+  moveSelectionDrag(point);
+  const action = state.actions[drag.index];
+  state.selectionDrag = null;
+  state.pointerDown = false;
+  state.start = null;
+  if (drag.moved) {
+    state.undoStack.push(drag.snapshot);
+    if (state.undoStack.length > 100) {
+      state.undoStack.shift();
+    }
+    state.redoStack = [];
+    refreshCircleCenter();
+    updateUsedList();
+    updateSpellState();
+    setStatus(t("status.selectionMoved", { name: elementDisplayName(action.element) }));
+  }
+  render();
+}
+
+function cancelSelectionDrag(restore = false) {
+  const drag = state.selectionDrag;
+  if (!drag) {
+    return;
+  }
+  if (restore && drag.moved) {
+    state.actions = cloneActions(drag.snapshot);
+  }
+  state.selectionDrag = null;
+  state.pointerDown = false;
+  state.start = null;
+  updateSelectionControls();
+  render();
+}
+
+function deleteSelectedGlyph() {
+  const action = selectedGlyph();
+  if (!action) {
+    return false;
+  }
+  const name = elementDisplayName(action.element);
+  recordHistory();
+  state.actions.splice(state.selectedGlyphIndex, 1);
+  state.selectedGlyphIndex = null;
+  state.activeSpell = null;
+  refreshCircleCenter();
+  updateSelectionControls();
+  updateUsedList();
+  updateSpellState();
+  setStatus(t("status.selectionDeleted", { name }));
+  render();
+  return true;
 }
 
 function resizeSelectedGlyph(direction) {
@@ -6311,6 +6504,11 @@ function onPointerDown(event) {
   state.start = point;
   state.preview = null;
   state.currentAction = null;
+  if (state.tool === "select") {
+    cancelLongPress();
+    beginSelectionDrag(event, point);
+    return;
+  }
   armLongPress(event, point);
 
   if (shouldDeferTouchTool(event.pointerType, state.tool)) {
@@ -6375,7 +6573,9 @@ function onPointerMove(event) {
   }
 
   const point = clampPointToDrawingLimit(pointFromEvent(event));
-  if (state.tool === "free" && state.currentAction) {
+  if (state.tool === "select" && state.selectionDrag?.pointerId === event.pointerId) {
+    moveSelectionDrag(point);
+  } else if (state.tool === "free" && state.currentAction) {
     state.currentAction.points.push(point);
     render();
   } else if (state.tool === "glyph" && state.currentAction) {
@@ -6423,6 +6623,11 @@ function onPointerUp(event) {
     return;
   }
 
+  if (state.selectionDrag?.pointerId === event.pointerId) {
+    finishSelectionDrag(clampPointToDrawingLimit(pointFromEvent(event)));
+    return;
+  }
+
   if (!state.pointerDown) {
     return;
   }
@@ -6454,6 +6659,9 @@ function onPointerUp(event) {
 
 function onPointerCancel(event) {
   cancelLongPress();
+  if (state.selectionDrag?.pointerId === event.pointerId) {
+    cancelSelectionDrag(true);
+  }
   if (state.deferredTouchTool?.pointerId === event.pointerId) {
     state.deferredTouchTool = null;
   }
@@ -6482,6 +6690,7 @@ function updateToolButtons() {
     button.classList.toggle("is-active", isActive);
     button.setAttribute("aria-pressed", String(isActive));
   }
+  canvas.classList.toggle("is-select-tool", state.tool === "select");
 }
 
 function elementIconMarkup(element) {
@@ -6498,10 +6707,10 @@ function symbolGroups() {
     return element.kind === "sign" && roles.includes(SIGN_PROFILES[element.name]?.role);
   });
   return [
-    ["Sigils centraux", elements.filter((element) => element.kind === "sigil")],
-    ["Forme et portee", signsByRole(["form", "scope", "supply"])],
-    ["Mouvement et cible", signsByRole(["motion", "target"])],
-    ["Etat et relations", signsByRole(["state", "relation", "power"])],
+    [t("symbols.group.central"), elements.filter((element) => element.kind === "sigil")],
+    [t("symbols.group.form"), signsByRole(["form", "scope", "supply"])],
+    [t("symbols.group.motion"), signsByRole(["motion", "target"])],
+    [t("symbols.group.state"), signsByRole(["state", "relation", "power"])],
   ];
 }
 
@@ -6520,12 +6729,12 @@ function renderInkList() {
     for (const element of groupElements) {
       const grammarProfile = element.kind === "sign" ? SIGN_PROFILES[element.name] : SIGIL_PROFILES[element.name];
       const confidence = element.kind === "sigil"
-        ? "sigil central"
+        ? t("symbols.confidence.central")
         : grammarProfile?.confidence === "high"
-          ? "reference solide"
+          ? t("symbols.confidence.high")
           : grammarProfile?.confidence === "medium"
-            ? "reference partielle"
-            : "interpretation prudente";
+            ? t("symbols.confidence.medium")
+            : t("symbols.confidence.low");
       const button = document.createElement("button");
       button.className = "ink-button";
       button.type = "button";
@@ -6534,14 +6743,14 @@ function renderInkList() {
       button.innerHTML = `
         <span class="symbol-icon" style="--symbol-color:${element.color}">${elementIconMarkup(element)}</span>
         <span class="symbol-copy">
-          <span class="symbol-name">${element.name}</span>
+          <span class="symbol-name">${elementDisplayName(element)}</span>
           <small>${confidence}</small>
         </span>
       `;
       button.addEventListener("click", () => {
         state.element = element;
         updateInkSelection();
-        setStatus(`Symbole ${element.name} prepare.`);
+        setStatus(t("status.symbolPrepared", { name: elementDisplayName(element) }));
       });
       section.append(button);
     }
@@ -6568,14 +6777,14 @@ function renderPlacementList() {
       button.className = "placement-card";
       button.type = "button";
       button.dataset.symbol = element.name;
-      button.setAttribute("aria-label", "Glisser " + element.name + " vers le parchemin");
+      button.setAttribute("aria-label", t("symbols.dragToParchment", { name: elementDisplayName(element) }));
       button.innerHTML =
         '<span class="symbol-icon" style="--symbol-color:' + element.color + '">' +
           elementIconMarkup(element) +
         '</span><span class="symbol-copy"><span class="symbol-name">' +
-          element.name +
+          elementDisplayName(element) +
         '</span><small>' +
-          (element.kind === "sigil" ? "sigil central" : element.category) +
+          elementCategoryLabel(element) +
         '</small></span>';
       button.addEventListener("pointerdown", (event) => startSymbolDrag(event, element));
       button.addEventListener("dragstart", (event) => event.preventDefault());
@@ -6589,7 +6798,7 @@ function renderPlacementList() {
         updateInkSelection();
         updateToolButtons();
         setPlacementDrawer(false);
-        setStatus(element.name + " prepare. Clique sur le parchemin pour le placer.");
+        setStatus(t("status.symbolClickToPlace", { name: elementDisplayName(element) }));
       });
       section.append(button);
     }
@@ -6626,7 +6835,7 @@ function startSymbolDrag(event, element) {
   window.addEventListener("pointerup", finishSymbolDrag);
   window.addEventListener("pointercancel", cancelSymbolDrag);
   moveSymbolDrag(event);
-  setStatus(element.name + " en main. Glisse-le jusqu'au parchemin.");
+  setStatus(t("status.symbolInHand", { name: elementDisplayName(element) }));
 }
 
 function moveSymbolDrag(event) {
@@ -6664,9 +6873,9 @@ function finishSymbolDrag(event) {
   cancelSymbolDrag();
   if (action) {
     commitAction(action);
-    setStatus(elementName + " depose sur le parchemin.");
+    setStatus(t("status.symbolDropped", { name: elementDisplayName(elementName) }));
   } else {
-    setStatus("Depot annule: relache le symbole dans la zone de dessin.");
+    setStatus(t("status.symbolDropCancelled"));
   }
 }
 
@@ -6698,14 +6907,20 @@ function updateInkSelection() {
   const grammarProfile = state.element.kind === "sign" ? SIGN_PROFILES[state.element.name] : SIGIL_PROFILES[state.element.name];
   const observed = SYMBOL_AUDIT.observed.includes(state.element.name);
   const confidence = state.element.kind === "sigil"
-    ? "sigil central"
+    ? t("symbols.confidence.central")
     : grammarProfile?.confidence === "high" && observed
-      ? "forme recoupee"
+      ? t("symbols.confidence.confirmed")
       : grammarProfile?.confidence === "low" || SYMBOL_AUDIT.interpreted.includes(state.element.name)
-        ? "interpretation prudente"
-        : "forme partiellement documentee";
+        ? t("symbols.confidence.low")
+        : t("symbols.confidence.partial");
   const mechanic = grammarProfile?.mechanic || state.element.meaning;
-  inkInfo.textContent = `${state.element.name} (${state.element.rune}) - ${confidence}. ${mechanic} Charge ${chargeLabel}.`;
+  inkInfo.textContent = t("symbols.info", {
+    name: elementDisplayName(state.element),
+    rune: state.element.rune,
+    confidence,
+    mechanic,
+    charge: chargeLabel,
+  });
 }
 
 function renderSupportList() {
@@ -6718,10 +6933,10 @@ function renderSupportList() {
     button.innerHTML = `
       <span class="support-visual">${supportImageMarkup(support.id)}</span>
       <span class="support-copy">
-        <span class="support-title">${support.name}</span>
+        <span class="support-title">${supportDisplayName(support)}</span>
         <span class="support-meta">
-          <span>${support.target}</span>
-          <span>${support.hint}</span>
+          <span>${supportDisplayTarget(support)}</span>
+          <span>${supportDisplayHint(support)}</span>
         </span>
       </span>
     `;
@@ -6750,14 +6965,14 @@ function updateSupportSelection() {
     button.title = optionIssue ? optionIssue.message : "";
   }
   const issue = supportSizeIssue(diameter, support);
-  supportInfo.textContent = `${support.name}. ${support.target} ${support.hint}${issue ? ` ${issue.message}` : ""}`;
+  supportInfo.textContent = `${supportDisplayName(support)}. ${supportDisplayTarget(support)} ${supportDisplayHint(support)}${issue ? ` ${issue.message}` : ""}`;
 }
 
 function updateUsedList() {
   usedList.innerHTML = "";
   if (state.actions.length === 0) {
     const item = document.createElement("li");
-    item.textContent = "Aucune trace";
+    item.textContent = t("details.noMarks");
     usedList.append(item);
     return;
   }
@@ -6772,23 +6987,23 @@ function updateUsedList() {
       continue;
     }
     const label = action.type === "glyph"
-      ? `${action.kind === "sign" ? "Signe" : "Sigil"}: ${action.element}`
+      ? `${action.kind === "sign" ? t("symbols.category.sign") : t("symbols.category.sigil")}: ${elementDisplayName(action.element)}`
       : action.label;
     counts.set(label, (counts.get(label) || 0) + 1);
   }
   if (recognized) {
-    counts.set(`Sigil central reconnu: ${recognized.element} ${Math.round(recognized.quality)}%`, 1);
+    counts.set(t("details.centralRecognized", { name: elementDisplayName(recognized.element), quality: Math.round(recognized.quality) }), 1);
   } else if (state.recognitionCandidates && state.recognitionCandidates.length > 0) {
     const hint = state.recognitionCandidates
       .filter((candidate) => candidate.score >= 28)
       .map((candidate) => `${candidate.element} ${Math.round(candidate.score)}%`)
       .join(" / ");
     if (hint) {
-      counts.set(`Candidats: ${hint}`, 1);
+      counts.set(t("details.candidates", { list: hint }), 1);
     }
   }
   for (const sign of inferredSigns) {
-    const label = `Signe reconnu: ${sign.element}`;
+    const label = t("details.signRecognized", { name: elementDisplayName(sign.element) });
     counts.set(label, (counts.get(label) || 0) + 1);
   }
 
@@ -6854,7 +7069,7 @@ function spellMetrics() {
 
 function updateSpellState() {
   const metrics = spellMetrics();
-  spellElement.textContent = metrics.element;
+  spellElement.textContent = elementDisplayName(metrics.element);
   spellQuality.textContent = `${metrics.quality}%`;
   spellDuration.textContent = `${Math.round(metrics.duration / 1000)}s`;
   spellStability.textContent = `${metrics.stability}%`;
@@ -6863,7 +7078,7 @@ function updateSpellState() {
   const sizeIssue = activationSizeIssue(metrics.diameter);
   spellDiameter.classList.toggle("is-danger", Boolean(sizeIssue));
   spellDiameter.title = sizeIssue ? `Cercle ${sizeIssue.label} pour etre active. ${sizeIssue.limit}.` : "";
-  spellSupport.textContent = currentSupport().short;
+  spellSupport.textContent = supportDisplayName(currentSupport(), true);
   updateSupportSelection();
 }
 
@@ -7366,6 +7581,12 @@ document.addEventListener("keydown", (event) => {
     return;
   }
 
+  if ((event.key === "Delete" || event.key === "Backspace") && state.selectedGlyphIndex !== null) {
+    event.preventDefault();
+    deleteSelectedGlyph();
+    return;
+  }
+
   if (event.key === "Escape" && !view3dPanel.hidden) {
     event.preventDefault();
     close3dView();
@@ -7417,6 +7638,14 @@ window.addEventListener("resize", resizeCanvas);
 window.addEventListener("resize", resizeThreeView);
 window.visualViewport?.addEventListener("resize", resizeCanvas);
 window.screen.orientation?.addEventListener("change", resizeCanvas);
+window.addEventListener("wha:localechange", () => {
+  renderInkList();
+  renderPlacementList();
+  renderSupportList();
+  updateUsedList();
+  updateSpellState();
+  setStatus(t("status.languageChanged"));
+});
 
 renderInkList();
 renderPlacementList();

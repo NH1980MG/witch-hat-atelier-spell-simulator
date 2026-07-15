@@ -32,6 +32,14 @@ export function canDropGlyph(point, size, bounds) {
   );
 }
 
+export function clampGlyphCenter(point, size, bounds) {
+  const margin = Math.max(0, Number(size) || 0);
+  return {
+    x: Math.max(bounds.left + margin, Math.min(bounds.right - margin, point.x)),
+    y: Math.max(bounds.top + margin, Math.min(bounds.bottom - margin, point.y)),
+  };
+}
+
 export function shouldArmLongPress(pointerType, button, activePointerCount) {
   return pointerType === "touch" && button === 0 && activePointerCount === 1;
 }
