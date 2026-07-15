@@ -2,6 +2,9 @@ export const MIN_GLYPH_SIZE = 12;
 export const MAX_GLYPH_SIZE = 120;
 
 export function resizeGlyphSize(size, direction) {
+  if (!["grow", "shrink"].includes(direction)) {
+    throw new TypeError("Unknown resize direction");
+  }
   const factor = direction === "shrink" ? 0.9 : 1.1;
   const nextSize = Math.round(size * factor * 10) / 10;
   return Math.max(MIN_GLYPH_SIZE, Math.min(MAX_GLYPH_SIZE, nextSize));

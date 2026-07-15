@@ -14,6 +14,10 @@ test("resizeGlyphSize applique le pas et les limites", () => {
   assert.equal(resizeGlyphSize(12, "shrink"), 12);
 });
 
+test("resizeGlyphSize refuse une direction inconnue", () => {
+  assert.throws(() => resizeGlyphSize(20, "sideways"), /direction/);
+});
+
 test("topmostGlyphIndexAtPoint ignore les traits et choisit le glyphe superieur", () => {
   const actions = [
     { type: "glyph", x: 50, y: 50, size: 20 },

@@ -24,3 +24,12 @@ test("les etats de palette et de transport sont styles", async () => {
   assert.match(css, /\.symbol-drag-ghost/);
   assert.match(css, /\.placement-card/);
 });
+
+test("l'application cable la selection contextuelle et son historique", async () => {
+  const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
+
+  assert.match(app, /contextmenu/);
+  assert.match(app, /selectedGlyphIndex/);
+  assert.match(app, /undoStack/);
+  assert.match(app, /resizeSelectedGlyph/);
+});

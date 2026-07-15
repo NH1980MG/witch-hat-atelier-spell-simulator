@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { SYMBOL_AUDIT, SYMBOL_PATHS } from "./symbol-catalog.mjs?v=20260714-symbol-audit-v5";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs";
+import { cloneActions, resizeGlyphSize, topmostGlyphIndexAtPoint } from "./symbol-interactions.mjs";
 
 const colors = {
   edge: "#8c6b3f",
@@ -184,6 +185,8 @@ const closeDetailsButton = document.querySelector("#closeDetailsButton");
 const supportToggleButton = document.querySelector("#supportToggleButton");
 const supportDrawer = document.querySelector("#supportDrawer");
 const closeSupportButton = document.querySelector("#closeSupportButton");
+const shrinkSelectionButton = document.querySelector("#shrinkSelectionButton");
+const growSelectionButton = document.querySelector("#growSelectionButton");
 
 const state = {
   tool: "free",
@@ -208,7 +211,10 @@ const state = {
   activation: null,
   activeSpell: null,
   recognizedSymbol: null,
+  selectedGlyphIndex: null,
+  longPress: null,
   animationFrame: 0,
+  undoStack: [],
   redoStack: [],
 };
 
@@ -5763,6 +5769,52 @@ function drawMeasureCounter(width, height) {
   ctx.restore();
 }
 
+function selectedGlyph() {
+  const action = state.actions[state.selectedGlyphIndex];
+  return action?.type === "glyph" ? action : null;
+}
+
+function updateSelectionControls() {
+  const action = selectedGlyph();
+  state.selectedGlyphIndex = action ? state.selectedGlyphIndex : null;
+  if (shrinkSelectionButton) {
+    shrinkSelectionButton.disabled = !action || action.size <= 12;
+  }
+  if (growSelectionButton) {
+    growSelectionButton.disabled = !action || action.size >= 120;
+  }
+}
+
+function drawSelectedGlyph() {
+  const action = selectedGlyph();
+  if (!action) {
+    return;
+  }
+
+  const halfSize = action.size * 1.18;
+  ctx.save();
+  ctx.translate(action.x, action.y);
+  ctx.rotate(action.rotation || 0);
+  ctx.strokeStyle = colors.gold;
+  ctx.fillStyle = colors.paper;
+  ctx.lineWidth = visibleLineWidth(2);
+  ctx.setLineDash([visibleLineWidth(7), visibleLineWidth(5)]);
+  ctx.strokeRect(-halfSize, -halfSize, halfSize * 2, halfSize * 2);
+  ctx.setLineDash([]);
+  for (const [x, y] of [
+    [-halfSize, -halfSize],
+    [halfSize, -halfSize],
+    [halfSize, halfSize],
+    [-halfSize, halfSize],
+  ]) {
+    ctx.beginPath();
+    ctx.arc(x, y, visibleLineWidth(4), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function render() {
   const { width, height } = canvasSize();
   ctx.clearRect(0, 0, width, height);
@@ -5792,6 +5844,7 @@ function render() {
     drawAction(state.preview, true);
   }
 
+  drawSelectedGlyph();
   drawActiveAura(width, height);
   drawActivation(width, height);
   ctx.restore();
@@ -5875,6 +5928,25 @@ function createAction(type, start, point) {
   return null;
 }
 
+function recordHistory() {
+  state.undoStack.push(cloneActions(state.actions));
+  if (state.undoStack.length > 100) {
+    state.undoStack.shift();
+  }
+  state.redoStack = [];
+}
+
+function restoreActions(snapshot) {
+  state.actions = cloneActions(snapshot);
+  state.activeSpell = null;
+  state.activation = null;
+  refreshCircleCenter();
+  updateSelectionControls();
+  updateUsedList();
+  updateSpellState();
+  render();
+}
+
 function commitAction(action) {
   if (!action) {
     return;
@@ -5889,8 +5961,8 @@ function commitAction(action) {
     action.boundary = false;
   }
 
+  recordHistory();
   state.actions.push(action);
-  state.redoStack = [];
   state.activeSpell = null;
   if (["circle", "ring", "spiral"].includes(action.type)) {
     state.circleCenter = { x: action.cx, y: action.cy };
@@ -6091,13 +6163,83 @@ function hitsAction(point, action) {
   );
 }
 
+function selectGlyphAt(point) {
+  const index = topmostGlyphIndexAtPoint(state.actions, point);
+  state.selectedGlyphIndex = index >= 0 ? index : null;
+  updateSelectionControls();
+  if (index >= 0) {
+    setStatus(state.actions[index].element + " selectionne. Utilise - ou + pour changer sa taille.");
+  } else {
+    setStatus("Aucun symbole selectionne.");
+  }
+  render();
+}
+
+function resizeSelectedGlyph(direction) {
+  const action = selectedGlyph();
+  if (!action) {
+    setStatus("Fais un clic droit sur un symbole avant de changer sa taille.");
+    return;
+  }
+
+  const nextSize = resizeGlyphSize(action.size, direction);
+  if (nextSize === action.size) {
+    updateSelectionControls();
+    return;
+  }
+
+  recordHistory();
+  action.size = nextSize;
+  action.userAdjusted = true;
+  state.activeSpell = null;
+  updateSelectionControls();
+  updateUsedList();
+  updateSpellState();
+  setStatus(action.element + (direction === "grow" ? " agrandi." : " retreci."));
+  render();
+}
+
+function cancelLongPress() {
+  if (!state.longPress) {
+    return;
+  }
+  window.clearTimeout(state.longPress.timer);
+  state.longPress = null;
+}
+
+function armLongPress(event, point) {
+  if (event.pointerType === "mouse" || event.button !== 0) {
+    return;
+  }
+  const startScreen = screenPointFromEvent(event);
+  const pointerId = event.pointerId;
+  const timer = window.setTimeout(() => {
+    if (!state.longPress || state.longPress.pointerId !== pointerId) {
+      return;
+    }
+    state.longPress = null;
+    state.pointerDown = false;
+    state.start = null;
+    state.currentAction = null;
+    state.preview = null;
+    selectGlyphAt(point);
+  }, 500);
+  state.longPress = { pointerId, startScreen, timer };
+}
+
 function eraseAt(point) {
   for (let index = state.actions.length - 1; index >= 0; index -= 1) {
     if (hitsAction(point, state.actions[index])) {
+      recordHistory();
       state.actions.splice(index, 1);
-      state.redoStack = [];
+      if (state.selectedGlyphIndex === index) {
+        state.selectedGlyphIndex = null;
+      } else if (state.selectedGlyphIndex > index) {
+        state.selectedGlyphIndex -= 1;
+      }
       state.activeSpell = null;
       refreshCircleCenter();
+      updateSelectionControls();
       updateUsedList();
       updateSpellState();
       setStatus("Trace retiree du parchemin.");
@@ -6108,6 +6250,10 @@ function eraseAt(point) {
 }
 
 function onPointerDown(event) {
+  if (event.button === 2) {
+    event.preventDefault();
+    return;
+  }
   state.activePointers.set(event.pointerId, screenPointFromEvent(event));
   canvas.setPointerCapture(event.pointerId);
 
@@ -6132,6 +6278,7 @@ function onPointerDown(event) {
   state.start = point;
   state.preview = null;
   state.currentAction = null;
+  armLongPress(event, point);
 
   if (state.tool === "free") {
     state.currentAction = {
@@ -6151,6 +6298,12 @@ function onPointerDown(event) {
 }
 
 function onPointerMove(event) {
+  if (state.longPress?.pointerId === event.pointerId) {
+    const currentScreen = screenPointFromEvent(event);
+    if (distance(currentScreen, state.longPress.startScreen) > 8) {
+      cancelLongPress();
+    }
+  }
   if (state.activePointers.has(event.pointerId)) {
     state.activePointers.set(event.pointerId, screenPointFromEvent(event));
   }
@@ -6192,6 +6345,7 @@ function onPointerMove(event) {
 }
 
 function onPointerUp(event) {
+  cancelLongPress();
   state.activePointers.delete(event.pointerId);
   if (state.panGesture) {
     if (state.activePointers.size < 2) {
@@ -6831,45 +6985,39 @@ function activateCircle() {
 }
 
 function undo() {
-  if (state.actions.length === 0) {
-    setStatus("Aucune trace a retirer.");
+  if (state.undoStack.length === 0) {
+    setStatus("Aucune modification a annuler.");
     return;
   }
 
-  const removed = state.actions.pop();
-  state.redoStack.push(removed);
-  state.activeSpell = null;
-  refreshCircleCenter();
-  updateUsedList();
-  updateSpellState();
-  setStatus(`${removed.label} retire du grimoire.`);
-  render();
+  state.redoStack.push(cloneActions(state.actions));
+  restoreActions(state.undoStack.pop());
+  setStatus("Derniere modification annulee.");
 }
 
 function redo() {
   if (state.redoStack.length === 0) {
-    setStatus("Aucune trace a refaire.");
+    setStatus("Aucune modification a retablir.");
     return;
   }
 
-  const restored = state.redoStack.pop();
-  state.actions.push(restored);
-  state.activeSpell = null;
-  refreshCircleCenter();
-  updateUsedList();
-  updateSpellState();
-  setStatus(`${restored.label} restaure.`);
-  render();
+  state.undoStack.push(cloneActions(state.actions));
+  restoreActions(state.redoStack.pop());
+  setStatus("Modification retablie.");
 }
 
 function clearCanvas() {
+  if (state.actions.length > 0) {
+    recordHistory();
+  }
   cancelAnimationFrame(state.animationFrame);
   state.actions = [];
-  state.redoStack = [];
   state.currentAction = null;
   state.preview = null;
   state.circleCenter = null;
   state.activation = null;
+  state.selectedGlyphIndex = null;
+  updateSelectionControls();
   updateUsedList();
   updateSpellState();
   setStatus("Parchemin vierge.");
@@ -6954,6 +7102,8 @@ detailsToggleButton?.addEventListener("click", () => setDetailsDrawer(true));
 closeDetailsButton?.addEventListener("click", () => setDetailsDrawer(false));
 supportToggleButton?.addEventListener("click", () => setSupportDrawer(true));
 closeSupportButton?.addEventListener("click", () => setSupportDrawer(false));
+shrinkSelectionButton?.addEventListener("click", () => resizeSelectedGlyph("shrink"));
+growSelectionButton?.addEventListener("click", () => resizeSelectedGlyph("grow"));
 
 document.addEventListener("keydown", (event) => {
   const target = event.target;
@@ -7007,11 +7157,21 @@ document.addEventListener("keydown", (event) => {
   } else if (event.key === "+" || event.key === "Add") {
     event.preventDefault();
     setCanvasScale(state.canvasScale + 10);
+  } else if (event.key === "Escape" && state.selectedGlyphIndex !== null) {
+    state.selectedGlyphIndex = null;
+    updateSelectionControls();
+    setStatus("Selection retiree.");
+    render();
   } else if (event.key === "Escape") {
     clearCanvas();
   }
 });
 
+canvas.addEventListener("contextmenu", (event) => {
+  event.preventDefault();
+  cancelLongPress();
+  selectGlyphAt(pointFromEvent(event));
+});
 canvas.addEventListener("pointerdown", onPointerDown);
 canvas.addEventListener("pointermove", onPointerMove);
 canvas.addEventListener("pointerup", onPointerUp);
@@ -7025,6 +7185,7 @@ window.screen.orientation?.addEventListener("change", resizeCanvas);
 renderInkList();
 renderSupportList();
 updateToolButtons();
+updateSelectionControls();
 updateUsedList();
 updateSpellState();
 if (measureInput) {
