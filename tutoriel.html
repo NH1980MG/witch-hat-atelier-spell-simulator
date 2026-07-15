@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-store">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'">
+    <title>Witch Hat Atelier Simulator - Tutoriel</title>
+    <script>
+      if (window.location.protocol === "file:") {
+        window.location.replace("http://127.0.0.1:8000/tutoriel.html");
+      }
+    </script>
+    <link rel="stylesheet" href="styles.css?v=20260714-sign-geometry-v4">
+  </head>
+  <body>
+    <main class="app-shell settings-page">
+      <header class="top-title">
+        <a class="page-title-link" href="index.html" aria-label="Retour au menu principal">
+          <h1>Tutoriel du simulateur</h1>
+        </a>
+        <nav class="header-nav" aria-label="Navigation secondaire">
+          <a class="header-link" href="index.html" aria-label="Retourner au simulateur" title="Retour atelier">
+            <span aria-hidden="true">&#8592;</span>
+            Atelier
+          </a>
+          <a class="header-link" href="bibliotheque.html" aria-label="Ouvrir la bibliotheque de cercles" title="Bibliotheque">
+            <span aria-hidden="true">&#9678;</span>
+            Bibliotheque
+          </a>
+          <a class="header-link" href="parametres.html" aria-label="Ouvrir les parametres" title="Parametres">
+            <span aria-hidden="true">&#9881;</span>
+            Parametres
+          </a>
+        </nav>
+      </header>
+
+      <section class="tutorial-board" aria-label="Etapes du tutoriel">
+        <article class="settings-card tutorial-card">
+          <span class="step-number">1</span>
+          <h2>Choisir un symbole</h2>
+          <p>Le sigil central definit la matiere magique: Feu, Eau, Terre, Vent, Lumiere, Cristal, Aeriforme, Vent sous pied ou Repetition. Les signes autour du sceau modifient ensuite la maniere dont cette matiere agit.</p>
+          <div class="element-signs" aria-label="Signes des elements">
+            <span style="--sign-color:#a94a38">FE</span>
+            <span style="--sign-color:#377da4">EA</span>
+            <span style="--sign-color:#7b6043">TE</span>
+            <span style="--sign-color:#5c8b62">VE</span>
+            <span style="--sign-color:#d7a63e">LU</span>
+            <span style="--sign-color:#6b66a5">CR</span>
+            <span style="--sign-color:#5f8790">AI</span>
+            <span style="--sign-color:#b86b84">RE</span>
+          </div>
+        </article>
+
+        <article class="settings-card tutorial-card">
+          <span class="step-number">2</span>
+          <h2>Tracer le sceau</h2>
+          <p>Le cercle ferme donne une limite au sort. Tout sigil ou signe doit etre dans l'anneau ou relie a celui-ci pour contribuer. Une trace exterieure reste visible mais est ignoree. Si le trait reste ouvert, le rituel ne peut pas s'activer.</p>
+          <p>Un anneau ferme sans sigil libere une decharge breve d'energie brute. Le sigil choisit la matiere, mais il n'est donc pas obligatoire pour produire un effet.</p>
+        </article>
+
+        <article class="settings-card tutorial-card">
+          <span class="step-number">3</span>
+          <h2>Ajouter les signes</h2>
+          <p>Les signes modifient l'energie ou la matiere: collecte, etat, forme, mouvement, cible, zone, liaison ou puissance. Les signes places depuis le menu et les traits libres autour du cercle sont lus comme modificateurs separes. Le dessin montre dans le menu est exactement celui qui sera place sur la grille et reproduit dans l'encre 3D.</p>
+        </article>
+
+        <article class="settings-card tutorial-card">
+          <span class="step-number">4</span>
+          <h2>Categories de signes</h2>
+          <p>Les directionnels projettent ou tirent dans une direction. Les semi-directionnels se tournent souvent vers le centre, mais leur orientation ne cree pas forcement un mouvement. Les non-directionnels gardent le meme effet quelle que soit l'orientation. Les asymetriques restent plus imprevisibles. Seuls les signes dont l'inversion est documentee sont inverses par le simulateur.</p>
+        </article>
+
+        <article class="settings-card tutorial-card">
+          <span class="step-number">5</span>
+          <h2>Utiliser les signes directionnels</h2>
+          <p>Colonne fait monter ou jaillir l'effet; si un signe est plus grand, le sort tire davantage dans sa direction. Des signes de meme taille repartis symetriquement equilibrent la pression. Fais glisser le curseur en posant un signe pour regler sa taille et son inclinaison.</p>
+          <p>Incliner plusieurs signes dans le meme sens fait tourner la manifestation. Plus l'inclinaison est forte, plus la rotation augmente et plus la portee diminue. Levitation souleve l'eau, le feu ou la lumiere, et deplace l'air dans la direction de la fleche. Traction attire vers le sceau si la pointe regarde l'interieur, ou repousse si elle est inversee.</p>
+          <p>Exemples: Watershot Seal = Eau + Colonne; Rising Platform of Water = Eau + Levitation; Grasping Wind = Vent + Traction inclinee.</p>
+        </article>
+
+        <article class="settings-card tutorial-card">
+          <span class="step-number">6</span>
+          <h2>Controler la zone</h2>
+          <p>Region choisit ou la magie se manifeste: vers le centre, vers l'exterieur ou vers un cote. Convergence concentre l'effet en un point. Collection et Rassemblement recuperent de la matiere autour du sceau pour construire le sort.</p>
+          <p>Exemples: Floating Drops utilise Region; Wind Wall utilise Convergence; Vapor Bubble peut utiliser Rassemblement.</p>
+        </article>
+
+        <article class="settings-card tutorial-card">
+          <span class="step-number">7</span>
+          <h2>Modifier la matiere</h2>
+          <p>Crush fragmente la matiere, souvent avec Terre; inverse, il peut reconstruire a partir de poudre. Stretch/Weave transforme le solide en ruban. Spire physique donne une forme de ressort ou de spirale. Refroidissement baisse la temperature.</p>
+          <p>Exemples: Wall Breaker = Terre + Crush; Integration inverse Crush; Crystal Ribbon = Cristal + Stretch.</p>
+        </article>
+
+        <article class="settings-card tutorial-card">
+          <span class="step-number">8</span>
+          <h2>Stabiliser et cibler</h2>
+          <p>Orbe cree un volume spherique au-dessus du sceau. Viseur cible un aspect magique precis. Renforcement augmente la solidite. Solidification rend une magie plus solide. Immobilite maintient un effet en place.</p>
+          <p>Exemples: Water Orb = Eau + Orbe; Rainflinger = Viseur pour cibler la pluie; Snowfending = Immobilite pour garder la chaleur.</p>
+        </article>
+
+        <article class="settings-card tutorial-card">
+          <span class="step-number">9</span>
+          <h2>Illusion, lien et repetition</h2>
+          <p>Dissimulation cache la cible. Reflection utilise une image reflechie dans un sort d'illusion. Lien relie des objets issus de la meme origine. Repetition boucle ou repete un effet. Projection envoie une image ou un effet vers l'exterieur.</p>
+          <p>Exemples: Mirror Cloak = Reflection + Projection; Light Tracer = Lumiere + Lien; Repetition Seal = Repetition autour du sceau.</p>
+        </article>
+
+        <article class="settings-card tutorial-card">
+          <span class="step-number">10</span>
+          <h2>Regler la force</h2>
+          <p>Dans le grimoire du bas, ajuste la force du sort, l'epaisseur et l'echelle. L'echelle visuelle va de x0.5 a x2. Un carreau represente 5 cm; sous 5 cm ou au-dessus de 5 m, la mesure passe en rouge et l'activation est refusee.</p>
+        </article>
+
+        <article class="settings-card tutorial-card">
+          <span class="step-number">11</span>
+          <h2>Deplacer le parchemin</h2>
+          <p>Avec deux doigts sur le trackpad, fais glisser le parchemin pour deplacer la grille et le cercle ensemble. Sur ecran tactile, deux doigts deplacent aussi la grille sans dessiner de trait accidentel.</p>
+        </article>
+
+        <article class="settings-card tutorial-card">
+          <span class="step-number">12</span>
+          <h2>Choisir le support</h2>
+          <p>Le cercle magique reste toujours pose sur une feuille de papier. Par defaut, aucun support n'est lie au cercle. Le menu Support garde seulement deux choix pour l'instant: aucun lien ou chaussure volante. La chaussure accepte seulement les petits cercles, jusqu'a 35 cm, pour rester proportionnelle a une semelle.</p>
+          <p>Le papier est sous la semelle: Vent propulse, Terre monte comme un socle, Eau mouille la table, Eau + Levitation cree un coussin rebondissant, Eau + Convergence agit comme des jets, Feu brule autour, Feu + Convergence propulse, et Feu + Levitation produit une explosion breve.</p>
+        </article>
+
+        <article class="settings-card tutorial-card">
+          <span class="step-number">13</span>
+          <h2>Lire le rituel</h2>
+          <p>Appuie sur Lire pour connaitre le sort probable, le sigil central reconnu, les signes modificateurs et leur ordre d'execution: matiere, collecte/etat, forme, mouvement, cible/zone, liaison puis puissance. La lecture indique aussi la confiance et avertit quand une combinaison reste une interpretation.</p>
+        </article>
+
+        <article class="settings-card tutorial-card">
+          <span class="step-number">14</span>
+          <h2>Archiver la planche</h2>
+          <p>Quand le cercle te convient, utilise Archiver PNG pour sauvegarder l'image du parchemin.</p>
+        </article>
+
+        <article class="settings-card tutorial-card">
+          <span class="step-number">15</span>
+          <h2>Raccourcis clavier</h2>
+          <p>Commande/Ctrl + Z defait, Commande/Ctrl + Shift + Z refait, Commande/Ctrl + S archive en PNG. A active le rituel, L lit le cercle. Echap ferme d'abord la vue 3D ou un ilot ouvert, puis efface le parchemin seulement si rien n'est ouvert.</p>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-store">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'">
+    <title>Witch Hat Atelier Simulator - Bibliotheque</title>
+    <script>
+      if (window.location.protocol === "file:") {
+        window.location.replace("http://127.0.0.1:8000/bibliotheque.html");
+      }
+    </script>
+    <link rel="stylesheet" href="styles.css?v=20260714-sign-geometry-v4">
+  </head>
+  <body>
+    <main class="app-shell settings-page">
+      <header class="top-title">
+        <a class="page-title-link" href="index.html" aria-label="Retour au menu principal">
+          <h1>Bibliotheque des cercles</h1>
+        </a>
+        <nav class="header-nav" aria-label="Navigation secondaire">
+          <a class="header-link" href="index.html" aria-label="Retourner au simulateur" title="Retour atelier">
+            <span aria-hidden="true">&#8592;</span>
+            Atelier
+          </a>
+          <a class="header-link" href="tutoriel.html" aria-label="Ouvrir le tutoriel" title="Tutoriel">
+            <span aria-hidden="true">?</span>
+            Tutoriel
+          </a>
+          <a class="header-link" href="parametres.html" aria-label="Ouvrir les parametres" title="Parametres">
+            <span aria-hidden="true">&#9881;</span>
+            Parametres
+          </a>
+        </nav>
+      </header>
+
+      <section class="library-board circle-library-board" aria-label="Bibliotheque de cercles magiques">
+        <article class="source-note">
+          <h2>Cercles classes par categorie</h2>
+          <p>La bibliotheque affiche seulement les cercles isoles depuis les planches de reference locales. La reference 10 a ete retiree parce qu'elle ne montrait pas un cercle magique complet utilisable.</p>
+          <p class="source-links">
+            Source de travail:
+            <a href="https://witchhatatelier.telepedia.net/wiki/Witch_Hat_Atelier_Wiki">Witch Hat Atelier Wiki</a>.
+            Les categories reprennent les groupes visibles sur les references: Vision, Mixed, Niche et Ancient.
+          </p>
+        </article>
+
+        <section class="circle-category" aria-label="Vision spells">
+          <h2>Vision Spells</h2>
+          <p>Sorts bases sur le sigil de vision: observation, apparence, masque et reduction de lumiere.</p>
+          <div class="circle-grid">
+            <article class="circle-card"><img src="assets/library-circles/circle-28.png?v=20260705-circle-crops" alt="Gathering Shadows"><span>Gathering Shadows</span><small>Vision</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-29.png?v=20260705-circle-crops" alt="Light-Reducing Spell"><span>Light-Reducing Spell</span><small>Vision</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-27.png?v=20260705-circle-crops" alt="Makeover Mask Spell"><span>Makeover Mask Spell</span><small>Vision</small></article>
+          </div>
+        </section>
+
+        <section class="circle-category" aria-label="Mixed spells">
+          <h2>Mixed Spells</h2>
+          <p>Sorts qui combinent deux sigils ou plus, souvent avec plusieurs signes disposes autour du cercle.</p>
+          <div class="circle-grid">
+            <article class="circle-card"><img src="assets/library-circles/circle-32.png?v=20260705-circle-crops" alt="Beast Repellent"><span>Beast Repellent</span><small>Mixed</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-31.png?v=20260705-circle-crops" alt="Cloak Spell"><span>Cloak Spell</span><small>Mixed</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-30.png?v=20260705-circle-crops" alt="Floating Drops"><span>Floating Drops</span><small>Mixed</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-34.png?v=20260705-circle-crops" alt="Warmth-Retention Seal"><span>Warmth-Retention Seal</span><small>Mixed</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-33.png?v=20260705-circle-crops" alt="Frozen Path"><span>Frozen Path</span><small>Mixed</small></article>
+          </div>
+        </section>
+
+        <section class="circle-category" aria-label="Niche spells">
+          <h2>Niche Spells</h2>
+          <p>Sorts particuliers qui ne rentrent pas dans les grands groupes elementaires visibles dans les references.</p>
+          <div class="circle-grid">
+            <article class="circle-card"><img src="assets/library-circles/circle-09.png?v=20260705-circle-crops" alt="Billow Cluster"><span>Billow Cluster</span><small>Niche</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-06.png?v=20260705-circle-crops" alt="Cookpot Lid"><span>Cookpot Lid</span><small>Niche</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-08.png?v=20260705-circle-crops" alt="Fish Guidance"><span>Fish Guidance</span><small>Niche</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-07.png?v=20260705-circle-crops" alt="Floating Expansion"><span>Floating Expansion</span><small>Niche</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-13.png?v=20260705-circle-crops" alt="Lockwax"><span>Lockwax</span><small>Niche</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-12.png?v=20260705-circle-crops" alt="Mirror Spell"><span>Mirror Spell</span><small>Niche</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-11.png?v=20260705-circle-crops" alt="Sand Bridge"><span>Sand Bridge</span><small>Niche</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-17.png?v=20260705-circle-crops" alt="Tracking Spell"><span>Tracking Spell</span><small>Niche</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-14.png?v=20260705-circle-crops" alt="Smokesculpting Seal"><span>Smokesculpting Seal</span><small>Niche</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-15.png?v=20260705-circle-crops" alt="Windowway Spell"><span>Windowway Spell</span><small>Niche</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-16.png?v=20260705-circle-crops" alt="Enchanted Doorknob Seal"><span>Enchanted Doorknob Seal</span><small>Niche</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-18.png?v=20260705-circle-crops" alt="Smoke Cloud"><span>Smoke Cloud</span><small>Niche</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-19.png?v=20260705-circle-crops" alt="Beldaruit's Illusion Cloak"><span>Beldaruit's Illusion Cloak</span><small>Niche</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-20.png?v=20260705-circle-crops" alt="Advanced Beastwarding"><span>Advanced Beastwarding</span><small>Niche</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-21.png?v=20260705-circle-crops" alt="Amplification Scroll"><span>Amplification Scroll</span><small>Niche</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-22.png?v=20260705-circle-crops" alt="Garment-Glimpse Glasses"><span>Garment-Glimpse Glasses</span><small>Niche</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-24.png?v=20260705-circle-crops" alt="Handheld Windowway"><span>Handheld Windowway</span><small>Niche</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-25.png?v=20260705-circle-crops" alt="Owlcat Projection"><span>Owlcat Projection</span><small>Niche</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-26.png?v=20260705-circle-crops" alt="Rain Guard"><span>Rain Guard</span><small>Niche</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-23.png?v=20260705-circle-crops" alt="Pouch Guidance"><span>Pouch Guidance</span><small>Niche</small></article>
+          </div>
+        </section>
+
+        <section class="circle-category" aria-label="Ancient forbidden spells">
+          <h2>Ancient Spells - Forbidden</h2>
+          <p>Anciens sorts interdits, gardes a part car leur usage appartient aux exemples dangereux des references.</p>
+          <div class="circle-grid">
+            <article class="circle-card"><img src="assets/library-circles/circle-01.png?v=20260705-circle-crops" alt="Petrification"><span>Petrification</span><small>Ancient / Forbidden</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-02.png?v=20260705-circle-crops" alt="Scalewolf Curse"><span>Scalewolf Curse</span><small>Ancient / Forbidden</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-03.png?v=20260705-circle-crops" alt="Illusory Labyrinth"><span>Illusory Labyrinth</span><small>Ancient / Forbidden</small></article>
+          </div>
+        </section>
+
+        <section class="circle-category" aria-label="Ancient non-forbidden spells">
+          <h2>Ancient Spells - Non-Forbidden</h2>
+          <p>Anciens sorts encore compatibles avec le pacte, separes des sorts interdits.</p>
+          <div class="circle-grid">
+            <article class="circle-card"><img src="assets/library-circles/circle-04.png?v=20260705-circle-crops" alt="Twinned Bottles' Spell"><span>Twinned Bottles' Spell</span><small>Ancient / Non-Forbidden</small></article>
+            <article class="circle-card"><img src="assets/library-circles/circle-05.png?v=20260705-circle-crops" alt="Ancient Light Beacon"><span>Ancient Light Beacon</span><small>Ancient / Non-Forbidden</small></article>
+          </div>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

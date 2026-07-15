@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>local.witch-hat-atelier-simulator.server</string>
+
+    <key>ProgramArguments</key>
+    <array>
+      <string>/Users/nathanh/Projets/witch-hat-atelier-simulator/scripts/start-local-server.sh</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/nathanh/Projets/witch-hat-atelier-simulator</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/nathanh/Projets/witch-hat-atelier-simulator/logs/server.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/nathanh/Projets/witch-hat-atelier-simulator/logs/server.err.log</string>
+  </dict>
+</plist>

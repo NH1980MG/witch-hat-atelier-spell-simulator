@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-store">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'">
+    <title>Witch Hat Atelier Simulator - Parametres</title>
+    <script>
+      if (window.location.protocol === "file:") {
+        window.location.replace("http://127.0.0.1:8000/parametres.html");
+      }
+    </script>
+    <link rel="stylesheet" href="styles.css?v=20260714-symbol-grammar-v3">
+  </head>
+  <body>
+    <main class="app-shell settings-page">
+      <header class="top-title">
+        <a class="page-title-link" href="index.html" aria-label="Retour au menu principal">
+          <h1>Parametres du simulateur</h1>
+        </a>
+        <nav class="header-nav" aria-label="Navigation secondaire">
+          <a class="header-link" href="index.html" aria-label="Retourner au simulateur" title="Retour atelier">
+            <span aria-hidden="true">&#8592;</span>
+            Atelier
+          </a>
+          <a class="header-link" href="bibliotheque.html" aria-label="Ouvrir la bibliotheque de cercles" title="Bibliotheque">
+            <span aria-hidden="true">&#9678;</span>
+            Bibliotheque
+          </a>
+          <a class="header-link" href="tutoriel.html" aria-label="Ouvrir le tutoriel" title="Tutoriel">
+            <span aria-hidden="true">?</span>
+            Tutoriel
+          </a>
+        </nav>
+      </header>
+
+      <section class="settings-board" aria-label="Parametres disponibles">
+        <article class="settings-card">
+          <h2>Affichage</h2>
+          <p>Les reglages principaux restent dans l'atelier pour etre visibles pendant le dessin.</p>
+          <div class="settings-meter" aria-label="Apercu des reglages d'affichage">
+            <div class="settings-meter-row">
+              <span>Echelle</span>
+              <span class="settings-meter-track" style="--value: 55%"></span>
+              <strong>x2</strong>
+            </div>
+            <div class="settings-meter-row">
+              <span>Trait</span>
+              <span class="settings-meter-track" style="--value: 42%"></span>
+              <strong>3</strong>
+            </div>
+            <div class="settings-meter-row">
+              <span>Grille</span>
+              <span class="settings-meter-track" style="--value: 55%"></span>
+              <strong>mobile</strong>
+            </div>
+          </div>
+          <p class="settings-note">L'echelle visuelle peut reduire ou agrandir l'affichage du cercle. La grille se deplace avec le parchemin quand tu utilises deux doigts.</p>
+        </article>
+
+        <article class="settings-card">
+          <h2>Lecture et mesure</h2>
+          <ul>
+            <li>Le bouton Lire annonce le diametre estime du cercle en centimetres ou metres.</li>
+            <li>Le compteur peut etre affiche pres du cercle ou masque depuis les reglages du bas.</li>
+            <li>Un carreau represente 5 cm; sous 5 cm ou au-dessus de 5 m, la mesure passe en rouge et l'activation est refusee.</li>
+          </ul>
+        </article>
+
+        <article class="settings-card">
+          <h2>Support d'objet</h2>
+          <p>Le cercle reste toujours sur papier. Aucun support n'est actif par defaut. Le seul support d'objet conserve pour l'instant est la chaussure volante.</p>
+          <div class="settings-option-grid" aria-label="Exemples de supports">
+            <span>Aucun lien</span>
+            <span>Chaussure volante</span>
+            <span>Effet stable avec vent</span>
+            <span>Bond instable sans vent</span>
+          </div>
+        </article>
+
+        <article class="settings-card">
+          <h2>Activation</h2>
+          <ul>
+            <li>Par defaut, le sort part seulement avec le bouton Activer.</li>
+            <li>L'option automatique active le sort quand un sceau ferme est detecte.</li>
+            <li>Un anneau ouvert ou trop incomplet ne doit pas lancer la scene.</li>
+          </ul>
+        </article>
+
+        <article class="settings-card">
+          <h2>Scene 3D</h2>
+          <div class="scene-preview">
+            <div class="scene-tile">
+              <strong>Bureau</strong>
+              <span>Utilise pour les sceaux de taille normale: table, livres, potions, lampe et outils.</span>
+            </div>
+            <div class="scene-tile">
+              <strong>Dehors</strong>
+              <span>Utilise quand le cercle prend trop de place: cour, atelier, chemin, montagnes et vegetation.</span>
+            </div>
+          </div>
+          <p class="settings-note">La scene 3D pose toujours le cercle sur du papier. Si les chaussures sont choisies, elles apparaissent sous le parchemin au lieu de faire voler le cercle seul.</p>
+        </article>
+
+        <article class="settings-card">
+          <h2>Echelle physique</h2>
+          <p>Le cercle magique affiche sa vraie valeur estimee. Les cercles sous 5 cm ou au-dessus de 5 m restent visibles comme erreurs de taille, mais ne peuvent pas etre actives.</p>
+        </article>
+
+        <article class="settings-card">
+          <h2>Export</h2>
+          <p>Le bouton Archiver PNG garde le parchemin tel qu'il est dessine, avec l'echelle active.</p>
+        </article>
+
+        <article class="settings-card">
+          <h2>Reconnaissance</h2>
+          <p>La precision represente la ressemblance du sigil central avec le symbole reconnu. Les signes autour du cercle, meme dessines a la plume, sont lus comme effets et ne remplacent pas le sigil de matiere.</p>
+        </article>
+
+        <article class="settings-card">
+          <h2>Navigation</h2>
+          <p>Echap ferme la vue 3D ou l'ilot ouvert. Commande+Z annule, Commande+Maj+Z retablit.</p>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

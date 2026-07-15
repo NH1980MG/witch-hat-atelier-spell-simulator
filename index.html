@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-store">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'">
+    <title>Witch Hat Atelier Simulator - Atelier</title>
+    <script>
+      if (window.location.protocol === "file:") {
+        window.location.replace("http://127.0.0.1:8000/index.html");
+      }
+    </script>
+    <link rel="stylesheet" href="styles.css?v=20260714-sign-geometry-v4">
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module" src="app.js?v=20260714-symbol-audit-v5"></script>
+  </head>
+  <body class="simulator-page">
+    <main class="app-shell">
+      <header class="top-title">
+        <a class="brand-title brand-home" href="index.html" aria-label="Retour au menu principal">
+          <svg class="brand-logo" viewBox="0 0 72 72" aria-hidden="true">
+            <path class="logo-nib" d="M36 6 C49 19 58 35 61 58 C46 55 25 55 10 58 C14 35 23 19 36 6 Z"></path>
+            <path class="logo-cut" d="M36 6 L36 38"></path>
+            <path class="logo-cut" d="M25 52 L36 38 L47 52"></path>
+            <circle class="logo-eye" cx="36" cy="39" r="5"></circle>
+            <path class="logo-spark" d="M12 19 L17 24 M60 19 L55 24"></path>
+          </svg>
+          <h1>Witch Hat Atelier Simulator</h1>
+        </a>
+        <nav class="header-nav" aria-label="Navigation secondaire">
+          <a class="header-link" href="bibliotheque.html" aria-label="Ouvrir la bibliotheque de cercles" title="Bibliotheque">
+            <span aria-hidden="true">&#9678;</span>
+            Bibliotheque
+          </a>
+          <a class="header-link" href="tutoriel.html" aria-label="Ouvrir le tutoriel" title="Tutoriel">
+            <span aria-hidden="true">?</span>
+            Tutoriel
+          </a>
+          <a class="header-link" href="parametres.html" aria-label="Ouvrir la page des parametres" title="Parametres">
+            <span aria-hidden="true">&#9881;</span>
+            Parametres
+          </a>
+        </nav>
+      </header>
+
+      <section class="workspace" aria-label="Atelier de creation">
+        <div class="canvas-wrap">
+          <div class="atelier-badge">Atelier des cercles</div>
+          <div class="view3d-panel" id="view3dPanel" aria-label="Vue 3D du cercle active" hidden>
+            <div class="view3d-header">
+              <span>Vue 3D</span>
+              <button id="close3dButton" type="button" aria-label="Fermer la vue 3D">&times;</button>
+            </div>
+            <canvas id="spell3dCanvas" aria-label="Cercle magique en 3D"></canvas>
+          </div>
+          <div class="floating-tools" aria-label="Outils de trace">
+            <button class="tool-button is-active" data-tool="free" type="button" aria-label="Plume" title="Plume">
+              <span aria-hidden="true">&#10002;</span>
+            </button>
+            <button class="tool-button" data-tool="circle" type="button" aria-label="Sceau" title="Sceau">
+              <span aria-hidden="true">&#9711;</span>
+            </button>
+            <button class="tool-button" data-tool="ring" type="button" aria-label="Double anneau" title="Double anneau">
+              <span aria-hidden="true">&#9678;</span>
+            </button>
+            <button class="tool-button" data-tool="ray" type="button" aria-label="Trait directeur" title="Trait directeur">
+              <span aria-hidden="true">&#8599;</span>
+            </button>
+            <button class="tool-button" data-tool="glyph" type="button" aria-label="Glyphe" title="Glyphe">
+              <span aria-hidden="true">&#9671;</span>
+            </button>
+            <button class="tool-button" data-tool="spiral" type="button" aria-label="Spire" title="Spire">
+              <span aria-hidden="true">~</span>
+            </button>
+            <button class="tool-button" data-tool="eraser" type="button" aria-label="Grattoir" title="Grattoir">
+              <span aria-hidden="true">&#215;</span>
+            </button>
+          </div>
+          <canvas id="magicCanvas" aria-label="Parchemin de dessin"></canvas>
+        </div>
+
+        <button class="symbol-island" id="symbolToggleButton" type="button" aria-controls="symbolDrawer" aria-expanded="false">
+          <span aria-hidden="true">&#9671;</span>
+          Sigils et signes
+        </button>
+
+        <button class="details-island" id="detailsToggleButton" type="button" aria-controls="detailsDrawer" aria-expanded="false">
+          <span aria-hidden="true">&#9678;</span>
+          Details
+        </button>
+
+        <button class="support-island" id="supportToggleButton" type="button" aria-controls="supportDrawer" aria-expanded="false">
+          <span aria-hidden="true">&#9673;</span>
+          Support
+        </button>
+
+        <aside class="sidebar symbol-drawer" id="symbolDrawer" aria-label="Dictionnaire des symboles" aria-hidden="true">
+          <div class="panel-heading">
+            <div>
+              <h2>Sigils et signes</h2>
+              <p>Choisis un sigil central ou un signe modificateur a inscrire dans le cercle.</p>
+            </div>
+            <button class="drawer-close" id="closeSymbolsButton" type="button" aria-label="Fermer les sigils et signes">&times;</button>
+          </div>
+
+          <div class="ink-list" id="inkList"></div>
+        </aside>
+
+        <aside class="sidebar support-drawer" id="supportDrawer" aria-label="Choix du support magique" aria-hidden="true">
+          <div class="panel-heading">
+            <div>
+              <h2>Support du cercle</h2>
+              <p>Le cercle reste toujours sur papier. Pour l'instant, seul l'objet chaussure volante est teste comme support.</p>
+            </div>
+            <button class="drawer-close" id="closeSupportButton" type="button" aria-label="Fermer le support">&times;</button>
+          </div>
+
+          <div class="support-list" id="supportList"></div>
+        </aside>
+
+        <aside class="sidebar details-drawer" id="detailsDrawer" aria-label="Details du rituel" aria-hidden="true">
+          <div class="panel-heading">
+            <div>
+              <h2>Details du rituel</h2>
+              <p>Precision, duree et traces reconnues.</p>
+            </div>
+            <button class="drawer-close" id="closeDetailsButton" type="button" aria-label="Fermer les details">&times;</button>
+          </div>
+
+          <section class="ink-readout">
+            <h3>Encre</h3>
+            <p><span class="swatch normal-ink"></span> Normale noire</p>
+          </section>
+
+          <section class="ink-readout" aria-live="polite">
+            <h3>Symbole choisi</h3>
+            <p id="inkInfo"></p>
+          </section>
+
+          <section class="ink-readout" aria-live="polite">
+            <h3>Support choisi</h3>
+            <p id="supportInfo"></p>
+          </section>
+
+          <section class="ink-readout" aria-live="polite">
+            <h3>Traces du rituel</h3>
+            <ul id="usedList"></ul>
+          </section>
+
+          <section class="ink-readout spell-state" aria-live="polite">
+            <h3>Etat du sort</h3>
+            <div class="state-grid">
+              <span>Element</span>
+              <strong id="spellElement">Aucun</strong>
+              <span>Precision</span>
+              <strong id="spellQuality">0%</strong>
+              <span>Duree</span>
+              <strong id="spellDuration">0s</strong>
+              <span>Stabilite</span>
+              <strong id="spellStability">0%</strong>
+              <span>Force</span>
+              <strong id="spellForce">0%</strong>
+              <span>Diametre</span>
+              <strong id="spellDiameter">0 cm</strong>
+              <span>Support</span>
+              <strong id="spellSupport">Aucun</strong>
+            </div>
+          </section>
+        </aside>
+      </section>
+
+      <footer class="grimoire">
+        <section class="settings" aria-label="Reglages du grimoire">
+          <h2>Reglages du grimoire</h2>
+          <div class="setting-grid">
+            <label class="range-field">
+              <span>Force du sort</span>
+              <input id="intensityInput" type="range" min="1" max="5" value="3">
+            </label>
+            <label class="range-field">
+              <span>Epaisseur</span>
+              <input id="strokeInput" type="range" min="1" max="8" value="3">
+            </label>
+            <div class="range-field zoom-field">
+              <span>Echelle <strong id="canvasSizeValue">x1</strong></span>
+              <input id="canvasSizeInput" type="hidden" min="50" max="200" value="100" step="10">
+              <div class="zoom-control" aria-label="Controle d'echelle">
+                <button id="zoomOutButton" type="button" aria-label="Reduire l'affichage" title="Reduire l'affichage">
+                  <span aria-hidden="true">&#8722;</span>
+                </button>
+                <button id="zoomResetButton" type="button" aria-label="Revenir a la taille x1" title="Revenir a x1">
+                  <span aria-hidden="true">=</span>
+                </button>
+                <button id="zoomInButton" type="button" aria-label="Agrandir l'affichage" title="Agrandir l'affichage">
+                  <span aria-hidden="true">+</span>
+                </button>
+              </div>
+            </div>
+            <label class="check-field">
+              <input id="closedSealInput" type="checkbox" checked>
+              <span>Tracer un cercle ferme</span>
+            </label>
+            <label class="check-field">
+              <input id="autoInput" type="checkbox">
+              <span>Activer automatiquement quand le cercle est ferme</span>
+            </label>
+            <label class="check-field">
+              <input id="measureInput" type="checkbox" checked>
+              <span>Afficher le compteur de diametre</span>
+            </label>
+          </div>
+        </section>
+
+        <section class="commands" aria-label="Commandes du rituel">
+          <button id="readButton" type="button">Lire</button>
+          <button id="activateButton" type="button">Activer</button>
+          <button id="undoButton" type="button">Defaire</button>
+          <button id="clearButton" type="button">Effacer</button>
+          <button id="saveButton" type="button">Archiver PNG</button>
+        </section>
+
+        <output class="status" id="statusText" aria-live="polite">Mode bouton: trace un cercle ferme puis appuie sur Activer.</output>
+      </footer>
+    </main>
+  </body>
+</html>
