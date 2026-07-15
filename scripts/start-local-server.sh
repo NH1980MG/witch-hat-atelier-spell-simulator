@@ -1,7 +1,8 @@
 #!/bin/zsh
 set -euo pipefail
 
-PROJECT_DIR="/Users/nathanh/Projets/witch-hat-atelier-simulator"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PYTHON_BIN="/Library/Frameworks/Python.framework/Versions/3.14/bin/python3"
 PORT="${WHA_PORT:-8000}"
 

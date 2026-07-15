@@ -9,9 +9,10 @@ Use this before pushing to GitHub or publishing a static site.
 - Run `node scripts/validate-spell-matrix.mjs`; require 47 drawings, 6,669
   unique recipes, 6,144 executable plans, and 19 semantic checks.
 - Parse all HTML pages to catch broken tags.
-- Validate `assets/library-circles/manifest.json`.
 - Search for risky browser APIs: `eval`, `new Function`, `document.write`,
   remote scripts, secrets, and unexpected `file://` links.
+- Confirm that Three.js is served from `vendor/three/` and that its MIT license
+  is present; do not restore a runtime CDN dependency.
 
 ## Manual Smoke Test
 
@@ -48,12 +49,17 @@ Use this before pushing to GitHub or publishing a static site.
 ## Public Asset Check
 
 - Do not publish copied manga/anime panels as public-safe assets.
-- Keep `Whitch hat/` private.
-- Keep `assets/reference-panels/` private.
-- Treat `assets/library-circles/` as temporary reference-derived material until
-  the circles are replaced by original vector recreations or rights are clear.
+- Remove private study material and reference-derived screenshots from any
+  public branch.
+- Replace any temporary reference-derived imagery with original or clearly
+  permitted assets before release.
 
 ## Deployment Notes
+
+- `.github/workflows/pages.yml` validates and packages only the public site
+  files before deploying from `main`.
+- The expected public URL is
+  `https://nh1980mg.github.io/fan-made-Witch-hat-atelier-simulator/`.
 
 - GitHub Pages can serve this project directly from the root folder.
 - `.nojekyll` should remain present.

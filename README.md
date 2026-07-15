@@ -19,10 +19,8 @@ chaussure, ce papier est sous la semelle et reste limite aux petits cercles
 jusqu'a 35 cm pour garder une echelle realiste. Les effets du support changent
 selon l'element et les signes: feu brule ou propulse, eau mouille ou fait jet,
 vent porte, terre souleve, et certaines combinaisons avec Levitation ou
-Convergence creent des comportements particuliers. La bibliotheque affiche
-maintenant des cercles isoles et classes depuis les planches de reference
-Telepedia fournies, sans inventer de nouveaux cercles magiques. Apres
-activation, une vue 3D manipulable du cercle s'ouvre sur le parchemin.
+Convergence creent des comportements particuliers. Apres activation, une vue
+3D manipulable du cercle s'ouvre sur le parchemin.
 
 Les 47 dessins de sigils et signes viennent d'un catalogue vectoriel unique:
 le menu, la grille et l'encre 3D montrent donc la meme forme. La lecture compose
@@ -49,6 +47,16 @@ Raccourcis: `Cmd/Ctrl + Z` defait, `Cmd/Ctrl + Shift + Z` refait,
 
 ## Ouvrir le site
 
+Version publique GitHub Pages:
+
+```text
+https://nh1980mg.github.io/fan-made-Witch-hat-atelier-simulator/
+```
+
+La publication est effectuee automatiquement depuis `main` par le workflow
+`.github/workflows/pages.yml` apres validation du JavaScript et de la matrice
+des sorts.
+
 Seule URL de travail:
 
 ```text
@@ -62,8 +70,8 @@ cache entre navigateurs.
 Le site est statique: il peut etre publie tel quel sur GitHub
 Pages, Netlify, Vercel ou n'importe quel hebergeur de fichiers statiques.
 Avant une publication publique, consulte `SECURITY.md` et
-`docs/release-checklist.md`: les captures de reference doivent rester privees
-ou etre remplacees par des assets originaux.
+`docs/release-checklist.md` pour confirmer que les assets et les journaux
+locaux ont ete nettoyes.
 
 ## Lancer le serveur local
 
@@ -86,14 +94,14 @@ redemarrage du laptop.
 Installer:
 
 ```bash
-cd /Users/nathanh/Projets/witch-hat-atelier-simulator
+cd /path/to/fan-made-Witch-hat-atelier-simulator
 scripts/install-launch-agent.sh
 ```
 
 Desinstaller:
 
 ```bash
-cd /Users/nathanh/Projets/witch-hat-atelier-simulator
+cd /path/to/fan-made-Witch-hat-atelier-simulator
 scripts/uninstall-launch-agent.sh
 ```
 
@@ -105,17 +113,10 @@ Le service utilise `scripts/start-local-server.sh` et sert le site sur
 Les documents de cadrage sont dans `docs/`:
 
 - `docs/00-overview.md` : carte des documents et principe de travail.
-- `docs/review.md` : revue du depot, risques et recommandations.
 - `docs/product-brief.md` : intention produit et objectifs.
-- `docs/research-notes.md` : sources, references et politique d'utilisation.
 - `docs/design-direction.md` : direction UX, visuelle et animation.
 - `docs/architecture.md` : architecture actuelle et cible.
 - `docs/spell-effect-catalog.md` : grammaire diagramme -> effet 3D.
-- `docs/sign-reference.md` : signes documentes, niveau de confiance et
-  correspondance avec le simulateur.
-- `docs/reference-manifest.md` : suivi des sources et assets de reference.
-- `docs/local-reference-audit.md` : inventaire et controle visuel des 42
-  captures locales.
 - `docs/qa-plan.md` : plan de verification manuelle et visuelle.
 - `docs/release-checklist.md` : controles avant GitHub et publication web.
 - `docs/progress-tracker.md` : jalons, backlog et decisions.
@@ -137,6 +138,7 @@ logique de Witch Hat Atelier mais dessinees et animees comme assets originaux.
 - `spell-grammar.mjs` : profils et moteur deterministe de combinaison.
 - `scripts/validate-spell-matrix.mjs` : controle des 6 669 variantes.
 - `.gitignore` : fichiers locaux a ignorer.
+- `vendor/three/` : copie locale de Three.js 0.165.0 et de sa licence MIT.
 
 ## Verification rapide
 

@@ -22,20 +22,18 @@ node --check app.js
 node --check symbol-catalog.mjs
 node --check spell-grammar.mjs
 node scripts/validate-spell-matrix.mjs
-python3 -m json.tool assets/library-circles/manifest.json
 ```
 
 The matrix check must report:
 
 - 47 drawings;
-- 47 local visual-reference mappings;
 - 9 central sigils;
 - 38 modifier signs;
 - at least 1,000 recipes;
 - the same number of tested and unique recipes, plus at least 1,000 distinct
   executable plans (plans may be fewer when incompatible signs are ignored);
-- no missing drawing, missing visual reference, duplicate drawing, unknown
-  drawing, nondeterministic result or non-finite simulation parameter.
+- no missing drawing, duplicate drawing, unknown drawing, nondeterministic
+  result or non-finite simulation parameter.
 - all 19 semantic invariants pass, including radial/directional separation,
   incompatible material filtering, staged stillness, target-conflict warnings
   repeated-sign scaling, bare-ring energy, balance, tilt and disconnected marks.

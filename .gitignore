@@ -1,0 +1,18 @@
+# Local runtime output
+logs/
+*.log
+.codex-security/
+
+# Private study material
+Whitch hat/
+assets/reference-panels/
+
+# macOS and editor artifacts
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.temp

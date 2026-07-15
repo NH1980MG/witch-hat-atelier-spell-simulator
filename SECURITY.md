@@ -18,15 +18,17 @@ For public hosting, serve the same static files from the project root.
 - The pages include a restrictive Content Security Policy.
 - The simulator stores only local display preferences in `localStorage`.
 - The app does not send drawings, settings, or exported PNG files to a server.
-- The 3D runtime is currently loaded from `https://unpkg.com/three@0.165.0/`.
+- The 3D runtime uses the vendored Three.js `0.165.0` modules in
+  `vendor/three/`; the browser does not execute code from a third-party CDN.
 
 ## Before Public Release
 
 - Replace or remove copied reference screenshots before publishing a public
   repository or public website.
-- Keep `Whitch hat/` and `assets/reference-panels/` private.
-- If the site needs to work offline or avoid CDN dependency, vendor Three.js or
-  add a small package-managed build step.
+- Keep private study material and reference-derived screenshots out of the
+  public branch.
+- Keep the vendored Three.js version and its MIT license together when updating
+  the 3D runtime.
 - Re-run the checks listed in `docs/release-checklist.md`.
 
 ## Reporting
