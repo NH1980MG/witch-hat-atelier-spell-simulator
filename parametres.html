@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en" data-i18n-title="page.settings.title">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -13,116 +13,121 @@
         window.location.replace("http://127.0.0.1:8000/parametres.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260714-symbol-grammar-v3">
+    <link rel="stylesheet" href="styles.css?v=20260715-i18n-v1">
+    <script type="module" src="site-i18n.mjs?v=20260715-i18n-v1"></script>
   </head>
   <body>
     <main class="app-shell settings-page">
       <header class="top-title">
-        <a class="page-title-link" href="index.html" aria-label="Retour au menu principal">
-          <h1>Parametres du simulateur</h1>
+        <a class="page-title-link" href="index.html" data-i18n-aria-label="nav.home">
+          <h1 data-i18n="settings.heading">Simulator settings</h1>
         </a>
-        <nav class="header-nav" aria-label="Navigation secondaire">
-          <a class="header-link" href="index.html" aria-label="Retourner au simulateur" title="Retour atelier">
+        <nav class="header-nav" data-i18n-aria-label="nav.secondary">
+          <a class="header-link" href="index.html" data-i18n-aria-label="nav.openWorkshop" data-i18n-title="nav.workshop">
             <span aria-hidden="true">&#8592;</span>
-            Atelier
+            <span data-i18n="nav.workshop">Workshop</span>
           </a>
-          <a class="header-link" href="bibliotheque.html" aria-label="Ouvrir la bibliotheque de cercles" title="Bibliotheque">
+          <a class="header-link" href="bibliotheque.html" data-i18n-aria-label="nav.openLibrary" data-i18n-title="nav.library">
             <span aria-hidden="true">&#9678;</span>
-            Bibliotheque
+            <span data-i18n="nav.library">Library</span>
           </a>
-          <a class="header-link" href="tutoriel.html" aria-label="Ouvrir le tutoriel" title="Tutoriel">
+          <a class="header-link" href="tutoriel.html" data-i18n-aria-label="nav.openTutorial" data-i18n-title="nav.tutorial">
             <span aria-hidden="true">?</span>
-            Tutoriel
+            <span data-i18n="nav.tutorial">Tutorial</span>
           </a>
+          <div class="language-switcher" role="group" data-i18n-aria-label="language.label">
+            <button type="button" data-locale="en" aria-pressed="true" data-i18n-aria-label="language.english">EN</button>
+            <button type="button" data-locale="fr" aria-pressed="false" data-i18n-aria-label="language.french">FR</button>
+          </div>
         </nav>
       </header>
 
-      <section class="settings-board" aria-label="Parametres disponibles">
+      <section class="settings-board" data-i18n-aria-label="settings.region">
         <article class="settings-card">
-          <h2>Affichage</h2>
-          <p>Les reglages principaux restent dans l'atelier pour etre visibles pendant le dessin.</p>
-          <div class="settings-meter" aria-label="Apercu des reglages d'affichage">
+          <h2 data-i18n="settings.display.title">Display</h2>
+          <p data-i18n="settings.display.body">The main controls remain in the workshop so they stay visible while drawing.</p>
+          <div class="settings-meter" data-i18n-aria-label="settings.display.preview">
             <div class="settings-meter-row">
-              <span>Echelle</span>
+              <span data-i18n="settings.display.scale">Scale</span>
               <span class="settings-meter-track" style="--value: 55%"></span>
               <strong>x2</strong>
             </div>
             <div class="settings-meter-row">
-              <span>Trait</span>
+              <span data-i18n="settings.display.stroke">Stroke</span>
               <span class="settings-meter-track" style="--value: 42%"></span>
               <strong>3</strong>
             </div>
             <div class="settings-meter-row">
-              <span>Grille</span>
+              <span data-i18n="settings.display.grid">Grid</span>
               <span class="settings-meter-track" style="--value: 55%"></span>
-              <strong>mobile</strong>
+              <strong data-i18n="settings.display.moving">moving</strong>
             </div>
           </div>
-          <p class="settings-note">L'echelle visuelle peut reduire ou agrandir l'affichage du cercle. La grille se deplace avec le parchemin quand tu utilises deux doigts.</p>
+          <p class="settings-note" data-i18n="settings.display.note">Visual scale can reduce or enlarge the circle display. The grid moves with the parchment when you use two fingers.</p>
         </article>
 
         <article class="settings-card">
-          <h2>Lecture et mesure</h2>
+          <h2 data-i18n="settings.measure.title">Reading and measurement</h2>
           <ul>
-            <li>Le bouton Lire annonce le diametre estime du cercle en centimetres ou metres.</li>
-            <li>Le compteur peut etre affiche pres du cercle ou masque depuis les reglages du bas.</li>
-            <li>Un carreau represente 5 cm; sous 5 cm ou au-dessus de 5 m, la mesure passe en rouge et l'activation est refusee.</li>
+            <li data-i18n="settings.measure.read">Read announces the circle's estimated diameter in centimetres or metres.</li>
+            <li data-i18n="settings.measure.counter">The counter can appear beside the circle or be hidden from the lower settings.</li>
+            <li data-i18n="settings.measure.limits">One grid cell represents 5 cm; below 5 cm or above 5 m, the value turns red and activation is refused.</li>
           </ul>
         </article>
 
         <article class="settings-card">
-          <h2>Support d'objet</h2>
-          <p>Le cercle reste toujours sur papier. Aucun support n'est actif par defaut. Le seul support d'objet conserve pour l'instant est la chaussure volante.</p>
-          <div class="settings-option-grid" aria-label="Exemples de supports">
-            <span>Aucun lien</span>
-            <span>Chaussure volante</span>
-            <span>Effet stable avec vent</span>
-            <span>Bond instable sans vent</span>
+          <h2 data-i18n="settings.support.title">Object support</h2>
+          <p data-i18n="settings.support.body">The circle always stays on paper. No support is active by default. For now, the flying shoe is the only available object support.</p>
+          <div class="settings-option-grid" data-i18n-aria-label="settings.support.examples">
+            <span data-i18n="settings.support.none">No link</span>
+            <span data-i18n="settings.support.shoe">Flying shoe</span>
+            <span data-i18n="settings.support.stable">Stable effect with Wind</span>
+            <span data-i18n="settings.support.unstable">Unstable bounce without Wind</span>
           </div>
         </article>
 
         <article class="settings-card">
-          <h2>Activation</h2>
+          <h2 data-i18n="settings.activation.title">Activation</h2>
           <ul>
-            <li>Par defaut, le sort part seulement avec le bouton Activer.</li>
-            <li>L'option automatique active le sort quand un sceau ferme est detecte.</li>
-            <li>Un anneau ouvert ou trop incomplet ne doit pas lancer la scene.</li>
+            <li data-i18n="settings.activation.manual">By default, the spell starts only when Activate is pressed.</li>
+            <li data-i18n="settings.activation.auto">The automatic option starts the spell when a closed seal is detected.</li>
+            <li data-i18n="settings.activation.openRing">An open or incomplete ring must not launch the scene.</li>
           </ul>
         </article>
 
         <article class="settings-card">
-          <h2>Scene 3D</h2>
+          <h2 data-i18n="settings.scene.title">3D scene</h2>
           <div class="scene-preview">
             <div class="scene-tile">
-              <strong>Bureau</strong>
-              <span>Utilise pour les sceaux de taille normale: table, livres, potions, lampe et outils.</span>
+              <strong data-i18n="settings.scene.desk">Desk</strong>
+              <span data-i18n="settings.scene.deskBody">Used for normally sized seals: table, books, potions, lamp, and tools.</span>
             </div>
             <div class="scene-tile">
-              <strong>Dehors</strong>
-              <span>Utilise quand le cercle prend trop de place: cour, atelier, chemin, montagnes et vegetation.</span>
+              <strong data-i18n="settings.scene.outside">Outside</strong>
+              <span data-i18n="settings.scene.outsideBody">Used when the circle needs more room: courtyard, workshop, path, mountains, and vegetation.</span>
             </div>
           </div>
-          <p class="settings-note">La scene 3D pose toujours le cercle sur du papier. Si les chaussures sont choisies, elles apparaissent sous le parchemin au lieu de faire voler le cercle seul.</p>
+          <p class="settings-note" data-i18n="settings.scene.note">The 3D scene always places the circle on paper. When shoes are selected, they appear above the parchment rather than making the circle itself fly.</p>
         </article>
 
         <article class="settings-card">
-          <h2>Echelle physique</h2>
-          <p>Le cercle magique affiche sa vraie valeur estimee. Les cercles sous 5 cm ou au-dessus de 5 m restent visibles comme erreurs de taille, mais ne peuvent pas etre actives.</p>
+          <h2 data-i18n="settings.physical.title">Physical scale</h2>
+          <p data-i18n="settings.physical.body">The magic circle shows its true estimated value. Circles below 5 cm or above 5 m remain visible as size errors but cannot be activated.</p>
         </article>
 
         <article class="settings-card">
-          <h2>Export</h2>
-          <p>Le bouton Archiver PNG garde le parchemin tel qu'il est dessine, avec l'echelle active.</p>
+          <h2 data-i18n="settings.export.title">Export</h2>
+          <p data-i18n="settings.export.body">Archive PNG saves the parchment exactly as drawn at the active scale.</p>
         </article>
 
         <article class="settings-card">
-          <h2>Reconnaissance</h2>
-          <p>La precision represente la ressemblance du sigil central avec le symbole reconnu. Les signes autour du cercle, meme dessines a la plume, sont lus comme effets et ne remplacent pas le sigil de matiere.</p>
+          <h2 data-i18n="settings.recognition.title">Recognition</h2>
+          <p data-i18n="settings.recognition.body">Accuracy measures how closely the central sigil resembles the recognized symbol. Signs around the circle, including freehand signs, are read as effects and do not replace the material sigil.</p>
         </article>
 
         <article class="settings-card">
-          <h2>Navigation</h2>
-          <p>Echap ferme la vue 3D ou l'ilot ouvert. Commande+Z annule, Commande+Maj+Z retablit.</p>
+          <h2 data-i18n="settings.navigation.title">Navigation</h2>
+          <p data-i18n="settings.navigation.body">Escape closes the 3D view or open panel. Command/Ctrl + Z undoes, and Command/Ctrl + Shift + Z redoes.</p>
         </article>
       </section>
     </main>

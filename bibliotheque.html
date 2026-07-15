@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en" data-i18n-title="page.library.title">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -14,38 +14,43 @@
       }
     </script>
     <link rel="stylesheet" href="styles.css?v=20260714-sign-geometry-v4">
+    <script type="module" src="site-i18n.mjs?v=20260715-i18n-v1"></script>
   </head>
   <body>
     <main class="app-shell settings-page">
       <header class="top-title">
-        <a class="page-title-link" href="index.html" aria-label="Retour au menu principal">
-          <h1>Bibliotheque des cercles</h1>
+        <a class="page-title-link" href="index.html" data-i18n-aria-label="nav.home" aria-label="Return to the main workshop">
+          <h1 data-i18n="library.heading">Magic-circle library</h1>
         </a>
-        <nav class="header-nav" aria-label="Navigation secondaire">
-          <a class="header-link" href="index.html" aria-label="Retourner au simulateur" title="Retour atelier">
+        <nav class="header-nav" data-i18n-aria-label="nav.secondary" aria-label="Secondary navigation">
+          <a class="header-link" href="index.html" data-i18n-aria-label="nav.openWorkshop" data-i18n-title="nav.workshop" aria-label="Return to the simulator" title="Workshop">
             <span aria-hidden="true">&#8592;</span>
-            Atelier
+            <span data-i18n="nav.workshop">Workshop</span>
           </a>
-          <a class="header-link" href="tutoriel.html" aria-label="Ouvrir le tutoriel" title="Tutoriel">
+          <a class="header-link" href="tutoriel.html" data-i18n-aria-label="nav.openTutorial" data-i18n-title="nav.tutorial" aria-label="Open the tutorial" title="Tutorial">
             <span aria-hidden="true">?</span>
-            Tutoriel
+            <span data-i18n="nav.tutorial">Tutorial</span>
           </a>
-          <a class="header-link" href="parametres.html" aria-label="Ouvrir les parametres" title="Parametres">
+          <a class="header-link" href="parametres.html" data-i18n-aria-label="nav.openSettings" data-i18n-title="nav.settings" aria-label="Open settings" title="Settings">
             <span aria-hidden="true">&#9881;</span>
-            Parametres
+            <span data-i18n="nav.settings">Settings</span>
           </a>
+          <div class="language-switcher" role="group" data-i18n-aria-label="language.label">
+            <button type="button" data-locale="en" aria-pressed="true" data-i18n-aria-label="language.english">EN</button>
+            <button type="button" data-locale="fr" aria-pressed="false" data-i18n-aria-label="language.french">FR</button>
+          </div>
         </nav>
       </header>
 
-      <section class="library-board circle-library-board" aria-label="Bibliotheque de cercles magiques">
+      <section class="library-board circle-library-board" data-i18n-aria-label="library.region" aria-label="Magic-circle library">
         <article class="source-note">
-          <h2>Galerie publique de reference</h2>
-          <p>Cette version publique conserve la structure de la bibliotheque sans embarquer les captures privees ni les decoupes derivees des references.</p>
+          <h2 data-i18n="library.publicHeading">Public reference gallery</h2>
+          <p data-i18n="library.publicDescription">This public version preserves the library structure without bundling private screenshots or crops derived from references.</p>
         </article>
 
         <section class="circle-category" aria-label="Vision spells">
           <h2>Vision Spells</h2>
-          <p>Exemples d'organisation visuelle pour une categorie orientee observation, apparence et reduction de lumiere.</p>
+          <p data-i18n="library.visionDescription">Visual organization examples for a category focused on observation, appearance, and light reduction.</p>
           <div class="circle-grid">
             <article class="circle-card"><span>Gathering Shadows</span><small>Vision</small></article>
             <article class="circle-card"><span>Light-Reducing Spell</span><small>Vision</small></article>
@@ -55,7 +60,7 @@
 
         <section class="circle-category" aria-label="Mixed spells">
           <h2>Mixed Spells</h2>
-          <p>Exemples de compositions qui combinent plusieurs signaux autour du cercle.</p>
+          <p data-i18n="library.mixedDescription">Composition examples that combine several signals around one circle.</p>
           <div class="circle-grid">
             <article class="circle-card"><span>Beast Repellent</span><small>Mixed</small></article>
             <article class="circle-card"><span>Cloak Spell</span><small>Mixed</small></article>
@@ -67,7 +72,7 @@
 
         <section class="circle-category" aria-label="Niche spells">
           <h2>Niche Spells</h2>
-          <p>Exemples plus specifiques pour montrer comment la galerie garde une grille coherente.</p>
+          <p data-i18n="library.nicheDescription">More specific examples showing how the gallery keeps a consistent grid.</p>
           <div class="circle-grid">
             <article class="circle-card"><span>Billow Cluster</span><small>Niche</small></article>
             <article class="circle-card"><span>Cookpot Lid</span><small>Niche</small></article>
@@ -94,7 +99,7 @@
 
         <section class="circle-category" aria-label="Ancient forbidden spells">
           <h2>Ancient Spells - Forbidden</h2>
-          <p>Exemples historiques presents pour la structure de la grille, sans asset reference embarque.</p>
+          <p data-i18n="library.forbiddenDescription">Historical examples shown for the grid structure, without bundled reference assets.</p>
           <div class="circle-grid">
             <article class="circle-card"><span>Petrification</span><small>Ancient / Forbidden</small></article>
             <article class="circle-card"><span>Scalewolf Curse</span><small>Ancient / Forbidden</small></article>
@@ -104,7 +109,7 @@
 
         <section class="circle-category" aria-label="Ancient non-forbidden spells">
           <h2>Ancient Spells - Non-Forbidden</h2>
-          <p>Exemples historiques compatibles avec la galerie publique simplifiee.</p>
+          <p data-i18n="library.nonForbiddenDescription">Historical examples compatible with the simplified public gallery.</p>
           <div class="circle-grid">
             <article class="circle-card"><span>Twinned Bottles' Spell</span><small>Ancient / Non-Forbidden</small></article>
             <article class="circle-card"><span>Ancient Light Beacon</span><small>Ancient / Non-Forbidden</small></article>
