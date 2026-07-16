@@ -3,6 +3,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { SYMBOL_AUDIT, SYMBOL_PATHS } from "./symbol-catalog.mjs?v=20260714-symbol-audit-v5";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs";
 import { getLocale, t } from "./site-i18n.mjs?v=20260715-i18n-v1";
+import { earthMoundPose } from "./support-geometry.mjs";
 import {
   canDropGlyph,
   clampGlyphCenter,
@@ -156,6 +157,30 @@ const englishElementNames = Object.freeze({
   "Immobilite": "Stillness",
   "Projection": "Projection",
   "Energie brute": "Raw energy",
+  "Aucun": "None",
+});
+
+const englishSigilMeanings = Object.freeze({
+  "Feu": "Fire sigil: animates, heats, and transforms matter.",
+  "Eau": "Water sigil: flows, absorbs, and carries matter.",
+  "Terre": "Earth sigil: anchors, protects, and retains matter.",
+  "Vent": "Wind sigil: moves air and carries aeriform matter.",
+  "Lumiere": "Light sigil: reveals, guides, and illuminates.",
+  "Cristal": "Crystal sigil: hardens, structures, and refracts.",
+  "Aeriforme": "Aeriform sigil: creates or defines air.",
+  "Vent sous pied": "Wind-underfoot sigil: supports, lifts, and propels.",
+  "Repetition": "Repetition sigil: repeats or loops an effect.",
+});
+
+const englishSignRoles = Object.freeze({
+  supply: "Supplies or gathers matter for the spell.",
+  state: "Changes the state or stability of the spell.",
+  form: "Changes the form taken by the magical matter.",
+  motion: "Controls the motion and direction of the effect.",
+  target: "Chooses what the spell targets.",
+  scope: "Controls the area and reach of the effect.",
+  relation: "Creates a relation between the spell and another object.",
+  power: "Adjusts the strength or intensity of the effect.",
 });
 
 function elementDisplayName(elementOrName) {
@@ -174,6 +199,16 @@ function elementCategoryLabel(element) {
     "Asymetrique": "symbols.category.asymmetrical",
   };
   return t(categoryKeys[element.category] || "symbols.category.sign");
+}
+
+function elementMechanicLabel(element, grammarProfile = null) {
+  if (getLocale() !== "en") {
+    return grammarProfile?.mechanic || element.meaning;
+  }
+  if (element.kind === "sigil") {
+    return englishSigilMeanings[element.name] || "Defines the spell's magical material.";
+  }
+  return englishSignRoles[grammarProfile?.role] || "Modifies how the spell manifests.";
 }
 
 function supportDisplayName(support, short = false) {
@@ -327,6 +362,7 @@ const threeView = {
   environmentGroup: null,
   environment: null,
   animationFrame: 0,
+  lastRenderAt: 0,
 };
 
 const MIN_CIRCLE_DIAMETER_M = 0.05;
@@ -1011,7 +1047,7 @@ function drawGuide(width, height) {
   ctx.font = "700 24px Georgia, serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("parchemin vierge", guideX, guideY);
+  ctx.fillText(t("atelier.blankParchment"), guideX, guideY);
 
   for (let angle = 0; angle < 360; angle += 60) {
     const rad = (angle * Math.PI) / 180;
@@ -1741,8 +1777,8 @@ const THREE_TABLE_SURFACE_Y = 0.024;
 const THREE_PAPER_Y = THREE_TABLE_SURFACE_Y + 0.006;
 const THREE_INK_Y = THREE_PAPER_Y + 0.01;
 const THREE_LOW_EFFECT_Y = THREE_INK_Y + 0.008;
-const THREE_SHOE_PAPER_Y = 0.54;
-const THREE_SHOE_INK_Y = 0.568;
+const THREE_SHOE_PAPER_Y = THREE_TABLE_SURFACE_Y + 0.008;
+const THREE_SHOE_INK_Y = THREE_SHOE_PAPER_Y + 0.008;
 
 const THREE_SURFACE_ESCAPE_SIGNS = new Set([
   "Colonne",
@@ -2695,7 +2731,7 @@ function initThreeView() {
     antialias: true,
     alpha: false,
   });
-  threeView.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  threeView.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
   threeView.renderer.outputColorSpace = THREE.SRGBColorSpace;
   threeView.renderer.toneMapping = THREE.ACESFilmicToneMapping;
   threeView.renderer.toneMappingExposure = 1.28;
@@ -2785,7 +2821,7 @@ function actionLines3d(action, bounds, scale, supportId = "none") {
   const shoeMode = supportId === "shoe";
   const inkLift = shoeMode ? THREE_SHOE_INK_Y : THREE_INK_Y;
   if (action.type === "free") {
-    const lift = shoeMode ? (action.seal ? 0.575 : 0.605) : (action.seal ? inkLift + 0.006 : inkLift + 0.014);
+    const lift = action.seal ? inkLift + 0.006 : inkLift + 0.014;
     return [action.points.map((point) => pointToThree(point, bounds, scale, lift))];
   }
 
@@ -2798,7 +2834,7 @@ function actionLines3d(action, bounds, scale, supportId = "none") {
         points.push(pointToThree({
           x: action.cx + Math.cos(angle) * action.radius * factor,
           y: action.cy + Math.sin(angle) * action.radius * factor,
-      }, bounds, scale, shoeMode ? 0.57 : inkLift));
+      }, bounds, scale, inkLift));
       }
       return points;
     });
@@ -2806,8 +2842,8 @@ function actionLines3d(action, bounds, scale, supportId = "none") {
 
   if (action.type === "ray") {
     return [[
-      pointToThree({ x: action.cx, y: action.cy }, bounds, scale, shoeMode ? 0.6 : inkLift + 0.014),
-      pointToThree({ x: action.x, y: action.y }, bounds, scale, shoeMode ? 0.6 : inkLift + 0.014),
+      pointToThree({ x: action.cx, y: action.cy }, bounds, scale, inkLift + 0.014),
+      pointToThree({ x: action.x, y: action.y }, bounds, scale, inkLift + 0.014),
     ]];
   }
 
@@ -2823,7 +2859,7 @@ function actionLines3d(action, bounds, scale, supportId = "none") {
         return pointToThree({
           x: action.x + localX * cos - localY * sin,
           y: action.y + localX * sin + localY * cos,
-        }, bounds, scale, shoeMode ? 0.61 : inkLift + 0.018);
+        }, bounds, scale, inkLift + 0.018);
       }));
     }
     const lines = [];
@@ -2833,14 +2869,14 @@ function actionLines3d(action, bounds, scale, supportId = "none") {
       ring.push(pointToThree({
         x: action.x + Math.cos(angle) * action.size,
         y: action.y + Math.sin(angle) * action.size,
-      }, bounds, scale, shoeMode ? 0.61 : inkLift + 0.018));
+      }, bounds, scale, inkLift + 0.018));
     }
     lines.push(ring);
     lines.push([
-      pointToThree({ x: action.x, y: action.y - action.size * 0.85 }, bounds, scale, shoeMode ? 0.62 : inkLift + 0.02),
-      pointToThree({ x: action.x + action.size * 0.75, y: action.y + action.size * 0.45 }, bounds, scale, shoeMode ? 0.62 : inkLift + 0.02),
-      pointToThree({ x: action.x - action.size * 0.75, y: action.y + action.size * 0.45 }, bounds, scale, shoeMode ? 0.62 : inkLift + 0.02),
-      pointToThree({ x: action.x, y: action.y - action.size * 0.85 }, bounds, scale, shoeMode ? 0.62 : inkLift + 0.02),
+      pointToThree({ x: action.x, y: action.y - action.size * 0.85 }, bounds, scale, inkLift + 0.02),
+      pointToThree({ x: action.x + action.size * 0.75, y: action.y + action.size * 0.45 }, bounds, scale, inkLift + 0.02),
+      pointToThree({ x: action.x - action.size * 0.75, y: action.y + action.size * 0.45 }, bounds, scale, inkLift + 0.02),
+      pointToThree({ x: action.x, y: action.y - action.size * 0.85 }, bounds, scale, inkLift + 0.02),
     ]);
     return lines;
   }
@@ -2853,7 +2889,7 @@ function actionLines3d(action, bounds, scale, supportId = "none") {
       points.push(pointToThree({
         x: action.cx + Math.cos(angle) * action.radius * progress,
         y: action.cy + Math.sin(angle) * action.radius * progress,
-      }, bounds, scale, shoeMode ? 0.585 : inkLift + 0.012));
+      }, bounds, scale, inkLift + 0.012));
     }
     return [points];
   }
@@ -2893,15 +2929,15 @@ function makeParchmentBase3d(auraRadius, supportId = "none") {
     [paperWidth / 2, -paperDepth / 2],
     [-paperWidth / 2, -paperDepth / 2],
     [-paperWidth / 2, paperDepth / 2],
-  ].map(([x, z]) => new THREE.Vector3(x, shoeMode ? 0.552 : THREE_INK_Y, z));
+  ].map(([x, z]) => new THREE.Vector3(x, shoeMode ? THREE_SHOE_INK_Y : THREE_INK_Y, z));
   group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(corners), edgeMaterial));
 
   for (let index = 1; index <= 3; index += 1) {
     const z = -paperDepth / 2 + (paperDepth / 4) * index;
     const fold = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(-paperWidth * 0.46, shoeMode ? 0.554 : THREE_INK_Y + 0.002, z),
-        new THREE.Vector3(paperWidth * 0.46, shoeMode ? 0.554 : THREE_INK_Y + 0.002, z + Math.sin(index) * 0.015),
+        new THREE.Vector3(-paperWidth * 0.46, shoeMode ? THREE_SHOE_INK_Y + 0.002 : THREE_INK_Y + 0.002, z),
+        new THREE.Vector3(paperWidth * 0.46, shoeMode ? THREE_SHOE_INK_Y + 0.002 : THREE_INK_Y + 0.002, z + Math.sin(index) * 0.015),
       ]),
       new THREE.LineBasicMaterial({ color: 0xd1bd92, transparent: true, opacity: 0.32 }),
     );
@@ -2924,47 +2960,99 @@ function makeSupportProp3d(supportId, auraRadius) {
   const inkMaterial = new THREE.MeshBasicMaterial({ color: 0x201a16 });
 
   if (supportId === "shoe") {
-    const shoeLength = 0.29;
-    const shoeWidth = 0.105;
-    const soleY = 0.675;
-    const paperY = 0.646;
+    const shoeLength = 0.31;
+    const shoeWidth = 0.112;
+    const soleHeight = 0.026;
+    const paperY = THREE_SHOE_PAPER_Y + 0.002;
+    const soleBottomY = paperY + 0.005;
+    const soleY = soleBottomY + soleHeight / 2;
     group.userData.kind = "shoe";
     group.userData.baseY = 0;
+    group.userData.soleBottomY = soleBottomY;
 
     const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.29, 48), shadowMaterial);
     shadow.rotation.x = -Math.PI / 2;
-    shadow.position.set(0, 0.505, 0.02);
+    shadow.position.set(0, THREE_TABLE_SURFACE_Y + 0.002, 0.02);
     shadow.scale.z = 0.42;
     group.add(shadow);
+
+    const makeProfileMesh = (shape, width, material, bevelSize = 0.006) => {
+      const geometry = new THREE.ExtrudeGeometry(shape, {
+        depth: width,
+        bevelEnabled: true,
+        bevelSegments: 3,
+        bevelSize,
+        bevelThickness: bevelSize * 0.75,
+        curveSegments: 18,
+        steps: 1,
+      });
+      geometry.translate(0, 0, -width / 2);
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.rotation.y = Math.PI / 2;
+      return mesh;
+    };
+
+    const soleShape = new THREE.Shape();
+    soleShape.moveTo(-shoeLength * 0.48, 0);
+    soleShape.lineTo(shoeLength * 0.4, 0);
+    soleShape.quadraticCurveTo(shoeLength * 0.52, soleHeight * 0.12, shoeLength * 0.5, soleHeight * 0.72);
+    soleShape.quadraticCurveTo(shoeLength * 0.34, soleHeight, 0, soleHeight);
+    soleShape.lineTo(-shoeLength * 0.48, soleHeight * 0.92);
+    soleShape.closePath();
+
+    const upperShape = new THREE.Shape();
+    upperShape.moveTo(-shoeLength * 0.42, 0);
+    upperShape.lineTo(shoeLength * 0.38, 0);
+    upperShape.quadraticCurveTo(shoeLength * 0.5, 0.012, shoeLength * 0.46, 0.055);
+    upperShape.quadraticCurveTo(shoeLength * 0.28, 0.092, shoeLength * 0.02, 0.078);
+    upperShape.quadraticCurveTo(-shoeLength * 0.18, 0.07, -shoeLength * 0.3, 0.12);
+    upperShape.lineTo(-shoeLength * 0.42, 0.1);
+    upperShape.closePath();
 
     for (const side of [-1, 1]) {
       const shoe = new THREE.Group();
       const x = side * 0.075;
-      const sole = new THREE.Mesh(new THREE.BoxGeometry(shoeWidth, 0.026, shoeLength), soleMaterial);
-      sole.position.set(x, soleY, 0);
-      const toe = new THREE.Mesh(new THREE.SphereGeometry(shoeWidth * 0.58, 32, 18), clothMaterial);
-      toe.scale.set(0.92, 0.46, 1.18);
-      toe.position.set(x, soleY + 0.032, -shoeLength * 0.27);
-      const instep = new THREE.Mesh(new THREE.BoxGeometry(shoeWidth * 0.82, 0.055, shoeLength * 0.34), clothMaterial);
-      instep.position.set(x, soleY + 0.052, shoeLength * 0.05);
-      const heel = new THREE.Mesh(new THREE.BoxGeometry(shoeWidth * 0.92, 0.064, shoeLength * 0.25), soleMaterial);
-      heel.position.set(x, soleY + 0.048, shoeLength * 0.33);
-      const leg = new THREE.Mesh(new THREE.CylinderGeometry(shoeWidth * 0.26, shoeWidth * 0.31, 0.24, 18), soleMaterial);
-      leg.position.set(x, soleY + 0.2, shoeLength * 0.38);
+      const sole = makeProfileMesh(soleShape, shoeWidth, soleMaterial, 0.004);
+      sole.position.set(x, soleBottomY, 0);
+      const upper = makeProfileMesh(upperShape, shoeWidth * 0.82, clothMaterial, 0.006);
+      upper.position.set(x, soleY + soleHeight * 0.38, 0);
+
+      const heel = new THREE.Mesh(new THREE.BoxGeometry(shoeWidth * 0.82, 0.086, shoeLength * 0.2), clothMaterial);
+      heel.position.set(x, soleY + 0.058, shoeLength * 0.35);
+      heel.rotation.x = -0.08;
+      const collar = new THREE.Mesh(new THREE.TorusGeometry(shoeWidth * 0.32, 0.009, 10, 40), soleMaterial);
+      collar.rotation.x = Math.PI / 2;
+      collar.scale.z = 0.78;
+      collar.position.set(x, soleY + 0.105, shoeLength * 0.34);
+      const tongue = new THREE.Mesh(new THREE.BoxGeometry(shoeWidth * 0.53, 0.012, shoeLength * 0.29), clothMaterial);
+      tongue.position.set(x, soleY + 0.091, shoeLength * 0.05);
+      tongue.rotation.x = -0.23;
       const cuff = new THREE.Mesh(new THREE.TorusGeometry(shoeWidth * 0.43, 0.008, 10, 36), seamMaterial);
       cuff.rotation.x = Math.PI / 2;
-      cuff.scale.x = 0.9;
-      cuff.position.set(x, soleY + 0.325, shoeLength * 0.38);
+      cuff.scale.set(0.82, 0.76, 0.82);
+      cuff.position.set(x, soleY + 0.108, shoeLength * 0.34);
       const strap = new THREE.Mesh(new THREE.TorusGeometry(shoeWidth * 0.42, 0.006, 8, 42), soleMaterial);
       strap.rotation.x = Math.PI / 2;
-      strap.scale.set(1.0, 0.46, 0.3);
-      strap.position.set(x, soleY + 0.082, -shoeLength * 0.02);
+      strap.scale.set(0.94, 0.48, 0.28);
+      strap.position.set(x, soleY + 0.079, -shoeLength * 0.05);
 
       for (let index = 0; index < 3; index += 1) {
-        const stitch = new THREE.Mesh(new THREE.BoxGeometry(shoeWidth * 0.46, 0.005, 0.006), seamMaterial);
-        stitch.position.set(x + side * 0.004, soleY + 0.095, -shoeLength * (0.22 - index * 0.13));
-        stitch.rotation.y = side * 0.36;
-        shoe.add(stitch);
+        const lace = new THREE.Mesh(new THREE.BoxGeometry(shoeWidth * 0.62, 0.005, 0.009), seamMaterial);
+        lace.position.set(x, soleY + 0.096 + index * 0.003, -shoeLength * (0.12 - index * 0.105));
+        lace.rotation.y = (index % 2 === 0 ? 1 : -1) * 0.18;
+        shoe.add(lace);
+        for (const eyeletSide of [-1, 1]) {
+          const eyelet = new THREE.Mesh(new THREE.TorusGeometry(0.006, 0.0018, 6, 18), seamMaterial);
+          eyelet.rotation.x = Math.PI / 2;
+          eyelet.position.set(x + eyeletSide * shoeWidth * 0.32, soleY + 0.097, -shoeLength * (0.12 - index * 0.105));
+          shoe.add(eyelet);
+        }
+      }
+
+      for (let index = 0; index < 5; index += 1) {
+        const tread = new THREE.Mesh(new THREE.BoxGeometry(shoeWidth * 0.74, 0.004, 0.012), seamMaterial);
+        tread.position.set(x, soleBottomY - 0.001, -shoeLength * 0.31 + index * shoeLength * 0.155);
+        shoe.add(tread);
       }
 
       const paperPatch = new THREE.Mesh(
@@ -2983,7 +3071,7 @@ function makeSupportProp3d(supportId, auraRadius) {
       const runeCross = new THREE.Mesh(new THREE.BoxGeometry(shoeWidth * 0.58, 0.004, 0.004), inkMaterial);
       runeCross.position.set(x, paperY + 0.007, -shoeLength * 0.14);
 
-      shoe.add(sole, toe, instep, heel, leg, cuff, strap, paperPatch, runeRing, runeStroke, runeCross);
+      shoe.add(sole, upper, heel, collar, tongue, cuff, strap, paperPatch, runeRing, runeStroke, runeCross);
       group.add(shoe);
     }
 
@@ -3225,6 +3313,8 @@ function addShoeSupportEffects3d(group, supportProp, effects, elementName, eleme
   const crystalMaterial = new THREE.MeshStandardMaterial({ color: 0x8f85bd, roughness: 0.38, transparent: true, opacity: 0.62 });
   const shoeXs = [-0.075, 0.075];
   const baseY = supportProp.userData.baseY || 0;
+  const soleBottomY = supportProp.userData.soleBottomY || THREE_SHOE_PAPER_Y + 0.005;
+  const deskEffectY = THREE_TABLE_SURFACE_Y + 0.004;
 
   if (
     has("propulsion verticale") ||
@@ -3242,7 +3332,10 @@ function addShoeSupportEffects3d(group, supportProp, effects, elementName, eleme
     addAnimatedObject(group, supportProp, (object, elapsed) => {
       let offset = 0;
       if (has("socle de terre montant")) {
-        offset = 0.055 + Math.sin(elapsed * 1.6) * 0.012;
+        offset = earthMoundPose(spellProgress3d(elapsed), {
+          tableY: THREE_TABLE_SURFACE_Y,
+          soleBottomY,
+        }).shoeOffsetY;
       } else if (has("explosion de feu")) {
         offset = Math.max(0, Math.sin(elapsed * 2.2)) * 0.05;
       } else if (has("coussin d'eau rebondissant") || has("rebonds repetes") || has("bonds instables") || has("flottement court sous semelle")) {
@@ -3257,7 +3350,7 @@ function addShoeSupportEffects3d(group, supportProp, effects, elementName, eleme
   if (has("table mouillee") || has("coussin d'eau rebondissant") || has("jets d'eau sous semelle")) {
     const puddle = new THREE.Mesh(new THREE.CircleGeometry(has("table mouillee") ? 0.34 : 0.22, 64), waterMaterial.clone());
     puddle.rotation.x = -Math.PI / 2;
-    puddle.position.y = 0.515;
+    puddle.position.y = deskEffectY;
     puddle.scale.z = has("jets d'eau sous semelle") ? 0.42 : 0.34;
     addAnimatedObject(group, puddle, (object, elapsed) => {
       const pulse = 1 + Math.sin(elapsed * 2.6) * 0.045;
@@ -3269,9 +3362,9 @@ function addShoeSupportEffects3d(group, supportProp, effects, elementName, eleme
   if (has("coussin d'eau rebondissant")) {
     const cushion = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.01, 12, 72), waterMaterial.clone());
     cushion.rotation.x = Math.PI / 2;
-    cushion.position.y = 0.585;
+    cushion.position.y = soleBottomY - 0.002;
     addAnimatedObject(group, cushion, (object, elapsed) => {
-      object.position.y = 0.58 + Math.sin(elapsed * 3.8) * 0.018;
+      object.position.y = soleBottomY - 0.004 + Math.sin(elapsed * 3.8) * 0.01;
       object.scale.setScalar(1 + Math.sin(elapsed * 4.2) * 0.08);
       object.material.opacity = 0.32 + Math.sin(elapsed * 3.5) * 0.08;
     });
@@ -3280,12 +3373,12 @@ function addShoeSupportEffects3d(group, supportProp, effects, elementName, eleme
   if (has("jets d'eau sous semelle") || has("jets de feu sous semelle")) {
     for (const x of shoeXs) {
       const jetMaterial = has("jets d'eau sous semelle") ? waterMaterial.clone() : fireMaterial.clone();
-      const jet = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.028, 0.28, 14), jetMaterial);
-      jet.position.set(x, 0.55, -0.04);
+      const jet = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.028, 0.12, 14), jetMaterial);
+      jet.position.set(x, deskEffectY + 0.055, -0.04);
       addAnimatedObject(group, jet, (object, elapsed) => {
         const pulse = 0.75 + Math.abs(Math.sin(elapsed * 6.5 + x * 10)) * 0.45;
         object.scale.set(1, pulse, 1);
-        object.position.y = 0.53 + pulse * 0.035;
+        object.position.y = deskEffectY + 0.04 + pulse * 0.018;
         object.material.opacity = has("jets d'eau sous semelle") ? 0.34 + pulse * 0.18 : 0.44 + pulse * 0.24;
       });
     }
@@ -3296,8 +3389,8 @@ function addShoeSupportEffects3d(group, supportProp, effects, elementName, eleme
       const x = shoeXs[index % 2] + (index < 4 ? -0.018 : 0.018);
       const z = -0.08 + (index % 4) * 0.045;
       const line = addLine([
-        new THREE.Vector3(x, 0.52, z),
-        new THREE.Vector3(x + Math.sin(index) * 0.018, 0.78, z - 0.025),
+        new THREE.Vector3(x, deskEffectY, z),
+        new THREE.Vector3(x + Math.sin(index) * 0.018, deskEffectY + 0.28, z - 0.025),
       ], 0x9cc9bd, 0.62);
       if (line) {
         line.material = windMaterial.clone();
@@ -3310,19 +3403,29 @@ function addShoeSupportEffects3d(group, supportProp, effects, elementName, eleme
   }
 
   if (has("socle de terre montant")) {
-    const column = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 0.24, 18), earthMaterial);
-    column.position.set(0, 0.61, -0.02);
+    const column = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.23, 1, 24), earthMaterial);
+    column.position.set(0, THREE_TABLE_SURFACE_Y + 0.01, -0.02);
     addAnimatedObject(group, column, (object, elapsed) => {
-      const height = 0.16 + Math.abs(Math.sin(elapsed * 1.7)) * 0.13;
-      object.scale.y = height / 0.24;
-      object.position.y = 0.51 + height / 2;
+      const pose = earthMoundPose(spellProgress3d(elapsed), {
+        tableY: THREE_TABLE_SURFACE_Y,
+        soleBottomY,
+      });
+      object.scale.y = pose.height;
+      object.position.y = pose.centerY;
     });
+    for (let index = 0; index < 9; index += 1) {
+      const angle = (index / 9) * Math.PI * 2;
+      const stone = new THREE.Mesh(new THREE.DodecahedronGeometry(0.025 + (index % 3) * 0.007, 0), earthMaterial.clone());
+      stone.position.set(Math.cos(angle) * 0.17, THREE_TABLE_SURFACE_Y + 0.018, -0.02 + Math.sin(angle) * 0.1);
+      stone.rotation.set(index * 0.37, index * 0.61, index * 0.19);
+      group.add(stone);
+    }
   }
 
   if (has("brulure lente") || has("explosion de feu")) {
     const scorch = new THREE.Mesh(new THREE.CircleGeometry(has("explosion de feu") ? 0.28 : 0.22, 44), scorchMaterial);
     scorch.rotation.x = -Math.PI / 2;
-    scorch.position.y = 0.512;
+    scorch.position.y = deskEffectY;
     scorch.scale.z = 0.52;
     addAnimatedObject(group, scorch, (object, elapsed) => {
       object.material.opacity = has("explosion de feu") ? 0.18 + Math.max(0, Math.sin(elapsed * 2.8)) * 0.24 : 0.22 + Math.sin(elapsed * 1.6) * 0.04;
@@ -3332,10 +3435,10 @@ function addShoeSupportEffects3d(group, supportProp, effects, elementName, eleme
       const spark = new THREE.Mesh(new THREE.SphereGeometry(0.012 + (index % 3) * 0.003, 8, 6), fireMaterial.clone());
       const angle = (index / 10) * Math.PI * 2;
       const radius = 0.08 + (index % 4) * 0.035;
-      spark.position.set(Math.cos(angle) * radius, 0.56, Math.sin(angle) * radius);
+      spark.position.set(Math.cos(angle) * radius, deskEffectY + 0.04, Math.sin(angle) * radius);
       addAnimatedObject(group, spark, (object, elapsed) => {
         const rise = (elapsed * (0.08 + index * 0.006)) % 0.22;
-        object.position.y = 0.54 + rise;
+        object.position.y = deskEffectY + 0.025 + rise;
         object.material.opacity = Math.max(0, 0.7 - rise * 2.6);
       });
     }
@@ -3343,7 +3446,7 @@ function addShoeSupportEffects3d(group, supportProp, effects, elementName, eleme
 
   if (has("explosion de feu")) {
     const blast = new THREE.Mesh(new THREE.SphereGeometry(0.12, 24, 16), fireMaterial.clone());
-    blast.position.set(0, 0.66, -0.02);
+    blast.position.set(0, deskEffectY + 0.12, -0.02);
     addAnimatedObject(group, blast, (object, elapsed) => {
       const cycle = (elapsed * 0.75) % 1;
       const scale = 0.35 + cycle * 2.2;
@@ -3353,7 +3456,7 @@ function addShoeSupportEffects3d(group, supportProp, effects, elementName, eleme
   }
 
   if (has("halo de guidage sous semelle")) {
-    const halo = circleLine(0.24, 0.56, 0xd7a63e, 0.55, 128);
+    const halo = circleLine(0.24, deskEffectY + 0.006, 0xd7a63e, 0.55, 128);
     addAnimatedObject(group, halo, (object, elapsed) => {
       object.rotation.y = elapsed * 0.8;
       object.material.opacity = 0.38 + Math.sin(elapsed * 2.2) * 0.14;
@@ -3363,7 +3466,7 @@ function addShoeSupportEffects3d(group, supportProp, effects, elementName, eleme
   if (has("patins cristallins")) {
     for (const x of shoeXs) {
       const shard = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.12, 5), crystalMaterial.clone());
-      shard.position.set(x, 0.55, -0.04);
+      shard.position.set(x, soleBottomY - 0.006, -0.04);
       shard.rotation.x = Math.PI;
       addAnimatedObject(group, shard, (object, elapsed) => {
         object.rotation.y = elapsed * 1.2 + x;
@@ -3993,9 +4096,9 @@ function rebuildThreeSpell() {
   if (supportProp) {
     group.add(supportProp);
   }
-  group.add(circleLine(auraRadius, shoeMode ? 0.565 : THREE_INK_Y, elementColor, 0.95, 192));
-  group.add(circleLine(auraRadius * 1.16, shoeMode ? 0.548 : THREE_INK_Y + 0.006, elementColor, 0.5, 192));
-  group.add(circleLine(auraRadius * 1.35, shoeMode ? 0.536 : THREE_INK_Y + 0.011, elementColor, 0.28, 192));
+  group.add(circleLine(auraRadius, shoeMode ? THREE_SHOE_INK_Y : THREE_INK_Y, elementColor, 0.95, 192));
+  group.add(circleLine(auraRadius * 1.16, shoeMode ? THREE_SHOE_INK_Y + 0.006 : THREE_INK_Y + 0.006, elementColor, 0.5, 192));
+  group.add(circleLine(auraRadius * 1.35, shoeMode ? THREE_SHOE_INK_Y + 0.011 : THREE_INK_Y + 0.011, elementColor, 0.28, 192));
   const manifestationStartIndex = group.children.length;
   addElementBaseEffect3d(group, element.name, effects, auraRadius, elementColor, model, supportId);
   addShoeSupportEffects3d(group, supportProp, effects, element.name, elementColor);
@@ -4221,12 +4324,16 @@ function rebuildThreeSpell() {
   threeView.scene.add(group);
 }
 
-function renderThreeView() {
+function renderThreeView(timestamp = performance.now()) {
   if (!threeView.renderer || view3dPanel.hidden) {
     return;
   }
 
   threeView.animationFrame = requestAnimationFrame(renderThreeView);
+  if (timestamp - threeView.lastRenderAt < 1000 / 30) {
+    return;
+  }
+  threeView.lastRenderAt = timestamp;
   if (state.activeSpell && performance.now() - state.activeSpell.startedAt > state.activeSpell.durationMs) {
     state.activeSpell = null;
     if (threeView.spellGroup) {
@@ -4247,6 +4354,7 @@ function open3dView() {
   rebuildThreeSpell();
   applyThreeCamera(threeView.environment || "interior");
   cancelAnimationFrame(threeView.animationFrame);
+  threeView.lastRenderAt = 0;
   renderThreeView();
 }
 
@@ -5836,8 +5944,8 @@ function drawMeasureCounter(width, height) {
   const bounds = screenBounds(logicalBounds, width, height);
   const support = currentSupport();
   const sizeIssue = activationSizeIssue(diameter);
-  const topLabel = "Diametre estime";
-  const bottomLabel = support.id === "none" ? formatCircleDiameter(diameter) : `${formatCircleDiameter(diameter)} | ${support.short}`;
+  const topLabel = t("atelier.estimatedDiameter");
+  const bottomLabel = support.id === "none" ? formatCircleDiameter(diameter) : `${formatCircleDiameter(diameter)} | ${supportDisplayName(support, true)}`;
   const paddingX = 11;
   const paddingY = 8;
   const badgeHeight = 48;
@@ -6739,7 +6847,7 @@ function renderInkList() {
       button.className = "ink-button";
       button.type = "button";
       button.dataset.symbol = element.name;
-      button.title = grammarProfile?.mechanic || element.meaning;
+      button.title = elementMechanicLabel(element, grammarProfile);
       button.innerHTML = `
         <span class="symbol-icon" style="--symbol-color:${element.color}">${elementIconMarkup(element)}</span>
         <span class="symbol-copy">
@@ -6913,7 +7021,7 @@ function updateInkSelection() {
       : grammarProfile?.confidence === "low" || SYMBOL_AUDIT.interpreted.includes(state.element.name)
         ? t("symbols.confidence.low")
         : t("symbols.confidence.partial");
-  const mechanic = grammarProfile?.mechanic || state.element.meaning;
+  const mechanic = elementMechanicLabel(state.element, grammarProfile);
   inkInfo.textContent = t("symbols.info", {
     name: elementDisplayName(state.element),
     rune: state.element.rune,
@@ -7645,6 +7753,7 @@ window.addEventListener("wha:localechange", () => {
   updateUsedList();
   updateSpellState();
   setStatus(t("status.languageChanged"));
+  render();
 });
 
 renderInkList();
