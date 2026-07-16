@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { SYMBOL_AUDIT, SYMBOL_PATHS } from "./symbol-catalog.mjs?v=20260714-symbol-audit-v5";
+import { SYMBOL_AUDIT, SYMBOL_PATHS } from "./symbol-catalog.mjs?v=20260716-generated-redraw-v1";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
 import { getLocale, t } from "./site-i18n.mjs?v=20260715-i18n-v1";
