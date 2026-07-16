@@ -28,7 +28,7 @@ body {
   margin: 0;
   background: var(--panel);
   color: var(--ink);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: "Courier New", Courier, monospace;
 }
 
 .simulator-page {
