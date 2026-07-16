@@ -30,6 +30,13 @@ test("les etats de palette et de transport sont styles", async () => {
   assert.match(css, /\.simulator-page\.placement-open\.is-dragging-symbol \.placement-drawer/);
 });
 
+test("l'interface utilise la police machine a ecrire historique", async () => {
+  const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
+  const bodyRule = css.match(/(?:^|\n\n)body\s*\{([\s\S]*?)\n\}/)?.[1] || "";
+
+  assert.match(bodyRule, /font-family:\s*"Courier New", Courier, monospace/);
+});
+
 test("l'application cable la selection contextuelle et son historique", async () => {
   const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
 
