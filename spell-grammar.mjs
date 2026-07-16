@@ -1,3 +1,11 @@
+import {
+  canonicalSpellIdentity,
+  hashSpellIdentity,
+  normalizeSpellGeometry,
+  selectPrimarySigil,
+} from "./spell-model.mjs";
+import { composeSupportPlan } from "./support-policy.mjs";
+
 const profile = (value) => Object.freeze(value);
 
 export const SIGIL_PROFILES = Object.freeze({
@@ -25,12 +33,12 @@ export const SIGN_PROFILES = Object.freeze({
   Colonne: profile({ role: "form", operation: "column", effect: "colonne/projection", radial: true, directional: true, invertible: false, confidence: "high", mechanic: "canalise la matiere dans une colonne; un desequilibre entre les signes incline la manifestation" }),
   Dispersion: profile({ role: "form", operation: "dispersion", effect: "dispersion", radial: true, directional: false, invertible: false, confidence: "high", mechanic: "laisse la matiere s'ecouler et s'etaler au lieu de la projeter en faisceau" }),
   Levitation: profile({ role: "motion", operation: "lift", effect: "levitation", radial: true, directional: true, invertible: false, confidence: "high", mechanic: "souleve l'effet ou deplace le support selon l'orientation des pointes" }),
-  Traction: profile({ role: "motion", operation: "pull", effect: "traction", radial: true, directional: true, invertible: true, confidence: "high", mechanic: "attire la matiere correspondante vers le sceau; inverse, il est probable qu'elle soit repoussee" }),
+  Traction: profile({ role: "motion", operation: "pull", inverseOperation: "push", effect: "traction", radial: true, directional: true, invertible: true, confidence: "high", mechanic: "attire la matiere correspondante vers le sceau; inverse, il est probable qu'elle soit repoussee" }),
   Region: profile({ role: "scope", operation: "region", effect: "region", radial: true, directional: true, invertible: true, confidence: "high", mechanic: "choisit le secteur dans lequel la manifestation apparait" }),
   Convergence: profile({ role: "form", operation: "focus", effect: "convergence", radial: true, directional: false, invertible: false, confidence: "high", mechanic: "rassemble l'effet vers un point et compacte la matiere meuble" }),
   Collection: profile({ role: "supply", operation: "collect", effect: "collection", radial: true, directional: false, invertible: false, confidence: "high", mechanic: "collecte la matiere disponible au-dessus et autour du sceau pour alimenter la formule" }),
   Nuage: profile({ role: "form", operation: "cloud", effect: "nuage", directional: false, invertible: false, confidence: "medium", mechanic: "donne une forme nuageuse a une matiere compatible" }),
-  Crush: profile({ role: "state", operation: "crush", effect: "ecrasement", radial: true, directional: false, invertible: true, confidence: "high", families: ["earth"], mechanic: "desagrege la terre; inverse, la reforme temporairement" }),
+  Crush: profile({ role: "state", operation: "crush", inverseOperation: "restore", effect: "ecrasement", radial: true, directional: false, invertible: true, confidence: "high", families: ["earth"], mechanic: "desagrege la terre; inverse, la reforme temporairement" }),
   Pantin: profile({ role: "motion", operation: "puppet", effect: "controle", directional: false, invertible: false, confidence: "medium", mechanic: "impose un mouvement commande a l'objet touche" }),
   Flottement: profile({ role: "motion", operation: "float", effect: "flottement", directional: false, invertible: false, confidence: "high", mechanic: "maintient l'objet ou la matiere en flottement" }),
   Etirement: profile({ role: "form", operation: "ribbon", effect: "tissage", directional: false, invertible: false, confidence: "high", phases: ["solid"], mechanic: "transforme une matiere solide en ruban flexible" }),
@@ -51,7 +59,7 @@ export const SIGN_PROFILES = Object.freeze({
   Reflection: profile({ role: "target", operation: "reflection", effect: "reflection", directional: false, invertible: false, confidence: "low", families: ["light"], mechanic: "utilise une image reflechie comme cible de la formule" }),
   Diamant: profile({ role: "target", operation: "nearby", effect: "cible proche", directional: false, invertible: false, confidence: "low", mechanic: "semble viser un objet proche plutot que le support du sceau" }),
   Fenetre: profile({ role: "target", operation: "carrier", effect: "cible support", directional: false, invertible: false, confidence: "low", mechanic: "semble limiter la transformation a l'objet qui porte le sceau" }),
-  Agrandissement: profile({ role: "state", operation: "resize", effect: "agrandissement", radial: true, directional: false, invertible: true, confidence: "high", mechanic: "agrandit la cible; avec les pointes inversees, la reduit" }),
+  Agrandissement: profile({ role: "state", operation: "resize", inverseOperation: "shrink", effect: "agrandissement", radial: true, directional: false, invertible: true, confidence: "high", mechanic: "agrandit la cible; avec les pointes inversees, la reduit" }),
   Viseur: profile({ role: "target", operation: "crosshair", effect: "viseur", directional: false, invertible: false, confidence: "low", mechanic: "associe la manifestation a une zone ou a un objet correspondant" }),
   Radial: profile({ role: "power", operation: "temper", effect: "radial", directional: false, invertible: false, confidence: "medium", mechanic: "tempere la puissance pour conserver l'effet sans sa forme la plus violente" }),
   Projectile: profile({ role: "form", operation: "bolt", effect: "projectile", directional: false, invertible: false, confidence: "high", mechanic: "fragmente la manifestation en projectiles rapides" }),
@@ -63,7 +71,18 @@ export const SIGN_PROFILES = Object.freeze({
 });
 
 const ROLE_KEYS = Object.freeze(["form", "motion", "scope", "supply", "state", "target", "relation", "power"]);
-const CONFIDENCE_SCORE = Object.freeze({ high: 3, medium: 2, low: 1 });
+const FIDELITY_RANK = Object.freeze({ documented: 0, inferred: 1, experimental: 2 });
+
+function profileFidelity(sign) {
+  if (sign.fidelity) return sign.fidelity;
+  if (sign.confidence === "high") return "documented";
+  if (sign.confidence === "medium") return "inferred";
+  return "experimental";
+}
+
+function worstFidelity(...values) {
+  return values.filter(Boolean).sort((left, right) => FIDELITY_RANK[right] - FIDELITY_RANK[left])[0] || "documented";
+}
 
 function slug(value) {
   return String(value)
@@ -124,6 +143,7 @@ function formLabel(material, operations) {
 function motionSuffix(operations) {
   if (operations.includes("lift") && operations.includes("float")) return " en flottement stabilise";
   if (operations.includes("lift")) return " en levitation";
+  if (operations.includes("push")) return " en repulsion";
   if (operations.includes("pull")) return " en traction";
   if (operations.includes("puppet")) return " sous mouvement commande";
   if (operations.includes("float")) return " flottant";
@@ -138,6 +158,8 @@ function stateSuffix(operations) {
   if (operations.includes("purify")) labels.push("purifie");
   if (operations.includes("still")) labels.push("immobilise");
   if (operations.includes("resize")) labels.push("redimensionne");
+  if (operations.includes("shrink")) labels.push("reduit");
+  if (operations.includes("restore")) labels.push("reforme");
   if (operations.includes("conceal")) labels.push("dissimule");
   if (operations.includes("crush")) labels.push("desagrege");
   return labels.length > 0 ? `, ${labels.join(" et ")}` : "";
@@ -230,10 +252,13 @@ export function composeSpellRecipe({
   const sigilCounts = countNames(sigils);
   const signCounts = countNames(signs);
   const inverted = new Set(invertedSigns);
+  const sigilCountObject = Object.fromEntries(sigilCounts);
+  const signCountObject = Object.fromEntries(signCounts);
+  const normalizedGeometry = geometry ? normalizeSpellGeometry(geometry) : null;
   const orderedSigils = [...sigilCounts.entries()]
     .filter(([name]) => SIGIL_PROFILES[name])
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "fr"));
-  const primaryName = orderedSigils[0]?.[0] || null;
+  const primaryName = selectPrimarySigil(Object.fromEntries(orderedSigils));
   const material = primaryName ? SIGIL_PROFILES[primaryName] : RAW_ENERGY_PROFILE;
   const axes = Object.fromEntries(ROLE_KEYS.map((role) => [role, []]));
   const effectNames = [];
@@ -241,34 +266,50 @@ export function composeSpellRecipe({
   const warnings = [];
   const ignoredSigns = [];
   const uncertainSigns = [];
+  const ruleIds = new Set();
+  let fidelity = "documented";
 
   for (const [name, count] of [...signCounts.entries()].sort(([a], [b]) => a.localeCompare(b, "fr"))) {
     const sign = SIGN_PROFILES[name];
     if (!sign) {
       warnings.push(`Signe inconnu ignore: ${name}.`);
       ignoredSigns.push(name);
+      fidelity = worstFidelity(fidelity, "experimental");
       continue;
     }
 
     if (sign.phases && material && !sign.phases.includes(material.phase)) {
       warnings.push(`${name} demande une matiere ${sign.phases.join("/")}; ${material.noun} ne produit donc pas cette transformation.`);
       ignoredSigns.push(name);
+      fidelity = worstFidelity(fidelity, "inferred");
       continue;
     }
     if (sign.families && material && !sign.families.includes(material.family)) {
       warnings.push(`${name} est documente pour ${sign.families.join("/")}; son effet sur ${material.noun} reste une interpretation.`);
       uncertainSigns.push(name);
+      fidelity = worstFidelity(fidelity, "inferred");
     }
     if (sign.restricted) {
       warnings.push(`${name} reste experimental et n'est pas traite comme un signe ordinaire confirme.`);
+      fidelity = worstFidelity(fidelity, "experimental");
     }
     if (sign.confidence === "low") {
       uncertainSigns.push(name);
     }
 
-    axes[sign.role].push({ name, count, ...sign, inverted: inverted.has(name) });
+    const isInverted = inverted.has(name);
+    const operation = isInverted && sign.inverseOperation ? sign.inverseOperation : sign.operation;
+    if (isInverted && !sign.inverseOperation) {
+      warnings.push(`L'inversion de ${name} n'est pas documentee; l'operation normale est conservee.`);
+      uncertainSigns.push(name);
+      fidelity = worstFidelity(fidelity, "inferred");
+    }
+    const signFidelity = profileFidelity(sign);
+    fidelity = worstFidelity(fidelity, signFidelity);
+    ruleIds.add(`sign.${slug(name)}`);
+    axes[sign.role].push({ name, count, ...sign, operation, inverted: isInverted, fidelity: signFidelity });
     addUnique(effectNames, sign.effect);
-    mechanics.push(`${name}${count > 1 ? ` x${count}` : ""}: ${sign.mechanic}${inverted.has(name) && sign.invertible ? " (effet inverse)" : ""}.`);
+    mechanics.push(`${name}${count > 1 ? ` x${count}` : ""}: ${sign.mechanic}${isInverted && sign.inverseOperation ? " (effet inverse)" : ""}.`);
   }
 
   if (!primaryName) {
@@ -343,17 +384,17 @@ export function composeSpellRecipe({
   if (has("orb") && has("dispersion")) {
     warnings.push("Orbe contient tandis que Dispersion libere: la combinaison est rendue comme une enveloppe qui fuit, interpretation logique non confirmee.");
   }
-  if (geometry?.ignoredCount > 0) {
-    warnings.push(`${geometry.ignoredCount} marque(s) hors de l'anneau ou sans connexion ont ete ignorees.`);
+  if (normalizedGeometry?.ignoredCount > 0) {
+    warnings.push(`${normalizedGeometry.ignoredCount} marque(s) hors de l'anneau ou sans connexion ont ete ignorees.`);
   }
-  if (geometry?.directionalCount > 0 && geometry.balance < 0.72) {
-    warnings.push(`Signes directionnels desequilibres: la manifestation derive sous une pression de ${Math.round(geometry.pressure * 100)}%.`);
+  if (geometry?.directionalCount > 0 && normalizedGeometry.balance < 0.72) {
+    warnings.push(`Signes directionnels desequilibres: la manifestation derive sous une pression de ${Math.round(normalizedGeometry.pressure * 100)}%.`);
   }
-  if (geometry && Math.abs(geometry.spin) >= 0.08) {
-    warnings.push(`Signes inclines: rotation ${geometry.spin > 0 ? "horaire" : "antihoraire"}, portee reduite a ${Math.round(geometry.reach * 100)}%.`);
+  if (normalizedGeometry && Math.abs(normalizedGeometry.spin) >= 0.08) {
+    warnings.push(`Signes inclines: rotation ${normalizedGeometry.spin > 0 ? "horaire" : "antihoraire"}, portee reduite a ${Math.round(normalizedGeometry.reach * 100)}%.`);
   }
   if (geometry?.directionalCount > 0) {
-    mechanics.push(`Equilibre geometrique: ${Math.round(geometry.balance * 100)}%; pression laterale ${Math.round(geometry.pressure * 100)}%.`);
+    mechanics.push(`Equilibre geometrique: ${Math.round(normalizedGeometry.balance * 100)}%; pression laterale ${Math.round(normalizedGeometry.pressure * 100)}%.`);
   }
 
   const formOperations = operations.form;
@@ -367,29 +408,36 @@ export function composeSpellRecipe({
     label = `chaussure: ${label}`;
   }
 
-  const confidenceValues = [...axes.form, ...axes.motion, ...axes.scope, ...axes.supply, ...axes.state, ...axes.target, ...axes.relation, ...axes.power]
-    .map((entry) => CONFIDENCE_SCORE[entry.confidence] || 1);
-  const confidenceScore = confidenceValues.length > 0 ? Math.min(...confidenceValues) : 3;
-  const confidence = confidenceScore === 3 ? "confirme" : confidenceScore === 2 ? "partiellement confirme" : "interpretation prudente";
-  const id = [
-    `sigils-${countSignature(sigilCounts) || "none"}`,
-    `signs-${countSignature(signCounts) || "none"}`,
-    `direction-${slug(direction) || "none"}`,
-    `support-${slug(supportId) || "none"}`,
-    inverted.size > 0 ? `inverse-${[...inverted].sort().map(slug).join("+")}` : "inverse-none",
-    geometry
-      ? `geometrie-b${Math.round(geometry.balance * 10)}-s${Math.round(geometry.spin * 10)}-r${Math.round(geometry.reach * 10)}`
-      : "geometrie-default",
-  ].join(".");
-  const effectPlan = buildEffectPlan({ axes, material, sigilCounts: Object.fromEntries(sigilCounts), signCounts: Object.fromEntries(signCounts), direction, supportId, geometry });
+  const flatOperations = ROLE_KEYS.flatMap((role) => operations[role]);
+  const supportPlan = composeSupportPlan({ supportId, primarySigil: primaryName, operations: flatOperations });
+  fidelity = worstFidelity(fidelity, supportPlan.fidelity);
+  supportPlan.ruleIds.forEach((ruleId) => ruleIds.add(ruleId));
+  const confidence = fidelity === "documented"
+    ? "confirme"
+    : fidelity === "inferred"
+      ? "partiellement confirme"
+      : "interpretation prudente";
+  const identity = canonicalSpellIdentity({
+    sigilCounts: sigilCountObject,
+    signCounts: signCountObject,
+    invertedSigns: [...inverted],
+    direction,
+    supportId,
+    geometry: normalizedGeometry || {},
+  });
+  const id = `spell-v2-${hashSpellIdentity(identity)}`;
+  const effectPlan = {
+    ...buildEffectPlan({ axes, material, sigilCounts: sigilCountObject, signCounts: signCountObject, direction, supportId, geometry: normalizedGeometry }),
+    supportPlan,
+  };
 
   return {
     id,
     label,
     material: primaryName,
     materialProfile: material,
-    sigilCounts: Object.fromEntries(sigilCounts),
-    signCounts: Object.fromEntries(signCounts),
+    sigilCounts: sigilCountObject,
+    signCounts: signCountObject,
     axes,
     operations,
     effectNames,
@@ -400,8 +448,12 @@ export function composeSpellRecipe({
     ignoredSigns: [...new Set(ignoredSigns)],
     uncertainSigns: [...new Set(uncertainSigns)],
     confidence,
+    fidelity,
+    ruleIds: [...ruleIds].sort(),
     direction,
     supportId,
+    supportPlan,
+    identity,
     effectPlan,
   };
 }
@@ -409,39 +461,43 @@ export function composeSpellRecipe({
 export function validateSpellMatrix() {
   const sigils = Object.keys(SIGIL_PROFILES);
   const signs = Object.keys(SIGN_PROFILES);
+  const supportIds = ["none", "shoe"];
   const ids = new Set();
   const plans = new Set();
+  const supports = { none: 0, shoe: 0 };
   let tested = 0;
+  let deterministic = 0;
   let warningRecipes = 0;
   let interpretedRecipes = 0;
 
-  for (const sigil of sigils) {
-    for (let first = 0; first < signs.length; first += 1) {
-      for (let second = first; second < signs.length; second += 1) {
-        const input = { sigils: [sigil], signs: [signs[first], signs[second]], direction: "vers le haut", supportId: "none" };
-        const recipe = composeSpellRecipe(input);
-        const duplicate = composeSpellRecipe(input);
-        tested += 1;
-        if (!recipe.id || !recipe.label || !recipe.material || recipe.effectNames.some((effect) => !effect)) {
-          throw new Error(`Recette invalide: ${sigil} + ${signs[first]} + ${signs[second]}`);
+  for (const supportId of supportIds) {
+    for (const sigil of sigils) {
+      for (let first = 0; first < signs.length; first += 1) {
+        for (let second = first; second < signs.length; second += 1) {
+          const input = { sigils: [sigil], signs: [signs[first], signs[second]], direction: "vers le haut", supportId };
+          const recipe = composeSpellRecipe(input);
+          const duplicate = composeSpellRecipe(input);
+          tested += 1;
+          supports[supportId] += 1;
+          if (!recipe.id || !recipe.label || !recipe.material || recipe.effectNames.some((effect) => !effect)) {
+            throw new Error(`Recette invalide: ${sigil} + ${signs[first]} + ${signs[second]} + ${supportId}`);
+          }
+          const parameters = Object.values(recipe.effectPlan?.parameters || {});
+          if (!recipe.effectPlan?.pipeline?.length || parameters.length === 0 || parameters.some((value) => !Number.isFinite(value))) {
+            throw new Error(`Plan d'effet invalide: ${sigil} + ${signs[first]} + ${signs[second]} + ${supportId}`);
+          }
+          if (JSON.stringify(recipe) !== JSON.stringify(duplicate)) {
+            throw new Error(`Recette non deterministe: ${recipe.id}`);
+          }
+          deterministic += 1;
+          if (ids.has(recipe.id)) {
+            throw new Error(`Identifiant de variante duplique: ${recipe.id}`);
+          }
+          ids.add(recipe.id);
+          plans.add(JSON.stringify({ effectPlan: recipe.effectPlan, supportPlan: recipe.supportPlan }));
+          if (recipe.warnings.length > 0) warningRecipes += 1;
+          if (recipe.confidence === "interpretation prudente") interpretedRecipes += 1;
         }
-        const parameters = Object.values(recipe.effectPlan?.parameters || {});
-        if (!recipe.effectPlan?.pipeline?.length || parameters.length === 0 || parameters.some((value) => !Number.isFinite(value))) {
-          throw new Error(`Plan d'effet invalide: ${sigil} + ${signs[first]} + ${signs[second]}`);
-        }
-        if (recipe.id !== duplicate.id || recipe.label !== duplicate.label) {
-          throw new Error(`Recette non deterministe: ${recipe.id}`);
-        }
-        if (JSON.stringify(recipe.effectPlan) !== JSON.stringify(duplicate.effectPlan)) {
-          throw new Error(`Plan d'effet non deterministe: ${recipe.id}`);
-        }
-        if (ids.has(recipe.id)) {
-          throw new Error(`Identifiant de variante duplique: ${recipe.id}`);
-        }
-        ids.add(recipe.id);
-        plans.add(`${recipe.effectPlan.pipeline.join("|")}:${JSON.stringify(recipe.effectPlan.parameters)}`);
-        if (recipe.warnings.length > 0) warningRecipes += 1;
-        if (recipe.confidence === "interpretation prudente") interpretedRecipes += 1;
       }
     }
   }
@@ -451,6 +507,9 @@ export function validateSpellMatrix() {
     signs: signs.length,
     tested,
     unique: ids.size,
+    deterministic,
+    supports,
+    distinctPlans: plans.size,
     planned: plans.size,
     warningRecipes,
     interpretedRecipes,

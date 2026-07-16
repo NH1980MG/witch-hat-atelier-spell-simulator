@@ -38,7 +38,15 @@ for (const [name, drawing] of Object.entries(SYMBOL_PATHS)) {
 }
 
 const result = validateSpellMatrix();
-if (result.tested < 1000 || result.planned < 1000 || result.tested !== result.unique || result.planned > result.tested) {
+if (
+  result.tested !== 13_338
+  || result.unique !== 13_338
+  || result.deterministic !== 13_338
+  || result.supports.none !== 6_669
+  || result.supports.shoe !== 6_669
+  || result.distinctPlans < 1
+  || result.distinctPlans > result.tested
+) {
   throw new Error(`Matrice insuffisante ou non unique: ${JSON.stringify(result)}`);
 }
 
