@@ -1256,6 +1256,15 @@ input:focus-visible {
   min-width: 0;
 }
 
+.tutorial-wiki-layout .tutorial-board {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.wiki-inline-link {
+  color: var(--gold-dark);
+  font-weight: 800;
+}
+
 .variant-explorer {
   display: grid;
   gap: 16px;
@@ -1907,6 +1916,10 @@ input:focus-visible {
   }
 
   .variant-results {
+    grid-template-columns: 1fr;
+  }
+
+  .tutorial-wiki-layout .tutorial-board {
     grid-template-columns: 1fr;
   }
   .simulator-page {

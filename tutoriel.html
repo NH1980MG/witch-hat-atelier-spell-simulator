@@ -42,8 +42,20 @@
         </nav>
       </header>
 
-      <section class="tutorial-board" data-i18n-aria-label="tutorial.region" aria-label="Tutorial steps">
-        <article class="settings-card tutorial-card">
+      <div class="wiki-layout tutorial-wiki-layout">
+        <nav class="wiki-toc" data-i18n-aria-label="wiki.contents" aria-label="On this page">
+          <strong data-i18n="wiki.contents">On this page</strong>
+          <a href="#quick-start" data-i18n="tutorial.wiki.quickStart">Quick start</a>
+          <a href="#anatomy" data-i18n="tutorial.wiki.anatomy">Anatomy of a seal</a>
+          <a href="#sigils-signs" data-i18n="tutorial.wiki.sigilsSigns">Sigils and signs</a>
+          <a href="#geometry" data-i18n="tutorial.wiki.geometry">Geometry, balance, and rotation</a>
+          <a href="#supports-limits" data-i18n="tutorial.wiki.supports">Supports and physical limits</a>
+          <a href="#fidelity" data-i18n="tutorial.wiki.fidelity">Reading fidelity</a>
+          <a href="#variant-explorer" data-i18n="tutorial.wiki.explorer">Using the variant explorer</a>
+          <a href="#controls" data-i18n="tutorial.wiki.controls">Controls and shortcuts</a>
+        </nav>
+      <section class="tutorial-board wiki-content" data-i18n-aria-label="tutorial.region" aria-label="Tutorial steps">
+        <article class="settings-card tutorial-card" id="quick-start">
           <span class="step-number">1</span>
           <h2 data-i18n="tutorial.step1.title">Choose a symbol</h2>
           <p data-i18n="tutorial.step1.body">The central sigil defines the magical material: Fire, Water, Earth, Wind, Light, Crystal, Aeriform, Wind underfoot, or Repetition. Signs around the seal then modify how that material behaves.</p>
@@ -59,14 +71,14 @@
           </div>
         </article>
 
-        <article class="settings-card tutorial-card">
+        <article class="settings-card tutorial-card" id="anatomy">
           <span class="step-number">2</span>
           <h2 data-i18n="tutorial.step2.title">Draw the seal</h2>
           <p data-i18n="tutorial.step2.body1">The closed circle gives the spell a boundary. Every sigil or sign must be inside or connected to the ring to contribute. An outside mark remains visible but is ignored. If the ring stays open, the ritual cannot activate.</p>
           <p data-i18n="tutorial.step2.body2">A closed ring without a sigil releases a brief burst of raw energy. The sigil chooses the material, but it is not required to produce an effect.</p>
         </article>
 
-        <article class="settings-card tutorial-card">
+        <article class="settings-card tutorial-card" id="sigils-signs">
           <span class="step-number">3</span>
           <h2 data-i18n="tutorial.step3.title">Add signs</h2>
           <p data-i18n="tutorial.step3.body">Signs modify energy or matter through supply, state, form, motion, target, scope, relation, or power. Menu-placed signs and freehand marks around the circle are read as separate modifiers. The menu drawing is exactly the form placed on the grid and reproduced in 3D ink.</p>
@@ -78,17 +90,18 @@
           <p data-i18n="tutorial.step4.body">Directional signs project or pull in one direction. Semi-directional signs often face the center, but their orientation does not always create movement. Non-directional signs keep the same effect at every angle. Asymmetrical signs are less predictable. The simulator only reverses signs whose inversion is documented.</p>
         </article>
 
-        <article class="settings-card tutorial-card tutorial-reference-card">
+        <article class="settings-card tutorial-card tutorial-reference-card" id="variant-explorer">
           <h2 data-i18n="tutorial.matrix.title">What the 13,338 variants count</h2>
           <p data-i18n="tutorial.matrix.formula">38 x 39 / 2 = 741 unordered sign pairs with repetition; 9 sigils x 741 = 6,669 recipes; 6,669 x 2 supports = 13,338.</p>
           <strong data-i18n="tutorial.matrix.total">13,338 tested variants</strong>
+          <a class="wiki-inline-link" href="bibliotheque.html#variants" data-i18n="tutorial.matrix.openExplorer">Open the complete variant explorer</a>
           <ul>
             <li data-i18n="tutorial.matrix.scope">Each tested recipe contains one central sigil, one unordered pair of signs, and either no linked object or the shoe support.</li>
             <li data-i18n="tutorial.matrix.exclusions">The total does not count three-sign, multi-sigil, linked, nested, or arbitrary freehand-geometry variants.</li>
           </ul>
         </article>
 
-        <article class="settings-card tutorial-card tutorial-reference-card">
+        <article class="settings-card tutorial-card tutorial-reference-card" id="fidelity">
           <h2 data-i18n="tutorial.fidelity.title">Read the fidelity level</h2>
           <ul>
             <li data-i18n="tutorial.fidelity.documented">Documented: the behavior is directly supported by the research record.</li>
@@ -97,7 +110,7 @@
           </ul>
         </article>
 
-        <article class="settings-card tutorial-card tutorial-reference-card">
+        <article class="settings-card tutorial-card tutorial-reference-card" id="geometry">
           <h2 data-i18n="tutorial.balance.title">Balance, rotation, and connection</h2>
           <ul>
             <li data-i18n="tutorial.balance.symmetry">Equal signs placed symmetrically balance pressure; a larger or off-center sign deliberately redirects it.</li>
@@ -107,7 +120,7 @@
           </ul>
         </article>
 
-        <article class="settings-card tutorial-card tutorial-reference-card">
+        <article class="settings-card tutorial-card tutorial-reference-card" id="supports-limits">
           <h2 data-i18n="tutorial.supportScope.title">No support and shoe support</h2>
           <ul>
             <li data-i18n="tutorial.supportScope.none">No support is the default: the paper remains on the work surface and the spell acts from it.</li>
@@ -192,12 +205,13 @@
           <p data-i18n="tutorial.step14.body">When the circle is ready, use Archive PNG to save the parchment image.</p>
         </article>
 
-        <article class="settings-card tutorial-card">
+        <article class="settings-card tutorial-card" id="controls">
           <span class="step-number">15</span>
           <h2 data-i18n="tutorial.step15.title">Keyboard shortcuts</h2>
           <p data-i18n="tutorial.step15.body">Command/Ctrl + Z undoes, Command/Ctrl + Shift + Z redoes, and Command/Ctrl + S archives a PNG. A activates the ritual and L reads the circle. Escape first closes the 3D view or an open panel, then clears the parchment only when nothing is open.</p>
         </article>
       </section>
+      </div>
     </main>
   </body>
 </html>
