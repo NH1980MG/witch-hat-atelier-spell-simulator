@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { translate } from "../i18n.mjs";
 
 const appSource = await readFile(new URL("../app.js", import.meta.url), "utf8");
 
@@ -14,4 +15,18 @@ test("dynamic symbol and support panels use localized display helpers", () => {
   assert.match(appSource, /elementDisplayName\(element\)/);
   assert.match(appSource, /supportDisplayName\(support\)/);
   assert.match(appSource, /t\("symbols\.group\.central"\)/);
+});
+
+test("fidelity details are bilingual", () => {
+  for (const key of [
+    "details.fidelity",
+    "details.fidelity.documented",
+    "details.fidelity.inferred",
+    "details.fidelity.experimental",
+    "details.ruleSources",
+    "details.assumptions",
+  ]) {
+    assert.notEqual(translate("en", key), key);
+    assert.notEqual(translate("fr", key), key);
+  }
 });

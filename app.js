@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { SYMBOL_AUDIT, SYMBOL_PATHS } from "./symbol-catalog.mjs?v=20260714-symbol-audit-v5";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs";
+import { selectPrimarySigil } from "./spell-model.mjs";
 import { getLocale, t } from "./site-i18n.mjs?v=20260715-i18n-v1";
 import { earthMoundPose } from "./support-geometry.mjs";
 import {
@@ -284,6 +285,9 @@ const spellStability = document.querySelector("#spellStability");
 const spellForce = document.querySelector("#spellForce");
 const spellDiameter = document.querySelector("#spellDiameter");
 const spellSupport = document.querySelector("#spellSupport");
+const fidelityLevel = document.querySelector("#fidelityLevel");
+const fidelityRules = document.querySelector("#fidelityRules");
+const fidelityWarnings = document.querySelector("#fidelityWarnings");
 const intensityInput = document.querySelector("#intensityInput");
 const strokeInput = document.querySelector("#strokeInput");
 const canvasSizeInput = document.querySelector("#canvasSizeInput");
@@ -437,16 +441,7 @@ function supportStatusLines() {
 }
 
 function primaryElementNameFromModel(model) {
-  const entries = Object.entries(model?.sigilCounts || {}).filter(([, count]) => count > 0);
-  if (entries.length === 0) {
-    return dominantElement()?.name || null;
-  }
-  return entries
-    .map(([name, count]) => {
-      const element = elements.find((item) => item.name === name);
-      return { name, score: count * 12 + (element?.charge || 0) * 2 };
-    })
-    .sort((a, b) => b.score - a.score)[0]?.name || null;
+  return selectPrimarySigil(model?.sigilCounts) || dominantElement()?.name || null;
 }
 
 function shoeEffectProfile(model) {
@@ -454,6 +449,7 @@ function shoeEffectProfile(model) {
   if (support.id !== "shoe") {
     return { effects: [], lines: [], lift: false, stable: true, motion: "none", hazard: false };
   }
+  const supportPlan = model.recipe.supportPlan;
   const sigilCounts = model?.sigilCounts || {};
   const signCounts = model?.signCounts || {};
   const elementName = primaryElementNameFromModel(model);
@@ -472,10 +468,10 @@ function shoeEffectProfile(model) {
   const profile = {
     effects,
     lines,
-    lift: false,
-    stable: false,
+    lift: supportPlan.movesCarrier,
+    stable: supportPlan.stable,
     motion: "unstable",
-    hazard: false,
+    hazard: supportPlan.hazard,
   };
   const add = (effect, line, options = {}) => {
     if (!effects.includes(effect)) {
@@ -7177,6 +7173,7 @@ function spellMetrics() {
 
 function updateSpellState() {
   const metrics = spellMetrics();
+  const model = signModel();
   spellElement.textContent = elementDisplayName(metrics.element);
   spellQuality.textContent = `${metrics.quality}%`;
   spellDuration.textContent = `${Math.round(metrics.duration / 1000)}s`;
@@ -7187,7 +7184,36 @@ function updateSpellState() {
   spellDiameter.classList.toggle("is-danger", Boolean(sizeIssue));
   spellDiameter.title = sizeIssue ? `Cercle ${sizeIssue.label} pour etre active. ${sizeIssue.limit}.` : "";
   spellSupport.textContent = supportDisplayName(currentSupport(), true);
+  updateFidelityDetails(model.recipe);
   updateSupportSelection();
+}
+
+function replaceList(list, values, fallback) {
+  list.replaceChildren();
+  for (const value of values.length > 0 ? values : [fallback]) {
+    const item = document.createElement("li");
+    item.textContent = value;
+    list.append(item);
+  }
+}
+
+function updateFidelityDetails(recipe) {
+  if (!recipe || !fidelityLevel || !fidelityRules || !fidelityWarnings) return;
+  fidelityLevel.textContent = t(`details.fidelity.${recipe.fidelity}`);
+  fidelityLevel.dataset.fidelity = recipe.fidelity;
+  replaceList(
+    fidelityRules,
+    [t("details.supportMode", { mode: recipe.supportPlan.mode }), ...recipe.ruleIds],
+    t("details.noRules"),
+  );
+  replaceList(
+    fidelityWarnings,
+    [
+      ...recipe.warnings,
+      ...recipe.ignoredSigns.map((name) => t("details.ignoredSign", { name: elementDisplayName(name) })),
+    ],
+    t("details.noAssumptions"),
+  );
 }
 
 function analyzeSpell() {
