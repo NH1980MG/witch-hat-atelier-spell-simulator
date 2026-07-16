@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img">
-<title>Original simulator schematic for Advanced Beastwarding</title>
-<path fill="#fffaf0" stroke="none" d="M0 0H240V240H0Z"/>
-<g fill="none" stroke="#7d1f1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">
-<circle cx="120" cy="120" r="104"/><circle cx="120" cy="120" r="73"/><circle cx="120" cy="120" r="34"/>
-<line x1="108.1" y1="147.5" x2="94.1" y2="179.6"/><line x1="90.1" y1="117.2" x2="55.3" y2="113.8"/><line x1="113.5" y1="90.7" x2="105.9" y2="56.6"/><line x1="145.8" y1="104.7" x2="176.0" y2="87.0"/><line x1="142.5" y1="139.9" x2="168.7" y2="163.0"/><polyline points="69.4,73.4 47.3,70.4 58.2,90.0"/><polyline points="135.1,52.9 126.6,32.2 115.1,51.4"/><polyline points="185.6,99.5 199.3,81.8 176.9,81.5"/><polyline points="170.6,166.6 192.7,169.6 181.8,150.0"/><polyline points="104.9,187.1 113.4,207.8 124.9,188.6"/><polyline points="54.4,140.5 40.7,158.2 63.1,158.5"/><path d="M101 140 C90 118 105 96 124 106 C144 116 136 143 116 139 C101 136 101 119 114 116 C126 113 132 125 125 132"/>
-</g></svg>

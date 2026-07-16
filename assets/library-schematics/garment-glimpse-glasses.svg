@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img">
-<title>Original simulator schematic for Garment-Glimpse Glasses</title>
-<path fill="#fffaf0" stroke="none" d="M0 0H240V240H0Z"/>
-<g fill="none" stroke="#7d1f1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">
-<circle cx="120" cy="120" r="104"/><circle cx="120" cy="120" r="78"/><circle cx="120" cy="120" r="34"/>
-<line x1="103.3" y1="144.9" x2="81.1" y2="178.2"/><line x1="106.7" y1="93.1" x2="89.0" y2="57.2"/><line x1="149.9" y1="122.0" x2="189.8" y2="124.6"/><polyline points="86.3,60.4 68.0,49.0 73.4,69.9"/><polyline points="138.3,54.0 133.4,33.0 122.5,51.6"/><polyline points="179.6,86.3 191.0,68.0 170.1,73.4"/><polyline points="186.0,138.3 207.0,133.4 188.4,122.5"/><polyline points="153.7,179.6 172.0,191.0 166.6,170.1"/><polyline points="101.7,186.0 106.6,207.0 117.5,188.4"/><polyline points="60.4,153.7 49.0,172.0 69.9,166.6"/><polyline points="54.0,101.7 33.0,106.6 51.6,117.5"/><path d="M92 120 Q120 82 148 120 Q120 158 92 120 Z M106 120 Q120 104 134 120 Q120 136 106 120 Z"/>
-</g></svg>

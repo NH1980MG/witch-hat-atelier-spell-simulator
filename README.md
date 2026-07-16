@@ -5,7 +5,7 @@ the visual grammar of *Witch Hat Atelier*. Draw a closed ring, place a central
 sigil and modifier signs, read the result, then activate a live Three.js scene.
 
 The public site is designed as both a workshop and a small wiki. Its library
-contains 33 original vector schematics and a searchable catalog of exactly
+contains 33 tightly cropped reference circles and a searchable catalog of exactly
 38,532 deterministic, support-aware recipes:
 
 ```text
@@ -74,15 +74,16 @@ semantic checks passing.
 - `spell-grammar.mjs`, `spell-model.mjs`: deterministic mechanics and snapshots.
 - `variant-catalog.mjs`, `variant-index-worker.mjs`: 38,532-recipe index.
 - `support-policy.mjs`, `support-geometry.mjs`: support limits and 3D placement.
-- `assets/library-schematics/`: 33 original public SVG schematics.
+- `assets/library-schematics/`: 33 local PNG crops containing only the named reference circles.
 - `docs/`: architecture, fidelity, QA, release and research provenance notes.
 
 ## Public Release Policy
 
-The public build contains original simulator artwork only. Local study captures,
-copied manga/anime panels and private reference material must never be added to
-the GitHub Pages artifact. Three.js is vendored under `vendor/three/` with its
-MIT license and no runtime CDN dependency.
+The public build contains original simulator artwork plus 33 spell-circle crops
+from archived Witch Hat Atelier Wiki gallery captures supplied for this fan
+project. Full screenshots, surrounding wiki text, and manga/anime panels are not
+included. Three.js is vendored under `vendor/three/` with its MIT license and no
+runtime CDN dependency.
 
 This is an unofficial fan project. *Witch Hat Atelier* and related names belong
 to their respective rights holders.

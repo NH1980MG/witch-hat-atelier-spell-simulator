@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img">
-<title>Original simulator schematic for Light-Reducing Spell</title>
-<path fill="#fffaf0" stroke="none" d="M0 0H240V240H0Z"/>
-<g fill="none" stroke="#7d1f1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">
-<circle cx="120" cy="120" r="104"/><circle cx="120" cy="120" r="68"/><circle cx="120" cy="120" r="34"/>
-<line x1="149.5" y1="125.4" x2="179.0" y2="130.7"/><line x1="124.0" y1="149.7" x2="128.0" y2="179.5"/><line x1="93.0" y1="133.0" x2="65.9" y2="146.0"/><line x1="99.3" y1="98.3" x2="78.6" y2="76.6"/><line x1="134.2" y1="93.6" x2="148.5" y2="67.2"/><polyline points="180.8,152.1 203.0,149.3 187.4,133.2"/><polyline points="122.6,188.7 136.1,206.5 142.2,185.0"/><polyline points="61.8,156.6 53.1,177.2 74.8,171.8"/><polyline points="59.2,87.9 37.0,90.7 52.6,106.8"/><polyline points="117.4,51.3 103.9,33.5 97.8,55.0"/><polyline points="178.2,83.4 186.9,62.8 165.2,68.2"/><path d="M101 140 C90 118 105 96 124 106 C144 116 136 143 116 139 C101 136 101 119 114 116 C126 113 132 125 125 132"/>
-</g></svg>

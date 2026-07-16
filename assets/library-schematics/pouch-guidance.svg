@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img">
-<title>Original simulator schematic for Pouch Guidance</title>
-<path fill="#fffaf0" stroke="none" d="M0 0H240V240H0Z"/>
-<g fill="none" stroke="#7d1f1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">
-<circle cx="120" cy="120" r="104"/><circle cx="120" cy="120" r="73"/><circle cx="120" cy="120" r="34"/>
-<line x1="95.6" y1="137.5" x2="67.2" y2="157.9"/><line x1="117.1" y1="90.1" x2="113.6" y2="55.3"/><line x1="147.3" y1="132.4" x2="179.2" y2="146.8"/><polyline points="131.2,52.5 124.2,32.1 115.2,51.7"/><polyline points="179.8,86.7 191.3,68.5 170.4,73.7"/><polyline points="183.4,146.0 204.8,143.6 187.6,130.6"/><polyline points="139.2,185.7 154.4,201.0 153.9,179.5"/><polyline points="80.6,176.0 78.1,197.4 94.6,183.6"/><polyline points="51.7,124.1 33.4,135.5 54.5,139.8"/><polyline points="74.2,69.1 53.9,61.9 63.6,81.1"/><path d="M92 120 Q120 82 148 120 Q120 158 92 120 Z M106 120 Q120 104 134 120 Q120 136 106 120 Z"/>
-</g></svg>

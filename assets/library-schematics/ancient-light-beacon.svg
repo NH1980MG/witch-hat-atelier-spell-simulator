@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img">
-<title>Original simulator schematic for Ancient Light Beacon</title>
-<path fill="#fffaf0" stroke="none" d="M0 0H240V240H0Z"/>
-<g fill="none" stroke="#7d1f1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">
-<circle cx="120" cy="120" r="104"/><circle cx="120" cy="120" r="78"/><circle cx="120" cy="120" r="34"/>
-<line x1="90.4" y1="125.1" x2="51.0" y2="132.0"/><line x1="114.9" y1="90.4" x2="108.0" y2="51.0"/><line x1="149.6" y1="114.9" x2="189.0" y2="108.0"/><line x1="125.1" y1="149.6" x2="132.0" y2="189.0"/><polyline points="178.8,84.6 188.8,65.1 167.6,70.6"/><polyline points="184.3,143.9 205.8,139.6 188.3,126.4"/><polyline points="141.4,185.2 158.2,199.3 157.6,177.4"/><polyline points="82.4,177.4 81.8,199.3 98.6,185.2"/><polyline points="51.7,126.4 34.2,139.6 55.7,143.9"/><polyline points="72.4,70.6 51.2,65.1 61.2,84.6"/><polyline points="129.0,52.0 120.0,32.0 111.0,52.0"/><path d="M120 88 L146 120 L120 152 L94 120 Z M120 100 L120 140 M104 120 L136 120"/>
-</g></svg>

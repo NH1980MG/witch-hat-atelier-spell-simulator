@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img">
-<title>Original simulator schematic for Smoke Cloud</title>
-<path fill="#fffaf0" stroke="none" d="M0 0H240V240H0Z"/>
-<g fill="none" stroke="#7d1f1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">
-<circle cx="120" cy="120" r="104"/><circle cx="120" cy="120" r="68"/><circle cx="120" cy="120" r="34"/>
-<line x1="113.2" y1="149.2" x2="106.4" y2="178.4"/><line x1="98.1" y1="99.5" x2="76.2" y2="79.0"/><line x1="148.7" y1="111.3" x2="177.4" y2="102.6"/><polyline points="56.3,94.9 34.9,97.5 52.2,110.4"/><polyline points="145.1,56.3 142.5,34.9 129.6,52.2"/><polyline points="183.7,145.1 205.1,142.5 187.8,129.6"/><polyline points="94.9,183.7 97.5,205.1 110.4,187.8"/><path d="M92 120 Q120 82 148 120 Q120 158 92 120 Z M106 120 Q120 104 134 120 Q120 136 106 120 Z"/>
-</g></svg>
