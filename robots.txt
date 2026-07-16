@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://nh1980mg.github.io/witch-hat-atelier-spell-simulator/sitemap.xml

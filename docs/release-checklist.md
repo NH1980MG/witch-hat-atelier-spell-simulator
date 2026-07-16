@@ -4,12 +4,14 @@ Use this before pushing to GitHub or publishing a static site.
 
 ## Code Checks
 
-- Run `node --check` on `app.js`, `symbol-catalog.mjs`,
-  `spell-grammar.mjs`, and `scripts/validate-spell-matrix.mjs`.
-- Run `node scripts/validate-spell-matrix.mjs`; require 64 drawings, 38,532
-  tested/unique/deterministic variants, a 19,266/19,266 support split, 34,932
+- Run `node --check` on `app.js`, `symbol-catalog.mjs`, `spell-grammar.mjs`,
+  `variant-catalog.mjs`, `library-explorer.mjs`, `variant-index-worker.mjs`, and
+  `scripts/validate-spell-matrix.mjs`.
+- Run `node scripts/validate-spell-matrix.mjs`; require 64 drawings, 13,338
+  tested/unique/deterministic variants, a 6,669/6,669 support split, 12,288
   executable plans, and 19 semantic checks.
 - Run `node --test tests/*.test.mjs`; require all tests to pass.
+- Run `node scripts/security-audit.mjs`.
 - Parse all HTML pages to catch broken tags.
 - Search for risky browser APIs: `eval`, `new Function`, `document.write`,
   remote scripts, secrets, and unexpected `file://` links.
@@ -60,10 +62,12 @@ Use this before pushing to GitHub or publishing a static site.
 
 ## Deployment Notes
 
-- The public site is maintained in the history-clean repository
-  `NH1980MG/witch-hat-atelier-simulator`; do not make this private research
-  repository public.
-- Public URL: `https://nh1980mg.github.io/witch-hat-atelier-simulator/`.
-- The public repository serves its `main` root through GitHub Pages and keeps
-  `.nojekyll` present.
+- The canonical repository is
+  `NH1980MG/witch-hat-atelier-spell-simulator`.
+- Public URL:
+  `https://nh1980mg.github.io/witch-hat-atelier-spell-simulator/`.
+- GitHub Actions builds a restricted Pages artifact and keeps `.nojekyll`,
+  `robots.txt`, and `sitemap.xml` present.
+- The historical repository is archived only after its redirect and the new
+  deployment both return HTTP 200.
 - Three.js is vendored locally under `vendor/three/`; no runtime CDN is needed.

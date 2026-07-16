@@ -5,13 +5,13 @@ cookies, database, or server-side storage.
 
 ## Supported Version
 
-The maintained entry point is:
+The maintained public entry point is:
 
 ```text
-http://127.0.0.1:8000/index.html
+https://nh1980mg.github.io/witch-hat-atelier-spell-simulator/
 ```
 
-For public hosting, serve the same static files from the project root.
+For local development, use `http://127.0.0.1:8000/index.html`.
 
 ## Current Browser Protections
 
@@ -21,10 +21,12 @@ For public hosting, serve the same static files from the project root.
 - The 3D runtime uses the vendored Three.js `0.165.0` modules in
   `vendor/three/`; the browser does not execute code from a third-party CDN.
 
-## Before Public Release
+## Release Controls
 
-- Replace or remove copied reference screenshots before publishing a public
-  repository or public website.
+- Run `node scripts/security-audit.mjs` and the complete test suite.
+- Audit the generated Pages directory with
+  `node scripts/validate-public-artifact.mjs public`.
+- Replace or remove copied reference screenshots before publishing.
 - Keep private study material and reference-derived screenshots out of the
   public branch.
 - Keep the vendored Three.js version and its MIT license together when updating
@@ -33,5 +35,6 @@ For public hosting, serve the same static files from the project root.
 
 ## Reporting
 
-For now, report issues directly in the project discussion or issue tracker once
-the repository is published.
+Report vulnerabilities privately through GitHub Security Advisories when
+available. Do not post credentials, private references or exploit details in a
+public issue.

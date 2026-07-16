@@ -203,7 +203,8 @@ Per-effect recipe:
 Minimum practical tests:
 
 - Syntax checks for JS and Python.
-- Pure matrix test for all 38,532 support-aware variants.
+- Pure matrix test for all 13,338 support-aware variants: 9 canonical central
+  sigils, 741 unordered sign pairs and 2 support modes.
 - Shared-drawing test for all 64 sigils/signs.
 - Determinism and finite-parameter assertions for every effect plan.
 - Browser smoke test for the main simulator.
@@ -219,6 +220,9 @@ Current deployment can remain static:
 - `app.js`
 - `symbol-catalog.mjs`
 - `spell-grammar.mjs`
+- `variant-catalog.mjs`
+- `variant-index-worker.mjs`
+- `library-explorer.mjs`
 - documentation and static pages
 
 For stronger releases:

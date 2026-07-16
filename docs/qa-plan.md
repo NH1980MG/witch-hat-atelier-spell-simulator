@@ -21,17 +21,22 @@ These checks have been run manually from the project folder:
 node --check app.js
 node --check symbol-catalog.mjs
 node --check spell-grammar.mjs
+node --check variant-catalog.mjs
+node --check library-explorer.mjs
+node --check variant-index-worker.mjs
+node --test tests/*.test.mjs
 node scripts/validate-spell-matrix.mjs
+node scripts/security-audit.mjs
 ```
 
 The matrix check must report:
 
 - 64 drawings;
-- 26 central sigils;
+- 9 indexed central sigils and 26 editable central/decorative sigils;
 - 38 modifier signs;
-- exactly 38,532 tested, unique and deterministic variants;
-- exactly 19,266 recipes for `none` and 19,266 for `shoe`;
-- 34,932 structured executable plans (plans may be fewer than identities when
+- exactly 13,338 tested, unique and deterministic variants;
+- exactly 6,669 recipes for `none` and 6,669 for `shoe`;
+- 12,288 structured executable plans (plans may be fewer than identities when
   incompatible signs are ignored);
 - no missing drawing, duplicate drawing, unknown drawing, nondeterministic
   result or non-finite simulation parameter.
@@ -41,6 +46,10 @@ The matrix check must report:
 
 Also parse `index.html`, `bibliotheque.html`, `tutoriel.html`, and
 `parametres.html` with an HTML parser before publishing.
+
+The library pass must also exercise flexible search, every filter, URL state,
+pagination, recipe details, all 33 thumbnails and both locales at desktop and
+mobile widths.
 
 ## Browser Smoke Test
 

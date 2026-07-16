@@ -26,14 +26,19 @@ jobs:
         run: |
           node --test tests/*.test.mjs
           node scripts/validate-spell-matrix.mjs
+          node scripts/security-audit.mjs
 
       - name: Prepare public site
         run: |
           mkdir -p public/assets
           cp ./*.html ./*.css ./*.js ./*.mjs public/
+          cp robots.txt sitemap.xml public/
           cp -R assets/library-schematics public/assets/library-schematics
           cp -R vendor public/vendor
           touch public/.nojekyll
+
+      - name: Audit public artifact
+        run: node scripts/validate-public-artifact.mjs public
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
