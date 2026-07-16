@@ -16,7 +16,7 @@ test("la page expose la palette et les outils de taille", async () => {
   ]) {
     assert.match(html, new RegExp("id=[\\\"']" + id + "[\\\"']"));
   }
-  assert.match(html, /styles\.css\?v=20260716-heritage-serif-v1/);
+  assert.match(html, /styles\.css\?v=20260716-serif-labels-v1/);
   assert.match(html, /app\.js\?v=\d{8}-[^"']+/);
 });
 
@@ -35,6 +35,10 @@ test("l'interface utilise la police serif historique", async () => {
   const bodyRule = css.match(/(?:^|\n\n)body\s*\{([\s\S]*?)\n\}/)?.[1] || "";
 
   assert.match(bodyRule, /font-family:\s*Georgia, "Times New Roman", serif/);
+  assert.match(css, /\.header-link > span\[aria-hidden="true"\]/);
+  assert.match(css, /\.symbol-island > span\[aria-hidden="true"\]/);
+  assert.doesNotMatch(css, /\.header-link span\s*\{/);
+  assert.doesNotMatch(css, /\.symbol-island span,/);
 });
 
 test("l'application cable la selection contextuelle et son historique", async () => {
