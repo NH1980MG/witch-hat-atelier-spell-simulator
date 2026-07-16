@@ -239,6 +239,53 @@ The wording is available in French and English. The interface does not display
 13,338 cards. The total is shown as a tested recipe count in the appropriate
 information or tutorial section.
 
+## Tutorial Update
+
+The bilingual tutorial is revised in the same release so it describes the
+implemented model rather than the previous simplified behavior.
+
+It explains:
+
+- what the 13,338 count includes and, just as importantly, what it excludes;
+- the difference between a documented, inferred, and experimental result;
+- the roles of the sigil, signs, and outer ring;
+- connected versus ignored marks;
+- balance, deliberate imbalance, size, placement, tilt, rotation, and reach;
+- documented inversion versus an unsupported inverse;
+- how the no-support and shoe variants differ;
+- the documented Sylph-shoe construction and the simulator's experimental
+  behavior for arbitrary shoe recipes;
+- the 5 cm to 5 m global diameter range and the smaller shoe-support limit;
+- how to read fidelity warnings before activation.
+
+Tutorial examples use project-generated diagrams and interface captures only.
+They do not embed manga panels or copied wiki artwork.
+
+## Illustrated Library
+
+The public gallery regains an image for every listed circle. The historical 33
+PNG crops found in Git history are not restored to the public branch because
+they were extracted from manga or wiki reference panels.
+
+Instead, the gallery uses original, project-owned schematic thumbnails:
+
+- one local SVG per listed spell, with no remote hotlinking;
+- a common square view box, transparent or parchment-colored background, and
+  thin ink-like strokes that remain sharp at every card size;
+- geometry generated from the simulator's canonical sigil and sign vocabulary;
+- distinct compositions derived from each spell's documented or inferred
+  mechanics, without tracing the protected reference image;
+- descriptive bilingual alternative text;
+- the same Vision, Mixed, Niche, Ancient Forbidden, and Ancient Non-Forbidden
+  categories already present in the gallery;
+- a visible fidelity badge so a schematic is not mistaken for an official
+  reproduction.
+
+The page copy states that the thumbnails are simulator reconstructions. The
+source links remain available for research, but the public gallery is entirely
+self-contained and remains compatible with its restrictive Content Security
+Policy.
+
 ## Fidelity Report
 
 Create `docs/mechanics-fidelity-report.md` with:
@@ -288,6 +335,18 @@ screenshots and canvas-pixel checks cover at least Water, Fire, Wind, and Earth
 with and without the shoe support. The shoe view must show the paper fixed under
 the soles and any grounded Earth geometry touching the desk.
 
+Library and tutorial verification additionally covers:
+
+- every library card has one local original SVG that returns HTTP 200;
+- every thumbnail has a non-empty bilingual accessible name;
+- no library asset is byte-identical to a removed historical PNG crop;
+- no library or tutorial page loads a remote image;
+- the five category counts and spell names remain unchanged;
+- the tutorial contains the exact 13,338 calculation in both languages;
+- the tutorial distinguishes documented, inferred, and experimental behavior;
+- desktop and mobile screenshots contain no empty image boxes, overflow, or
+  clipped text.
+
 ## Non-Goals
 
 - Claiming that the manga contains exactly 13,338 spells.
@@ -297,6 +356,7 @@ the soles and any grounded Earth geometry touching the desk.
 - Adding every possible multi-sigil, three-sign, linked, or nested seal to this
   matrix.
 - Copying or publishing manga panels and wiki artwork.
+- Restoring the historical library PNG crops to the public GitHub Pages build.
 
 ## Completion Criteria
 
@@ -308,5 +368,7 @@ The work is complete when:
   as deferred with a reason;
 - the fidelity report covers existing mechanics as well as the new support
   variants;
+- the bilingual tutorial documents the final mechanics and matrix scope;
+- every public library card contains an original local schematic thumbnail;
 - automated tests, syntax checks, browser checks, and 3D visual checks pass;
 - the public GitHub Pages build contains the updated simulator and report.
