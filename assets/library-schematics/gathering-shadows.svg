@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img">
-<title>Original simulator schematic for Gathering Shadows</title>
-<path fill="#fffaf0" stroke="none" d="M0 0H240V240H0Z"/>
-<g fill="none" stroke="#7d1f1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">
-<circle cx="120" cy="120" r="104"/><circle cx="120" cy="120" r="73"/><circle cx="120" cy="120" r="34"/>
-<line x1="149.9" y1="122.7" x2="184.7" y2="125.8"/><line x1="117.3" y1="149.9" x2="114.2" y2="184.7"/><line x1="90.1" y1="117.3" x2="55.3" y2="114.2"/><line x1="122.7" y1="90.1" x2="125.8" y2="55.3"/><polyline points="185.5,140.4 206.7,134.9 188.5,122.6"/><polyline points="120.9,188.6 132.6,207.1 138.7,186.0"/><polyline points="55.0,142.0 41.1,158.9 63.0,158.2"/><polyline points="79.0,65.0 58.6,57.0 66.1,77.6"/><polyline points="159.6,64.0 161.0,42.1 143.7,55.6"/><path d="M120 88 L146 120 L120 152 L94 120 Z M120 100 L120 140 M104 120 L136 120"/>
-</g></svg>

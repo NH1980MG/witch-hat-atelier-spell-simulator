@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img">
-<title>Original simulator schematic for Floating Expansion</title>
-<path fill="#fffaf0" stroke="none" d="M0 0H240V240H0Z"/>
-<g fill="none" stroke="#7d1f1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">
-<circle cx="120" cy="120" r="104"/><circle cx="120" cy="120" r="78"/><circle cx="120" cy="120" r="34"/>
-<line x1="134.1" y1="146.5" x2="153.0" y2="181.7"/><line x1="90.0" y1="119.0" x2="50.0" y2="117.7"/><line x1="135.8" y1="94.5" x2="157.0" y2="60.6"/><polyline points="82.1,177.0 80.2,198.5 96.4,184.3"/><polyline points="51.7,115.7 32.1,124.8 52.5,131.7"/><polyline points="89.5,58.7 71.9,46.3 76.1,67.4"/><polyline points="157.9,63.0 159.8,41.5 143.6,55.7"/><polyline points="188.3,124.3 207.9,115.2 187.5,108.3"/><polyline points="150.5,181.3 168.1,193.7 163.9,172.6"/><path d="M92 120 Q120 82 148 120 Q120 158 92 120 Z M106 120 Q120 104 134 120 Q120 136 106 120 Z"/>
-</g></svg>

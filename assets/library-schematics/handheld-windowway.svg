@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img">
-<title>Original simulator schematic for Handheld Windowway</title>
-<path fill="#fffaf0" stroke="none" d="M0 0H240V240H0Z"/>
-<g fill="none" stroke="#7d1f1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">
-<circle cx="120" cy="120" r="104"/><circle cx="120" cy="120" r="73"/><circle cx="120" cy="120" r="34"/>
-<line x1="101.2" y1="143.3" x2="79.2" y2="170.6"/><line x1="96.7" y1="101.2" x2="69.4" y2="79.2"/><line x1="138.8" y1="96.7" x2="160.8" y2="69.4"/><line x1="143.3" y1="138.8" x2="170.6" y2="160.8"/><polyline points="97.7,55.1 80.7,41.2 81.6,63.2"/><polyline points="184.9,97.7 198.8,80.7 176.8,81.6"/><polyline points="142.3,184.9 159.3,198.8 158.4,176.8"/><polyline points="55.1,142.3 41.2,159.3 63.2,158.4"/><path d="M120 88 L146 120 L120 152 L94 120 Z M120 100 L120 140 M104 120 L136 120"/>
-</g></svg>

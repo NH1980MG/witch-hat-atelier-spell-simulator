@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img">
-<title>Original simulator schematic for Lockwax</title>
-<path fill="#fffaf0" stroke="none" d="M0 0H240V240H0Z"/>
-<g fill="none" stroke="#7d1f1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">
-<circle cx="120" cy="120" r="104"/><circle cx="120" cy="120" r="73"/><circle cx="120" cy="120" r="34"/>
-<line x1="131.7" y1="147.6" x2="145.4" y2="179.8"/><line x1="92.4" y1="131.7" x2="60.2" y2="145.4"/><line x1="108.3" y1="92.4" x2="94.6" y2="60.2"/><line x1="147.6" y1="108.3" x2="179.8" y2="94.6"/><polyline points="72.2,169.2 67.5,190.6 86.7,179.9"/><polyline points="51.7,113.3 32.1,123.0 52.3,131.3"/><polyline points="82.7,62.5 62.8,53.1 69.0,74.2"/><polyline points="141.7,54.9 136.7,33.6 124.0,51.5"/><polyline points="184.4,96.4 197.9,79.1 176.0,80.5"/><polyline points="178.6,155.6 200.5,155.5 185.9,139.2"/><polyline points="128.7,188.0 142.5,205.1 146.1,183.4"/><path d="M120 88 L146 120 L120 152 L94 120 Z M120 100 L120 140 M104 120 L136 120"/>
-</g></svg>
