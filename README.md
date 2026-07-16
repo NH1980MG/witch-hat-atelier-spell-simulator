@@ -35,7 +35,7 @@ included in this public contract.
 - Fidelity labels that distinguish documented, inferred and experimental rules.
 
 Dans l'interface francaise, fais glisser une carte comme dans Scratch jusqu'au
-parchemin depuis `Symboles a placer`. A dotted preview confirms a valid drop
+parchemin depuis `Sigils and signs`. A dotted preview confirms a valid drop
 position before the symbol is added.
 
 ## Run Locally

@@ -387,7 +387,6 @@ input:focus-visible {
 }
 
 .symbol-island,
-.placement-island,
 .details-island,
 .support-island {
   position: absolute;
@@ -409,20 +408,15 @@ input:focus-visible {
   top: 18px;
 }
 
-.placement-island {
+.details-island {
   top: 72px;
 }
 
-.details-island {
+.support-island {
   top: 126px;
 }
 
-.support-island {
-  top: 180px;
-}
-
 .symbol-island > span[aria-hidden="true"],
-.placement-island > span[aria-hidden="true"],
 .details-island > span[aria-hidden="true"],
 .support-island > span[aria-hidden="true"] {
   color: var(--gold);
@@ -467,10 +461,6 @@ input:focus-visible {
   overscroll-behavior: contain;
 }
 
-.placement-drawer {
-  overflow: hidden;
-}
-
 .simulator-page.details-open .details-drawer {
   opacity: 1;
   pointer-events: auto;
@@ -478,12 +468,6 @@ input:focus-visible {
 }
 
 .simulator-page.symbols-open .symbol-drawer {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateX(0);
-}
-
-.simulator-page.placement-open .placement-drawer {
   opacity: 1;
   pointer-events: auto;
   transform: translateX(0);
@@ -497,23 +481,16 @@ input:focus-visible {
 
 .simulator-page.symbols-open .details-drawer,
 .simulator-page.symbols-open .support-drawer,
-.simulator-page.symbols-open .placement-drawer,
 .simulator-page.details-open .symbol-drawer,
 .simulator-page.details-open .support-drawer,
-.simulator-page.details-open .placement-drawer,
 .simulator-page.support-open .symbol-drawer,
-.simulator-page.support-open .details-drawer,
-.simulator-page.support-open .placement-drawer,
-.simulator-page.placement-open .symbol-drawer,
-.simulator-page.placement-open .details-drawer,
-.simulator-page.placement-open .support-drawer {
+.simulator-page.support-open .details-drawer {
   opacity: 0;
   pointer-events: none;
   transform: translateX(calc(100% + 28px));
 }
 
 .simulator-page.symbols-open .symbol-island,
-.simulator-page.placement-open .placement-island,
 .simulator-page.details-open .details-island,
 .simulator-page.support-open .support-island {
   opacity: 0;
@@ -523,16 +500,10 @@ input:focus-visible {
 @media (min-width: 621px) {
   .simulator-page.symbols-open .details-island,
   .simulator-page.symbols-open .support-island,
-  .simulator-page.symbols-open .placement-island,
   .simulator-page.details-open .symbol-island,
   .simulator-page.details-open .support-island,
-  .simulator-page.details-open .placement-island,
   .simulator-page.support-open .symbol-island,
-  .simulator-page.support-open .details-island,
-  .simulator-page.support-open .placement-island,
-  .simulator-page.placement-open .symbol-island,
-  .simulator-page.placement-open .details-island,
-  .simulator-page.placement-open .support-island {
+  .simulator-page.support-open .details-island {
     z-index: 13;
     right: calc(min(430px, calc(100% - 24px)) + 24px);
   }
@@ -586,16 +557,6 @@ input:focus-visible {
   overscroll-behavior: contain;
 }
 
-.placement-list {
-  display: grid;
-  flex: 1 1 auto;
-  gap: 12px;
-  min-height: 96px;
-  overflow-y: auto;
-  padding-right: 4px;
-  overscroll-behavior: contain;
-}
-
 .symbol-section {
   display: grid;
   gap: 7px;
@@ -617,22 +578,6 @@ input:focus-visible {
 
 .ink-button {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 58px;
-  padding: 8px 10px;
-  text-align: left;
-  font-weight: 700;
-}
-
-.ink-button.is-active {
-  background: var(--button-active);
-}
-
-.placement-card {
-  display: grid;
   grid-template-columns: 52px minmax(0, 1fr) auto;
   align-items: center;
   gap: 11px;
@@ -647,20 +592,25 @@ input:focus-visible {
   cursor: grab;
   text-align: left;
   touch-action: none;
+  font-weight: 700;
 }
 
-.placement-card:active {
+.ink-button.is-active {
+  background: var(--button-active);
+}
+
+.ink-button:active {
   cursor: grabbing;
 }
 
-.placement-card .symbol-icon {
+.ink-button .symbol-icon {
   width: 48px;
   height: 48px;
   border-color: rgba(140, 107, 63, 0.72);
   border-radius: 8px;
 }
 
-.placement-card::after {
+.ink-button::after {
   content: "||";
   color: rgba(140, 107, 63, 0.72);
   font: 700 0.78rem "Courier New", monospace;
@@ -1960,8 +1910,7 @@ input:focus-visible {
     overflow: hidden;
   }
 
-  .ink-list,
-  .placement-list {
+  .ink-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -2039,7 +1988,7 @@ input:focus-visible {
     grid-template-columns: 1fr;
     gap: 4px;
   }
-  .simulator-page.placement-open.is-dragging-symbol .placement-drawer {
+  .simulator-page.symbols-open.is-dragging-symbol .symbol-drawer {
     opacity: 0;
     pointer-events: none;
     transform: translateX(calc(100% + 28px));
@@ -2075,8 +2024,7 @@ input:focus-visible {
 
   .commands,
   .setting-grid,
-  .ink-list,
-  .placement-list {
+  .ink-list {
     grid-template-columns: 1fr;
   }
 
@@ -2088,14 +2036,6 @@ input:focus-visible {
 
   .symbol-island {
     top: 12px;
-    right: 12px;
-    max-width: 148px;
-    padding: 8px 11px;
-    font-size: 0.92rem;
-  }
-
-  .placement-island {
-    top: 64px;
     right: 12px;
     max-width: 148px;
     padding: 8px 11px;

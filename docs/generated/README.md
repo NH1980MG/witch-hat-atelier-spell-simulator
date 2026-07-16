@@ -1,6 +1,6 @@
 # Generated Sigil Reference Archive
 
-This directory keeps eight generated reference sheets used to compare the
+This directory keeps nine generated reference sheets used to compare the
 editable vector catalog against the supplied research captures. These PNGs are
 documentation only; the simulator renders the code-native paths in
 `symbol-catalog.mjs`.
@@ -22,6 +22,8 @@ documentation only; the simulator renders the code-native paths in
 7. `audited-sigils-decorative-v2.png`: second-pass Valance Leech, Frillram,
    Sword, and Liongoat audit.
 8. `audited-sigils-dragon-bird-v2.png`: second-pass Dragon and Bird A audit.
+9. `support-cards-dalle-v1.png`: visual refinement reference for the no-link
+   and flying-shoe support cards.
 
 The second-pass sheets were generated with the built-in DALL-E image workflow.
 They are comparison aids only: the local captures remain the geometric source
