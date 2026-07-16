@@ -50,10 +50,14 @@ une carte et fais-la glisser comme un bloc Scratch jusqu'au parchemin: un
 apercu en pointilles confirme la position avant le depot. Un depot hors de la
 zone de dessin est annule.
 
+Le selecteur `EN | FR`, place dans l'en-tete de chaque page, change la langue
+de toute l'interface. L'anglais est utilise par defaut et le choix reste
+memorise pendant la navigation.
+
 Pour modifier la taille d'un symbole deja pose, selectionne-le avec un clic
-droit, ou avec un appui long sur ecran tactile, puis utilise les boutons `-` et
-`+` de la barre d'outils. Le redimensionnement fonctionne avec `Defaire` et
-`Refaire`.
+droit, avec un appui long sur ecran tactile ou avec l'outil de selection en
+haut de la barre laterale, puis utilise les boutons `-` et `+`. Le deplacement
+et le redimensionnement fonctionnent avec `Defaire` et `Refaire`.
 
 - `index.html` : page principale du site.
 - `bibliotheque.html` : bibliotheque de planches de reference de cercles.
@@ -75,4 +79,3 @@ node --check symbol-catalog.mjs
 node --check spell-grammar.mjs
 node scripts/validate-spell-matrix.mjs
 ```
-
