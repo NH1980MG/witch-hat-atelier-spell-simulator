@@ -1582,6 +1582,28 @@ input:focus-visible {
   line-height: 1.45;
 }
 
+.tutorial-reference-card {
+  padding-top: 18px;
+}
+
+.tutorial-reference-card ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.tutorial-reference-card li {
+  color: var(--edge);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.tutorial-reference-card strong {
+  color: var(--gold-dark);
+  font-family: var(--font-ui);
+}
+
 .element-signs {
   display: grid;
   grid-template-columns: repeat(4, 32px);
