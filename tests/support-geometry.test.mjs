@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { earthMoundPose, shoeSupportPose } from "../support-geometry.mjs";
+import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "../support-geometry.mjs";
 
 test("the Earth mound stays anchored to the desk", () => {
   for (const progress of [0, 0.25, 0.5, 1]) {
@@ -56,4 +56,12 @@ test("Earth growth stays grounded and supports the shoes", () => {
   });
   assert.equal(pose.earth.bottomY, 0.024);
   assert.equal(pose.soleBottomY, pose.earth.topY + pose.earth.clearance);
+});
+
+test("the shoe camera keeps an oblique under-sole view", () => {
+  const pose = shoeCameraPose();
+  assert.ok(Math.abs(pose.position.x) >= 1.2);
+  assert.ok(pose.position.y < pose.target.y);
+  assert.ok(pose.position.z >= 1.5);
+  assert.ok(pose.target.y >= 0.5 && pose.target.y <= 0.7);
 });

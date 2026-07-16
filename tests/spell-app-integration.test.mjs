@@ -16,6 +16,11 @@ test("support behavior comes from the composed recipe", () => {
   assert.match(app, /model\.recipe\.supportPlan/);
 });
 
+test("shoe summaries receive the composed recipe during model construction", () => {
+  const call = app.match(/supportEffectNames\(\{([\s\S]*?)\}\)\)/)?.[1] || "";
+  assert.match(call, /\brecipe\b/);
+});
+
 test("the details drawer exposes structured fidelity information", () => {
   for (const id of ["fidelityLevel", "fidelityRules", "fidelityWarnings"]) {
     assert.match(html, new RegExp(`id=["']${id}["']`));

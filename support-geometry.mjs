@@ -68,3 +68,10 @@ export function shoeSupportPose(progress, options = {}) {
     earth,
   };
 }
+
+export function shoeCameraPose() {
+  return {
+    position: { x: 1.45, y: 0.3, z: 1.5 },
+    target: { x: 0, y: 0.59, z: 0 },
+  };
+}

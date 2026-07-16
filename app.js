@@ -4,7 +4,7 @@ import { SYMBOL_AUDIT, SYMBOL_PATHS } from "./symbol-catalog.mjs?v=20260714-symb
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
 import { getLocale, t } from "./site-i18n.mjs?v=20260715-i18n-v1";
-import { earthMoundPose, shoeSupportPose } from "./support-geometry.mjs";
+import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260716-shoe-camera-v2";
 import {
   canDropGlyph,
   clampGlyphCenter,
@@ -2638,8 +2638,9 @@ function applyThreeCamera(mode) {
     return;
   }
   if (state.activeSpell?.supportId === "shoe") {
-    threeView.camera.position.set(0, 0.36, 1.12);
-    threeView.controls.target.set(0, 0.68, 0.02);
+    const pose = shoeCameraPose();
+    threeView.camera.position.set(pose.position.x, pose.position.y, pose.position.z);
+    threeView.controls.target.set(pose.target.x, pose.target.y, pose.target.z);
     threeView.controls.minDistance = 0.35;
     threeView.controls.maxDistance = 3.2;
     threeView.controls.maxPolarAngle = Math.PI * 0.86;
@@ -5482,6 +5483,7 @@ function signModel() {
   }
   if (currentSupport().id === "shoe") {
     effectNames.push(...supportEffectNames({
+      recipe,
       sigilCounts,
       signCounts,
       hasLevitation,
