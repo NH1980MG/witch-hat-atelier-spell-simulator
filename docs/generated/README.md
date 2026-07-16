@@ -1,6 +1,6 @@
 # Generated Sigil Reference Archive
 
-This directory keeps the five generated reference sheets used to compare the
+This directory keeps eight generated reference sheets used to compare the
 editable vector catalog against the supplied research captures. These PNGs are
 documentation only; the simulator renders the code-native paths in
 `symbol-catalog.mjs`.
@@ -17,6 +17,15 @@ documentation only; the simulator renders the code-native paths in
    Bird B.
 5. `utility-state-symbol-reference.png`: Crystallize, Smoke, Stop, and
    Repetition.
+6. `audited-sigils-state-v2.png`: second-pass Earth, Repetition, Stop, and
+   Owlcat Head audit.
+7. `audited-sigils-decorative-v2.png`: second-pass Valance Leech, Frillram,
+   Sword, and Liongoat audit.
+8. `audited-sigils-dragon-bird-v2.png`: second-pass Dragon and Bird A audit.
+
+The second-pass sheets were generated with the built-in DALL-E image workflow.
+They are comparison aids only: the local captures remain the geometric source
+of truth when a generated line simplifies or invents part of a symbol.
 
 ## Supplied Capture Inventory
 

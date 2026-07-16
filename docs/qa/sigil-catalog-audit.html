@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sigil catalog audit</title>
+    <style>
+      :root { color: #2b3144; background: #efe5d2; font-family: Georgia, serif; }
+      body { box-sizing: border-box; margin: 0; min-width: 900px; padding: 18px; }
+      h1 { margin: 0 0 20px; }
+      main { display: grid; grid-template-columns: repeat(6, 130px); gap: 10px; width: 830px; }
+      article { background: #fffaf0; border: 1px solid #c9b995; border-radius: 14px; padding: 8px; }
+      svg { display: block; width: 100%; aspect-ratio: 1; color: #78120f; }
+      path { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.9; }
+      h2 { margin: 6px 0 0; font-size: 12px; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <h1>Current editable sigils</h1>
+    <main id="catalog"></main>
+    <script type="module">
+      import { SYMBOL_PATHS } from "../../symbol-catalog.mjs";
+
+      const names = [
+        "Feu", "Eau", "Terre", "Vent", "Lumiere", "Cristal", "Aeriforme",
+        "Vent sous pied", "Repetition", "Fumee", "Sangsue-valance", "Frillram",
+        "Epee", "Loup-ecaille", "Cerf-torche", "Chevre-lion", "Chat-hibou",
+        "Tete de chat-hibou", "Dragon", "Fleur", "Cheval", "Oiseau A",
+        "Oiseau B", "Arret temporel", "Vent tourbillonnant", "Flammes sans chaleur",
+      ];
+
+      const catalog = document.querySelector("#catalog");
+      for (const name of names) {
+        const article = document.createElement("article");
+        const paths = SYMBOL_PATHS[name].map((d) => `<path d="${d}"></path>`).join("");
+        article.innerHTML = `<svg viewBox="0 0 48 48" aria-label="${name}">${paths}</svg><h2>${name}</h2>`;
+        catalog.append(article);
+      }
+    </script>
+  </body>
+</html>
