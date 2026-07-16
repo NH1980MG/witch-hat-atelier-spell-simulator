@@ -31,3 +31,18 @@ test("every entry has bilingual accessible text and fidelity", () => {
     assert.ok(["documented", "inferred", "experimental"].includes(circle.fidelity), circle.id);
   }
 });
+
+test("the public library renders all schematics as local accessible images", async () => {
+  const html = await readFile(new URL("../bibliotheque.html", import.meta.url), "utf8");
+  const cards = [...html.matchAll(/<article class="circle-card">([\s\S]*?)<\/article>/g)];
+
+  assert.equal(cards.length, 33);
+  for (const [, card] of cards) {
+    const image = card.match(/<img\s+[^>]*src="([^"]+)"[^>]*>/);
+    assert.ok(image, "every circle card needs an image");
+    assert.match(image[1], /^assets\/library-schematics\/[a-z0-9-]+\.svg$/);
+    assert.doesNotMatch(image[1], /assets\/library-circles|https?:|data:/);
+    assert.match(image[0], /alt="[^"]+"/);
+    assert.match(image[0], /data-i18n-alt="library\.circleAlt"/);
+  }
+});
