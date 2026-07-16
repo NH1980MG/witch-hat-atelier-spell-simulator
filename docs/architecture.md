@@ -203,8 +203,8 @@ Per-effect recipe:
 Minimum practical tests:
 
 - Syntax checks for JS and Python.
-- Pure matrix test for all 13,338 support-aware variants.
-- Shared-drawing test for all 47 sigils/signs.
+- Pure matrix test for all 38,532 support-aware variants.
+- Shared-drawing test for all 64 sigils/signs.
 - Determinism and finite-parameter assertions for every effect plan.
 - Browser smoke test for the main simulator.
 - Canvas nonblank check after drawing and activation.

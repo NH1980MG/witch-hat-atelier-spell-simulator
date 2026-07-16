@@ -27,8 +27,8 @@ le menu, la grille et l'encre 3D montrent donc la meme forme. La lecture compose
 les signes par roles (matiere, collecte, etat, forme, mouvement, cible, zone,
 liaison et puissance). Les signes semi-directionnels peuvent tourner autour du
 cercle sans etre confondus avec une direction de mouvement. Une verification
-automatique couvre exactement 13 338 variantes: 9 sigils, 741 paires non
-ordonnees de deux signes et 2 supports. Chaque moitie contient 6 669 recettes.
+automatique couvre exactement 38 532 variantes: 26 sigils, 741 paires non
+ordonnees de deux signes et 2 supports. Chaque moitie contient 19 266 recettes.
 Ce nombre est une matrice de validation du simulateur, pas un nombre de sorts
 canoniques. Les effets mal documentes restent marques comme deductions ou
 experimentations.
@@ -73,7 +73,7 @@ et le redimensionnement fonctionnent avec `Defaire` et `Refaire`.
 - `spell-model.mjs` : identite canonique et instantane d'activation immuable.
 - `support-policy.mjs` : regles structurees des supports papier et chaussures.
 - `library-circle-data.mjs` : inventaire des 33 cercles de la bibliotheque.
-- `scripts/validate-spell-matrix.mjs` : controle des 13 338 variantes.
+- `scripts/validate-spell-matrix.mjs` : controle des 38 532 variantes.
 - `.gitignore` : fichiers locaux a ignorer.
 - `vendor/three/` : copie locale de Three.js 0.165.0 et de sa licence MIT.
 

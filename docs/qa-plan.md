@@ -26,12 +26,12 @@ node scripts/validate-spell-matrix.mjs
 
 The matrix check must report:
 
-- 47 drawings;
-- 9 central sigils;
+- 64 drawings;
+- 26 central sigils;
 - 38 modifier signs;
-- exactly 13,338 tested, unique and deterministic variants;
-- exactly 6,669 recipes for `none` and 6,669 for `shoe`;
-- 12,288 structured executable plans (plans may be fewer than identities when
+- exactly 38,532 tested, unique and deterministic variants;
+- exactly 19,266 recipes for `none` and 19,266 for `shoe`;
+- 34,932 structured executable plans (plans may be fewer than identities when
   incompatible signs are ignored);
 - no missing drawing, duplicate drawing, unknown drawing, nondeterministic
   result or non-finite simulation parameter.

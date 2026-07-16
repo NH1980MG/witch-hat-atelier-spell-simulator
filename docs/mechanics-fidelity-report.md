@@ -9,12 +9,12 @@ The validated matrix contains one of 9 central sigils, one unordered pair from
 
 ```text
 38 * 39 / 2 = 741 sign pairs
-9 * 741 = 6,669 recipes per support
-6,669 * 2 = 13,338 tested variants
+26 * 741 = 19,266 recipes per support
+19,266 * 2 = 38,532 tested variants
 ```
 
 This is a simulator validation matrix, not a claim that the manga contains
-13,338 named spells. Three-sign, multi-sigil, linked, nested and arbitrary
+38,532 named spells. Three-sign, multi-sigil, linked, nested and arbitrary
 freehand-geometry variants are outside this count.
 
 ## Fidelity Levels

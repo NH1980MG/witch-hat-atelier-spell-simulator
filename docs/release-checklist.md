@@ -6,8 +6,8 @@ Use this before pushing to GitHub or publishing a static site.
 
 - Run `node --check` on `app.js`, `symbol-catalog.mjs`,
   `spell-grammar.mjs`, and `scripts/validate-spell-matrix.mjs`.
-- Run `node scripts/validate-spell-matrix.mjs`; require 47 drawings, 13,338
-  tested/unique/deterministic variants, a 6,669/6,669 support split, 12,288
+- Run `node scripts/validate-spell-matrix.mjs`; require 64 drawings, 38,532
+  tested/unique/deterministic variants, a 19,266/19,266 support split, 34,932
   executable plans, and 19 semantic checks.
 - Run `node --test tests/*.test.mjs`; require all tests to pass.
 - Parse all HTML pages to catch broken tags.
