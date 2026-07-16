@@ -28,6 +28,28 @@ test("Aeriforms and Whorling Wind keep their distinct canonical drawings", () =>
   assert.match(SYMBOL_PATHS["Vent tourbillonnant"][0], /M24 17 L15 31 L33 31 Z/);
 });
 
+test("the ten audited sigils keep the topology visible in the references", () => {
+  const expectedFragments = {
+    Terre: ["M10 8 H38", "M11 41 H37"],
+    Repetition: ["M6 27 C8 16", "M13 25 C18 17"],
+    "Sangsue-valance": ["M5 25 L13 26", "M15 36 L14 42"],
+    Frillram: ["M5 10 H17", "M42 10 L40 42"],
+    Epee: ["M22 5 V43", "M14 5 V18"],
+    "Chevre-lion": ["M7 11 L11 7", "M14 42 C20 47"],
+    "Tete de chat-hibou": ["M17 9 L24 27", "M12 24 L6 22"],
+    Dragon: ["M4 25 C4 33", "M36 29 L44 31"],
+    "Oiseau A": ["M21 7 C21 12", "M27 7 C27 12"],
+    "Arret temporel": ["M24 5 V10", "M5 24 H10"],
+  };
+
+  for (const [name, fragments] of Object.entries(expectedFragments)) {
+    const drawing = SYMBOL_PATHS[name].join(" ");
+    for (const fragment of fragments) {
+      assert.ok(drawing.includes(fragment), `${name} must include ${fragment}`);
+    }
+  }
+});
+
 test("every new sigil has French content and an English catalogue entry", async () => {
   const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
   for (const name of expectedSigils) {
