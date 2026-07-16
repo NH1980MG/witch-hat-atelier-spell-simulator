@@ -21,7 +21,7 @@ test("all static translation attributes exist in both catalogs", async () => {
 
   for (const page of pages) {
     const html = await readFile(new URL(`../${page}`, import.meta.url), "utf8");
-    for (const match of html.matchAll(/data-i18n(?:-title|-aria-label)?="([^"]+)"/g)) {
+    for (const match of html.matchAll(/data-i18n(?:-title|-aria-label|-alt)?="([^"]+)"/g)) {
       assert.ok(englishKeys.has(match[1]), `${page}: missing English key ${match[1]}`);
       assert.ok(frenchKeys.has(match[1]), `${page}: missing French key ${match[1]}`);
     }
