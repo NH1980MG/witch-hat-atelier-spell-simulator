@@ -61,7 +61,11 @@ The final worktree was served at `http://127.0.0.1:8010/` for isolated testing.
 
 ## Release Decision
 
-The local canonical build satisfies the automated and browser release gates.
-GitHub publication still requires the remote branch to be synchronized, the
-canonical repository to be renamed, the Pages workflow to complete, and the
-deployed URLs to return HTTP 200 before the historical repository is archived.
+The canonical build satisfies the automated, browser and deployment gates.
+Commit `7c11b9d` deployed successfully through GitHub Actions run `29522358568`.
+The root page, library, tutorial, settings, explorer catalog, worker and a sample
+SVG all returned HTTP 200 from the final Pages URL. The historical site serves
+verified redirects and its repository is archived.
+
+- Repository: `NH1980MG/witch-hat-atelier-spell-simulator`
+- Site: `https://nh1980mg.github.io/witch-hat-atelier-spell-simulator/`

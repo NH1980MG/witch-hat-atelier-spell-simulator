@@ -103,6 +103,10 @@ remaining large `app.js` sections.
 - Final canonical release QA: 89 automated tests, complete matrix validation,
   desktop/mobile bilingual checks, 33 loaded schematics and nonblank 3D
   activation with no browser console errors.
+- Canonical GitHub repository renamed to
+  `NH1980MG/witch-hat-atelier-spell-simulator`; GitHub Pages deployment verified
+  across all pages and runtime modules. The historical repository now redirects
+  old URLs and is archived.
 - Legacy Python prototype removed; the HTTP static site is the only maintained
   version.
 - Initial review and documentation set.
@@ -111,7 +115,7 @@ remaining large `app.js` sections.
 
 ## In Progress
 
-- Final GitHub Pages browser verification and canonical repository rename.
+- Extracting effect layers from `app.js` without adding a build system.
 - Extracting effect layers from `app.js` without adding a build system.
 
 ## Next Milestones

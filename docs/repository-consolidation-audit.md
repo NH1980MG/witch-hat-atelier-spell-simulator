@@ -4,15 +4,22 @@ Date: 2026-07-16
 
 Compared repositories:
 
-- canonical source: `NH1980MG/fan-made-Witch-hat-atelier-simulator`;
+- canonical source: `NH1980MG/witch-hat-atelier-spell-simulator` (formerly
+  `NH1980MG/fan-made-Witch-hat-atelier-simulator`);
 - historical source: `NH1980MG/witch-hat-atelier-simulator`.
 
 ## Decision Summary
 
-The advanced repository remains the canonical codebase. It contains 106 tracked
+The advanced repository is the canonical codebase. It contains the deterministic
+spell model, support policy, 3D activation snapshots, 33 local SVG schematics,
+complete bilingual content, the 13,338-variant explorer and the GitHub Pages
+validation workflow. The historical repository has been reduced to redirect
+pages and archived after the final deployment returned HTTP 200.
+
+Before consolidation, the advanced repository contained 106 tracked
 files, 15 test files, the deterministic spell model, support policy, 3D
 activation snapshots, 33 local SVG schematics, broader bilingual content, and
-the GitHub Pages validation workflow. The historical repository contains 26
+the GitHub Pages validation workflow. The historical repository contained 26
 tracked files and 6 tests. It is not a safe wholesale replacement.
 
 | Area | Disposition | Reason |
