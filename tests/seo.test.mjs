@@ -27,7 +27,7 @@ test("the workshop and library publish valid JSON-LD types", async () => {
   const library = await readFile(new URL("../bibliotheque.html", import.meta.url), "utf8");
   assert.match(workshop, /"@type":\s*"WebApplication"/);
   assert.match(library, /"@type":\s*"CollectionPage"/);
-  assert.match(library, /"numberOfItems":\s*13338/);
+  assert.match(library, /"numberOfItems":\s*38532/);
 });
 
 test("robots and sitemap advertise every public page", async () => {

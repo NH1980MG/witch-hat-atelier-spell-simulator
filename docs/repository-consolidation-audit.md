@@ -12,7 +12,7 @@ Compared repositories:
 
 The advanced repository is the canonical codebase. It contains the deterministic
 spell model, support policy, 3D activation snapshots, 33 local SVG schematics,
-complete bilingual content, the 13,338-variant explorer and the GitHub Pages
+complete bilingual content, the 38,532-variant explorer and the GitHub Pages
 validation workflow. The historical repository has been reduced to redirect
 pages and archived after the final deployment returned HTTP 200.
 
@@ -28,7 +28,7 @@ tracked files and 6 tests. It is not a safe wholesale replacement.
 | `spell-grammar.mjs` | Already superseded | The canonical grammar has provenance, ordered operations, geometry balance/rotation, warnings, support plans, and deterministic identities. |
 | `spell-model.mjs` | Preserve canonical | No equivalent immutable identity/snapshot boundary exists in the historical repository. |
 | `support-policy.mjs` | Preserve canonical | The historical implementation does not provide the structured none/shoe policy or physical limits. |
-| `symbol-catalog.mjs` | Combine manually, completed | The useful Wind/Water redraw was already merged. Decorative sigils remain distinct from recipe-matrix sigils. Older duplicate/ambiguous paths are rejected. |
+| `symbol-catalog.mjs` | Combine manually, completed | The useful Wind/Water redraw was already merged. All 26 profiled sigils participate in the recipe matrix. Older duplicate/ambiguous paths are rejected. |
 | `support-geometry.mjs` | Already superseded | Current grounded desk, under-sole paper, realistic shoe camera, and clamping tests are newer. |
 | `i18n.mjs` and `site-i18n.mjs` | Combine manually | Keep the canonical catalog and locale controller, then complete the remaining hard-coded runtime translations in this release. |
 | Public HTML | Combine manually | Keep the canonical language switcher, CSP, complete controls, local assets, and add the new wiki/SEO structure. |
@@ -40,13 +40,12 @@ tracked files and 6 tests. It is not a safe wholesale replacement.
 
 ## Matrix Boundary
 
-The editor keeps 26 editable sigils, including decorative shapes. The published
-variant explorer deliberately indexes the nine established central recipe
-sigils and all 38 modifier signs:
+The editor keeps 26 editable, mechanically profiled sigils. The published
+variant explorer indexes all 26 profiles and all 38 modifier signs:
 
 ```text
-9 sigils * (38 * 39 / 2 sign pairs) * 2 supports = 13,338 variants
+26 sigils * (38 * 39 / 2 sign pairs) * 2 supports = 38,532 variants
 ```
 
-This boundary prevents decorative forms from silently changing the documented
-contract while keeping them available for freehand creation.
+Deriving the public sigil list from the profile registry keeps the workshop and
+documented matrix synchronized.

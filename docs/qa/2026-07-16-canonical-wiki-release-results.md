@@ -1,5 +1,9 @@
 # Canonical Wiki Release QA Results
 
+> Superseded for matrix totals by
+> `docs/qa/2026-07-16-38532-matrix-correction.md`. This report preserves the
+> original 13,338-release evidence as historical context.
+
 Date: 2026-07-16
 
 ## Automated Verification

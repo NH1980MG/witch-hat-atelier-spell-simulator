@@ -6,19 +6,19 @@ sigil and modifier signs, read the result, then activate a live Three.js scene.
 
 The public site is designed as both a workshop and a small wiki. Its library
 contains 33 original vector schematics and a searchable catalog of exactly
-13,338 deterministic, support-aware recipes:
+38,532 deterministic, support-aware recipes:
 
 ```text
 38 * 39 / 2 = 741 unordered sign pairs with repetition
-9 canonical central sigils * 741 pairs = 6,669 recipes
-6,669 recipes * 2 support modes = 13,338 variants
+26 profiled central sigils * 741 pairs = 19,266 recipes
+19,266 recipes * 2 support modes = 38,532 variants
 ```
 
 The two support modes are paper only and a small paper fixed under a shoe. This
-count is a simulator validation matrix, not a claim that the manga names 13,338
+count is a simulator validation matrix, not a claim that the manga names 38,532
 spells. Three-sign, multi-sigil, nested and arbitrary freehand variants remain
-outside the indexed matrix. The editor also keeps decorative sigils that do not
-change this public contract.
+outside the indexed matrix. Every profiled sigil available in the editor is
+included in this public contract.
 
 ## Features
 
@@ -61,8 +61,8 @@ node scripts/validate-spell-matrix.mjs
 node scripts/security-audit.mjs
 ```
 
-The matrix validator must report 64 drawings, 9 indexed sigils, 38 signs,
-13,338 tested/unique/deterministic variants, a 6,669/6,669 support split and all
+The matrix validator must report 64 drawings, 26 indexed sigils, 38 signs,
+38,532 tested/unique/deterministic variants, a 19,266/19,266 support split and all
 semantic checks passing.
 
 ## Project Map
@@ -72,7 +72,7 @@ semantic checks passing.
 - `tutoriel.html`, `parametres.html`: bilingual guide and settings reference.
 - `symbol-catalog.mjs`: shared vector drawings for the editor and renderer.
 - `spell-grammar.mjs`, `spell-model.mjs`: deterministic mechanics and snapshots.
-- `variant-catalog.mjs`, `variant-index-worker.mjs`: 13,338-recipe index.
+- `variant-catalog.mjs`, `variant-index-worker.mjs`: 38,532-recipe index.
 - `support-policy.mjs`, `support-geometry.mjs`: support limits and 3D placement.
 - `assets/library-schematics/`: 33 original public SVG schematics.
 - `docs/`: architecture, fidelity, QA, release and research provenance notes.

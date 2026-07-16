@@ -57,18 +57,18 @@ test("incompatible signs are ignored and lower fidelity", () => {
   assert.notEqual(recipe.fidelity, "documented");
 });
 
-test("the public matrix keeps nine canonical sigils and all modifier signs", () => {
-  assert.equal(MATRIX_SIGIL_NAMES.length, 9);
+test("the public matrix includes all 26 profiled sigils and all modifier signs", () => {
+  assert.equal(MATRIX_SIGIL_NAMES.length, 26);
   assert.equal(MATRIX_SIGN_NAMES.length, 38);
-  assert.ok(Object.keys(SIGIL_PROFILES).length > MATRIX_SIGIL_NAMES.length);
+  assert.deepEqual(MATRIX_SIGIL_NAMES, Object.keys(SIGIL_PROFILES));
 });
 
-test("the matrix validates exactly 13,338 deterministic support variants", () => {
+test("the matrix validates exactly 38,532 deterministic support variants", () => {
   const result = validateSpellMatrix();
 
-  assert.equal(result.tested, 13_338);
-  assert.equal(result.unique, 13_338);
-  assert.equal(result.deterministic, 13_338);
-  assert.deepEqual(result.supports, { none: 6_669, shoe: 6_669 });
+  assert.equal(result.tested, 38_532);
+  assert.equal(result.unique, 38_532);
+  assert.equal(result.deterministic, 38_532);
+  assert.deepEqual(result.supports, { none: 19_266, shoe: 19_266 });
   assert.ok(result.distinctPlans > 0);
 });

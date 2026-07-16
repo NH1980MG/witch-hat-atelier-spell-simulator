@@ -23,8 +23,8 @@ test("tutorial covers the final matrix and fidelity model", () => {
     assert.notEqual(translate("en", key), key);
     assert.notEqual(translate("fr", key), key);
   }
-  assert.equal(translate("en", "tutorial.matrix.total"), "13,338 tested variants");
-  assert.equal(translate("fr", "tutorial.matrix.total"), "13 338 variantes testees");
+  assert.equal(translate("en", "tutorial.matrix.total"), "38,532 tested variants");
+  assert.equal(translate("fr", "tutorial.matrix.total"), "38 532 variantes testees");
   assert.match(html, /id="placing-symbols"/);
   assert.match(html, /href="#placing-symbols"/);
   assert.match(translate("en", "tutorial.placement.select"), /right-click/i);

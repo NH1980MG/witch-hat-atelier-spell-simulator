@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   DEFAULT_EXPLORER_STATE,
+  ENGLISH_ELEMENT_NAMES,
   VARIANT_PAGE_SIZE,
   buildVariantIndex,
   getVariantDetail,
@@ -11,14 +12,21 @@ import {
   queryVariants,
   serializeExplorerState,
 } from "../variant-catalog.mjs";
+import { MATRIX_SIGIL_NAMES } from "../spell-grammar.mjs";
 
 const records = buildVariantIndex();
 
-test("the explorer indexes exactly 13,338 deterministic variants", () => {
-  assert.equal(records.length, 13_338);
-  assert.equal(new Set(records.map(({ id }) => id)).size, 13_338);
-  assert.equal(records.filter(({ supportId }) => supportId === "none").length, 6_669);
-  assert.equal(records.filter(({ supportId }) => supportId === "shoe").length, 6_669);
+test("every indexed sigil has an English library label", () => {
+  for (const sigil of MATRIX_SIGIL_NAMES) {
+    assert.ok(ENGLISH_ELEMENT_NAMES[sigil], `${sigil} needs an English label`);
+  }
+});
+
+test("the explorer indexes exactly 38,532 deterministic variants", () => {
+  assert.equal(records.length, 38_532);
+  assert.equal(new Set(records.map(({ id }) => id)).size, 38_532);
+  assert.equal(records.filter(({ supportId }) => supportId === "none").length, 19_266);
+  assert.equal(records.filter(({ supportId }) => supportId === "shoe").length, 19_266);
 });
 
 test("every record opens a deterministic documented detail", () => {
@@ -62,7 +70,7 @@ test("filters sorting and pagination cover stable non-overlapping pages", () => 
   assert.equal(first.records.length, VARIANT_PAGE_SIZE);
   assert.ok(first.records.every((record) => record.signs.includes("Levitation") && record.supportId === "shoe"));
   assert.equal(new Set([...first.records, ...second.records].map(({ id }) => id)).size, first.records.length + second.records.length);
-  assert.equal(first.total, 13_338);
+  assert.equal(first.total, 38_532);
 });
 
 test("URL state round-trips and sanitizes invalid values", () => {

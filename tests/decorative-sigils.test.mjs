@@ -36,14 +36,15 @@ test("every new sigil has French content and an English catalogue entry", async 
   }
 });
 
-test("decorative sigils stay editable without enlarging the canonical matrix", () => {
+test("every editable profiled sigil is included in the public matrix", () => {
   const result = validateSpellMatrix();
 
   assert.equal(Object.keys(SIGIL_PROFILES).length, 26);
-  assert.equal(MATRIX_SIGIL_NAMES.length, 9);
-  assert.equal(result.sigils, 9);
-  assert.equal(result.tested, 13_338);
-  assert.equal(result.unique, 13_338);
-  assert.equal(result.deterministic, 13_338);
-  assert.deepEqual(result.supports, { none: 6_669, shoe: 6_669 });
+  assert.equal(MATRIX_SIGIL_NAMES.length, 26);
+  assert.deepEqual(MATRIX_SIGIL_NAMES, Object.keys(SIGIL_PROFILES));
+  assert.equal(result.sigils, 26);
+  assert.equal(result.tested, 38_532);
+  assert.equal(result.unique, 38_532);
+  assert.equal(result.deterministic, 38_532);
+  assert.deepEqual(result.supports, { none: 19_266, shoe: 19_266 });
 });

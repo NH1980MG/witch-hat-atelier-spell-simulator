@@ -203,7 +203,7 @@ Per-effect recipe:
 Minimum practical tests:
 
 - Syntax checks for JS and Python.
-- Pure matrix test for all 13,338 support-aware variants: 9 canonical central
+- Pure matrix test for all 38,532 support-aware variants: 26 profiled central
   sigils, 741 unordered sign pairs and 2 support modes.
 - Shared-drawing test for all 64 sigils/signs.
 - Determinism and finite-parameter assertions for every effect plan.

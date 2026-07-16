@@ -48,8 +48,8 @@ only the manifestation group; spin rotates that group; reach scales its height.
 Current automatic coverage:
 
 ```text
-9 central sigils x 741 unordered two-sign pairs (repetition allowed)
-= 6,669 deterministic recipes and 6,144 distinct executable plans
+26 profiled central sigils x 741 unordered two-sign pairs (repetition allowed)
+= 19,266 deterministic recipes per support and 34,932 distinct executable plans across both supports
 ```
 
 Some recipes share a plan because a physically incompatible sign is ignored.

@@ -87,19 +87,9 @@ export const SIGN_PROFILES = Object.freeze({
   Projection: profile({ role: "form", operation: "project", effect: "projection", radial: true, directional: true, invertible: false, confidence: "medium", mechanic: "projette la forme ou l'image vers l'exterieur" }),
 });
 
-// The editor exposes additional decorative sigils, but the public recipe
-// matrix intentionally follows the nine central sigils used by the simulator.
-export const MATRIX_SIGIL_NAMES = Object.freeze([
-  "Feu",
-  "Eau",
-  "Terre",
-  "Vent",
-  "Lumiere",
-  "Cristal",
-  "Aeriforme",
-  "Vent sous pied",
-  "Repetition",
-]);
+// Every profiled sigil participates in the public recipe matrix. Deriving this
+// list from the profiles keeps the editor and searchable catalogue aligned.
+export const MATRIX_SIGIL_NAMES = Object.freeze(Object.keys(SIGIL_PROFILES));
 
 export const MATRIX_SIGN_NAMES = Object.freeze(Object.keys(SIGN_PROFILES));
 

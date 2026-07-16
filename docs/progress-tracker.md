@@ -19,8 +19,8 @@ remaining large `app.js` sections.
   latest pass corrected 9 sigils and added 17 decorative or specialized sigils.
 - Pure `spell-grammar.mjs` with separate material, supply, state, form, motion,
   target, scope, relation and power axes.
-- Automatic validation of 13,338 unique two-sign/support variants: 6,669 with
-  paper only and 6,669 with shoe support. The matrix contains 12,288 distinct
+- Automatic validation of 38,532 unique two-sign/support variants: 19,266 with
+  paper only and 19,266 with shoe support. The matrix contains 34,932 distinct
   executable plans plus 19 semantic regression checks.
 - Canonical spell identities now preserve exact geometry, support and recipe
   state. Activation freezes an immutable snapshot so reading, activation and
@@ -90,12 +90,12 @@ remaining large `app.js` sections.
 - Library page restored with 33 local, original SVG simulator schematics,
   stable categories and bilingual labels. No remote or copied panel image is
   required by the public build.
-- Tutorial updated in French and English with the exact 13,338-variant matrix,
+- Tutorial updated in French and English with the exact 38,532-variant matrix,
   ring, balance, rotation, support and physical-size rules.
 - Desktop and mobile browser QA completed for the library and tutorial, plus
   nonblank raw-ring and water-on-shoe 3D activation scenes.
 - Tutorial and settings pages.
-- Searchable wiki explorer for all 13,338 canonical variants with flexible
+- Searchable wiki explorer for all 38,532 profiled variants with flexible
   bilingual search, eight filters, sorting, pagination, shareable URL state and
   deterministic recipe details.
 - Canonical SEO metadata, JSON-LD, `robots.txt`, `sitemap.xml`, security audit
