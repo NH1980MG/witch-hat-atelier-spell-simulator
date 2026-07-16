@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { SYMBOL_AUDIT, SYMBOL_PATHS } from "./symbol-catalog.mjs?v=20260714-symbol-audit-v5";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs";
-import { selectPrimarySigil } from "./spell-model.mjs";
+import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
 import { getLocale, t } from "./site-i18n.mjs?v=20260715-i18n-v1";
 import { earthMoundPose } from "./support-geometry.mjs";
 import {
@@ -1606,14 +1606,14 @@ function drawActivation(width, height) {
     return;
   }
 
-  const model = signModel();
+  const snapshot = state.activation.snapshot;
+  const model = snapshot.model;
   const glyphQualities = model.sigils.map((glyph) => glyph.quality || 100);
   const elapsed = performance.now() - state.activation.startedAt;
   const symbolQuality = glyphQualities.length > 0 ? Math.max(55, ...glyphQualities) : 100;
   const duration = model.ringOnly ? 1150 : 950 + symbolQuality * 15;
   const progress = Math.min(1, elapsed / duration);
-  const bbox = primarySpellBounds() || spellBounds();
-  const baseRadius = bbox ? Math.max(bbox.width, bbox.height) / 2 : Math.min(width, height) * 0.18;
+  const baseRadius = snapshot.radius;
   const pulse = progress * 105;
   const ringColors = [colors.gold, colors.mist, "#4f748b"];
 
@@ -1636,41 +1636,29 @@ function drawActivation(width, height) {
     );
   }
 
-  drawElementEffect(width, height, progress, baseRadius);
+  drawElementEffect(width, height, progress, baseRadius, model);
 
   if (progress < 1) {
     state.animationFrame = requestAnimationFrame(render);
   } else {
     const element = effectiveElement(model);
-    const metrics = spellMetrics();
-    const support = currentSupport();
     state.activeSpell = {
-      elementName: element.name,
-      center: { ...state.circleCenter },
-      radius: baseRadius,
+      ...snapshot,
       startedAt: performance.now(),
-      durationMs: metrics.duration || (model.ringOnly ? 2600 : 6000),
-      quality: symbolQuality,
-      effects: model.effectNames,
-      diameter: metrics.diameter || estimatedCircleDiameterMeters(bbox),
-      supportId: support.id,
-      supportName: support.name,
-      recipeId: model.recipe.id,
-      recipeLabel: model.recipe.label,
     };
     state.activation = null;
     open3dView();
     setStatusList([
-      `Rituel active: ${model.recipe.label}.`,
+      `Rituel active: ${snapshot.recipe.label}.`,
       model.rawEnergy
         ? "Aucun sigil de matiere: l'anneau libere de l'energie brute."
         : `Sigil ${element.name} reconnu a ${Math.round(symbolQuality)}%.`,
       `Diametre: ${formatCircleDiameter(state.activeSpell.diameter)}.`,
       `Equilibre des signes: ${Math.round(model.geometry.balance * 100)}%.`,
       `Rotation: ${Math.round(Math.abs(model.geometry.spin) * 100)}%; portee: ${Math.round(model.geometry.reach * 100)}%.`,
-      supportStatusText(),
+      `Support: ${snapshot.supportName}.`,
       `Duree: ${Math.round(state.activeSpell.durationMs / 1000)}s.`,
-      ...model.recipe.warnings.slice(0, 2).map((warning) => `Attention: ${warning}`),
+      ...snapshot.recipe.warnings.slice(0, 2).map((warning) => `Attention: ${warning}`),
     ]);
     render();
   }
@@ -4049,7 +4037,7 @@ function addRecipeGrammarEffects3d(group, model, auraRadius, elementColor, suppo
 }
 
 function rebuildThreeSpell() {
-  const bounds = primarySpellBounds() || spellBounds();
+  const bounds = state.activeSpell?.bounds;
   if (!bounds || !state.activeSpell || !threeView.scene) {
     return;
   }
@@ -4070,14 +4058,15 @@ function rebuildThreeSpell() {
   const elementColor = new THREE.Color(element.color);
   const auraRadius = Math.max(MIN_CIRCLE_DIAMETER_M * 0.5, state.activeSpell.radius * scale * 0.95);
   const effects = new Set(state.activeSpell.effects || []);
-  const model = signModel();
+  const recipe = state.activeSpell.recipe;
+  const model = state.activeSpell.model;
   const combined = new Set(model.combinedEffects || []);
   const defaultSurfaceEffect = isDefaultSurfaceEffect(element.name, effects, model);
   const floatingCore = usesFloatingCore3d(effects, model);
 
   group.add(makeParchmentBase3d(auraRadius, supportId));
 
-  for (const action of state.actions) {
+  for (const action of state.activeSpell.actions) {
     const color = action.seal ? elementColor : new THREE.Color(colors.paper);
     const opacity = action.seal ? 0.96 : 0.82;
     for (const linePoints of actionLines3d(action, bounds, scale, supportId)) {
@@ -4099,7 +4088,7 @@ function rebuildThreeSpell() {
   addElementBaseEffect3d(group, element.name, effects, auraRadius, elementColor, model, supportId);
   addShoeSupportEffects3d(group, supportProp, effects, element.name, elementColor);
   addCombinedSignEffects3d(group, effects, element.name, auraRadius, elementColor, model, supportId);
-  addRecipeGrammarEffects3d(group, model, auraRadius, elementColor, supportId);
+  addRecipeGrammarEffects3d(group, { ...model, recipe }, auraRadius, elementColor, supportId);
 
   if ((effects.has("dispersion") && !combined.has("colonne diffuse")) || effects.has("repetition")) {
     for (let index = 0; index < 4; index += 1) {
@@ -5659,11 +5648,12 @@ function dominantElement() {
 }
 
 function effectiveElement(model = null) {
-  return dominantElement() || ((model || signModel()).rawEnergy ? RAW_ENERGY_ELEMENT : null);
+  const resolvedModel = model || signModel();
+  const name = primaryElementNameFromModel(resolvedModel);
+  return elements.find((element) => element.name === name) || (resolvedModel.rawEnergy ? RAW_ENERGY_ELEMENT : null);
 }
 
-function drawElementEffect(width, height, progress, baseRadius) {
-  const model = signModel();
+function drawElementEffect(width, height, progress, baseRadius, model = signModel()) {
   const element = effectiveElement(model);
   if (!element) {
     return;
@@ -7118,8 +7108,7 @@ function updateUsedList() {
   }
 }
 
-function spellMetrics() {
-  const model = signModel();
+function spellMetrics(model = signModel()) {
   const glyphs = model.sigils;
   const allGlyphs = model.glyphs;
   const diameter = estimatedCircleDiameterMeters();
@@ -7553,7 +7542,32 @@ function activateCircle() {
   }
 
   cancelAnimationFrame(state.animationFrame);
-  state.activation = { startedAt: performance.now() };
+  const bounds = primarySpellBounds() || spellBounds();
+  const metrics = spellMetrics(model);
+  const support = currentSupport();
+  const glyphQualities = model.sigils.map((glyph) => glyph.quality || 100);
+  const quality = glyphQualities.length > 0 ? Math.max(55, ...glyphQualities) : 100;
+  const radius = bounds ? Math.max(bounds.width, bounds.height) / 2 : Math.min(...Object.values(canvasSize())) * 0.18;
+  state.activation = {
+    startedAt: performance.now(),
+    snapshot: createActivationSnapshot({
+      recipe: model.recipe,
+      model,
+      elementName: primaryElementNameFromModel(model) || RAW_ENERGY_ELEMENT.name,
+      supportId: support.id,
+      supportName: support.name,
+      diameter,
+      center: { ...state.circleCenter },
+      actions: cloneActions(state.actions),
+      bounds: { ...bounds },
+      radius,
+      quality,
+      durationMs: metrics.duration || (model.ringOnly ? 2600 : 6000),
+      effects: [...model.effectNames],
+      recipeId: model.recipe.id,
+      recipeLabel: model.recipe.label,
+    }),
+  };
   state.activeSpell = null;
   setStatus(model.rawEnergy ? "Activation: decharge d'energie brute." : `Activation: ${element.name}.`);
   render();
