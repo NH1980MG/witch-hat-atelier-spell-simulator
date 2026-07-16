@@ -4,7 +4,7 @@ import { SYMBOL_AUDIT, SYMBOL_PATHS } from "./symbol-catalog.mjs?v=20260714-symb
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
 import { getLocale, t } from "./site-i18n.mjs?v=20260715-i18n-v1";
-import { earthMoundPose } from "./support-geometry.mjs";
+import { earthMoundPose, shoeSupportPose } from "./support-geometry.mjs";
 import {
   canDropGlyph,
   clampGlyphCenter,
@@ -3283,11 +3283,12 @@ function addElementBaseEffect3d(group, elementName, effects, auraRadius, element
   }
 }
 
-function addShoeSupportEffects3d(group, supportProp, effects, elementName, elementColor) {
+function addShoeSupportEffects3d(group, supportProp, supportPlan, elementName, elementColor) {
   if (!supportProp || supportProp.userData.kind !== "shoe") {
     return;
   }
 
+  const effects = new Set(supportPlan.effectIds);
   const has = (effect) => effects.has(effect);
   const waterMaterial = new THREE.MeshBasicMaterial({ color: 0x377da4, transparent: true, opacity: 0.42, depthWrite: false, side: THREE.DoubleSide });
   const fireMaterial = new THREE.MeshBasicMaterial({ color: 0xf0a23a, transparent: true, opacity: 0.7, depthWrite: false });
@@ -3300,50 +3301,31 @@ function addShoeSupportEffects3d(group, supportProp, effects, elementName, eleme
   const soleBottomY = supportProp.userData.soleBottomY || THREE_SHOE_PAPER_Y + 0.005;
   const deskEffectY = THREE_TABLE_SURFACE_Y + 0.004;
 
-  if (
-    has("propulsion verticale") ||
-    has("chaussures propulsees") ||
-    has("jets d'eau sous semelle") ||
-    has("jets de feu sous semelle") ||
-    has("coussin d'eau rebondissant") ||
-    has("socle de terre montant") ||
-    has("coussin d'air") ||
-    has("rebonds repetes") ||
-    has("bonds instables") ||
-    has("flottement court sous semelle") ||
-    has("explosion de feu")
-  ) {
+  if (supportPlan.movesCarrier || has("earth-grounded-growth")) {
     addAnimatedObject(group, supportProp, (object, elapsed) => {
-      let offset = 0;
-      if (has("socle de terre montant")) {
-        offset = earthMoundPose(spellProgress3d(elapsed), {
-          tableY: THREE_TABLE_SURFACE_Y,
-          soleBottomY,
-        }).shoeOffsetY;
-      } else if (has("explosion de feu")) {
-        offset = Math.max(0, Math.sin(elapsed * 2.2)) * 0.05;
-      } else if (has("coussin d'eau rebondissant") || has("rebonds repetes") || has("bonds instables") || has("flottement court sous semelle")) {
-        offset = 0.032 + Math.abs(Math.sin(elapsed * 3.8)) * (has("bonds instables") ? 0.065 : 0.036);
-      } else {
-        offset = 0.075 + Math.sin(elapsed * 2.7) * 0.022;
-      }
-      object.position.y = baseY + offset;
+      const pose = shoeSupportPose(spellProgress3d(elapsed), {
+        mode: supportPlan.mode,
+        effectIds: supportPlan.effectIds,
+        tableY: THREE_TABLE_SURFACE_Y,
+        soleBottomY,
+      });
+      object.position.y = baseY + pose.carrierOffsetY;
     });
   }
 
-  if (has("table mouillee") || has("coussin d'eau rebondissant") || has("jets d'eau sous semelle")) {
-    const puddle = new THREE.Mesh(new THREE.CircleGeometry(has("table mouillee") ? 0.34 : 0.22, 64), waterMaterial.clone());
+  if (has("water-puddle") || has("water-carrier-lift")) {
+    const puddle = new THREE.Mesh(new THREE.CircleGeometry(has("water-puddle") ? 0.34 : 0.22, 64), waterMaterial.clone());
     puddle.rotation.x = -Math.PI / 2;
     puddle.position.y = deskEffectY;
-    puddle.scale.z = has("jets d'eau sous semelle") ? 0.42 : 0.34;
+    puddle.scale.z = has("water-carrier-lift") ? 0.42 : 0.34;
     addAnimatedObject(group, puddle, (object, elapsed) => {
-      const pulse = 1 + Math.sin(elapsed * 2.6) * 0.045;
-      object.scale.set(pulse, 1, object.scale.z);
-      object.material.opacity = has("table mouillee") ? 0.32 + Math.sin(elapsed * 1.8) * 0.04 : 0.2;
+      const growth = Math.min(2.8, 0.35 + spellProgress3d(elapsed) * 2.45);
+      object.scale.set(growth, 1, 0.34 * growth);
+      object.material.opacity = has("water-puddle") ? 0.34 : 0.22;
     });
   }
 
-  if (has("coussin d'eau rebondissant")) {
+  if (has("water-carrier-lift")) {
     const cushion = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.01, 12, 72), waterMaterial.clone());
     cushion.rotation.x = Math.PI / 2;
     cushion.position.y = soleBottomY - 0.002;
@@ -3354,21 +3336,21 @@ function addShoeSupportEffects3d(group, supportProp, effects, elementName, eleme
     });
   }
 
-  if (has("jets d'eau sous semelle") || has("jets de feu sous semelle")) {
+  if (has("water-carrier-lift") || has("fire-carrier-lift")) {
     for (const x of shoeXs) {
-      const jetMaterial = has("jets d'eau sous semelle") ? waterMaterial.clone() : fireMaterial.clone();
+      const jetMaterial = has("water-carrier-lift") ? waterMaterial.clone() : fireMaterial.clone();
       const jet = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.028, 0.12, 14), jetMaterial);
       jet.position.set(x, deskEffectY + 0.055, -0.04);
       addAnimatedObject(group, jet, (object, elapsed) => {
         const pulse = 0.75 + Math.abs(Math.sin(elapsed * 6.5 + x * 10)) * 0.45;
         object.scale.set(1, pulse, 1);
         object.position.y = deskEffectY + 0.04 + pulse * 0.018;
-        object.material.opacity = has("jets d'eau sous semelle") ? 0.34 + pulse * 0.18 : 0.44 + pulse * 0.24;
+        object.material.opacity = has("water-carrier-lift") ? 0.34 + pulse * 0.18 : 0.44 + pulse * 0.24;
       });
     }
   }
 
-  if (has("propulsion verticale") || has("coussin d'air")) {
+  if (has("wind-lift") || has("wind-carrier-lift") || has("air-carrier-lift")) {
     for (let index = 0; index < 8; index += 1) {
       const x = shoeXs[index % 2] + (index < 4 ? -0.018 : 0.018);
       const z = -0.08 + (index % 4) * 0.045;
@@ -3386,7 +3368,7 @@ function addShoeSupportEffects3d(group, supportProp, effects, elementName, eleme
     }
   }
 
-  if (has("socle de terre montant")) {
+  if (has("earth-grounded-growth")) {
     const column = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.23, 1, 24), earthMaterial);
     column.position.set(0, THREE_TABLE_SURFACE_Y + 0.01, -0.02);
     addAnimatedObject(group, column, (object, elapsed) => {
@@ -3406,13 +3388,13 @@ function addShoeSupportEffects3d(group, supportProp, effects, elementName, eleme
     }
   }
 
-  if (has("brulure lente") || has("explosion de feu")) {
-    const scorch = new THREE.Mesh(new THREE.CircleGeometry(has("explosion de feu") ? 0.28 : 0.22, 44), scorchMaterial);
+  if (has("fire-scorch") || has("fire-carrier-lift")) {
+    const scorch = new THREE.Mesh(new THREE.CircleGeometry(has("fire-carrier-lift") ? 0.28 : 0.22, 44), scorchMaterial);
     scorch.rotation.x = -Math.PI / 2;
     scorch.position.y = deskEffectY;
     scorch.scale.z = 0.52;
     addAnimatedObject(group, scorch, (object, elapsed) => {
-      object.material.opacity = has("explosion de feu") ? 0.18 + Math.max(0, Math.sin(elapsed * 2.8)) * 0.24 : 0.22 + Math.sin(elapsed * 1.6) * 0.04;
+      object.material.opacity = has("fire-carrier-lift") ? 0.18 + Math.max(0, Math.sin(elapsed * 2.8)) * 0.24 : 0.22 + Math.sin(elapsed * 1.6) * 0.04;
       object.scale.x = 1 + Math.sin(elapsed * 1.4) * 0.04;
     });
     for (let index = 0; index < 10; index += 1) {
@@ -3428,18 +3410,7 @@ function addShoeSupportEffects3d(group, supportProp, effects, elementName, eleme
     }
   }
 
-  if (has("explosion de feu")) {
-    const blast = new THREE.Mesh(new THREE.SphereGeometry(0.12, 24, 16), fireMaterial.clone());
-    blast.position.set(0, deskEffectY + 0.12, -0.02);
-    addAnimatedObject(group, blast, (object, elapsed) => {
-      const cycle = (elapsed * 0.75) % 1;
-      const scale = 0.35 + cycle * 2.2;
-      object.scale.setScalar(scale);
-      object.material.opacity = Math.max(0, 0.62 - cycle * 0.58);
-    });
-  }
-
-  if (has("halo de guidage sous semelle")) {
+  if (has("light-halo")) {
     const halo = circleLine(0.24, deskEffectY + 0.006, 0xd7a63e, 0.55, 128);
     addAnimatedObject(group, halo, (object, elapsed) => {
       object.rotation.y = elapsed * 0.8;
@@ -3447,7 +3418,7 @@ function addShoeSupportEffects3d(group, supportProp, effects, elementName, eleme
     });
   }
 
-  if (has("patins cristallins")) {
+  if (has("crystal-growth")) {
     for (const x of shoeXs) {
       const shard = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.12, 5), crystalMaterial.clone());
       shard.position.set(x, soleBottomY - 0.006, -0.04);
@@ -4064,29 +4035,32 @@ function rebuildThreeSpell() {
   const defaultSurfaceEffect = isDefaultSurfaceEffect(element.name, effects, model);
   const floatingCore = usesFloatingCore3d(effects, model);
 
-  group.add(makeParchmentBase3d(auraRadius, supportId));
-
+  const supportProp = makeSupportProp3d(supportId, auraRadius);
+  const sealCarrier = new THREE.Group();
+  sealCarrier.add(makeParchmentBase3d(auraRadius, supportId));
   for (const action of state.activeSpell.actions) {
     const color = action.seal ? elementColor : new THREE.Color(colors.paper);
     const opacity = action.seal ? 0.96 : 0.82;
     for (const linePoints of actionLines3d(action, bounds, scale, supportId)) {
       const line = addLine(linePoints, color, opacity);
       if (line) {
-        group.add(line);
+        sealCarrier.add(line);
       }
     }
   }
 
-  const supportProp = makeSupportProp3d(supportId, auraRadius);
   if (supportProp) {
+    supportProp.add(sealCarrier);
     group.add(supportProp);
+  } else {
+    group.add(sealCarrier);
   }
-  group.add(circleLine(auraRadius, shoeMode ? THREE_SHOE_INK_Y : THREE_INK_Y, elementColor, 0.95, 192));
-  group.add(circleLine(auraRadius * 1.16, shoeMode ? THREE_SHOE_INK_Y + 0.006 : THREE_INK_Y + 0.006, elementColor, 0.5, 192));
-  group.add(circleLine(auraRadius * 1.35, shoeMode ? THREE_SHOE_INK_Y + 0.011 : THREE_INK_Y + 0.011, elementColor, 0.28, 192));
+  sealCarrier.add(circleLine(auraRadius, shoeMode ? THREE_SHOE_INK_Y : THREE_INK_Y, elementColor, 0.95, 192));
+  sealCarrier.add(circleLine(auraRadius * 1.16, shoeMode ? THREE_SHOE_INK_Y + 0.006 : THREE_INK_Y + 0.006, elementColor, 0.5, 192));
+  sealCarrier.add(circleLine(auraRadius * 1.35, shoeMode ? THREE_SHOE_INK_Y + 0.011 : THREE_INK_Y + 0.011, elementColor, 0.28, 192));
   const manifestationStartIndex = group.children.length;
   addElementBaseEffect3d(group, element.name, effects, auraRadius, elementColor, model, supportId);
-  addShoeSupportEffects3d(group, supportProp, effects, element.name, elementColor);
+  addShoeSupportEffects3d(group, supportProp, recipe.supportPlan, element.name, elementColor);
   addCombinedSignEffects3d(group, effects, element.name, auraRadius, elementColor, model, supportId);
   addRecipeGrammarEffects3d(group, { ...model, recipe }, auraRadius, elementColor, supportId);
 
