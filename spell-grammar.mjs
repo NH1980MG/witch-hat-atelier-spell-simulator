@@ -87,6 +87,22 @@ export const SIGN_PROFILES = Object.freeze({
   Projection: profile({ role: "form", operation: "project", effect: "projection", radial: true, directional: true, invertible: false, confidence: "medium", mechanic: "projette la forme ou l'image vers l'exterieur" }),
 });
 
+// The editor exposes additional decorative sigils, but the public recipe
+// matrix intentionally follows the nine central sigils used by the simulator.
+export const MATRIX_SIGIL_NAMES = Object.freeze([
+  "Feu",
+  "Eau",
+  "Terre",
+  "Vent",
+  "Lumiere",
+  "Cristal",
+  "Aeriforme",
+  "Vent sous pied",
+  "Repetition",
+]);
+
+export const MATRIX_SIGN_NAMES = Object.freeze(Object.keys(SIGN_PROFILES));
+
 const ROLE_KEYS = Object.freeze(["form", "motion", "scope", "supply", "state", "target", "relation", "power"]);
 const FIDELITY_RANK = Object.freeze({ documented: 0, inferred: 1, experimental: 2 });
 
@@ -476,8 +492,8 @@ export function composeSpellRecipe({
 }
 
 export function validateSpellMatrix() {
-  const sigils = Object.keys(SIGIL_PROFILES);
-  const signs = Object.keys(SIGN_PROFILES);
+  const sigils = MATRIX_SIGIL_NAMES;
+  const signs = MATRIX_SIGN_NAMES;
   const supportIds = ["none", "shoe"];
   const ids = new Set();
   const plans = new Set();
