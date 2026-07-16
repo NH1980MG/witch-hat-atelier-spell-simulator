@@ -1216,6 +1216,258 @@ input:focus-visible {
   align-items: start;
 }
 
+.wiki-layout {
+  display: grid;
+  grid-template-columns: minmax(180px, 230px) minmax(0, 1fr);
+  align-items: start;
+  background: var(--paper);
+}
+
+.wiki-toc {
+  position: sticky;
+  top: 12px;
+  display: grid;
+  gap: 4px;
+  margin: 18px 0 18px 18px;
+  border-left: 3px solid var(--gold);
+  padding: 10px 12px;
+}
+
+.wiki-toc strong {
+  margin-bottom: 4px;
+  color: var(--ink);
+}
+
+.wiki-toc a {
+  padding: 5px 0;
+  color: var(--edge);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.wiki-toc a:hover,
+.wiki-toc a:focus-visible {
+  color: var(--gold-dark);
+  text-decoration: underline;
+}
+
+.wiki-content {
+  min-width: 0;
+}
+
+.variant-explorer {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  border-block: 2px solid rgba(140, 107, 63, 0.34);
+  padding: 22px 0;
+}
+
+.wiki-section-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: end;
+}
+
+.wiki-section-heading h2,
+.wiki-section-heading p,
+.wiki-reference-section h2,
+.wiki-reference-section p {
+  margin: 0;
+}
+
+.wiki-kicker {
+  color: var(--gold-dark);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.variant-count {
+  flex: 0 0 auto;
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.variant-filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.variant-filters label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.variant-filters .variant-search {
+  grid-column: span 2;
+}
+
+.variant-filters input,
+.variant-filters select,
+.variant-filters button {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid rgba(140, 107, 63, 0.55);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #fffaf0;
+  color: var(--ink);
+  font: 700 0.9rem/1.2 var(--font-ui);
+}
+
+.variant-filters button,
+.variant-pager button,
+.variant-result button {
+  cursor: pointer;
+}
+
+.variant-notice {
+  margin: 0;
+  color: var(--gold-dark);
+  font-weight: 700;
+}
+
+.variant-results {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.variant-result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px 12px;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid rgba(140, 107, 63, 0.38);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(255, 250, 240, 0.82);
+}
+
+.variant-result h3,
+.variant-result p {
+  grid-column: 1;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.variant-result h3 {
+  font-size: 0.95rem;
+}
+
+.variant-result p,
+.variant-result code {
+  color: var(--edge);
+  font-size: 0.75rem;
+}
+
+.variant-result code {
+  grid-column: 1 / -1;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.variant-result button {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: var(--button-active);
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.variant-pager {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+.variant-pager button {
+  min-height: 40px;
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+  padding: 7px 14px;
+  background: #fffaf0;
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.variant-pager button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.wiki-reference-section {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid rgba(140, 107, 63, 0.36);
+  padding: 22px 4px;
+}
+
+.variant-dialog {
+  width: min(720px, calc(100vw - 32px));
+  max-height: calc(100vh - 40px);
+  border: 2px solid var(--edge);
+  border-radius: 8px;
+  padding: 22px;
+  background: var(--paper);
+  color: var(--ink);
+  overflow: auto;
+}
+
+.variant-dialog::backdrop {
+  background: rgba(20, 23, 31, 0.68);
+}
+
+.variant-dialog form {
+  float: right;
+}
+
+.dialog-close {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--edge);
+  border-radius: 50%;
+  background: #fffaf0;
+  color: var(--ink);
+  font-size: 1.35rem;
+}
+
+.variant-detail-list {
+  display: grid;
+  gap: 10px;
+}
+
+.variant-detail-list div {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.35fr) minmax(0, 1fr);
+  gap: 12px;
+  border-top: 1px solid rgba(140, 107, 63, 0.28);
+  padding-top: 10px;
+}
+
+.variant-detail-list dt {
+  font-weight: 800;
+}
+
+.variant-detail-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 .source-note {
   grid-column: 1 / -1;
   border: 1px solid rgba(140, 107, 63, 0.48);
@@ -1650,6 +1902,13 @@ input:focus-visible {
 }
 
 @media (max-width: 980px) {
+  .variant-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .variant-results {
+    grid-template-columns: 1fr;
+  }
   .simulator-page {
     overflow: auto;
   }
@@ -1725,6 +1984,48 @@ input:focus-visible {
 }
 
 @media (max-width: 620px) {
+  .wiki-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .wiki-toc {
+    position: static;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 12px;
+  }
+
+  .wiki-toc strong {
+    grid-column: 1 / -1;
+  }
+
+  .wiki-section-heading {
+    display: grid;
+    align-items: start;
+  }
+
+  .variant-filters,
+  .variant-results {
+    grid-template-columns: 1fr;
+  }
+
+  .variant-filters .variant-search {
+    grid-column: auto;
+  }
+
+  .variant-result {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .variant-result button,
+  .variant-result code {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .variant-detail-list div {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
   .simulator-page.placement-open.is-dragging-symbol .placement-drawer {
     opacity: 0;
     pointer-events: none;

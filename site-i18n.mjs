@@ -44,6 +44,9 @@ export function applyDocumentTranslations(root = document) {
   for (const node of root.querySelectorAll("[data-i18n-alt]")) {
     node.alt = t(node.dataset.i18nAlt, { name: node.dataset.i18nName || "" });
   }
+  for (const node of root.querySelectorAll("[data-i18n-placeholder]")) {
+    node.placeholder = t(node.dataset.i18nPlaceholder);
+  }
 
   updateLanguageButtons(root);
 }

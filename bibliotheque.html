@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-store">
     <meta http-equiv="Pragma" content="no-cache">
     <meta name="referrer" content="strict-origin-when-cross-origin">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'">
     <title>Witch Hat Atelier Simulator - Bibliotheque</title>
     <script>
       if (window.location.protocol === "file:") {
@@ -15,6 +15,7 @@
     </script>
     <link rel="stylesheet" href="styles.css?v=20260716-serif-labels-v1">
     <script type="module" src="site-i18n.mjs?v=20260715-bilingual-editor-v3"></script>
+    <script type="module" src="library-explorer.mjs?v=20260716-wiki-v1"></script>
   </head>
   <body>
     <main class="app-shell settings-page">
@@ -42,13 +43,54 @@
         </nav>
       </header>
 
-      <section class="library-board circle-library-board" data-i18n-aria-label="library.region" aria-label="Magic-circle library">
-        <article class="source-note">
+      <div class="wiki-layout">
+        <nav class="wiki-toc" data-i18n-aria-label="wiki.contents" aria-label="On this page">
+          <strong data-i18n="wiki.contents">On this page</strong>
+          <a href="#overview" data-i18n="wiki.overview">Overview</a>
+          <a href="#schematics" data-i18n="wiki.schematics">Known circle schematics</a>
+          <a href="#variants" data-i18n="wiki.variants">Variant explorer</a>
+          <a href="#sigils" data-i18n="wiki.sigils">Central sigils</a>
+          <a href="#signs" data-i18n="wiki.signs">Modifier signs</a>
+          <a href="#supports" data-i18n="wiki.supports">Supports</a>
+          <a href="#fidelity" data-i18n="wiki.fidelity">Fidelity and limitations</a>
+        </nav>
+      <section class="library-board circle-library-board wiki-content" data-i18n-aria-label="library.region" aria-label="Magic-circle library">
+        <article class="source-note" id="overview">
           <h2 data-i18n="library.publicHeading">Public reference gallery</h2>
           <p data-i18n="library.publicDescription">This public version preserves the library structure without bundling private screenshots or crops derived from references.</p>
         </article>
 
-        <section class="circle-category" aria-label="Vision spells">
+        <section class="variant-explorer" id="variants" aria-labelledby="variantExplorerTitle">
+          <div class="wiki-section-heading">
+            <div>
+              <p class="wiki-kicker" data-i18n="explorer.kicker">Canonical recipe index</p>
+              <h2 id="variantExplorerTitle" data-i18n="explorer.title">Explore 13,338 variants</h2>
+              <p data-i18n="explorer.description">Search all nine central sigils, unordered pairs of 38 signs, and both support modes.</p>
+            </div>
+            <output id="variantCount" class="variant-count" aria-live="polite" data-i18n="explorer.loading">Building the index…</output>
+          </div>
+          <form id="variantFilters" class="variant-filters" role="search">
+            <label class="variant-search" for="variantSearch"><span data-i18n="explorer.search">Search variants</span><input id="variantSearch" name="q" type="search" autocomplete="off" data-i18n-placeholder="explorer.searchPlaceholder" placeholder="Water levitation, eau orbe…"></label>
+            <label for="sigilFilter"><span data-i18n="explorer.sigil">Central sigil</span><select id="sigilFilter" name="sigil"></select></label>
+            <label for="signFilter"><span data-i18n="explorer.sign">Modifier sign</span><select id="signFilter" name="sign"></select></label>
+            <label for="roleFilter"><span data-i18n="explorer.role">Sign role</span><select id="roleFilter" name="role"></select></label>
+            <label for="supportFilter"><span data-i18n="explorer.support">Support</span><select id="supportFilter" name="support"></select></label>
+            <label for="fidelityFilter"><span data-i18n="explorer.fidelity">Fidelity</span><select id="fidelityFilter" name="fidelity"></select></label>
+            <label for="warningFilter"><span data-i18n="explorer.warnings">Warnings</span><select id="warningFilter" name="warnings"></select></label>
+            <label for="effectFilter"><span data-i18n="explorer.effect">Effect category</span><select id="effectFilter" name="effect"></select></label>
+            <label for="sortFilter"><span data-i18n="explorer.sort">Sort</span><select id="sortFilter" name="sort"></select></label>
+            <button id="clearVariantFilters" type="reset" data-i18n="explorer.clear">Clear all</button>
+          </form>
+          <p id="variantNotice" class="variant-notice" role="status"></p>
+          <div id="variantResults" class="variant-results" aria-live="polite" aria-busy="true"></div>
+          <nav id="variantPager" class="variant-pager" data-i18n-aria-label="explorer.pagination" aria-label="Variant pages">
+            <button id="previousVariantPage" type="button" data-i18n="explorer.previous">Previous</button>
+            <span id="variantPageLabel"></span>
+            <button id="nextVariantPage" type="button" data-i18n="explorer.next">Next</button>
+          </nav>
+        </section>
+
+        <section class="circle-category" id="schematics" aria-label="Vision spells">
           <h2>Vision Spells</h2>
           <p data-i18n="library.visionDescription">Visual organization examples for a category focused on observation, appearance, and light reduction.</p>
           <div class="circle-grid">
@@ -115,7 +157,18 @@
             <article class="circle-card"><img src="assets/library-schematics/ancient-light-beacon.svg" data-i18n-alt="library.circleAlt" data-i18n-name="Ancient Light Beacon" alt="Original simulator schematic for Ancient Light Beacon"><span>Ancient Light Beacon</span><small data-i18n="library.category.nonForbidden">Ancient / Non-Forbidden</small><em data-i18n="library.fidelity.experimental">Experimental reconstruction</em></article>
           </div>
         </section>
+
+        <section class="wiki-reference-section" id="sigils"><h2 data-i18n="wiki.sigils">Central sigils</h2><p data-i18n="wiki.sigilsBody">Nine central sigils define the recipe material or governing action. Decorative sigils remain editable but do not enlarge the validated matrix.</p></section>
+        <section class="wiki-reference-section" id="signs"><h2 data-i18n="wiki.signs">Modifier signs</h2><p data-i18n="wiki.signsBody">Thirty-eight signs modify supply, state, form, motion, target, scope, relation, or power. Size, position, connection, and rotation affect the result.</p></section>
+        <section class="wiki-reference-section" id="supports"><h2 data-i18n="wiki.supports">Supports</h2><p data-i18n="wiki.supportsBody">No link keeps the paper on the desk. Shoe support fixes a small paper below the sole and applies stricter physical limits.</p></section>
+        <section class="wiki-reference-section" id="fidelity"><h2 data-i18n="wiki.fidelity">Fidelity and limitations</h2><p data-i18n="wiki.fidelityBody">Documented rules have direct research support. Inferred and experimental labels identify combinations completed logically by the simulator.</p></section>
       </section>
+      </div>
+      <dialog id="variantDialog" class="variant-dialog" aria-labelledby="variantDialogTitle">
+        <form method="dialog"><button class="dialog-close" value="close" data-i18n-aria-label="explorer.close" aria-label="Close">×</button></form>
+        <h2 id="variantDialogTitle" data-i18n="explorer.detailTitle">Variant details</h2>
+        <div id="variantDialogBody"></div>
+      </dialog>
     </main>
   </body>
 </html>
