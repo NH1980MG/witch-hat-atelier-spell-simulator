@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img">
+<title>Original simulator schematic for Petrification</title>
+<path fill="#fffaf0" stroke="none" d="M0 0H240V240H0Z"/>
+<g fill="none" stroke="#7d1f1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">
+<circle cx="120" cy="120" r="104"/><circle cx="120" cy="120" r="68"/><circle cx="120" cy="120" r="34"/>
+<line x1="94.1" y1="135.2" x2="68.3" y2="150.4"/><line x1="104.8" y1="94.1" x2="89.6" y2="68.3"/><line x1="145.9" y1="104.8" x2="171.7" y2="89.6"/><line x1="135.2" y1="145.9" x2="150.4" y2="171.7"/><polyline points="143.5,55.5 139.0,34.1 125.9,51.7"/><polyline points="182.2,91.0 194.2,72.7 172.5,75.8"/><polyline points="184.5,143.5 205.9,139.0 188.3,125.9"/><polyline points="149.0,182.2 167.3,194.2 164.2,172.5"/><polyline points="96.5,184.5 101.0,205.9 114.1,188.3"/><polyline points="57.8,149.0 45.8,167.3 67.5,164.2"/><polyline points="55.5,96.5 34.1,101.0 51.7,114.1"/><polyline points="91.0,57.8 72.7,45.8 75.8,67.5"/><path d="M120 88 L146 120 L120 152 L94 120 Z M120 100 L120 140 M104 120 L136 120"/>
+</g></svg>

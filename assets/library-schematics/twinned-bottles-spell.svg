@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img">
+<title>Original simulator schematic for Twinned Bottles' Spell</title>
+<path fill="#fffaf0" stroke="none" d="M0 0H240V240H0Z"/>
+<g fill="none" stroke="#7d1f1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">
+<circle cx="120" cy="120" r="104"/><circle cx="120" cy="120" r="68"/><circle cx="120" cy="120" r="34"/>
+<line x1="91.0" y1="127.8" x2="62.0" y2="135.5"/><line x1="127.8" y1="91.0" x2="135.5" y2="62.0"/><line x1="141.2" y1="141.2" x2="162.4" y2="162.4"/><polyline points="171.2,74.5 178.5,54.3 159.3,63.9"/><polyline points="185.0,141.6 206.2,137.8 188.2,125.9"/><polyline points="133.8,187.1 147.6,203.5 149.0,182.0"/><polyline points="68.8,165.5 61.5,185.7 80.7,176.1"/><polyline points="55.0,98.4 33.8,102.2 51.8,114.1"/><polyline points="106.2,52.9 92.4,36.5 91.0,58.0"/><path d="M92 120 Q120 82 148 120 Q120 158 92 120 Z M106 120 Q120 104 134 120 Q120 136 106 120 Z"/>
+</g></svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img">
+<title>Original simulator schematic for Sand Bridge</title>
+<path fill="#fffaf0" stroke="none" d="M0 0H240V240H0Z"/>
+<g fill="none" stroke="#7d1f1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">
+<circle cx="120" cy="120" r="104"/><circle cx="120" cy="120" r="78"/><circle cx="120" cy="120" r="34"/>
+<line x1="126.6" y1="149.3" x2="135.3" y2="188.3"/><line x1="97.9" y1="140.3" x2="68.5" y2="167.4"/><line x1="91.4" y1="111.1" x2="53.2" y2="99.1"/><line x1="113.4" y1="90.7" x2="104.7" y2="51.7"/><line x1="142.1" y1="99.7" x2="171.5" y2="72.6"/><line x1="148.6" y1="128.9" x2="186.8" y2="140.9"/><polyline points="57.4,148.8 47.0,169.1 69.7,167.1"/><polyline points="91.2,57.4 70.9,47.0 72.9,69.7"/><polyline points="182.6,91.2 193.0,70.9 170.3,72.9"/><polyline points="148.8,182.6 169.1,193.0 167.1,170.3"/><polygon points="120,89 130,108 152,111 136,127 140,150 120,139 100,150 104,127 88,111 110,108"/>
+</g></svg>

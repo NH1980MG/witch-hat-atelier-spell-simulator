@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img">
+<title>Original simulator schematic for Smokesculpting Seal</title>
+<path fill="#fffaf0" stroke="none" d="M0 0H240V240H0Z"/>
+<g fill="none" stroke="#7d1f1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">
+<circle cx="120" cy="120" r="104"/><circle cx="120" cy="120" r="68"/><circle cx="120" cy="120" r="34"/>
+<line x1="121.2" y1="150.0" x2="122.4" y2="180.0"/><line x1="90.0" y1="121.2" x2="60.0" y2="122.4"/><line x1="118.8" y1="90.0" x2="117.6" y2="60.0"/><line x1="150.0" y1="118.8" x2="180.0" y2="117.6"/><polyline points="51.9,128.2 34.8,141.9 56.4,145.6"/><polyline points="78.8,65.1 58.4,57.1 66.0,77.7"/><polyline points="146.9,56.9 143.6,35.2 129.6,52.1"/><polyline points="188.1,111.8 205.2,98.1 183.6,94.4"/><polyline points="161.2,174.9 181.6,182.9 174.0,162.3"/><polyline points="93.1,183.1 96.4,204.8 110.4,187.9"/><path d="M120 88 L146 120 L120 152 L94 120 Z M120 100 L120 140 M104 120 L136 120"/>
+</g></svg>

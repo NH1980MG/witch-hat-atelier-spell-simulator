@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img">
+<title>Original simulator schematic for Tracking Spell</title>
+<path fill="#fffaf0" stroke="none" d="M0 0H240V240H0Z"/>
+<g fill="none" stroke="#7d1f1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">
+<circle cx="120" cy="120" r="104"/><circle cx="120" cy="120" r="73"/><circle cx="120" cy="120" r="34"/>
+<line x1="123.9" y1="149.7" x2="128.5" y2="184.4"/><line x1="92.3" y1="108.5" x2="60.0" y2="95.1"/><line x1="143.8" y1="101.7" x2="171.6" y2="80.4"/><polyline points="54.7,140.5 39.7,156.0 61.2,155.1"/><polyline points="80.3,64.2 60.9,54.8 68.4,75.0"/><polyline points="160.8,65.0 163.8,43.7 146.9,57.0"/><polyline points="184.9,141.8 206.1,138.1 188.2,126.1"/><polyline points="119.3,188.5 129.4,207.5 135.2,186.8"/><path d="M92 120 Q120 82 148 120 Q120 158 92 120 Z M106 120 Q120 104 134 120 Q120 136 106 120 Z"/>
+</g></svg>

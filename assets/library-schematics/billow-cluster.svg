@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img">
+<title>Original simulator schematic for Billow Cluster</title>
+<path fill="#fffaf0" stroke="none" d="M0 0H240V240H0Z"/>
+<g fill="none" stroke="#7d1f1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">
+<circle cx="120" cy="120" r="104"/><circle cx="120" cy="120" r="78"/><circle cx="120" cy="120" r="34"/>
+<line x1="140.7" y1="141.7" x2="168.3" y2="170.7"/><line x1="98.3" y1="140.7" x2="69.3" y2="168.3"/><line x1="99.3" y1="98.3" x2="71.7" y2="69.3"/><line x1="141.7" y1="99.3" x2="170.7" y2="71.7"/><polyline points="113.8,188.3 123.6,207.9 131.8,187.6"/><polyline points="67.3,163.9 60.4,184.7 80.5,176.1"/><polyline points="51.7,113.8 32.1,123.6 52.4,131.8"/><polyline points="76.1,67.3 55.3,60.4 63.9,80.5"/><polyline points="126.2,51.7 116.4,32.1 108.2,52.4"/><polyline points="172.7,76.1 179.6,55.3 159.5,63.9"/><polyline points="188.3,126.2 207.9,116.4 187.6,108.2"/><polyline points="163.9,172.7 184.7,179.6 176.1,159.5"/><path d="M120 88 L146 120 L120 152 L94 120 Z M120 100 L120 140 M104 120 L136 120"/>
+</g></svg>

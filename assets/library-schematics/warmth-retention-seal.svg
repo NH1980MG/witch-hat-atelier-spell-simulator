@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img">
+<title>Original simulator schematic for Warmth-Retention Seal</title>
+<path fill="#fffaf0" stroke="none" d="M0 0H240V240H0Z"/>
+<g fill="none" stroke="#7d1f1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">
+<circle cx="120" cy="120" r="104"/><circle cx="120" cy="120" r="73"/><circle cx="120" cy="120" r="34"/>
+<line x1="144.2" y1="137.7" x2="172.5" y2="158.3"/><line x1="116.8" y1="149.8" x2="113.1" y2="184.6"/><line x1="92.6" y1="132.2" x2="60.6" y2="146.3"/><line x1="95.8" y1="102.3" x2="67.5" y2="81.7"/><line x1="123.2" y1="90.2" x2="126.9" y2="55.4"/><line x1="147.4" y1="107.8" x2="179.4" y2="93.7"/><polyline points="135.1,187.2 152.7,201.7 155.5,179.0"/><polyline points="69.3,166.7 65.6,189.2 86.6,180.3"/><polyline points="54.3,99.4 32.9,107.5 51.1,121.2"/><polyline points="104.9,52.8 87.3,38.3 84.5,61.0"/><polyline points="170.7,73.3 174.4,50.8 153.4,59.7"/><polyline points="185.7,140.6 207.1,132.5 188.9,118.8"/><polygon points="120,89 130,108 152,111 136,127 140,150 120,139 100,150 104,127 88,111 110,108"/>
+</g></svg>
