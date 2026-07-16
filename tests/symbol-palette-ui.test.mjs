@@ -16,7 +16,7 @@ test("la page expose la palette et les outils de taille", async () => {
   ]) {
     assert.match(html, new RegExp("id=[\\\"']" + id + "[\\\"']"));
   }
-  assert.match(html, /styles\.css\?v=20260715-[^"']+/);
+  assert.match(html, /styles\.css\?v=20260716-heritage-serif-v1/);
   assert.match(html, /app\.js\?v=20260715-[^"']+/);
 });
 
@@ -30,11 +30,11 @@ test("les etats de palette et de transport sont styles", async () => {
   assert.match(css, /\.simulator-page\.placement-open\.is-dragging-symbol \.placement-drawer/);
 });
 
-test("l'interface utilise la police machine a ecrire historique", async () => {
+test("l'interface utilise la police serif historique", async () => {
   const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
   const bodyRule = css.match(/(?:^|\n\n)body\s*\{([\s\S]*?)\n\}/)?.[1] || "";
 
-  assert.match(bodyRule, /font-family:\s*"Courier New", Courier, monospace/);
+  assert.match(bodyRule, /font-family:\s*Georgia, "Times New Roman", serif/);
 });
 
 test("l'application cable la selection contextuelle et son historique", async () => {
