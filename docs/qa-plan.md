@@ -29,9 +29,10 @@ The matrix check must report:
 - 47 drawings;
 - 9 central sigils;
 - 38 modifier signs;
-- at least 1,000 recipes;
-- the same number of tested and unique recipes, plus at least 1,000 distinct
-  executable plans (plans may be fewer when incompatible signs are ignored);
+- exactly 13,338 tested, unique and deterministic variants;
+- exactly 6,669 recipes for `none` and 6,669 for `shoe`;
+- 12,288 structured executable plans (plans may be fewer than identities when
+  incompatible signs are ignored);
 - no missing drawing, duplicate drawing, unknown drawing, nondeterministic
   result or non-finite simulation parameter.
 - all 19 semantic invariants pass, including radial/directional separation,
@@ -43,8 +44,8 @@ Also parse `index.html`, `bibliotheque.html`, `tutoriel.html`, and
 
 ## Browser Smoke Test
 
-The following manual browser pass succeeded on 2026-07-14. It should now be
-turned into a repeatable automated test:
+The latest browser pass succeeded on 2026-07-16. Detailed measurements and
+screenshots are recorded in `docs/qa/2026-07-16-library-tutorial-results.md`.
 
 1. Opens the simulator.
 2. Selects or creates a water spell.
@@ -70,6 +71,8 @@ Observed results:
 - A circle drawn at mobile size remained centered after changing to desktop and
   back to mobile.
 - Browser console warnings/errors: none.
+- The no-support raw ring and Water + shoe scenarios both opened a nonblank 3D
+  scene. The latter kept the paper below grounded, recognizable shoes.
 
 ## Water Vertical Slice Acceptance
 

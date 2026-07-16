@@ -1,6 +1,6 @@
 # Progress Tracker
 
-Last updated: 2026-07-14.
+Last updated: 2026-07-16.
 
 ## Current Status
 
@@ -19,9 +19,12 @@ remaining large `app.js` sections.
   corrected Repetition, Glaives, Envelop, Enlarge, Rain, Purify and Stillness.
 - Pure `spell-grammar.mjs` with separate material, supply, state, form, motion,
   target, scope, relation and power axes.
-- Automatic validation of 6,669 unique two-sign recipes and 6,144 distinct
-  executable plans, including deterministic IDs, finite parameters, visual
-  layers and confidence/warning states, plus 19 semantic regression checks.
+- Automatic validation of 13,338 unique two-sign/support variants: 6,669 with
+  paper only and 6,669 with shoe support. The matrix contains 12,288 distinct
+  executable plans plus 19 semantic regression checks.
+- Canonical spell identities now preserve exact geometry, support and recipe
+  state. Activation freezes an immutable snapshot so reading, activation and
+  the 3D view cannot silently disagree.
 - Seal geometry now accounts for relative sign size, radial balance, signed
   tilt/rotation, reduced reach and disconnected marks. A bare complete ring
   produces a short raw-energy discharge.
@@ -84,7 +87,13 @@ remaining large `app.js` sections.
 - Manual and auto activation modes.
 - Undo, redo, clear, keyboard shortcuts, and PNG export.
 - Three.js 3D view with richer atelier/exterior environments.
-- Library page organized into a stable gallery layout for spell examples.
+- Library page restored with 33 local, original SVG simulator schematics,
+  stable categories and bilingual labels. No remote or copied panel image is
+  required by the public build.
+- Tutorial updated in French and English with the exact 13,338-variant matrix,
+  ring, balance, rotation, support and physical-size rules.
+- Desktop and mobile browser QA completed for the library and tutorial, plus
+  nonblank raw-ring and water-on-shoe 3D activation scenes.
 - Tutorial and settings pages.
 - Legacy Python prototype removed; the HTTP static site is the only maintained
   version.
@@ -176,7 +185,7 @@ Exit criteria:
 
 - Add visual regression tests.
 - Add reduced-motion handling.
-- Add language strategy: French-only, English docs, or bilingual UI.
+- Continue expanding the bilingual catalogue as new mechanics are documented.
 - Keep the public project name as `Witch Hat Atelier Simulator`.
 - Decide whether to use a package manager or continue static ES modules.
 - Add official/fan disclaimer in UI or README before public promotion.

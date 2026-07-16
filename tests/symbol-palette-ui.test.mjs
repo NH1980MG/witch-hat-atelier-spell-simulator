@@ -17,7 +17,7 @@ test("la page expose la palette et les outils de taille", async () => {
     assert.match(html, new RegExp("id=[\\\"']" + id + "[\\\"']"));
   }
   assert.match(html, /styles\.css\?v=20260716-heritage-serif-v1/);
-  assert.match(html, /app\.js\?v=20260715-[^"']+/);
+  assert.match(html, /app\.js\?v=\d{8}-[^"']+/);
 });
 
 test("les etats de palette et de transport sont styles", async () => {

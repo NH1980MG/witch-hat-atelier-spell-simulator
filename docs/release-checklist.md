@@ -6,8 +6,10 @@ Use this before pushing to GitHub or publishing a static site.
 
 - Run `node --check` on `app.js`, `symbol-catalog.mjs`,
   `spell-grammar.mjs`, and `scripts/validate-spell-matrix.mjs`.
-- Run `node scripts/validate-spell-matrix.mjs`; require 47 drawings, 6,669
-  unique recipes, 6,144 executable plans, and 19 semantic checks.
+- Run `node scripts/validate-spell-matrix.mjs`; require 47 drawings, 13,338
+  tested/unique/deterministic variants, a 6,669/6,669 support split, 12,288
+  executable plans, and 19 semantic checks.
+- Run `node --test tests/*.test.mjs`; require all tests to pass.
 - Parse all HTML pages to catch broken tags.
 - Search for risky browser APIs: `eval`, `new Function`, `document.write`,
   remote scripts, secrets, and unexpected `file://` links.
@@ -53,6 +55,8 @@ Use this before pushing to GitHub or publishing a static site.
   public branch.
 - Replace any temporary reference-derived imagery with original or clearly
   permitted assets before release.
+- Require all 33 library thumbnails to come from `assets/library-schematics/`
+  and contain no embedded or remote image.
 
 ## Deployment Notes
 

@@ -27,8 +27,11 @@ le menu, la grille et l'encre 3D montrent donc la meme forme. La lecture compose
 les signes par roles (matiere, collecte, etat, forme, mouvement, cible, zone,
 liaison et puissance). Les signes semi-directionnels peuvent tourner autour du
 cercle sans etre confondus avec une direction de mouvement. Une verification
-automatique couvre actuellement 6 669 variantes a deux signes; les effets mal
-documentes restent marques comme interpretations prudentes.
+automatique couvre exactement 13 338 variantes: 9 sigils, 741 paires non
+ordonnees de deux signes et 2 supports. Chaque moitie contient 6 669 recettes.
+Ce nombre est une matrice de validation du simulateur, pas un nombre de sorts
+canoniques. Les effets mal documentes restent marques comme deductions ou
+experimentations.
 
 Le reglage d'echelle commence a x1 et peut reduire ou agrandir l'affichage du
 cercle. La taille physique du cercle ne change pas; l'epaisseur du trait augmente
@@ -60,14 +63,17 @@ haut de la barre laterale, puis utilise les boutons `-` et `+`. Le deplacement
 et le redimensionnement fonctionnent avec `Defaire` et `Refaire`.
 
 - `index.html` : page principale du site.
-- `bibliotheque.html` : bibliotheque de planches de reference de cercles.
+- `bibliotheque.html` : bibliotheque de 33 reconstructions originales.
 - `parametres.html` : page des parametres.
 - `tutoriel.html` : page tutoriel du simulateur.
 - `styles.css` : design de l'atelier.
 - `app.js` : logique du simulateur web.
 - `symbol-catalog.mjs` : 47 dessins vectoriels partages par toute l'application.
 - `spell-grammar.mjs` : profils et moteur deterministe de combinaison.
-- `scripts/validate-spell-matrix.mjs` : controle des 6 669 variantes.
+- `spell-model.mjs` : identite canonique et instantane d'activation immuable.
+- `support-policy.mjs` : regles structurees des supports papier et chaussures.
+- `library-circle-data.mjs` : inventaire des 33 cercles de la bibliotheque.
+- `scripts/validate-spell-matrix.mjs` : controle des 13 338 variantes.
 - `.gitignore` : fichiers locaux a ignorer.
 - `vendor/three/` : copie locale de Three.js 0.165.0 et de sa licence MIT.
 
@@ -77,5 +83,6 @@ et le redimensionnement fonctionnent avec `Defaire` et `Refaire`.
 node --check app.js
 node --check symbol-catalog.mjs
 node --check spell-grammar.mjs
+node --test tests/*.test.mjs
 node scripts/validate-spell-matrix.mjs
 ```

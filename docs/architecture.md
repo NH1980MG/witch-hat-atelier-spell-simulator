@@ -10,6 +10,10 @@ styles.css          shared visual styling
 app.js              UI, drawing, freehand recognition, scoring and Three.js
 symbol-catalog.mjs  shared vector paths for picker, canvas and 3D ink
 spell-grammar.mjs   pure sigil/sign profiles and combination engine
+spell-model.mjs     canonical identity, geometry and activation snapshots
+support-policy.mjs  support validation and stable effect identifiers
+support-geometry.mjs grounded support poses and shoe camera
+library-circle-data.mjs  33-entry public gallery inventory
 scripts/validate-spell-matrix.mjs  combinatorial integrity check
 bibliotheque.html   static spell library
 tutoriel.html       static tutorial
@@ -33,6 +37,10 @@ Two high-risk concerns have already been extracted:
   shapes for the same name.
 - `spell-grammar.mjs` is DOM-free. It turns sigils and signs into a deterministic
   material/effect pipeline and can be tested from Node.
+- `spell-model.mjs` prevents display rounding and input order from changing a
+  recipe identity, then freezes the activation payload consumed by Three.js.
+- `support-policy.mjs` gives no-support and shoe-support recipes explicit,
+  testable plans instead of deriving behavior from translated labels.
 
 ## Target Data Flow
 
@@ -43,7 +51,8 @@ flowchart LR
   Actions --> Parser["Spell parser"]
   Recognizer --> Parser
   Parser --> Grammar["Spell grammar"]
-  Grammar --> Model["Spell model + effect plan"]
+  Grammar --> Model["Canonical spell model + effect plan"]
+  Model --> Support["Structured support policy"]
   Model --> Metrics["Quality, stability, force, duration"]
   Model --> Registry["Effect recipe registry"]
   Registry --> Recipe["Selected 3D recipe"]
@@ -194,7 +203,7 @@ Per-effect recipe:
 Minimum practical tests:
 
 - Syntax checks for JS and Python.
-- Pure matrix test for all 6,669 two-sign recipes.
+- Pure matrix test for all 13,338 support-aware variants.
 - Shared-drawing test for all 47 sigils/signs.
 - Determinism and finite-parameter assertions for every effect plan.
 - Browser smoke test for the main simulator.
