@@ -19,4 +19,7 @@ test("closed seal status is fully localized", () => {
 test("runtime status calls do not contain direct user-facing literals", () => {
   assert.doesNotMatch(app, /setStatus\(\s*["'`][A-ZÀ-ÿ]/);
   assert.doesNotMatch(app, /setStatusList\(\s*\[\s*["'`][A-ZÀ-ÿ]/);
+  assert.doesNotMatch(app, /setStatus\(action\.element/);
+  assert.doesNotMatch(app, /taille et inclinaison enregistrees|orientation radiale equilibree/);
+  assert.doesNotMatch(app, /notice:\s*"Limite du parchemin/);
 });

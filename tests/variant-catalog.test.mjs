@@ -31,6 +31,12 @@ test("every record opens a deterministic documented detail", () => {
   }
 });
 
+test("combined effects expose stable identifiers for localization", () => {
+  const record = records.find(({ sigil, signs }) => sigil === "Eau" && signs.includes("Colonne") && signs.includes("Levitation"));
+  const detail = getVariantDetail(record);
+  assert.deepEqual(detail.combinationIds, ["rising-column"]);
+});
+
 test("search normalization handles accents punctuation prefixes aliases and typos", () => {
   assert.equal(normalizeSearchText("  Lévitation—Eau  "), "levitation eau");
 

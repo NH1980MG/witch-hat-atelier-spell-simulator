@@ -34,6 +34,10 @@ change this public contract.
 - Flexible variant search, filters, sorting, pagination and shareable URLs.
 - Fidelity labels that distinguish documented, inferred and experimental rules.
 
+Dans l'interface francaise, fais glisser une carte comme dans Scratch jusqu'au
+parchemin depuis `Symboles a placer`. A dotted preview confirms a valid drop
+position before the symbol is added.
+
 ## Run Locally
 
 ```bash

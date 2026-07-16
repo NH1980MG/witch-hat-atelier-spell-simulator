@@ -53,8 +53,9 @@ mobile widths.
 
 ## Browser Smoke Test
 
-The latest browser pass succeeded on 2026-07-16. Detailed measurements and
-screenshots are recorded in `docs/qa/2026-07-16-library-tutorial-results.md`.
+The latest browser pass succeeded on 2026-07-16. Final release measurements and
+screenshots are recorded in
+`docs/qa/2026-07-16-canonical-wiki-release-results.md`.
 
 1. Opens the simulator.
 2. Selects or creates a water spell.

@@ -319,6 +319,20 @@ const labels = {
   eraser: "Grattoir",
 };
 
+function actionDisplayLabel(action) {
+  if (action.seal) return t("tool.seal");
+  const toolKey = {
+    free: "pen",
+    circle: "seal",
+    ring: "ring",
+    ray: "ray",
+    glyph: "glyph",
+    spiral: "spiral",
+    eraser: "eraser",
+  }[action.type];
+  return toolKey ? t(`tool.${toolKey}`) : action.label;
+}
+
 const canvas = document.querySelector("#magicCanvas");
 const ctx = canvas.getContext("2d");
 let previousCanvasViewport = null;
@@ -729,7 +743,7 @@ function constrainCircleRadius(rawRadius, center = null) {
   if (radius > limitRadius) {
     return {
       radius: limitRadius,
-      notice: "Limite du parchemin atteinte: le cercle reste dans la zone de dessin.",
+      notice: t("status.parchmentCircleClamped"),
     };
   }
   return { radius, notice: "" };
@@ -6241,9 +6255,9 @@ function commitAction(action) {
   updateUsedList();
   updateSpellState();
   if (action.type === "glyph") {
-    setStatus(t("status.glyphInscribed", { action: action.label, symbol: elementDisplayName(action.element) }));
+    setStatus(t("status.glyphInscribed", { action: actionDisplayLabel(action), symbol: elementDisplayName(action.element) }));
   } else {
-    setStatus(t("status.actionInscribed", { action: action.label, notice: action.limitNotice || "" }));
+    setStatus(t("status.actionInscribed", { action: actionDisplayLabel(action), notice: action.limitNotice || "" }));
   }
   render();
 
@@ -6562,7 +6576,10 @@ function resizeSelectedGlyph(direction) {
   updateSelectionControls();
   updateUsedList();
   updateSpellState();
-  setStatus(action.element + (direction === "grow" ? " agrandi." : " retreci."));
+  setStatus(t("status.symbolResized", {
+    name: elementDisplayName(action.element),
+    direction: t(direction === "grow" ? "status.symbolGrown" : "status.symbolShrunk"),
+  }));
   render();
 }
 
@@ -6790,9 +6807,9 @@ function onPointerUp(event) {
     const action = state.currentAction;
     state.currentAction = null;
     commitAction(action);
-    setStatus(action.userAdjusted
-      ? `${action.element}: taille et inclinaison enregistrees.`
-      : `${action.element}: orientation radiale equilibree.`);
+    setStatus(t(action.userAdjusted ? "status.glyphAdjusted" : "status.glyphRadial", {
+      name: elementDisplayName(action.element),
+    }));
   } else if (["circle", "ring", "ray", "spiral"].includes(tool)) {
     commitAction(createAction(tool, state.start, point));
   }

@@ -162,6 +162,7 @@ export function getVariantDetail(record) {
     ruleIds: [...recipe.ruleIds],
     mechanics: [...recipe.mechanics],
     combinedEffects: [...recipe.combinedEffects],
+    combinationIds: recipe.combinations.map(({ id }) => id),
     ignoredSigns: [...recipe.ignoredSigns],
     warnings: [...recipe.warnings],
     supportPlan: recipe.supportPlan,

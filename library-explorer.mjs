@@ -144,6 +144,23 @@ if (!form) {
     return wrapper;
   }
 
+  function humanizeEffectId(id) {
+    const translated = t(`explorer.combination.${id}`);
+    if (translated !== `explorer.combination.${id}`) return translated;
+    return id.split("-").map((word, index) => index ? word : `${word.charAt(0).toUpperCase()}${word.slice(1)}`).join(" ");
+  }
+
+  function localizePipeline(pipeline) {
+    const roleAliases = { matiere: "material", geometrie: "geometry" };
+    return pipeline.map((stage) => {
+      const separator = stage.indexOf(":");
+      if (separator < 0) return stage;
+      const rawRole = stage.slice(0, separator);
+      const role = roleAliases[rawRole] || rawRole;
+      return `${t(`explorer.role.${role}`)}: ${stage.slice(separator + 1)}`;
+    }).join(" → ");
+  }
+
   function renderDetail(detail) {
     if (!detail) {
       dialogBody.textContent = t("explorer.unavailable");
@@ -153,12 +170,15 @@ if (!form) {
     const warningText = getLocale() === "fr"
       ? detail.warnings.join(" · ")
       : detail.warnings.map(() => t("status.recipeWarning")).join(" · ");
+    const combinedEffectText = getLocale() === "fr"
+      ? detail.combinedEffects.join(", ")
+      : detail.combinationIds.map(humanizeEffectId).join(", ");
     list.className = "variant-detail-list";
     list.append(
       detailRow(t("explorer.detail.fidelity"), t(`library.fidelity.${detail.fidelity}`)),
-      detailRow(t("explorer.detail.pipeline"), detail.pipeline.join(" → ")),
+      detailRow(t("explorer.detail.pipeline"), localizePipeline(detail.pipeline)),
       detailRow(t("explorer.detail.rules"), detail.ruleIds.join(", ")),
-      detailRow(t("explorer.detail.effects"), detail.combinedEffects.join(", ")),
+      detailRow(t("explorer.detail.effects"), combinedEffectText),
       detailRow(t("explorer.detail.support"), `${detail.supportPlan.mode} · ${detail.supportPlan.fidelity}`),
       detailRow(t("explorer.detail.ignored"), detail.ignoredSigns.map(displayName).join(", ")),
       detailRow(t("explorer.detail.warnings"), warningText),

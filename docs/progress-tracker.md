@@ -95,6 +95,14 @@ remaining large `app.js` sections.
 - Desktop and mobile browser QA completed for the library and tutorial, plus
   nonblank raw-ring and water-on-shoe 3D activation scenes.
 - Tutorial and settings pages.
+- Searchable wiki explorer for all 13,338 canonical variants with flexible
+  bilingual search, eight filters, sorting, pagination, shareable URL state and
+  deterministic recipe details.
+- Canonical SEO metadata, JSON-LD, `robots.txt`, `sitemap.xml`, security audit
+  and restricted GitHub Pages artifact validation.
+- Final canonical release QA: 89 automated tests, complete matrix validation,
+  desktop/mobile bilingual checks, 33 loaded schematics and nonblank 3D
+  activation with no browser console errors.
 - Legacy Python prototype removed; the HTTP static site is the only maintained
   version.
 - Initial review and documentation set.
