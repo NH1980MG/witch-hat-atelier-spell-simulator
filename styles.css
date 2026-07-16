@@ -225,7 +225,7 @@ input:focus-visible {
   outline-offset: 2px;
 }
 
-.header-link span {
+.header-link > span[aria-hidden="true"] {
   font-family: "Courier New", monospace;
   line-height: 1;
 }
@@ -421,10 +421,10 @@ input:focus-visible {
   top: 180px;
 }
 
-.symbol-island span,
-.placement-island span,
-.details-island span,
-.support-island span {
+.symbol-island > span[aria-hidden="true"],
+.placement-island > span[aria-hidden="true"],
+.details-island > span[aria-hidden="true"],
+.support-island > span[aria-hidden="true"] {
   color: var(--gold);
   font-family: "Courier New", monospace;
   font-size: 1.1rem;
