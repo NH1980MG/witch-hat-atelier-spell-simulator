@@ -448,6 +448,29 @@ function setStatusList(items) {
   statusText.append(list);
 }
 
+function localizedRecipeLabel(recipe) {
+  if (getLocale() === "fr") return recipe.label;
+  const sigil = elementDisplayName(recipe.material);
+  const signs = Object.keys(recipe.signCounts || {}).map(elementDisplayName);
+  return signs.length ? `${sigil}: ${signs.join(" + ")}` : sigil;
+}
+
+function localizedRecipeWarnings(recipe, limit = 3) {
+  if (getLocale() === "fr") return recipe.warnings.slice(0, limit).map((warning) => t("status.warning", { warning }));
+  return recipe.warnings.slice(0, limit).map(() => t("status.recipeWarning"));
+}
+
+function displayDirection(direction) {
+  const keys = {
+    contenu: "contained",
+    "vers la droite": "right",
+    "vers la gauche": "left",
+    "vers le bas": "down",
+    "vers le haut": "up",
+  };
+  return t(`direction.${keys[direction] || "contained"}`);
+}
+
 function viewScale() {
   const scale = Math.max(50, Math.min(200, Number(state.canvasScale) || 100));
   return scale / 100;
@@ -665,17 +688,17 @@ function circleSizeIssue(diameter = estimatedCircleDiameterMeters()) {
   if (isCircleTooSmall(diameter)) {
     return {
       type: "small",
-      label: "trop petit",
-      limit: "minimum 5 cm",
-      message: `Cercle trop petit: ${formatCircleDiameter(diameter)}. Minimum autorise: 5 cm. Agrandis le cercle avant d'activer.`,
+      label: t("size.tooSmall"),
+      limit: t("size.minimum"),
+      message: t("size.tooSmallMessage", { value: formatCircleDiameter(diameter) }),
     };
   }
   if (isCircleTooLarge(diameter)) {
     return {
       type: "large",
-      label: "trop grand",
-      limit: "maximum 5 m",
-      message: `Cercle trop grand: ${formatCircleDiameter(diameter)}. Maximum autorise: 5 m. Reduis le cercle avant d'activer.`,
+      label: t("size.tooLarge"),
+      limit: t("size.maximum"),
+      message: t("size.tooLargeMessage", { value: formatCircleDiameter(diameter) }),
     };
   }
   return null;
@@ -685,9 +708,9 @@ function supportSizeIssue(diameter = estimatedCircleDiameterMeters(), support = 
   if (support.id === "shoe" && diameter > MAX_SHOE_SUPPORT_DIAMETER_M) {
     return {
       type: "support-large",
-      label: "trop grand pour la chaussure",
-      limit: `maximum ${formatCircleDiameter(MAX_SHOE_SUPPORT_DIAMETER_M)} pour une semelle`,
-      message: `Support chaussure impossible: ${formatCircleDiameter(diameter)}. Le cercle doit rester sous ${formatCircleDiameter(MAX_SHOE_SUPPORT_DIAMETER_M)} pour tenir sous une semelle.`,
+      label: t("size.tooLargeForShoe"),
+      limit: t("size.shoeMaximum", { maximum: formatCircleDiameter(MAX_SHOE_SUPPORT_DIAMETER_M) }),
+      message: t("size.shoeTooLargeMessage", { value: formatCircleDiameter(diameter), maximum: formatCircleDiameter(MAX_SHOE_SUPPORT_DIAMETER_M) }),
     };
   }
   return null;
@@ -801,7 +824,7 @@ function setCanvasPan(x, y, announce = false) {
   localStorage.setItem("whaPanX", String(Math.round(state.panX)));
   localStorage.setItem("whaPanY", String(Math.round(state.panY)));
   if (announce) {
-    setStatus("Parchemin deplace. Le cadrillage et le cercle restent alignes.");
+    setStatus(t("status.panMoved"));
   }
   render();
 }
@@ -812,7 +835,7 @@ function resetCanvasPanToOrigin(announce = false) {
   localStorage.setItem("whaPanX", "0");
   localStorage.setItem("whaPanY", "0");
   if (announce) {
-    setStatus("Vue recentree sur le centre 0 de la grille.");
+    setStatus(t("status.viewCentered"));
   }
   render();
 }
@@ -1700,16 +1723,16 @@ function drawActivation(width, height) {
     state.activation = null;
     open3dView();
     setStatusList([
-      `Rituel active: ${snapshot.recipe.label}.`,
+      t("status.ritualActivated", { label: localizedRecipeLabel(snapshot.recipe) }),
       model.rawEnergy
-        ? "Aucun sigil de matiere: l'anneau libere de l'energie brute."
-        : `Sigil ${element.name} reconnu a ${Math.round(symbolQuality)}%.`,
-      `Diametre: ${formatCircleDiameter(state.activeSpell.diameter)}.`,
-      `Equilibre des signes: ${Math.round(model.geometry.balance * 100)}%.`,
-      `Rotation: ${Math.round(Math.abs(model.geometry.spin) * 100)}%; portee: ${Math.round(model.geometry.reach * 100)}%.`,
-      `Support: ${snapshot.supportName}.`,
-      `Duree: ${Math.round(state.activeSpell.durationMs / 1000)}s.`,
-      ...snapshot.recipe.warnings.slice(0, 2).map((warning) => `Attention: ${warning}`),
+        ? t("status.noMaterialSigil")
+        : t("status.sigilRecognized", { name: elementDisplayName(element), quality: Math.round(symbolQuality) }),
+      t("status.diameter", { value: formatCircleDiameter(state.activeSpell.diameter) }),
+      t("status.signBalance", { value: Math.round(model.geometry.balance * 100) }),
+      t("status.rotationReach", { rotation: Math.round(Math.abs(model.geometry.spin) * 100), reach: Math.round(model.geometry.reach * 100) }),
+      t("status.supportLine", { name: supportDisplayName(currentSupport()) }),
+      t("status.duration", { seconds: Math.round(state.activeSpell.durationMs / 1000) }),
+      ...localizedRecipeWarnings(snapshot.recipe, 2),
     ]);
     render();
   }
@@ -1724,7 +1747,7 @@ function drawActiveAura(width, height) {
   const remaining = 1 - elapsed / state.activeSpell.durationMs;
   if (remaining <= 0) {
     state.activeSpell = null;
-    setStatus("Le sort s'est dissipe.");
+    setStatus(t("status.spellDissipated"));
     return;
   }
 
@@ -4351,7 +4374,7 @@ function renderThreeView(timestamp = performance.now()) {
       threeView.scene.remove(threeView.spellGroup);
       threeView.spellGroup = null;
     }
-    setStatus("Le sort s'est dissipe.");
+    setStatus(t("status.spellDissipated"));
   }
   animateThreeSpell();
   threeView.controls.update();
@@ -6218,19 +6241,19 @@ function commitAction(action) {
   updateUsedList();
   updateSpellState();
   if (action.type === "glyph") {
-    setStatus(`${action.label} inscrit avec le symbole ${action.element}.`);
+    setStatus(t("status.glyphInscribed", { action: action.label, symbol: elementDisplayName(action.element) }));
   } else {
-    setStatus(`${action.label} inscrit.${action.limitNotice ? ` ${action.limitNotice}` : ""}`);
+    setStatus(t("status.actionInscribed", { action: action.label, notice: action.limitNotice || "" }));
   }
   render();
 
   const actionClosedSeal = isCompleteSeal(action);
 
   if (state.autoActivation && actionClosedSeal) {
-    setStatus("Sceau complet: activation automatique du rituel.");
+    setStatus(t("status.autoSealDetected"));
     window.setTimeout(activateCircle, 160);
   } else if (action.seal) {
-    setStatus(`Sceau ferme detecte. Appuie sur Activer pour eveiller le rituel.${action.limitNotice ? ` ${action.limitNotice}` : ""}`);
+    setStatus(`${t("status.closedSealDetected")}${action.limitNotice ? ` ${action.limitNotice}` : ""}`);
   }
 }
 
@@ -6522,7 +6545,7 @@ function deleteSelectedGlyph() {
 function resizeSelectedGlyph(direction) {
   const action = selectedGlyph();
   if (!action) {
-    setStatus("Fais un clic droit sur un symbole avant de changer sa taille.");
+    setStatus(t("status.selectBeforeResize"));
     return;
   }
 
@@ -6589,7 +6612,7 @@ function eraseAt(point) {
       updateSelectionControls();
       updateUsedList();
       updateSpellState();
-      setStatus("Trace retiree du parchemin.");
+      setStatus(t("status.traceRemoved"));
       render();
       return;
     }
@@ -6616,7 +6639,7 @@ function onPointerDown(event) {
     state.start = null;
     state.currentAction = null;
     state.preview = null;
-    setStatus("Limite du parchemin atteinte: dessine dans la zone cadrillee.");
+    setStatus(t("status.parchmentLimit"));
     render();
     return;
   }
@@ -7234,7 +7257,7 @@ function updateFidelityDetails(recipe) {
 
 function analyzeSpell() {
   if (state.actions.length === 0) {
-    setStatus("Aucun rituel a lire. Trace au moins un signe.");
+    setStatus(t("status.noRitualToRead"));
     return;
   }
 
@@ -7243,12 +7266,12 @@ function analyzeSpell() {
   const baseSizeIssue = circleSizeIssue(baseMetrics.diameter);
   const baseSupportIssue = supportSizeIssue(baseMetrics.diameter);
   const diameterLine = baseSizeIssue
-    ? `Diametre: ${formatCircleDiameter(baseMetrics.diameter)} - ${baseSizeIssue.label}, ${baseSizeIssue.limit}`
-    : `Diametre: ${formatCircleDiameter(baseMetrics.diameter)}`;
+    ? t("status.diameterIssue", { value: formatCircleDiameter(baseMetrics.diameter), label: baseSizeIssue.label, limit: baseSizeIssue.limit })
+    : t("status.diameter", { value: formatCircleDiameter(baseMetrics.diameter) });
   const model = signModel();
   const supportLines = [
     ...supportStatusLines(),
-    ...(baseSupportIssue ? [`Support: ${baseSupportIssue.label}, ${baseSupportIssue.limit}`] : []),
+    ...(baseSupportIssue ? [t("status.supportIssue", { label: baseSupportIssue.label, limit: baseSupportIssue.limit })] : []),
     ...supportEffectLines(model),
   ];
   const glyphs = model.sigils;
@@ -7257,25 +7280,25 @@ function analyzeSpell() {
       const rawMetrics = spellMetrics();
       setStatusList([
         model.ringOnly
-          ? "Anneau ferme sans sigil: decharge rapide d'energie brute."
-          : "Aucun sigil de matiere: les signes modifient l'energie brute de l'anneau.",
-        `Equilibre des signes: ${Math.round(model.geometry.balance * 100)}%.`,
-        `Pression laterale: ${Math.round(model.geometry.pressure * 100)}%; direction: ${directionName(model.rays, model.signs, model.geometry)}.`,
-        `Rotation: ${Math.round(Math.abs(model.geometry.spin) * 100)}%; portee: ${Math.round(model.geometry.reach * 100)}%.`,
-        ...(model.ignoredMarkCount > 0 ? [`Hors anneau: ${model.ignoredMarkCount} trace(s) ignoree(s).`] : []),
-        ...model.recipe.warnings.slice(0, 3).map((warning) => `Attention: ${warning}`),
+          ? t("status.closedRawRing")
+          : t("status.rawEnergyWithSigns"),
+        t("status.signBalance", { value: Math.round(model.geometry.balance * 100) }),
+        t("status.pressureDirection", { pressure: Math.round(model.geometry.pressure * 100), direction: displayDirection(directionName(model.rays, model.signs, model.geometry)) }),
+        t("status.rotationReach", { rotation: Math.round(Math.abs(model.geometry.spin) * 100), reach: Math.round(model.geometry.reach * 100) }),
+        ...(model.ignoredMarkCount > 0 ? [t("status.outsideRing", { count: model.ignoredMarkCount })] : []),
+        ...localizedRecipeWarnings(model.recipe),
         diameterLine,
         ...supportLines,
-        `Duree: ${Math.round(rawMetrics.duration / 1000)}s.`,
+        t("status.duration", { seconds: Math.round(rawMetrics.duration / 1000) }),
       ]);
       render();
       return;
     }
     setStatusList([
-      "Aucun sigil central reconnu.",
+      t("status.noCentralSigil"),
       model.signs.length > 0 || model.freeSigns.length > 0
-        ? "Les signes sont lus comme modificateurs, mais il faut fermer l'anneau pour liberer l'energie."
-        : "Redessine le sigil central plus clairement dans le cercle.",
+        ? t("status.signsNeedRing")
+        : t("status.redrawCentralSigil"),
       diameterLine,
       ...supportLines,
     ]);
@@ -7285,8 +7308,8 @@ function analyzeSpell() {
 
   if (!model.hasBoundary) {
     setStatusList([
-      "Sort incomplet.",
-      "Le symbole est reconnu, mais il manque un cercle ou un sceau ferme.",
+      t("status.incompleteSpell"),
+      t("status.recognizedNeedsRing"),
       diameterLine,
       ...supportLines,
     ]);
@@ -7307,14 +7330,14 @@ function analyzeSpell() {
     ? model.recipe.combinations.map((combination) => combination.label).join(", ")
     : "composition directe des signes";
   const stageLabels = {
-    supply: "collecte",
-    state: "etat",
-    form: "forme",
-    motion: "mouvement",
-    target: "cible",
-    scope: "zone",
-    relation: "liaison",
-    power: "puissance",
+    supply: t("explorer.role.supply"),
+    state: t("explorer.role.state"),
+    form: t("explorer.role.form"),
+    motion: t("explorer.role.motion"),
+    target: t("explorer.role.target"),
+    scope: t("explorer.role.scope"),
+    relation: t("explorer.role.relation"),
+    power: t("explorer.role.power"),
   };
   const activeStages = ["supply", "state", "form", "motion", "target", "scope", "relation", "power"]
     .filter((role) => model.recipe.axes[role].length > 0)
@@ -7322,26 +7345,26 @@ function analyzeSpell() {
   const parameters = model.recipe.effectPlan.parameters;
   updateSpellState();
   setStatusList([
-    `Lecture: ${spell}`,
-    `Sigil central: ${[...elementNames].join(", ")}`,
-    `Signes: ${signNames.length > 0 ? signNames.join(", ") : model.freeSigns.length > 0 ? `${model.freeSigns.length} signe(s) libre(s)` : "aucun"}`,
-    `Combinaison: ${combinationText}`,
-    `Execution: matiere${activeStages.length > 0 ? ` -> ${activeStages.join(" -> ")}` : " seule"}`,
-    `Variation: densite x${parameters.density}, etalement x${parameters.spread}, stabilite x${parameters.stability}`,
-    `Direction: ${directionName(model.rays, model.signs, model.geometry)}`,
-    `Equilibre des signes: ${Math.round(model.geometry.balance * 100)}%; pression laterale: ${Math.round(model.geometry.pressure * 100)}%`,
-    `Rotation: ${Math.round(Math.abs(model.geometry.spin) * 100)}%; portee: ${Math.round(model.geometry.reach * 100)}%`,
-    ...(model.ignoredMarkCount > 0 ? [`Hors anneau: ${model.ignoredMarkCount} trace(s) ignoree(s)`] : []),
-    `Confiance: ${model.recipe.confidence}`,
-    ...model.recipe.mechanics.slice(0, 4),
-    ...model.recipe.warnings.slice(0, 3).map((warning) => `Attention: ${warning}`),
-    `Precision: ${Math.round(symbolQuality)}%`,
+    t("status.reading", { label: getLocale() === "fr" ? spell : localizedRecipeLabel(model.recipe) }),
+    t("status.centralSigil", { names: [...elementNames].map(elementDisplayName).join(", ") }),
+    t("status.signs", { names: signNames.length > 0 ? signNames.map(elementDisplayName).join(", ") : model.freeSigns.length > 0 ? t("status.freeSigns", { count: model.freeSigns.length }) : t("explorer.none") }),
+    t("status.combination", { value: getLocale() === "fr" ? combinationText : model.recipe.ruleIds.join(", ") }),
+    t("status.execution", { stages: activeStages.length > 0 ? activeStages.join(" -> ") : t("status.materialOnly") }),
+    t("status.variation", { density: parameters.density, spread: parameters.spread, stability: parameters.stability }),
+    t("status.direction", { value: displayDirection(directionName(model.rays, model.signs, model.geometry)) }),
+    t("status.balancePressure", { balance: Math.round(model.geometry.balance * 100), pressure: Math.round(model.geometry.pressure * 100) }),
+    t("status.rotationReach", { rotation: Math.round(Math.abs(model.geometry.spin) * 100), reach: Math.round(model.geometry.reach * 100) }),
+    ...(model.ignoredMarkCount > 0 ? [t("status.outsideRing", { count: model.ignoredMarkCount })] : []),
+    t("status.confidence", { value: getLocale() === "fr" ? model.recipe.confidence : model.recipe.fidelity }),
+    ...(getLocale() === "fr" ? model.recipe.mechanics.slice(0, 4) : model.recipe.ruleIds.slice(0, 4).map((id) => t("status.ruleApplied", { id }))),
+    ...localizedRecipeWarnings(model.recipe),
+    t("status.precision", { value: Math.round(symbolQuality) }),
     metricsSizeIssue
-      ? `Diametre: ${formatCircleDiameter(metrics.diameter)} - ${metricsSizeIssue.label}, ${metricsSizeIssue.limit}`
-      : `Diametre: ${formatCircleDiameter(metrics.diameter)}`,
+      ? t("status.diameterIssue", { value: formatCircleDiameter(metrics.diameter), label: metricsSizeIssue.label, limit: metricsSizeIssue.limit })
+      : t("status.diameter", { value: formatCircleDiameter(metrics.diameter) }),
     ...supportLines,
-    `Duree: ${Math.round(metrics.duration / 1000)}s`,
-    `Equilibre: ${stability}`,
+    t("status.duration", { seconds: Math.round(metrics.duration / 1000) }),
+    t("status.stability", { value: getLocale() === "fr" ? stability : model.recipe.fidelity }),
   ]);
   render();
 }
@@ -7520,7 +7543,7 @@ function guessStability(model, power) {
 
 function activateCircle() {
   if (state.actions.length === 0) {
-    setStatus("Trace au moins une forme avant d'activer le rituel.");
+    setStatus(t("status.activationNeedsShape"));
     return;
   }
 
@@ -7528,7 +7551,7 @@ function activateCircle() {
     state.activation = null;
     state.activeSpell = null;
     updateSpellState();
-    setStatus("Sort incomplet: ajoute un cercle ou un sceau ferme autour du symbole avant d'activer.");
+    setStatus(t("status.activationNeedsRing"));
     render();
     return;
   }
@@ -7550,7 +7573,7 @@ function activateCircle() {
     state.activation = null;
     state.activeSpell = null;
     updateSpellState();
-    setStatus("Aucun anneau ferme exploitable: les traits hors anneau ne contribuent pas au sort.");
+    setStatus(t("status.activationNoUsableRing"));
     render();
     return;
   }
@@ -7596,30 +7619,30 @@ function activateCircle() {
     }),
   };
   state.activeSpell = null;
-  setStatus(model.rawEnergy ? "Activation: decharge d'energie brute." : `Activation: ${element.name}.`);
+  setStatus(model.rawEnergy ? t("status.activationRawEnergy") : t("status.activationElement", { name: elementDisplayName(element) }));
   render();
 }
 
 function undo() {
   if (state.undoStack.length === 0) {
-    setStatus("Aucune modification a annuler.");
+    setStatus(t("status.undoEmpty"));
     return;
   }
 
   state.redoStack.push(cloneActions(state.actions));
   restoreActions(state.undoStack.pop());
-  setStatus("Derniere modification annulee.");
+  setStatus(t("status.undoDone"));
 }
 
 function redo() {
   if (state.redoStack.length === 0) {
-    setStatus("Aucune modification a retablir.");
+    setStatus(t("status.redoEmpty"));
     return;
   }
 
   state.undoStack.push(cloneActions(state.actions));
   restoreActions(state.redoStack.pop());
-  setStatus("Modification retablie.");
+  setStatus(t("status.redoDone"));
 }
 
 function clearCanvas() {
@@ -7637,7 +7660,7 @@ function clearCanvas() {
   updateSelectionControls();
   updateUsedList();
   updateSpellState();
-  setStatus("Parchemin vierge.");
+  setStatus(t("status.blankParchment"));
   render();
 }
 
@@ -7653,14 +7676,14 @@ function saveCanvas() {
     render();
   }
   link.click();
-  setStatus("Planche archivee en PNG.");
+  setStatus(t("status.archivedPng"));
 }
 
 for (const button of toolButtons) {
   button.addEventListener("click", () => {
     state.tool = button.dataset.tool;
     updateToolButtons();
-    setStatus(`${labels[state.tool] || "Outil"} selectionne.`);
+    setStatus(t("status.toolSelected", { name: t(`tool.${state.tool}`) }));
   });
 }
 
@@ -7677,7 +7700,7 @@ function setCanvasScale(scale, announce = true) {
   localStorage.setItem("whaCanvasScale", String(state.canvasScale));
   applyCanvasScale();
   if (announce) {
-    setStatus(`Echelle reglee a ${formatZoom(state.canvasScale)}. Un carreau represente 5 cm pour mesurer le cercle.`);
+    setStatus(t("status.scaleSet", { scale: formatZoom(state.canvasScale) }));
   }
 }
 
@@ -7704,13 +7727,13 @@ closedSealInput.addEventListener("change", () => {
 
 autoInput.addEventListener("change", () => {
   state.autoActivation = autoInput.checked;
-  setStatus(state.autoActivation ? "Activation automatique armee: le rituel partira quand le cercle sera ferme." : "Mode bouton: le rituel part seulement avec Activer.");
+  setStatus(t(state.autoActivation ? "status.autoArmed" : "status.manualArmed"));
 });
 
 measureInput?.addEventListener("change", () => {
   state.showMeasure = measureInput.checked;
   localStorage.setItem("whaShowMeasure", String(state.showMeasure));
-  setStatus(state.showMeasure ? "Compteur de diametre affiche." : "Compteur de diametre masque.");
+  setStatus(t(state.showMeasure ? "status.measureShown" : "status.measureHidden"));
   render();
 });
 
@@ -7765,14 +7788,14 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !view3dPanel.hidden) {
     event.preventDefault();
     close3dView();
-    setStatus("Vue 3D fermee.");
+    setStatus(t("status.view3dClosed"));
     return;
   }
 
   if (event.key === "Escape" && (document.body.classList.contains("symbols-open") || document.body.classList.contains("placement-open") || document.body.classList.contains("details-open") || document.body.classList.contains("support-open"))) {
     event.preventDefault();
     setOpenDrawer(null);
-    setStatus("Ilot ferme.");
+    setStatus(t("status.drawerClosed"));
     return;
   }
 
@@ -7792,7 +7815,7 @@ document.addEventListener("keydown", (event) => {
   } else if (event.key === "Escape" && state.selectedGlyphIndex !== null) {
     state.selectedGlyphIndex = null;
     updateSelectionControls();
-    setStatus("Selection retiree.");
+    setStatus(t("status.selectionCleared"));
     render();
   } else if (event.key === "Escape") {
     clearCanvas();
@@ -7819,7 +7842,11 @@ window.addEventListener("wha:localechange", () => {
   renderSupportList();
   updateUsedList();
   updateSpellState();
-  setStatus(t("status.languageChanged"));
+  if (state.actions.length > 0) {
+    analyzeSpell();
+  } else {
+    setStatus(t("status.buttonMode"));
+  }
   render();
 });
 

@@ -150,6 +150,9 @@ if (!form) {
       return;
     }
     const list = document.createElement("dl");
+    const warningText = getLocale() === "fr"
+      ? detail.warnings.join(" · ")
+      : detail.warnings.map(() => t("status.recipeWarning")).join(" · ");
     list.className = "variant-detail-list";
     list.append(
       detailRow(t("explorer.detail.fidelity"), t(`library.fidelity.${detail.fidelity}`)),
@@ -158,7 +161,7 @@ if (!form) {
       detailRow(t("explorer.detail.effects"), detail.combinedEffects.join(", ")),
       detailRow(t("explorer.detail.support"), `${detail.supportPlan.mode} · ${detail.supportPlan.fidelity}`),
       detailRow(t("explorer.detail.ignored"), detail.ignoredSigns.map(displayName).join(", ")),
-      detailRow(t("explorer.detail.warnings"), detail.warnings.join(" · ")),
+      detailRow(t("explorer.detail.warnings"), warningText),
     );
     dialogBody.replaceChildren(list);
   }
