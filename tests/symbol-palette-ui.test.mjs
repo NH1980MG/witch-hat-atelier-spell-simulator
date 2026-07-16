@@ -2,13 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-test("la page expose la palette et les outils de taille", async () => {
+test("la page expose un seul tiroir de symboles et les outils de taille", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
   for (const id of [
-    "placementToggleButton",
-    "placementDrawer",
-    "placementList",
-    "closePlacementButton",
+    "symbolToggleButton",
+    "symbolDrawer",
+    "inkList",
+    "closeSymbolsButton",
     "shrinkSelectionButton",
     "growSelectionButton",
     "symbolDragGhost",
@@ -16,18 +16,20 @@ test("la page expose la palette et les outils de taille", async () => {
   ]) {
     assert.match(html, new RegExp("id=[\\\"']" + id + "[\\\"']"));
   }
-  assert.match(html, /styles\.css\?v=20260716-serif-labels-v1/);
+  assert.doesNotMatch(html, /id=["']placement(?:ToggleButton|Drawer|List)["']/);
+  assert.doesNotMatch(html, /id=["']closePlacementButton["']/);
+  assert.match(html, /styles\.css\?v=20260716-unified-symbols-v1/);
   assert.match(html, /app\.js\?v=\d{8}-[^"']+/);
 });
 
-test("les etats de palette et de transport sont styles", async () => {
+test("le tiroir unique et le transport sont styles", async () => {
   const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
 
-  assert.match(css, /\.simulator-page\.placement-open/);
+  assert.match(css, /\.simulator-page\.symbols-open/);
   assert.match(css, /\.symbol-drag-ghost/);
-  assert.match(css, /\.placement-card/);
-  assert.match(css, /grid-template-columns:\s*repeat\(5, minmax\(42px, 1fr\)\)/);
-  assert.match(css, /\.simulator-page\.placement-open\.is-dragging-symbol \.placement-drawer/);
+  assert.match(css, /\.ink-button/);
+  assert.match(css, /\.simulator-page\.symbols-open\.is-dragging-symbol \.symbol-drawer/);
+  assert.doesNotMatch(css, /\.placement-(?:island|drawer|list|card)/);
 });
 
 test("l'interface utilise la police serif historique", async () => {
@@ -62,7 +64,7 @@ test("la palette cable le transport Scratch jusqu'au canevas", async () => {
   const readme = await readFile(new URL("../README.md", import.meta.url), "utf8");
 
   for (const functionName of [
-    "renderPlacementList",
+    "renderInkList",
     "startSymbolDrag",
     "moveSymbolDrag",
     "finishSymbolDrag",
@@ -70,6 +72,10 @@ test("la palette cable le transport Scratch jusqu'au canevas", async () => {
   ]) {
     assert.match(app, new RegExp("function " + functionName + "\\("));
   }
+  const renderBody = app.match(/function renderInkList\(\) \{([\s\S]*?)\n\}/)?.[1] || "";
+  assert.match(renderBody, /startSymbolDrag\(event, element\)/);
+  assert.doesNotMatch(app, /function renderPlacementList\(/);
+  assert.doesNotMatch(app, /setPlacementDrawer/);
   assert.match(app, /canDropGlyph/);
   assert.match(app, /state\.exporting = true/);
   assert.match(app, /state\.exporting = false/);

@@ -278,25 +278,25 @@ function supportDisplayHint(support) {
 function supportImageMarkup(id) {
   const drawings = {
     none: `
-      <path class="support-paper" d="M28 25 H60 V59 H28 Z"></path>
-      <path class="support-detail" d="M34 34 H54 M34 44 H54 M34 53 H47"></path>
-      <circle class="support-detail" cx="44" cy="42" r="10"></circle>
-      <path class="support-accent" d="M36 42 H52 M44 34 V50"></path>
-      <path class="support-shadow" d="M23 67 C35 73 53 73 65 67"></path>
+      <path class="support-paper" d="M29 23 H59 V60 H29 Z"></path>
+      <circle class="support-detail" cx="44" cy="41" r="11"></circle>
+      <path class="support-detail" d="M34 30 H54 M34 52 H54"></path>
+      <path class="support-accent" d="M33 41 H55 M44 30 V52"></path>
+      <path class="support-shadow" d="M22 67 C34 73 54 73 66 67"></path>
     `,
     shoe: `
-      <path class="support-shadow" d="M15 73 C29 80 59 80 73 72"></path>
-      <path class="support-fill" d="M24 18 C16 23 13 38 18 55 C21 66 29 72 37 68 C44 64 43 54 38 43 C35 35 35 26 39 18 C34 15 29 15 24 18 Z"></path>
-      <path class="support-fill" d="M64 18 C72 23 75 38 70 55 C67 66 59 72 51 68 C44 64 45 54 50 43 C53 35 53 26 49 18 C54 15 59 15 64 18 Z"></path>
-      <path class="support-detail" d="M24 25 C19 33 20 50 27 62 M35 22 C32 33 34 46 39 58 M64 25 C69 33 68 50 61 62 M53 22 C56 33 54 46 49 58"></path>
-      <path class="support-detail" d="M23 48 C28 51 34 51 39 48 M49 48 C54 51 60 51 65 48 M24 58 C29 62 34 62 38 58 M50 58 C54 62 59 62 64 58"></path>
-      <path class="support-paper" d="M30 36 C35 33 42 34 44 40 C42 46 34 48 29 44 C27 41 27 38 30 36 Z"></path>
-      <path class="support-paper" d="M44 40 C46 34 53 33 58 36 C61 38 61 41 59 44 C54 48 46 46 44 40 Z"></path>
+      <path class="support-fill" d="M24 20 C17 25 15 42 20 58 C23 68 31 73 38 68 C44 63 41 54 37 45 C33 36 34 27 39 19 C34 16 29 16 24 20 Z"></path>
+      <path class="support-fill" d="M64 20 C71 25 73 42 68 58 C65 68 57 73 50 68 C44 63 47 54 51 45 C55 36 54 27 49 19 C54 16 59 16 64 20 Z"></path>
+      <path class="support-detail" d="M25 27 C21 37 22 54 29 63 M36 24 C33 34 35 47 39 57"></path>
+      <path class="support-detail" d="M63 27 C67 37 66 54 59 63 M52 24 C55 34 53 47 49 57"></path>
+      <path class="support-detail" d="M20 19 C15 16 10 19 9 25 M68 19 C73 16 78 19 79 25"></path>
+      <circle class="support-paper" cx="37" cy="41" r="7.5"></circle>
+      <circle class="support-paper" cx="51" cy="41" r="7.5"></circle>
       <circle class="support-accent" cx="37" cy="41" r="6"></circle>
       <circle class="support-accent" cx="51" cy="41" r="6"></circle>
-      <path class="support-accent" d="M32 41 H42 M37 36 V46 M46 41 H56 M51 36 V46"></path>
-      <path class="support-detail" d="M20 20 C15 18 11 21 10 27 M68 20 C73 18 77 21 78 27"></path>
-      <path class="support-accent" d="M23 70 C31 75 39 74 45 70 M43 70 C49 74 58 75 65 70"></path>
+      <path class="support-accent" d="M32 41 H42 M37 36 V46 M46 41 H56 M51 36 V46 M43 41 C44 39 44 39 45 41"></path>
+      <path class="support-accent" d="M20 68 C27 75 36 76 44 69 C52 76 61 75 68 68"></path>
+      <path class="support-shadow" d="M15 75 C29 81 59 81 73 75"></path>
     `,
   };
   const drawing = drawings[id] || drawings.none;
@@ -374,10 +374,6 @@ const close3dButton = document.querySelector("#close3dButton");
 const symbolToggleButton = document.querySelector("#symbolToggleButton");
 const symbolDrawer = document.querySelector("#symbolDrawer");
 const closeSymbolsButton = document.querySelector("#closeSymbolsButton");
-const placementList = document.querySelector("#placementList");
-const placementToggleButton = document.querySelector("#placementToggleButton");
-const placementDrawer = document.querySelector("#placementDrawer");
-const closePlacementButton = document.querySelector("#closePlacementButton");
 const symbolDragGhost = document.querySelector("#symbolDragGhost");
 const detailsToggleButton = document.querySelector("#detailsToggleButton");
 const detailsDrawer = document.querySelector("#detailsDrawer");
@@ -4415,10 +4411,6 @@ function setSymbolDrawer(open) {
   setOpenDrawer(open ? "symbols" : null);
 }
 
-function setPlacementDrawer(open) {
-  setOpenDrawer(open ? "placement" : null);
-}
-
 function setDetailsDrawer(open) {
   setOpenDrawer(open ? "details" : null);
 }
@@ -4429,22 +4421,18 @@ function setSupportDrawer(open) {
 
 function setOpenDrawer(drawer) {
   const symbolsOpen = drawer === "symbols";
-  const placementOpen = drawer === "placement";
   const detailsOpen = drawer === "details";
   const supportOpen = drawer === "support";
-  if (!placementOpen && state.symbolDrag) {
+  if (!symbolsOpen && state.symbolDrag) {
     cancelSymbolDrag();
   }
   document.body.classList.toggle("symbols-open", symbolsOpen);
-  document.body.classList.toggle("placement-open", placementOpen);
   document.body.classList.toggle("details-open", detailsOpen);
   document.body.classList.toggle("support-open", supportOpen);
   symbolToggleButton?.setAttribute("aria-expanded", String(symbolsOpen));
-  placementToggleButton?.setAttribute("aria-expanded", String(placementOpen));
   detailsToggleButton?.setAttribute("aria-expanded", String(detailsOpen));
   supportToggleButton?.setAttribute("aria-expanded", String(supportOpen));
   symbolDrawer?.setAttribute("aria-hidden", String(!symbolsOpen));
-  placementDrawer?.setAttribute("aria-hidden", String(!placementOpen));
   detailsDrawer?.setAttribute("aria-hidden", String(!detailsOpen));
   supportDrawer?.setAttribute("aria-hidden", String(!supportOpen));
   render();
@@ -6901,6 +6889,7 @@ function renderInkList() {
       button.type = "button";
       button.dataset.symbol = element.name;
       button.title = elementMechanicLabel(element, grammarProfile);
+      button.setAttribute("aria-label", t("symbols.dragToParchment", { name: elementDisplayName(element) }));
       button.innerHTML = `
         <span class="symbol-icon" style="--symbol-color:${element.color}">${elementIconMarkup(element)}</span>
         <span class="symbol-copy">
@@ -6913,40 +6902,6 @@ function renderInkList() {
         updateInkSelection();
         setStatus(t("status.symbolPrepared", { name: elementDisplayName(element) }));
       });
-      section.append(button);
-    }
-    inkList.append(section);
-  }
-  updateInkSelection();
-}
-
-function renderPlacementList() {
-  if (!placementList) {
-    return;
-  }
-  placementList.innerHTML = "";
-  for (const [title, groupElements] of symbolGroups()) {
-    const section = document.createElement("section");
-    section.className = "symbol-section";
-    const heading = document.createElement("h3");
-    heading.className = "symbol-section-title";
-    heading.textContent = title;
-    section.append(heading);
-
-    for (const element of groupElements) {
-      const button = document.createElement("button");
-      button.className = "placement-card";
-      button.type = "button";
-      button.dataset.symbol = element.name;
-      button.setAttribute("aria-label", t("symbols.dragToParchment", { name: elementDisplayName(element) }));
-      button.innerHTML =
-        '<span class="symbol-icon" style="--symbol-color:' + element.color + '">' +
-          elementIconMarkup(element) +
-        '</span><span class="symbol-copy"><span class="symbol-name">' +
-          elementDisplayName(element) +
-        '</span><small>' +
-          elementCategoryLabel(element) +
-        '</small></span>';
       button.addEventListener("pointerdown", (event) => startSymbolDrag(event, element));
       button.addEventListener("dragstart", (event) => event.preventDefault());
       button.addEventListener("keydown", (event) => {
@@ -6958,13 +6913,14 @@ function renderPlacementList() {
         state.tool = "glyph";
         updateInkSelection();
         updateToolButtons();
-        setPlacementDrawer(false);
+        setSymbolDrawer(false);
         setStatus(t("status.symbolClickToPlace", { name: elementDisplayName(element) }));
       });
       section.append(button);
     }
-    placementList.append(section);
+    inkList.append(section);
   }
+  updateInkSelection();
 }
 
 function clientPointInsideRect(clientX, clientY, rect) {
@@ -7009,7 +6965,7 @@ function moveSymbolDrag(event) {
   symbolDragGhost.style.top = event.clientY + "px";
 
   const canvasRect = canvas.getBoundingClientRect();
-  const drawerRect = placementDrawer?.getBoundingClientRect();
+  const drawerRect = symbolDrawer?.getBoundingClientRect();
   const overCanvas = clientPointInsideRect(event.clientX, event.clientY, canvasRect);
   const overDrawer = drawerRect && clientPointInsideRect(event.clientX, event.clientY, drawerRect);
   const point = pointFromEvent(event);
@@ -7762,8 +7718,6 @@ saveButton.addEventListener("click", saveCanvas);
 close3dButton.addEventListener("click", close3dView);
 symbolToggleButton?.addEventListener("click", () => setSymbolDrawer(true));
 closeSymbolsButton?.addEventListener("click", () => setSymbolDrawer(false));
-placementToggleButton?.addEventListener("click", () => setPlacementDrawer(true));
-closePlacementButton?.addEventListener("click", () => setPlacementDrawer(false));
 detailsToggleButton?.addEventListener("click", () => setDetailsDrawer(true));
 closeDetailsButton?.addEventListener("click", () => setDetailsDrawer(false));
 supportToggleButton?.addEventListener("click", () => setSupportDrawer(true));
@@ -7809,7 +7763,7 @@ document.addEventListener("keydown", (event) => {
     return;
   }
 
-  if (event.key === "Escape" && (document.body.classList.contains("symbols-open") || document.body.classList.contains("placement-open") || document.body.classList.contains("details-open") || document.body.classList.contains("support-open"))) {
+  if (event.key === "Escape" && (document.body.classList.contains("symbols-open") || document.body.classList.contains("details-open") || document.body.classList.contains("support-open"))) {
     event.preventDefault();
     setOpenDrawer(null);
     setStatus(t("status.drawerClosed"));
@@ -7855,7 +7809,6 @@ window.visualViewport?.addEventListener("resize", resizeCanvas);
 window.screen.orientation?.addEventListener("change", resizeCanvas);
 window.addEventListener("wha:localechange", () => {
   renderInkList();
-  renderPlacementList();
   renderSupportList();
   updateUsedList();
   updateSpellState();
@@ -7868,7 +7821,6 @@ window.addEventListener("wha:localechange", () => {
 });
 
 renderInkList();
-renderPlacementList();
 renderSupportList();
 updateToolButtons();
 updateSelectionControls();
@@ -7879,7 +7831,6 @@ if (measureInput) {
 }
 close3dView();
 setSymbolDrawer(false);
-setPlacementDrawer(false);
 setSupportDrawer(false);
 resetCanvasPanToOrigin(false);
 applyCanvasScale();
