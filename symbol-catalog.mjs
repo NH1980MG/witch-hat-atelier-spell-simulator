@@ -12,7 +12,7 @@ const ellipse = (cx, cy, rx, ry) =>
 export const SYMBOL_PATHS = Object.freeze({
   Feu: paths(
     "M24 6 L10 35 L38 35 Z",
-    "M14 23 L6 19 M34 23 L42 19 M24 35 L24 44",
+    "M15 22 L7 16 M33 22 L41 16 M24 35 L24 44",
   ),
   Eau: paths(
     "M10 34 C6 29 10 20 14 12 C18 21 20 29 16 34 C14 37 11 37 10 34 Z",
@@ -30,8 +30,9 @@ export const SYMBOL_PATHS = Object.freeze({
     "M13 17 L8 12 M12 24 H5 M13 31 L8 36 M35 17 L40 12 M36 24 H43 M35 31 L40 36",
   ),
   Lumiere: paths(
-    "M14 14 H34 V34 H14 Z",
-    "M24 8 V40 M8 24 H40 M24 12 L36 24 L24 36 L12 24 Z",
+    "M13 13 H35 V35 H13 Z",
+    "M24 7 V13 M24 35 V43 M7 24 H13 M35 24 H43",
+    "M24 11 L37 24 L24 37 L11 24 Z",
   ),
   Cristal: paths(
     "M8 8 L40 40",
@@ -50,13 +51,12 @@ export const SYMBOL_PATHS = Object.freeze({
     circle(41, 36, 1.5),
   ),
   "Vent sous pied": paths(
-    "M24 7 C13 7 6 15 6 25 C6 36 14 42 24 42",
-    "M24 12 C16 12 11 18 11 25 C11 33 17 37 24 37",
-    "M24 7 C35 7 42 15 42 25 C42 36 34 42 24 42",
-    "M24 12 C32 12 37 18 37 25 C37 33 31 37 24 37",
-    `${circle(24, 12, 7)} M24 8 C28 8 29 13 26 15 C23 17 20 15 20 12 C20 10 22 9 24 10`,
-    `${circle(24, 36, 7)} M24 32 C20 32 19 37 22 39 C25 41 28 39 28 36 C28 34 26 33 24 34`,
-    "M24 18 C18 21 18 27 24 30 C30 33 30 39 24 42",
+    circle(24, 24, 17),
+    circle(24, 11, 7.5),
+    "M24 7 C28 7 29 11 27 14 C25 17 20 16 19 12 C18 9 21 6 24 7",
+    circle(24, 37, 7.5),
+    "M24 41 C20 41 19 37 21 34 C23 31 28 32 29 36 C30 39 27 42 24 41",
+    "M19 16 C19 23 30 23 30 29 C30 33 28 35 27 35",
   ),
   Repetition: paths(
     "M6 27 C8 16 18 9 30 11 C37 12 41 18 42 24",
@@ -167,8 +167,8 @@ export const SYMBOL_PATHS = Object.freeze({
     "M36 32 C40 34 43 37 41 41 C39 44 35 42 36 39",
   ),
   "Flammes sans chaleur": paths(
-    "M24 9 L13 34 H35 Z M17 25 L8 18 M31 25 L40 18 M24 34 V43",
-    "M6 16 H10 V20 H6 Z M6 16 L10 20 M10 16 L6 20 M38 16 H42 V20 H38 Z M38 16 L42 20 M42 16 L38 20 M22 41 H26 V45 H22 Z M22 41 L26 45 M26 41 L22 45",
+    "M24 10 L14 34 H34 Z M18 24 L9 18 M30 24 L39 18 M24 34 V42",
+    "M6 12 L12 16 L8 22 L2 18 Z M6 12 L8 22 M12 16 L2 18 M42 12 L36 16 L40 22 L46 18 Z M42 12 L40 22 M36 16 L46 18 M21 40 H27 V46 H21 Z M21 40 L27 46 M27 40 L21 46",
   ),
 
   // Directional and semi-directional signs are drawn facing upward. The app
