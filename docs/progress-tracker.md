@@ -205,6 +205,9 @@ Exit criteria:
 
 ## Decisions
 
+- 2026-07-17: Correct Aeriforme, Repetition, Fumee, Sangsue-valance,
+  Frillram, Cerf-torche, Chat-hibou, Cheval, Aeriforme defini and Purification
+  from the archived visual references, with one shared vector per glyph.
 - 2026-06-29: Keep app runtime static for now.
 - 2026-06-29: Treat anime and manga visuals as references, not copied assets.
 - 2026-06-29: Use water as the first effect-system vertical slice.

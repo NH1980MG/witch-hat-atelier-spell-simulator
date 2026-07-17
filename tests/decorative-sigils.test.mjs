@@ -22,8 +22,8 @@ test("the shared catalogue exposes all 26 editable sigils", () => {
 });
 
 test("Aeriforms and Whorling Wind keep their distinct canonical drawings", () => {
-  assert.match(SYMBOL_PATHS.Aeriforme.join(" "), /M24 7 C18 7/);
-  assert.match(SYMBOL_PATHS.Aeriforme.join(" "), /M4 24 H14/);
+  assert.match(SYMBOL_PATHS.Aeriforme.join(" "), /M25 6 C19 6/);
+  assert.match(SYMBOL_PATHS.Aeriforme.join(" "), /M4 24 H15/);
   assert.equal(SYMBOL_PATHS["Vent tourbillonnant"].length, 7);
   assert.match(SYMBOL_PATHS["Vent tourbillonnant"][0], /M24 17 L15 31 L33 31 Z/);
 });
@@ -31,9 +31,9 @@ test("Aeriforms and Whorling Wind keep their distinct canonical drawings", () =>
 test("the ten audited sigils keep the topology visible in the references", () => {
   const expectedFragments = {
     Terre: ["M10 8 H38", "M11 41 H37"],
-    Repetition: ["M6 27 C8 16", "M13 25 C18 17"],
-    "Sangsue-valance": ["M5 25 L13 26", "M15 36 L14 42"],
-    Frillram: ["M5 10 H17", "M42 10 L40 42"],
+    Repetition: ["M5 28 C9 15", "M13 24 C18 17"],
+    "Sangsue-valance": ["M4 25 L14 26", "M18 34 L11 37"],
+    Frillram: ["M5 9 H18", "M43 8 L41 42"],
     Epee: ["M22 5 V43", "M14 5 V18"],
     "Chevre-lion": ["M7 11 L11 7", "M14 42 C20 47"],
     "Tete de chat-hibou": ["M17 9 L24 27", "M12 24 L6 22"],
