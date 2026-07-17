@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img">
-<title>Original simulator schematic for Frozen Path</title>
-<path fill="#fffaf0" stroke="none" d="M0 0H240V240H0Z"/>
-<g fill="none" stroke="#7d1f1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">
-<circle cx="120" cy="120" r="104"/><circle cx="120" cy="120" r="68"/><circle cx="120" cy="120" r="34"/>
-<line x1="142.6" y1="139.8" x2="165.1" y2="159.6"/><line x1="91.6" y1="129.6" x2="63.2" y2="139.3"/><line x1="125.9" y1="90.6" x2="131.7" y2="61.2"/><polyline points="126.4,188.2 138.4,206.1 142.1,184.8"/><polyline points="70.7,167.5 64.2,188.0 83.1,177.7"/><polyline points="52.1,111.1 32.0,118.8 51.9,127.1"/><polyline points="84.7,61.4 66.1,50.5 72.0,71.2"/><polyline points="143.8,55.8 140.7,34.5 128.3,52.0"/><polyline points="185.0,98.6 199.8,82.9 178.3,84.1"/><polyline points="177.3,157.5 198.8,159.3 184.4,143.2"/><path d="M92 120 Q120 82 148 120 Q120 158 92 120 Z M106 120 Q120 104 134 120 Q120 136 106 120 Z"/>
-</g></svg>

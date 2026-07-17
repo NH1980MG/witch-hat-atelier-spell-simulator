@@ -73,6 +73,6 @@ test("le navigateur charge la nouvelle version du catalogue partage", async () =
   const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 
-  assert.match(app, /symbol-catalog\.mjs\?v=20260717-reference-glyphs-v2/);
-  assert.match(html, /app\.js\?v=20260717-reference-glyphs-v2/);
+  assert.match(app, /symbol-catalog\.mjs\?v=20260717-reference-glyphs-touch-v3/);
+  assert.match(html, /app\.js\?v=20260717-reference-glyphs-touch-v3/);
 });

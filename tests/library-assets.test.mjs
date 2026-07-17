@@ -14,14 +14,16 @@ test("the gallery keeps the 33 classified spells", () => {
   );
 });
 
-test("every gallery entry has a local nonblank SVG", async () => {
+test("every gallery entry has a local square reference crop", async () => {
   for (const circle of LIBRARY_CIRCLES) {
-    const url = new URL(`../assets/library-schematics/${circle.id}.svg`, import.meta.url);
-    assert.ok((await stat(url)).size > 250, circle.id);
-    const svg = await readFile(url, "utf8");
-    assert.match(svg, /^<svg[^>]+viewBox="0 0 240 240"/);
-    assert.match(svg, /<title>/);
-    assert.doesNotMatch(svg, /<image\b|(?:href|src)=["'](?:https?:|data:)/);
+    const url = new URL(`../assets/library-schematics/${circle.id}.png`, import.meta.url);
+    assert.ok((await stat(url)).size > 1_000, circle.id);
+    const png = await readFile(url);
+    assert.deepEqual([...png.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10], circle.id);
+    const width = png.readUInt32BE(16);
+    const height = png.readUInt32BE(20);
+    assert.equal(width, height, circle.id);
+    assert.ok(width >= 180, circle.id);
   }
 });
 
@@ -29,6 +31,9 @@ test("every entry has bilingual accessible text and fidelity", () => {
   for (const circle of LIBRARY_CIRCLES) {
     assert.ok(circle.alt.en && circle.alt.fr, circle.id);
     assert.ok(["documented", "inferred", "experimental"].includes(circle.fidelity), circle.id);
+    assert.equal(circle.assetKind, "reference-crop", circle.id);
+    assert.match(circle.alt.en, /Reference circle/);
+    assert.match(circle.alt.fr, /Cercle de reference/);
   }
 });
 
@@ -40,9 +45,10 @@ test("the public library renders all schematics as local accessible images", asy
   for (const [, card] of cards) {
     const image = card.match(/<img\s+[^>]*src="([^"]+)"[^>]*>/);
     assert.ok(image, "every circle card needs an image");
-    assert.match(image[1], /^assets\/library-schematics\/[a-z0-9-]+\.svg$/);
+    assert.match(image[1], /^assets\/library-schematics\/[a-z0-9-]+\.png$/);
     assert.doesNotMatch(image[1], /assets\/library-circles|https?:|data:/);
     assert.match(image[0], /alt="[^"]+"/);
     assert.match(image[0], /data-i18n-alt="library\.circleAlt"/);
+    assert.match(card, /data-i18n="library\.fidelity\.reference"/);
   }
 });

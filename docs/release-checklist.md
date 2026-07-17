@@ -53,12 +53,9 @@ Use this before pushing to GitHub or publishing a static site.
 ## Public Asset Check
 
 - Do not publish copied manga/anime panels as public-safe assets.
-- Remove private study material and reference-derived screenshots from any
-  public branch.
-- Replace any temporary reference-derived imagery with original or clearly
-  permitted assets before release.
-- Require all 33 library thumbnails to come from `assets/library-schematics/`
-  and contain no embedded or remote image.
+- Keep full study captures and surrounding wiki content out of public branches.
+- Require all 33 library thumbnails to be tightly cropped, locally stored PNGs
+  from `assets/library-schematics/`, with no title or page text in the crop.
 
 ## Deployment Notes
 

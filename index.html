@@ -31,7 +31,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260716-serif-labels-v1">
+    <link rel="stylesheet" href="styles.css?v=20260717-reference-glyphs-touch-v3">
     <script type="importmap">
       {
         "imports": {
@@ -41,7 +41,7 @@
       }
     </script>
     <script type="module" src="site-i18n.mjs?v=20260715-bilingual-editor-v3"></script>
-    <script type="module" src="app.js?v=20260717-reference-glyphs-v2"></script>
+    <script type="module" src="app.js?v=20260717-reference-glyphs-touch-v3"></script>
   </head>
   <body class="simulator-page">
     <main class="app-shell">
@@ -126,11 +126,6 @@
           <span data-i18n="drawer.symbols">Sigils and signs</span>
         </button>
 
-        <button class="placement-island" id="placementToggleButton" type="button" aria-controls="placementDrawer" aria-expanded="false">
-          <span aria-hidden="true">&#10022;</span>
-          <span data-i18n="drawer.placement">Symbols to place</span>
-        </button>
-
         <button class="details-island" id="detailsToggleButton" type="button" aria-controls="detailsDrawer" aria-expanded="false">
           <span aria-hidden="true">&#9678;</span>
           <span data-i18n="drawer.details">Details</span>
@@ -145,24 +140,12 @@
           <div class="panel-heading">
             <div>
               <h2 data-i18n="drawer.symbols">Sigils and signs</h2>
-              <p data-i18n="drawer.symbolsDescription">Choose a central sigil or modifier sign to inscribe in the circle.</p>
+              <p data-i18n="drawer.symbolsDescription">Choose a symbol, then drag it like a Scratch block onto the parchment.</p>
             </div>
             <button class="drawer-close" id="closeSymbolsButton" type="button" data-i18n-aria-label="drawer.closeSymbols" aria-label="Close sigils and signs">&times;</button>
           </div>
 
           <div class="ink-list" id="inkList"></div>
-        </aside>
-
-        <aside class="sidebar placement-drawer" id="placementDrawer" data-i18n-aria-label="drawer.placementPalette" aria-label="Palette of symbols to place" aria-hidden="true">
-          <div class="panel-heading">
-            <div>
-              <h2 data-i18n="drawer.placement">Symbols to place</h2>
-              <p data-i18n="drawer.placementDescription">Pick up a symbol like a Scratch block and drag it onto the parchment.</p>
-            </div>
-            <button class="drawer-close" id="closePlacementButton" type="button" data-i18n-aria-label="drawer.closePlacement" aria-label="Close symbols to place">&times;</button>
-          </div>
-
-          <div class="placement-list" id="placementList"></div>
         </aside>
 
         <aside class="sidebar support-drawer" id="supportDrawer" data-i18n-aria-label="drawer.supportChoice" aria-label="Magic support selection" aria-hidden="true">

@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img">
-<title>Original simulator schematic for Windowway Spell</title>
-<path fill="#fffaf0" stroke="none" d="M0 0H240V240H0Z"/>
-<g fill="none" stroke="#7d1f1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">
-<circle cx="120" cy="120" r="104"/><circle cx="120" cy="120" r="78"/><circle cx="120" cy="120" r="34"/>
-<line x1="118.5" y1="150.0" x2="116.6" y2="189.9"/><line x1="91.0" y1="127.9" x2="52.4" y2="138.3"/><line x1="103.6" y1="94.9" x2="81.7" y2="61.4"/><line x1="138.8" y1="96.6" x2="163.9" y2="65.5"/><line x1="148.0" y1="130.7" x2="185.4" y2="144.9"/><polyline points="51.4,115.6 32.3,127.2 53.0,135.5"/><polyline points="80.7,63.6 59.7,55.9 66.1,77.3"/><polyline points="139.6,54.1 132.5,32.9 119.8,51.3"/><polyline points="183.7,94.2 195.9,75.5 173.6,77.0"/><polyline points="179.9,153.7 202.1,151.6 187.1,135.1"/><polyline points="130.9,187.9 146.5,203.9 150.0,181.8"/><polyline points="73.8,170.9 70.9,193.0 90.4,182.0"/><path d="M101 140 C90 118 105 96 124 106 C144 116 136 143 116 139 C101 136 101 119 114 116 C126 113 132 125 125 132"/>
-</g></svg>
