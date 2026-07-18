@@ -16,18 +16,12 @@
     </style>
   </head>
   <body>
-    <h1>Current editable sigils</h1>
+    <h1>Complete editable sigils and signs</h1>
     <main id="catalog"></main>
     <script type="module">
       import { SYMBOL_PATHS } from "../../symbol-catalog.mjs";
 
-      const names = [
-        "Feu", "Eau", "Terre", "Vent", "Lumiere", "Cristal", "Aeriforme",
-        "Vent sous pied", "Repetition", "Fumee", "Sangsue-valance", "Frillram",
-        "Epee", "Loup-ecaille", "Cerf-torche", "Chevre-lion", "Chat-hibou",
-        "Tete de chat-hibou", "Dragon", "Fleur", "Cheval", "Oiseau A",
-        "Oiseau B", "Arret temporel", "Vent tourbillonnant", "Flammes sans chaleur",
-      ];
+      const names = Object.keys(SYMBOL_PATHS);
 
       const catalog = document.querySelector("#catalog");
       for (const name of names) {

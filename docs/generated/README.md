@@ -1,6 +1,6 @@
 # Generated Sigil Reference Archive
 
-This directory keeps nine generated reference sheets used to compare the
+This directory keeps nineteen generated reference sheets used to compare the
 editable vector catalog against the supplied research captures. These PNGs are
 documentation only; the simulator renders the code-native paths in
 `symbol-catalog.mjs`.
@@ -24,10 +24,31 @@ documentation only; the simulator renders the code-native paths in
 8. `audited-sigils-dragon-bird-v2.png`: second-pass Dragon and Bird A audit.
 9. `support-cards-dalle-v1.png`: visual refinement reference for the no-link
    and flying-shoe support cards.
+10. `signs-directional-i-dalle-v1.png`: Column, Dispersion, Levitation, and
+    Pull.
+11. `signs-directional-ii-dalle-v1.png`: Region, Convergence, Collection, and
+    Billow.
+12. `signs-force-motion-dalle-v1.png`: Crush, Puppet, Float, and Stretch.
+13. `signs-state-target-dalle-v1.png`: Physical Coil, Cool, Strengthen, and
+    Sights Set.
+14. `signs-relation-air-dalle-v1.png`: Entwine, Wind Sign, Aeriforms Defined,
+    and Gather.
+15. `signs-structure-dalle-v1.png`: Glaives, Solidify, Bind, and Envelop.
+16. `signs-perception-scope-dalle-v1.png`: Conceal, Reflection, Diamond, and
+    Window.
+17. `signs-scale-projectile-dalle-v1.png`: Enlarge, Crosshair, Radial, and
+    Bolt.
+18. `signs-weather-purify-dalle-v1.png`: Rain, Orb, Purify, and Stillness.
+19. `signs-link-project-flower-dalle-v1.png`: Link, Project, and Flower.
 
 The second-pass sheets were generated with the built-in DALL-E image workflow.
 They are comparison aids only: the local captures remain the geometric source
 of truth when a generated line simplifies or invents part of a symbol.
+
+Every one of the 64 editable vectors is linked to its audit sheet through
+`SYMBOL_GENERATED_BOARD` in `symbol-catalog.mjs`. The picker and drawing canvas
+continue to use `SYMBOL_PATHS`, so a reviewed symbol is also the symbol users
+can place and edit.
 
 ## Supplied Capture Inventory
 
