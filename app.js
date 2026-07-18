@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { SYMBOL_AUDIT, SYMBOL_PATHS } from "./symbol-catalog.mjs?v=20260717-sigil-audit-v5";
+import { SYMBOL_AUDIT, SYMBOL_PATHS } from "./symbol-catalog.mjs?v=20260718-board-derived-smoke-v1";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
 import { getLocale, t } from "./site-i18n.mjs?v=20260718-onion-guides-v2";
@@ -12,6 +12,7 @@ import {
   loadUserGuides,
   saveUserGuides,
 } from "./guide-storage.mjs";
+import { classifySymbolDragGesture } from "./symbol-drag-gesture.mjs?v=20260716-touch-scroll-v1";
 import {
   canDropGlyph,
   clampGlyphCenter,
@@ -434,6 +435,7 @@ const state = {
   selectedGlyphIndex: null,
   selectionDrag: null,
   symbolDrag: null,
+  symbolDragIntent: null,
   longPress: null,
   deferredTouchTool: null,
   exporting: false,
@@ -4463,8 +4465,11 @@ function setOpenDrawer(drawer) {
   const detailsOpen = drawer === "details";
   const supportOpen = drawer === "support";
   const guidesOpen = drawer === "guides";
-  if (!symbolsOpen && state.symbolDrag) {
-    cancelSymbolDrag();
+  if (!symbolsOpen) {
+    cancelSymbolDragIntent();
+    if (state.symbolDrag) {
+      cancelSymbolDrag();
+    }
   }
   document.body.classList.toggle("symbols-open", symbolsOpen);
   document.body.classList.toggle("details-open", detailsOpen);
@@ -7224,14 +7229,70 @@ function clientPointInsideRect(clientX, clientY, rect) {
 }
 
 function startSymbolDrag(event, element) {
-  if (event.button !== 0 || state.symbolDrag) {
+  if (event.button !== 0 || state.symbolDrag || state.symbolDragIntent) {
     return;
   }
+
+  const source = event.currentTarget;
+  if (classifySymbolDragGesture(event.pointerType, 0, 0) === "pending") {
+    state.symbolDragIntent = {
+      pointerId: event.pointerId,
+      pointerType: event.pointerType,
+      startX: event.clientX,
+      startY: event.clientY,
+      element,
+      source,
+    };
+    window.addEventListener("pointermove", resolveSymbolDragIntent, { passive: false });
+    window.addEventListener("pointerup", cancelSymbolDragIntent);
+    window.addEventListener("pointercancel", cancelSymbolDragIntent);
+    return;
+  }
+
+  beginSymbolDrag(event, element, source);
+}
+
+function resolveSymbolDragIntent(event) {
+  const intent = state.symbolDragIntent;
+  if (!intent || event.pointerId !== intent.pointerId) {
+    return;
+  }
+
+  const gesture = classifySymbolDragGesture(
+    intent.pointerType,
+    event.clientX - intent.startX,
+    event.clientY - intent.startY,
+  );
+  if (gesture === "pending") {
+    return;
+  }
+  if (gesture === "scroll") {
+    cancelSymbolDragIntent(event);
+    return;
+  }
+
+  event.preventDefault();
+  const { element, source } = intent;
+  cancelSymbolDragIntent(event);
+  beginSymbolDrag(event, element, source);
+}
+
+function cancelSymbolDragIntent(event) {
+  const intent = state.symbolDragIntent;
+  if (!intent || (event?.pointerId !== undefined && event.pointerId !== intent.pointerId)) {
+    return;
+  }
+  window.removeEventListener("pointermove", resolveSymbolDragIntent);
+  window.removeEventListener("pointerup", cancelSymbolDragIntent);
+  window.removeEventListener("pointercancel", cancelSymbolDragIntent);
+  state.symbolDragIntent = null;
+}
+
+function beginSymbolDrag(event, element, source) {
   event.preventDefault();
   cancelLongPress();
   state.element = element;
   updateInkSelection();
-  const source = event.currentTarget;
   source.setPointerCapture?.(event.pointerId);
   state.symbolDrag = {
     pointerId: event.pointerId,

@@ -18,7 +18,7 @@ test("la page expose un seul tiroir de symboles et les outils de taille", async 
   }
   assert.doesNotMatch(html, /id=["']placement(?:ToggleButton|Drawer|List)["']/);
   assert.doesNotMatch(html, /id=["']closePlacementButton["']/);
-  assert.match(html, /styles\.css\?v=20260718-onion-guides-v1/);
+  assert.match(html, /styles\.css\?v=20260718-guides-published-v1/);
   assert.match(html, /app\.js\?v=\d{8}-[^"']+/);
 });
 
@@ -81,4 +81,16 @@ test("la palette cable le transport Scratch jusqu'au canevas", async () => {
   assert.match(app, /state\.exporting = true/);
   assert.match(app, /state\.exporting = false/);
   assert.match(readme, /glisser.*Scratch/i);
+});
+
+test("le defilement tactile vertical ne demarre pas le transport d'un symbole", async () => {
+  const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
+  const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
+  const inkButtonRule = css.match(/\.ink-button\s*\{([\s\S]*?)\n\}/)?.[1] || "";
+
+  assert.match(app, /classifySymbolDragGesture/);
+  assert.match(app, /symbolDragIntent/);
+  assert.match(app, /function resolveSymbolDragIntent\(/);
+  assert.match(inkButtonRule, /touch-action:\s*pan-y/);
+  assert.doesNotMatch(inkButtonRule, /touch-action:\s*none/);
 });

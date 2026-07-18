@@ -29,6 +29,16 @@ test("the archive keeps the three DALL-E audit sheets for the corrected drawings
   }
 });
 
+test("the archive keeps ten DALL-E boards for every auxiliary sign", async () => {
+  const files = await readdir(generatedDirectory);
+  const signSheets = files.filter((name) => /^signs-.*-dalle-v1\.png$/.test(name));
+
+  assert.equal(signSheets.length, 10);
+  for (const file of signSheets) {
+    assert.match(manifest, new RegExp(`\\b${file.replaceAll(".", "\\.")}\\b`));
+  }
+});
+
 test("the archive inventories twelve supplied captures without publishing them", () => {
   const hashes = manifest.match(/`[a-f0-9]{64}`/g) || [];
 
