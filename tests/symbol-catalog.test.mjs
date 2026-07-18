@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-import { SYMBOL_PATHS } from "../symbol-catalog.mjs";
+import { SYMBOL_GENERATED_BOARD, SYMBOL_PATHS } from "../symbol-catalog.mjs";
 
 const correctedReferencePaths = Object.freeze({
   Aeriforme: [
@@ -47,7 +47,7 @@ const correctedReferencePaths = Object.freeze({
   ],
   "Aeriforme defini": ["M14 36 L19 16 M24 39 V9 M34 36 L29 16"],
   Purification: [
-    "M16 7 C24 9 29 17 29 25 C29 34 23 41 17 40 C12 39 10 34 12 30 C14 26 19 26 21 29 C24 33 21 37 18 37 C15 37 14 34 16 32",
+    "M16 8 C26 12 31 22 28 32 C26 40 16 43 11 37 C7 32 10 26 16 26 C21 26 23 30 22 34 C21 37 17 38 14 36",
   ],
 });
 
@@ -73,6 +73,49 @@ test("le navigateur charge la nouvelle version du catalogue partage", async () =
   const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 
-  assert.match(app, /symbol-catalog\.mjs\?v=20260717-reference-glyphs-touch-v3/);
-  assert.match(html, /app\.js\?v=20260717-reference-glyphs-touch-v3/);
+  assert.match(app, /symbol-catalog\.mjs\?v=20260717-complete-glyph-boards-v1/);
+  assert.match(html, /app\.js\?v=20260717-complete-glyph-boards-v1/);
+});
+
+test("chaque glyphe partage possede une planche d'audit generee", () => {
+  assert.equal(Object.keys(SYMBOL_PATHS).length, 64);
+  assert.deepEqual(Object.keys(SYMBOL_GENERATED_BOARD), Object.keys(SYMBOL_PATHS));
+
+  for (const [name, board] of Object.entries(SYMBOL_GENERATED_BOARD)) {
+    assert.match(board, /\.png$/, `${name} doit pointer vers une planche PNG`);
+  }
+});
+
+test("les 64 glyphes restent visuellement distincts", () => {
+  const drawings = Object.entries(SYMBOL_PATHS).map(([name, paths]) => [name, paths.join(" ")]);
+  const unique = new Map();
+
+  for (const [name, drawing] of drawings) {
+    assert.ok(!unique.has(drawing), `${name} ne doit pas reutiliser ${unique.get(drawing)}`);
+    unique.set(drawing, name);
+  }
+});
+
+test("les signes corriges gardent la topologie des captures", () => {
+  const expectedFragments = {
+    Dispersion: ["M24 7 V30", "Q24 43 36 34"],
+    Collection: ["M10 10 H38", "M24 24 L38 40"],
+    "Signe de vent": ["M30 8 C20 6", "M20 14 C18 24"],
+    Rassemblement: ["M24 42 V11", "M24 28 L14 42"],
+    Dissimulation: ["M24 8 V40", "circle"],
+    Fenetre: ["M17 8 H31", "M8 17 H40"],
+    Purification: ["M16 8 C26 12", "C7 32 10 26"],
+    Immobilite: ["M24 7 V41", "M14 21 H34"],
+  };
+
+  for (const [name, fragments] of Object.entries(expectedFragments)) {
+    const drawing = SYMBOL_PATHS[name].join(" ");
+    for (const fragment of fragments) {
+      if (fragment === "circle") {
+        assert.equal(SYMBOL_PATHS[name].length, 10);
+      } else {
+        assert.ok(drawing.includes(fragment), `${name} doit inclure ${fragment}`);
+      }
+    }
+  }
 });
