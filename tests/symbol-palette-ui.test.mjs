@@ -18,7 +18,7 @@ test("la page expose un seul tiroir de symboles et les outils de taille", async 
   }
   assert.doesNotMatch(html, /id=["']placement(?:ToggleButton|Drawer|List)["']/);
   assert.doesNotMatch(html, /id=["']closePlacementButton["']/);
-  assert.match(html, /styles\.css\?v=20260718-guides-published-v1/);
+  assert.match(html, /styles\.css\?v=20260718-guides-published-v2/);
   assert.match(html, /app\.js\?v=\d{8}-[^"']+/);
 });
 
