@@ -2,7 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-import { SYMBOL_GENERATED_BOARD, SYMBOL_PATHS } from "../symbol-catalog.mjs";
+import {
+  SYMBOL_BOARD_TRACE,
+  SYMBOL_GENERATED_BOARD,
+  SYMBOL_PATHS,
+} from "../symbol-catalog.mjs";
 
 const correctedReferencePaths = Object.freeze({
   Aeriforme: [
@@ -17,9 +21,8 @@ const correctedReferencePaths = Object.freeze({
     "M20 24 C21 19 29 19 30 24 C31 28 26 30 23 28 C20 27 20 24 22 22 C24 20 27 21 27 24",
   ],
   Fumee: [
-    "M7 29 C2 25 5 17 12 17 C13 10 22 8 27 14 C33 10 42 14 41 22 C47 25 44 34 37 35 C31 36 27 34 24 32",
-    "M24 32 C20 27 13 28 12 34 C11 40 18 44 23 41 C28 38 29 32 26 28 C23 24 17 23 13 25",
-    "M23 41 C28 39 30 34 27 31 C25 28 21 29 20 32 C19 35 22 37 24 35",
+    "M17 31 C10 31 6 26 6 20 C6 14 11 10 17 11 C20 5 30 5 34 11 C40 10 45 15 44 21 C44 27 39 31 34 31",
+    "M16 21 C24 17 34 21 36 29 C38 36 33 42 26 43 C20 44 15 40 15 35 C15 31 18 28 22 29 C26 30 27 34 25 36 C23 38 20 36 21 34",
   ],
   "Sangsue-valance": [
     "M4 25 L14 26 L18 34 L33 29 L37 18 L26 11 L15 17 Z",
@@ -51,10 +54,19 @@ const correctedReferencePaths = Object.freeze({
   ],
 });
 
-test("les dix glyphes cibles correspondent aux captures de reference", () => {
+test("les glyphes cibles correspondent aux captures et planches de reference", () => {
   for (const [name, expected] of Object.entries(correctedReferencePaths)) {
     assert.deepEqual(SYMBOL_PATHS[name], expected, `${name} doit garder le trace valide`);
   }
+});
+
+test("Smoke provient explicitement de la case superieure droite de sa planche", () => {
+  assert.deepEqual(SYMBOL_BOARD_TRACE.Fumee, {
+    board: "utility-state-symbol-reference.png",
+    cell: "top-right",
+    method: "manual-vector-trace",
+  });
+  assert.equal(SYMBOL_GENERATED_BOARD.Fumee, SYMBOL_BOARD_TRACE.Fumee.board);
 });
 
 test("les symboles corriges utilisent les nouveaux traces partages", () => {
@@ -73,8 +85,8 @@ test("le navigateur charge la nouvelle version du catalogue partage", async () =
   const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 
-  assert.match(app, /symbol-catalog\.mjs\?v=20260717-complete-glyph-boards-v1/);
-  assert.match(html, /app\.js\?v=20260717-complete-glyph-boards-v1/);
+  assert.match(app, /symbol-catalog\.mjs\?v=20260718-board-derived-smoke-v1/);
+  assert.match(html, /app\.js\?v=20260718-board-derived-smoke-v1/);
 });
 
 test("chaque glyphe partage possede une planche d'audit generee", () => {

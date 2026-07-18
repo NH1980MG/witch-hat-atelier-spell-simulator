@@ -56,9 +56,8 @@ export const SYMBOL_PATHS = Object.freeze({
     "M20 24 C21 19 29 19 30 24 C31 28 26 30 23 28 C20 27 20 24 22 22 C24 20 27 21 27 24",
   ),
   Fumee: paths(
-    "M7 29 C2 25 5 17 12 17 C13 10 22 8 27 14 C33 10 42 14 41 22 C47 25 44 34 37 35 C31 36 27 34 24 32",
-    "M24 32 C20 27 13 28 12 34 C11 40 18 44 23 41 C28 38 29 32 26 28 C23 24 17 23 13 25",
-    "M23 41 C28 39 30 34 27 31 C25 28 21 29 20 32 C19 35 22 37 24 35",
+    "M17 31 C10 31 6 26 6 20 C6 14 11 10 17 11 C20 5 30 5 34 11 C40 10 45 15 44 21 C44 27 39 31 34 31",
+    "M16 21 C24 17 34 21 36 29 C38 36 33 42 26 43 C20 44 15 40 15 35 C15 31 18 28 22 29 C26 30 27 34 25 36 C23 38 20 36 21 34",
   ),
   "Sangsue-valance": paths(
     "M4 25 L14 26 L18 34 L33 29 L37 18 L26 11 L15 17 Z",
@@ -331,6 +330,17 @@ export const SYMBOL_GENERATED_BOARD = Object.freeze({
   Purification: "signs-weather-purify-dalle-v1.png",
   Immobilite: "signs-weather-purify-dalle-v1.png",
   Projection: "signs-link-project-flower-dalle-v1.png",
+});
+
+// Exact runtime traces derived from a specific generated-board cell. This is
+// intentionally separate from the broad audit-board mapping above: a board
+// filename alone does not prove that the glyph rendered by the app uses it.
+export const SYMBOL_BOARD_TRACE = Object.freeze({
+  Fumee: Object.freeze({
+    board: "utility-state-symbol-reference.png",
+    cell: "top-right",
+    method: "manual-vector-trace",
+  }),
 });
 
 // Timestamp suffix of the local capture used to review each drawing. Keeping
