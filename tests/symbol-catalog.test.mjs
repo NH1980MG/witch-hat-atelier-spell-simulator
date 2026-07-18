@@ -21,8 +21,8 @@ const correctedReferencePaths = Object.freeze({
     "M20 24 C21 19 29 19 30 24 C31 28 26 30 23 28 C20 27 20 24 22 22 C24 20 27 21 27 24",
   ],
   Fumee: [
-    "M17 31 C10 31 6 26 6 20 C6 14 11 10 17 11 C20 5 30 5 34 11 C40 10 45 15 44 21 C44 27 39 31 34 31",
-    "M16 21 C24 17 34 21 36 29 C38 36 33 42 26 43 C20 44 15 40 15 35 C15 31 18 28 22 29 C26 30 27 34 25 36 C23 38 20 36 21 34",
+    "M17 31 C10 31 6 26 6 20 C6 14 11 10 17 11 C17 6 22 4 27 5 C33 6 36 11 34 17 C39 15 44 17 46 22 C48 28 45 34 40 36 C37 37 34 36 32 34",
+    "M15 22 C22 17 31 20 35 25 C39 31 37 38 32 42 C26 46 18 43 15 38 C12 33 15 28 20 28 C25 28 28 32 27 36 C26 39 21 40 19 37 C18 35 19 33 21 32",
   ],
   "Sangsue-valance": [
     "M4 25 L14 26 L18 34 L33 29 L37 18 L26 11 L15 17 Z",
@@ -69,6 +69,11 @@ test("Smoke provient explicitement de la case superieure droite de sa planche", 
   assert.equal(SYMBOL_GENERATED_BOARD.Fumee, SYMBOL_BOARD_TRACE.Fumee.board);
 });
 
+test("Smoke garde un trait fin et lisible dans le catalogue", async () => {
+  const styles = await readFile(new URL("../styles.css", import.meta.url), "utf8");
+  assert.match(styles, /\[data-symbol="Fumee"\] \.symbol-mark path\s*\{\s*stroke-width: 2\.25;/);
+});
+
 test("les symboles corriges utilisent les nouveaux traces partages", () => {
   assert.equal(SYMBOL_PATHS["Vent sous pied"].length, 4);
   assert.match(SYMBOL_PATHS["Vent sous pied"][0], /M24 5 C31 5/);
@@ -85,8 +90,9 @@ test("le navigateur charge la nouvelle version du catalogue partage", async () =
   const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 
-  assert.match(app, /symbol-catalog\.mjs\?v=20260718-board-derived-smoke-v1/);
-  assert.match(html, /app\.js\?v=20260718-guides-published-v1/);
+  assert.match(app, /symbol-catalog\.mjs\?v=20260718-refined-smoke-v2/);
+  assert.match(html, /app\.js\?v=20260718-guides-smoke-v2/);
+  assert.match(html, /styles\.css\?v=20260718-guides-smoke-v3/);
 });
 
 test("chaque glyphe partage possede une planche d'audit generee", () => {
