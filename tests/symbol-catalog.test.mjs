@@ -86,7 +86,7 @@ test("le navigateur charge la nouvelle version du catalogue partage", async () =
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 
   assert.match(app, /symbol-catalog\.mjs\?v=20260718-board-derived-smoke-v1/);
-  assert.match(html, /app\.js\?v=20260718-board-derived-smoke-v1/);
+  assert.match(html, /app\.js\?v=20260718-guides-published-v1/);
 });
 
 test("chaque glyphe partage possede une planche d'audit generee", () => {

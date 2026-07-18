@@ -18,7 +18,7 @@ test("la page expose un seul tiroir de symboles et les outils de taille", async 
   }
   assert.doesNotMatch(html, /id=["']placement(?:ToggleButton|Drawer|List)["']/);
   assert.doesNotMatch(html, /id=["']closePlacementButton["']/);
-  assert.match(html, /styles\.css\?v=20260717-reference-glyphs-touch-v3/);
+  assert.match(html, /styles\.css\?v=20260718-guides-published-v1/);
   assert.match(html, /app\.js\?v=\d{8}-[^"']+/);
 });
 
@@ -28,6 +28,7 @@ test("le tiroir unique et le transport sont styles", async () => {
   assert.match(css, /\.simulator-page\.symbols-open/);
   assert.match(css, /\.symbol-drag-ghost/);
   assert.match(css, /\.ink-button/);
+  assert.match(css, /\.symbol-mark path,[\s\S]*stroke-width: 2\.2/);
   assert.match(css, /\.simulator-page\.symbols-open\.is-dragging-symbol \.symbol-drawer/);
   assert.doesNotMatch(css, /\.placement-(?:island|drawer|list|card)/);
 });
