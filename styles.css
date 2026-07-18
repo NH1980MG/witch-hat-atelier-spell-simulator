@@ -968,6 +968,10 @@ input:focus-visible {
   stroke-linejoin: round;
 }
 
+.ink-button[data-symbol="Fumee"] .symbol-mark path {
+  stroke-width: 2.25;
+}
+
 .symbol-copy {
   display: grid;
   gap: 2px;
