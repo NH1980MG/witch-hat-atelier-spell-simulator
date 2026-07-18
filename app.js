@@ -3,7 +3,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { SYMBOL_AUDIT, SYMBOL_PATHS } from "./symbol-catalog.mjs?v=20260717-sigil-audit-v5";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260715-i18n-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260718-onion-guides-v2";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260716-shoe-camera-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -18,8 +18,11 @@ import {
   cloneActions,
   GLYPH_SELECTION_SCALE,
   glyphResizeHandleAtPoint,
+  guideResizeHandleAtPoint,
   resizeGlyphFromCorner,
+  resizeGuideScaleFromCorner,
   resizeGlyphSize,
+  scaledGuideBounds,
   shouldArmLongPress,
   shouldDeferTouchTool,
   topmostGlyphIndexAtPoint,
@@ -442,6 +445,9 @@ const state = {
   guideOpacity: Math.max(10, Math.min(70, Number(localStorage.getItem("whaGuideOpacity") || 28))),
   userGuides: loadUserGuides(localStorage),
   guideTab: "library",
+  guideScale: 1,
+  guideSelected: false,
+  guideResize: null,
 };
 
 const guideImageCache = new Map();
@@ -1006,6 +1012,7 @@ function pointerCenter(points) {
 function beginPanGesture() {
   cancelLongPress();
   cancelSelectionDrag(true);
+  cancelGuideResize();
   state.deferredTouchTool = null;
   state.pointerDown = false;
   state.currentAction = null;
@@ -6129,26 +6136,104 @@ function libraryGuideImage(id) {
   return guideImageCache.get(id);
 }
 
+function activeGuideBaseBounds(width, height) {
+  if (!state.activeGuide) {
+    return null;
+  }
+  if (state.activeGuide.source === "library") {
+    const image = libraryGuideImage(state.activeGuide.id);
+    const maximum = Math.min(width, height) * 0.72;
+    const naturalWidth = image.complete && image.naturalWidth > 0 ? image.naturalWidth : 1;
+    const naturalHeight = image.complete && image.naturalHeight > 0 ? image.naturalHeight : 1;
+    const ratio = Math.min(maximum / naturalWidth, maximum / naturalHeight);
+    const guideWidth = naturalWidth * ratio;
+    const guideHeight = naturalHeight * ratio;
+    return {
+      left: (width - guideWidth) / 2,
+      right: (width + guideWidth) / 2,
+      top: (height - guideHeight) / 2,
+      bottom: (height + guideHeight) / 2,
+      width: guideWidth,
+      height: guideHeight,
+    };
+  }
+  const guide = state.userGuides.find((item) => item.id === state.activeGuide.id);
+  if (!guide?.actions.length) {
+    return null;
+  }
+  const bounds = boundsFromActions(guide.actions);
+  const padding = 12;
+  return {
+    left: bounds.left - padding,
+    right: bounds.right + padding,
+    top: bounds.top - padding,
+    bottom: bounds.bottom + padding,
+    width: bounds.width + padding * 2,
+    height: bounds.height + padding * 2,
+  };
+}
+
+function activeGuideBounds(width, height) {
+  const base = activeGuideBaseBounds(width, height);
+  return base ? scaledGuideBounds(base, state.guideScale) : null;
+}
+
 function drawActiveGuide(width, height) {
   if (state.exporting || !state.guideVisible || !state.activeGuide) {
     return;
   }
   ctx.save();
   ctx.globalAlpha = state.guideOpacity / 100;
+  const baseBounds = activeGuideBaseBounds(width, height);
+  const scaledBounds = baseBounds ? scaledGuideBounds(baseBounds, state.guideScale) : null;
+  if (!baseBounds || !scaledBounds) {
+    ctx.restore();
+    return;
+  }
   if (state.activeGuide.source === "library") {
     const image = libraryGuideImage(state.activeGuide.id);
     if (image.complete && image.naturalWidth > 0) {
-      const maximum = Math.min(width, height) * 0.72;
-      const ratio = Math.min(maximum / image.naturalWidth, maximum / image.naturalHeight);
-      const drawWidth = image.naturalWidth * ratio;
-      const drawHeight = image.naturalHeight * ratio;
-      ctx.drawImage(image, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);
+      ctx.drawImage(image, scaledBounds.left, scaledBounds.top, scaledBounds.width, scaledBounds.height);
     }
   } else {
     const guide = state.userGuides.find((item) => item.id === state.activeGuide.id);
+    const centerX = (baseBounds.left + baseBounds.right) / 2;
+    const centerY = (baseBounds.top + baseBounds.bottom) / 2;
+    ctx.translate(centerX, centerY);
+    ctx.scale(state.guideScale, state.guideScale);
+    ctx.translate(-centerX, -centerY);
     for (const action of guide?.actions || []) {
       drawAction(action);
     }
+  }
+  ctx.restore();
+}
+
+function drawSelectedGuide(width, height) {
+  if (state.exporting || state.tool !== "select" || !state.guideVisible || !state.guideSelected) {
+    return;
+  }
+  const bounds = activeGuideBounds(width, height);
+  if (!bounds) {
+    return;
+  }
+  ctx.save();
+  ctx.strokeStyle = colors.gold;
+  ctx.fillStyle = colors.gold;
+  ctx.lineWidth = visibleLineWidth(2);
+  ctx.setLineDash([visibleLineWidth(7), visibleLineWidth(5)]);
+  ctx.strokeRect(bounds.left, bounds.top, bounds.width, bounds.height);
+  ctx.setLineDash([]);
+  for (const [x, y] of [
+    [bounds.left, bounds.top],
+    [bounds.right, bounds.top],
+    [bounds.right, bounds.bottom],
+    [bounds.left, bounds.bottom],
+  ]) {
+    ctx.beginPath();
+    ctx.arc(x, y, visibleLineWidth(6), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
   }
   ctx.restore();
 }
@@ -6184,6 +6269,7 @@ function render() {
     drawAction(state.preview, true);
   }
 
+  drawSelectedGuide(width, height);
   drawSelectedGlyph();
   drawActiveAura(width, height);
   drawActivation(width, height);
@@ -6505,12 +6591,80 @@ function hitsAction(point, action) {
 function selectGlyphAt(point) {
   const index = topmostGlyphIndexAtPoint(state.actions, point);
   state.selectedGlyphIndex = index >= 0 ? index : null;
+  const { width, height } = canvasSize();
+  const guideBounds = activeGuideBounds(width, height);
+  const guideHit = index < 0 && state.guideVisible && guideBounds &&
+    point.x >= guideBounds.left && point.x <= guideBounds.right &&
+    point.y >= guideBounds.top && point.y <= guideBounds.bottom;
+  state.guideSelected = Boolean(guideHit);
   updateSelectionControls();
   if (index >= 0) {
+    state.guideSelected = false;
     setStatus(t("status.selectionReady", { name: elementDisplayName(state.actions[index].element) }));
+  } else if (guideHit) {
+    setStatus(t("status.guideResizeReady"));
   } else {
     setStatus(t("status.selectionEmpty"));
   }
+  render();
+}
+
+function beginGuideResize(event, point) {
+  if (!state.guideSelected) {
+    return false;
+  }
+  const { width, height } = canvasSize();
+  const bounds = activeGuideBounds(width, height);
+  const handle = bounds
+    ? guideResizeHandleAtPoint(bounds, point, 12 / Math.max(0.1, viewScale()))
+    : null;
+  if (!handle) {
+    return false;
+  }
+  state.guideResize = {
+    pointerId: event.pointerId,
+    handle,
+    startScale: state.guideScale,
+  };
+  canvas.style.cursor = ["nw", "se"].includes(handle) ? "nwse-resize" : "nesw-resize";
+  return true;
+}
+
+function moveGuideResize(point) {
+  if (!state.guideResize) {
+    return;
+  }
+  const { width, height } = canvasSize();
+  const baseBounds = activeGuideBaseBounds(width, height);
+  if (!baseBounds) {
+    return;
+  }
+  state.guideScale = resizeGuideScaleFromCorner(baseBounds, point);
+  render();
+}
+
+function finishGuideResize(point) {
+  if (!state.guideResize) {
+    return;
+  }
+  moveGuideResize(point);
+  state.guideResize = null;
+  state.pointerDown = false;
+  state.start = null;
+  canvas.style.cursor = "default";
+  setStatus(t("status.guideResized", { scale: Math.round(state.guideScale * 100) }));
+  render();
+}
+
+function cancelGuideResize() {
+  if (!state.guideResize) {
+    return;
+  }
+  state.guideScale = state.guideResize.startScale;
+  state.guideResize = null;
+  state.pointerDown = false;
+  state.start = null;
+  canvas.style.cursor = "default";
   render();
 }
 
@@ -6534,6 +6688,7 @@ function beginSelectionDrag(event, point) {
   }
   const index = topmostGlyphIndexAtPoint(state.actions, point);
   state.selectedGlyphIndex = index >= 0 ? index : null;
+  state.guideSelected = false;
   updateSelectionControls();
   if (index < 0) {
     state.pointerDown = false;
@@ -6758,6 +6913,19 @@ function onPointerDown(event) {
   state.currentAction = null;
   if (state.tool === "select") {
     cancelLongPress();
+    if (beginGuideResize(event, point)) {
+      return;
+    }
+    const { width, height } = canvasSize();
+    const guideBounds = state.guideSelected ? activeGuideBounds(width, height) : null;
+    if (guideBounds && point.x >= guideBounds.left && point.x <= guideBounds.right &&
+      point.y >= guideBounds.top && point.y <= guideBounds.bottom) {
+      state.pointerDown = false;
+      state.start = null;
+      setStatus(t("status.guideResizeReady"));
+      render();
+      return;
+    }
     beginSelectionDrag(event, point);
     return;
   }
@@ -6822,7 +6990,13 @@ function onPointerMove(event) {
 
   if (!state.pointerDown) {
     if (state.tool === "select") {
-      const handle = glyphResizeHandleAtPoint(selectedGlyph(), pointFromEvent(event), 12 / Math.max(0.1, viewScale()));
+      const hoverPoint = pointFromEvent(event);
+      const { width, height } = canvasSize();
+      const guideBounds = state.guideSelected ? activeGuideBounds(width, height) : null;
+      const guideHandle = guideBounds
+        ? guideResizeHandleAtPoint(guideBounds, hoverPoint, 12 / Math.max(0.1, viewScale()))
+        : null;
+      const handle = guideHandle || glyphResizeHandleAtPoint(selectedGlyph(), hoverPoint, 12 / Math.max(0.1, viewScale()));
       canvas.style.cursor = ["nw", "se"].includes(handle)
         ? "nwse-resize"
         : ["ne", "sw"].includes(handle)
@@ -6833,7 +7007,9 @@ function onPointerMove(event) {
   }
 
   const point = clampPointToDrawingLimit(pointFromEvent(event));
-  if (state.tool === "select" && state.selectionDrag?.pointerId === event.pointerId) {
+  if (state.tool === "select" && state.guideResize?.pointerId === event.pointerId) {
+    moveGuideResize(point);
+  } else if (state.tool === "select" && state.selectionDrag?.pointerId === event.pointerId) {
     moveSelectionDrag(point);
   } else if (state.tool === "free" && state.currentAction) {
     state.currentAction.points.push(point);
@@ -6888,6 +7064,11 @@ function onPointerUp(event) {
     return;
   }
 
+  if (state.guideResize?.pointerId === event.pointerId) {
+    finishGuideResize(clampPointToDrawingLimit(pointFromEvent(event)));
+    return;
+  }
+
   if (!state.pointerDown) {
     return;
   }
@@ -6922,6 +7103,9 @@ function onPointerCancel(event) {
   cancelLongPress();
   if (state.selectionDrag?.pointerId === event.pointerId) {
     cancelSelectionDrag(true);
+  }
+  if (state.guideResize?.pointerId === event.pointerId) {
+    cancelGuideResize();
   }
   if (state.deferredTouchTool?.pointerId === event.pointerId) {
     state.deferredTouchTool = null;
@@ -7187,12 +7371,19 @@ function guideAssetPath(id) {
 
 function selectGuide(source, id) {
   state.activeGuide = { source, id };
+  state.guideScale = 1;
+  state.guideSelected = true;
+  state.selectedGlyphIndex = null;
+  state.tool = "select";
   state.guideVisible = true;
   localStorage.setItem("whaGuideVisible", "true");
   if (guideVisibleInput) {
     guideVisibleInput.checked = true;
   }
+  updateToolButtons();
+  updateSelectionControls();
   renderGuideLists();
+  setGuideDrawer(false);
   render();
   setStatus(t("status.guideSelected"));
 }
@@ -7275,9 +7466,15 @@ function saveCurrentCircleAsGuide() {
     });
     state.userGuides = saveUserGuides(localStorage, [guide, ...state.userGuides]);
     state.activeGuide = { source: "personal", id: guide.id };
+    state.guideScale = 1;
+    state.guideSelected = true;
+    state.selectedGlyphIndex = null;
+    state.tool = "select";
     state.guideVisible = true;
     setGuideTab("personal");
     renderGuideLists();
+    updateToolButtons();
+    updateSelectionControls();
     render();
     setStatus(t("status.guideSaved", { name: guide.name }));
   } catch {
@@ -7295,6 +7492,8 @@ function deletePersonalGuide(id) {
   }
   if (state.activeGuide?.source === "personal" && state.activeGuide.id === id) {
     state.activeGuide = null;
+    state.guideSelected = false;
+    state.guideScale = 1;
   }
   renderGuideLists();
   render();
@@ -7961,6 +8160,10 @@ guideLibraryTab?.addEventListener("click", () => setGuideTab("library"));
 guidePersonalTab?.addEventListener("click", () => setGuideTab("personal"));
 guideVisibleInput?.addEventListener("change", () => {
   state.guideVisible = guideVisibleInput.checked;
+  if (!state.guideVisible) {
+    state.guideSelected = false;
+    state.guideResize = null;
+  }
   localStorage.setItem("whaGuideVisible", String(state.guideVisible));
   render();
   setStatus(t(state.guideVisible ? "status.guideShown" : "status.guideHidden"));
@@ -7972,6 +8175,9 @@ guideOpacityInput?.addEventListener("input", () => {
 });
 clearGuideButton?.addEventListener("click", () => {
   state.activeGuide = null;
+  state.guideSelected = false;
+  state.guideResize = null;
+  state.guideScale = 1;
   renderGuideLists();
   render();
   setStatus(t("status.guideRemoved"));
@@ -8040,6 +8246,11 @@ document.addEventListener("keydown", (event) => {
   } else if (event.key === "Escape" && state.selectedGlyphIndex !== null) {
     state.selectedGlyphIndex = null;
     updateSelectionControls();
+    setStatus(t("status.selectionCleared"));
+    render();
+  } else if (event.key === "Escape" && state.guideSelected) {
+    state.guideSelected = false;
+    state.guideResize = null;
     setStatus(t("status.selectionCleared"));
     render();
   } else if (event.key === "Escape") {

@@ -12,6 +12,7 @@ Let users resize a selected sigil by dragging its corner handles and trace a reu
 - Library guides use the existing reference crops in `assets/library-schematics/`.
 - Personal guides are snapshots of the current vector actions, saved locally in the browser.
 - The active guide is drawn below all user actions, can be hidden, cleared, and faded with an opacity slider.
+- The active guide opens selected and exposes the same four-corner resize affordance as placed sigils. Right click selects it again when no foreground sigil is hit.
 - A Save as example command sits beside Archive PNG. Personal examples can be deleted.
 
 ## Data And Safety
@@ -19,6 +20,7 @@ Let users resize a selected sigil by dragging its corner handles and trace a reu
 - Personal examples store sanitized drawing actions only, never activation state or runtime objects.
 - Storage is bounded to 24 examples and malformed data is ignored.
 - Guides are excluded from PNG export and spell calculations.
+- Guide resizing preserves its center and aspect ratio and is clamped from 25% to 300%.
 - Resizing is clamped to the existing 12-120 size range and creates one undo history entry.
 
 ## Visual Direction

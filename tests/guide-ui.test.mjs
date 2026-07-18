@@ -27,6 +27,9 @@ test("l'application cable les guides officiels et personnels sous le dessin", as
   assert.match(app, /function drawActiveGuide\(/);
   assert.match(app, /function saveCurrentCircleAsGuide\(/);
   assert.match(app, /function deletePersonalGuide\(/);
+  assert.match(app, /function drawSelectedGuide\(/);
+  assert.match(app, /function beginGuideResize\(/);
+  assert.match(app, /function moveGuideResize\(/);
   assert.match(app, /drawActiveGuide\([\s\S]*for \(const action of state\.actions\)/);
 });
 

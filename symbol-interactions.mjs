@@ -1,6 +1,45 @@
 export const MIN_GLYPH_SIZE = 12;
 export const MAX_GLYPH_SIZE = 120;
 export const GLYPH_SELECTION_SCALE = 1.18;
+export const MIN_GUIDE_SCALE = 0.25;
+export const MAX_GUIDE_SCALE = 3;
+
+export function scaledGuideBounds(bounds, scale = 1) {
+  const centerX = (bounds.left + bounds.right) / 2;
+  const centerY = (bounds.top + bounds.bottom) / 2;
+  const width = Math.max(1, bounds.width) * scale;
+  const height = Math.max(1, bounds.height) * scale;
+  return {
+    left: centerX - width / 2,
+    right: centerX + width / 2,
+    top: centerY - height / 2,
+    bottom: centerY + height / 2,
+    width,
+    height,
+  };
+}
+
+export function guideResizeHandleAtPoint(bounds, point, tolerance = 10) {
+  const handles = [
+    ["nw", bounds.left, bounds.top],
+    ["ne", bounds.right, bounds.top],
+    ["se", bounds.right, bounds.bottom],
+    ["sw", bounds.left, bounds.bottom],
+  ];
+  return handles.find(([, x, y]) => Math.hypot(point.x - x, point.y - y) <= tolerance)?.[0] || null;
+}
+
+export function resizeGuideScaleFromCorner(baseBounds, point) {
+  const centerX = (baseBounds.left + baseBounds.right) / 2;
+  const centerY = (baseBounds.top + baseBounds.bottom) / 2;
+  const halfWidth = Math.max(0.5, baseBounds.width / 2);
+  const halfHeight = Math.max(0.5, baseBounds.height / 2);
+  const scale = Math.max(
+    Math.abs(point.x - centerX) / halfWidth,
+    Math.abs(point.y - centerY) / halfHeight,
+  );
+  return Math.max(MIN_GUIDE_SCALE, Math.min(MAX_GUIDE_SCALE, Math.round(scale * 100) / 100));
+}
 
 function pointInGlyphSpace(action, point) {
   const rotation = Number(action.rotation) || 0;

@@ -5,12 +5,25 @@ import {
   clampGlyphCenter,
   cloneActions,
   glyphResizeHandleAtPoint,
+  guideResizeHandleAtPoint,
+  resizeGuideScaleFromCorner,
+  scaledGuideBounds,
   resizeGlyphFromCorner,
   resizeGlyphSize,
   shouldArmLongPress,
   shouldDeferTouchTool,
   topmostGlyphIndexAtPoint,
 } from "../symbol-interactions.mjs";
+
+test("le guide conserve son centre et ses proportions pendant le redimensionnement", () => {
+  const base = { left: 20, right: 120, top: 30, bottom: 80, width: 100, height: 50 };
+  const scaled = scaledGuideBounds(base, 2);
+
+  assert.deepEqual(scaled, { left: -30, right: 170, top: 5, bottom: 105, width: 200, height: 100 });
+  assert.equal(guideResizeHandleAtPoint(scaled, { x: 170, y: 105 }, 2), "se");
+  assert.equal(resizeGuideScaleFromCorner(base, { x: 170, y: 105 }), 2);
+  assert.equal(resizeGuideScaleFromCorner(base, { x: 500, y: 500 }), 3);
+});
 
 test("les quatre poignees suivent la rotation du glyphe", () => {
   const action = { type: "glyph", x: 50, y: 40, size: 20, rotation: Math.PI / 2 };
