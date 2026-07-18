@@ -4,11 +4,29 @@ import {
   canDropGlyph,
   clampGlyphCenter,
   cloneActions,
+  glyphResizeHandleAtPoint,
+  resizeGlyphFromCorner,
   resizeGlyphSize,
   shouldArmLongPress,
   shouldDeferTouchTool,
   topmostGlyphIndexAtPoint,
 } from "../symbol-interactions.mjs";
+
+test("les quatre poignees suivent la rotation du glyphe", () => {
+  const action = { type: "glyph", x: 50, y: 40, size: 20, rotation: Math.PI / 2 };
+  const half = action.size * 1.18;
+
+  assert.equal(glyphResizeHandleAtPoint(action, { x: 50 + half, y: 40 + half }, 2), "ne");
+  assert.equal(glyphResizeHandleAtPoint(action, { x: 50, y: 40 }, 2), null);
+});
+
+test("tirer un coin redimensionne proportionnellement autour du centre", () => {
+  const action = { type: "glyph", x: 50, y: 50, size: 20, rotation: 0 };
+
+  assert.equal(resizeGlyphFromCorner(action, { x: 85.4, y: 85.4 }), 30);
+  assert.equal(resizeGlyphFromCorner(action, { x: 500, y: 500 }), 120);
+  assert.equal(resizeGlyphFromCorner(action, { x: 51, y: 51 }), 12);
+});
 
 test("resizeGlyphSize applique le pas et les limites", () => {
   assert.equal(resizeGlyphSize(20, "grow"), 22);

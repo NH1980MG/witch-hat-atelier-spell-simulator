@@ -31,7 +31,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260717-unified-symbols-v2">
+    <link rel="stylesheet" href="styles.css?v=20260718-onion-guides-v1">
     <script type="importmap">
       {
         "imports": {
@@ -41,7 +41,7 @@
       }
     </script>
     <script type="module" src="site-i18n.mjs?v=20260715-bilingual-editor-v3"></script>
-    <script type="module" src="app.js?v=20260717-unified-symbols-v4"></script>
+    <script type="module" src="app.js?v=20260718-onion-guides-v1"></script>
   </head>
   <body class="simulator-page">
     <main class="app-shell">
@@ -136,6 +136,11 @@
           <span data-i18n="details.support">Support</span>
         </button>
 
+        <button class="guide-island" id="guideToggleButton" type="button" aria-controls="guideDrawer" aria-expanded="false">
+          <span aria-hidden="true">&#9681;</span>
+          <span data-i18n="drawer.guides">Guides</span>
+        </button>
+
         <aside class="sidebar symbol-drawer" id="symbolDrawer" data-i18n-aria-label="drawer.symbolDictionary" aria-label="Symbol dictionary" aria-hidden="true">
           <div class="panel-heading">
             <div>
@@ -158,6 +163,35 @@
           </div>
 
           <div class="support-list" id="supportList"></div>
+        </aside>
+
+        <aside class="sidebar guide-drawer" id="guideDrawer" data-i18n-aria-label="drawer.guideChoice" aria-label="Tracing guide selection" aria-hidden="true">
+          <div class="panel-heading">
+            <div>
+              <h2 data-i18n="drawer.guides">Guides</h2>
+              <p data-i18n="drawer.guidesDescription">Place a faint example below your drawing and trace it like onion skin.</p>
+            </div>
+            <button class="drawer-close" id="closeGuidesButton" type="button" data-i18n-aria-label="drawer.closeGuides" aria-label="Close guides">&times;</button>
+          </div>
+
+          <div class="guide-controls">
+            <label class="check-field compact-check">
+              <input id="guideVisibleInput" type="checkbox" checked>
+              <span data-i18n="guides.visible">Show guide</span>
+            </label>
+            <label class="range-field guide-opacity-field">
+              <span data-i18n="guides.opacity">Opacity</span>
+              <input id="guideOpacityInput" type="range" min="10" max="70" value="28">
+            </label>
+            <button id="clearGuideButton" type="button" data-i18n="guides.remove">Remove guide</button>
+          </div>
+
+          <div class="guide-tabs" role="tablist" data-i18n-aria-label="guides.sources">
+            <button id="guideLibraryTab" class="is-active" type="button" role="tab" aria-selected="true" aria-controls="guideLibraryList" data-i18n="guides.library">Library</button>
+            <button id="guidePersonalTab" type="button" role="tab" aria-selected="false" aria-controls="guidePersonalList" data-i18n="guides.personal">My examples</button>
+          </div>
+          <div class="guide-list" id="guideLibraryList" role="tabpanel"></div>
+          <div class="guide-list" id="guidePersonalList" role="tabpanel" hidden></div>
         </aside>
 
         <aside class="sidebar details-drawer" id="detailsDrawer" data-i18n-aria-label="drawer.details" aria-label="Ritual details" aria-hidden="true">
@@ -268,6 +302,7 @@
           <button id="undoButton" type="button" data-i18n="commands.undo">Undo</button>
           <button id="clearButton" type="button" data-i18n="commands.clear">Clear</button>
           <button id="saveButton" type="button" data-i18n="commands.savePng">Archive PNG</button>
+          <button id="saveExampleButton" type="button" data-i18n="commands.saveExample">Save as example</button>
         </section>
 
         <output class="status" id="statusText" aria-live="polite" data-i18n="status.buttonMode">Button mode: draw a closed circle, then press Activate.</output>

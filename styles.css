@@ -388,7 +388,8 @@ input:focus-visible {
 
 .symbol-island,
 .details-island,
-.support-island {
+.support-island,
+.guide-island {
   position: absolute;
   z-index: 7;
   right: 18px;
@@ -416,9 +417,14 @@ input:focus-visible {
   top: 126px;
 }
 
+.guide-island {
+  top: 180px;
+}
+
 .symbol-island > span[aria-hidden="true"],
 .details-island > span[aria-hidden="true"],
-.support-island > span[aria-hidden="true"] {
+.support-island > span[aria-hidden="true"],
+.guide-island > span[aria-hidden="true"] {
   color: var(--gold);
   font-family: "Courier New", monospace;
   font-size: 1.1rem;
@@ -461,6 +467,10 @@ input:focus-visible {
   overscroll-behavior: contain;
 }
 
+.guide-drawer {
+  overflow: hidden;
+}
+
 .simulator-page.details-open .details-drawer {
   opacity: 1;
   pointer-events: auto;
@@ -479,6 +489,12 @@ input:focus-visible {
   transform: translateX(0);
 }
 
+.simulator-page.guides-open .guide-drawer {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+
 .simulator-page.symbols-open .details-drawer,
 .simulator-page.symbols-open .support-drawer,
 .simulator-page.details-open .symbol-drawer,
@@ -492,9 +508,137 @@ input:focus-visible {
 
 .simulator-page.symbols-open .symbol-island,
 .simulator-page.details-open .details-island,
-.simulator-page.support-open .support-island {
+.simulator-page.support-open .support-island,
+.simulator-page.guides-open .guide-island {
   opacity: 0;
   pointer-events: none;
+}
+
+.guide-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  border: 1px solid rgba(140, 107, 63, 0.35);
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(255, 248, 234, 0.58);
+}
+
+.guide-controls .compact-check,
+.guide-controls .guide-opacity-field {
+  grid-column: auto;
+  min-height: 42px;
+}
+
+.guide-controls #clearGuideButton {
+  grid-column: 1 / -1;
+}
+
+.guide-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.guide-tabs button {
+  min-width: 0;
+  padding: 8px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.guide-tabs button.is-active {
+  background: var(--button-active);
+  box-shadow: 0 0 0 2px rgba(199, 151, 54, 0.44) inset;
+}
+
+.guide-list {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 9px;
+  min-height: 96px;
+  overflow-y: auto;
+  padding: 2px 4px 2px 2px;
+  overscroll-behavior: contain;
+}
+
+.guide-list[hidden] {
+  display: none;
+}
+
+.guide-card {
+  position: relative;
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  border: 1px solid rgba(140, 107, 63, 0.46);
+  border-radius: 12px;
+  padding: 8px;
+  background: rgba(255, 248, 234, 0.86);
+  text-align: left;
+}
+
+.guide-card.is-active {
+  border-color: var(--gold);
+  background: #f4e3bd;
+  box-shadow: 0 0 0 2px rgba(199, 151, 54, 0.38);
+}
+
+.guide-card img,
+.guide-card-preview {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border: 1px solid rgba(140, 107, 63, 0.24);
+  border-radius: 8px;
+  background: #fffaf0;
+  object-fit: contain;
+}
+
+.guide-card-preview {
+  display: grid;
+  place-items: center;
+  color: var(--edge);
+  font-size: 2rem;
+}
+
+.guide-card-name {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guide-card-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+}
+
+.guide-card-actions button {
+  min-height: 34px;
+  padding: 5px 8px;
+}
+
+.guide-card > button:first-child {
+  display: grid;
+  gap: 7px;
+  min-height: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+}
+
+.guide-empty {
+  grid-column: 1 / -1;
+  margin: 12px 4px;
+  color: var(--edge);
+  line-height: 1.4;
 }
 
 @media (min-width: 621px) {
@@ -503,7 +647,13 @@ input:focus-visible {
   .simulator-page.details-open .symbol-island,
   .simulator-page.details-open .support-island,
   .simulator-page.support-open .symbol-island,
-  .simulator-page.support-open .details-island {
+  .simulator-page.support-open .details-island,
+  .simulator-page.symbols-open .guide-island,
+  .simulator-page.details-open .guide-island,
+  .simulator-page.support-open .guide-island,
+  .simulator-page.guides-open .symbol-island,
+  .simulator-page.guides-open .details-island,
+  .simulator-page.guides-open .support-island {
     z-index: 13;
     right: calc(min(430px, calc(100% - 24px)) + 24px);
   }

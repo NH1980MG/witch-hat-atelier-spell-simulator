@@ -18,6 +18,10 @@ test("tutorial covers the final matrix and fidelity model", () => {
     "tutorial.placement.select",
     "tutorial.placement.resize",
     "tutorial.placement.moveDelete",
+    "tutorial.guides.title",
+    "tutorial.guides.library",
+    "tutorial.guides.controls",
+    "tutorial.guides.personal",
   ]) {
     assert.match(html, new RegExp(`data-i18n="${key.replaceAll(".", "\\.")}"`));
     assert.notEqual(translate("en", key), key);
@@ -27,6 +31,8 @@ test("tutorial covers the final matrix and fidelity model", () => {
   assert.equal(translate("fr", "tutorial.matrix.total"), "38 532 variantes testees");
   assert.match(html, /id="placing-symbols"/);
   assert.match(html, /href="#placing-symbols"/);
+  assert.match(html, /id="tracing-guides"/);
+  assert.match(html, /href="#tracing-guides"/);
   assert.match(translate("en", "tutorial.placement.select"), /right-click/i);
   assert.match(translate("fr", "tutorial.placement.select"), /clic droit/i);
 });
