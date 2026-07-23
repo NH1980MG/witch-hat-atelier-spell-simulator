@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "witchhat_ai_builder",
+  "version": "${version}",
+  "name": "Witch Hat AI Builder",
+  "description": "Local deterministic construction tooling for Codex-assisted development.",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "io.github.nh1980mg.witchhat.aibuilder.AiBuilderMod"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "minecraft": "1.21.1",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

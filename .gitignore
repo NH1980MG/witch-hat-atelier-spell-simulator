@@ -18,5 +18,11 @@ Thumbs.db
 *.tmp
 *.temp
 
+# Local Minecraft and Gradle output
+minecraft-mod/.gradle-user-home/
+minecraft-mod/.gradle/
+minecraft-mod/**/build/
+minecraft-mod/run/
+
 # Isolated agent workspaces
 .worktrees/
