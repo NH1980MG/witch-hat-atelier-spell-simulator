@@ -1,9 +1,9 @@
 # Generated Sigil Reference Archive
 
-This directory keeps nineteen generated reference sheets used to compare the
-editable vector catalog against the supplied research captures. These PNGs are
-documentation only; the simulator renders the code-native paths in
-`symbol-catalog.mjs`.
+This directory keeps nineteen generated reference sheets used to reconstruct
+and audit the editable vector catalog against the supplied research captures.
+Eighteen symbol sheets are linked case by case to the runtime vectors in
+`SYMBOL_BOARD_TRACE`; the support sheet is used by the support interface.
 
 ## Generated Sheets
 
@@ -42,13 +42,16 @@ documentation only; the simulator renders the code-native paths in
 19. `signs-link-project-flower-dalle-v1.png`: Link, Project, and Flower.
 
 The second-pass sheets were generated with the built-in DALL-E image workflow.
-They are comparison aids only: the local captures remain the geometric source
-of truth when a generated line simplifies or invents part of a symbol.
+Each accepted cell is manually reconstructed as an editable 48 by 48 vector.
+The local captures remain the geometric authority when a generated line
+simplifies or invents part of a symbol.
 
-Every one of the 64 editable vectors is linked to its audit sheet through
-`SYMBOL_GENERATED_BOARD` in `symbol-catalog.mjs`. The picker and drawing canvas
-continue to use `SYMBOL_PATHS`, so a reviewed symbol is also the symbol users
-can place and edit.
+`SYMBOL_BOARD_TRACE` records the exact sheet, cell, tracing method and vector
+paths for every editable entry. `SYMBOL_PATHS`, consumed by both the picker and
+the drawing canvas, is derived from that table. All eighteen symbol sheets are
+covered by an automated runtime test. The Wind sigil is the documented
+exception: capture 10 is its direct source because no generated sheet contains
+that distinct sigil.
 
 ## Supplied Capture Inventory
 

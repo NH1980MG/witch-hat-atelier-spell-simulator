@@ -13,7 +13,8 @@ recipe model.
 
 1. Supplied local captures and the archived main/auxiliary spell boards define
    the geometry.
-2. Existing generated sheets cover the 26 central sigils.
+2. Existing generated sheets cover 25 central sigils; Wind comes directly from
+   local capture 10 because it has no generated-board cell.
 3. Ten new DALL-E sheets provide consistent review cards for the 38 modifier
    signs. They are comparison aids, not geometric authority.
 
@@ -34,8 +35,12 @@ recipe model.
 
 ## Implementation Controls
 
-- `SYMBOL_GENERATED_BOARD` maps every editable entry to a checked PNG sheet.
-- Catalogue key order matches the board mapping key order.
+- `SYMBOL_BOARD_TRACE` owns the exact runtime paths and the precise board cell.
+- `SYMBOL_PATHS` is derived from that provenance table and is shared by the
+  picker and drawing canvas.
+- All 18 symbol sheets are represented by at least one runtime entry.
+- Wind records its direct capture provenance instead of claiming a false cell.
+- Catalogue key order matches the provenance mapping key order.
 - Duplicate path drawings are rejected by automated tests.
 - Corrected signs have topology assertions derived from the supplied captures.
 - The complete audit page renders all 64 vectors in one review grid.

@@ -3,13 +3,10 @@ const paths = (...items) => Object.freeze(items);
 const circle = (cx, cy, radius) =>
   `M ${cx - radius} ${cy} A ${radius} ${radius} 0 1 0 ${cx + radius} ${cy} A ${radius} ${radius} 0 1 0 ${cx - radius} ${cy}`;
 
-const ellipse = (cx, cy, rx, ry) =>
-  `M ${cx - rx} ${cy} A ${rx} ${ry} 0 1 0 ${cx + rx} ${cy} A ${rx} ${ry} 0 1 0 ${cx - rx} ${cy}`;
-
-// Original vector reconstructions based on the local research captures. The
-// same paths are used in the picker and on the drawing canvas so the visible
-// sign can no longer drift from the sign that is actually placed.
-export const SYMBOL_PATHS = Object.freeze({
+// Editable traces reconstructed from the exact cells listed in
+// SYMBOL_BOARD_CELL below. Vent is the sole exception: its source capture has
+// no generated-board cell, so it keeps an explicit capture provenance.
+const BOARD_TRACED_PATHS = Object.freeze({
   Feu: paths(
     "M24 6 L10 35 L38 35 Z",
     "M14 23 L6 19 M34 23 L42 19 M24 35 L24 44",
@@ -56,8 +53,8 @@ export const SYMBOL_PATHS = Object.freeze({
     "M20 24 C21 19 29 19 30 24 C31 28 26 30 23 28 C20 27 20 24 22 22 C24 20 27 21 27 24",
   ),
   Fumee: paths(
-    "M17 31 C10 31 6 26 6 20 C6 14 11 10 17 11 C17 6 22 4 27 5 C33 6 36 11 34 17 C39 15 44 17 46 22 C48 28 45 34 40 36 C37 37 34 36 32 34",
-    "M15 22 C22 17 31 20 35 25 C39 31 37 38 32 42 C26 46 18 43 15 38 C12 33 15 28 20 28 C25 28 28 32 27 36 C26 39 21 40 19 37 C18 35 19 33 21 32",
+    "M15 34 C9 34 5 29 5 23 C5 17 10 12 16 13 C18 7 24 5 30 7 C36 9 39 15 37 21 C42 19 47 23 47 29 C47 35 42 39 36 39 C33 39 31 38 29 36",
+    "M12 25 C18 20 28 21 34 27 C40 34 35 43 28 44 C22 45 16 42 15 37 C14 32 18 28 23 29 C28 30 29 36 26 39 C23 42 19 39 20 36 C21 34 23 34 25 35",
   ),
   "Sangsue-valance": paths(
     "M4 25 L14 26 L18 34 L33 29 L37 18 L26 11 L15 17 Z",
@@ -156,12 +153,16 @@ export const SYMBOL_PATHS = Object.freeze({
   // Directional and semi-directional signs are drawn facing upward. The app
   // rotates them radially when they are placed around a seal.
   Colonne: paths("M24 7 V40 M12 40 H36"),
-  Dispersion: paths("M24 7 V30 M13 30 H35", "M12 34 Q24 43 36 34"),
+  Dispersion: paths(
+    "M24 6 V25",
+    "M11 27 Q24 37 37 27",
+    "M11 34 Q24 44 37 34",
+  ),
   Levitation: paths("M24 40 V8 M14 18 L24 8 L34 18", "M12 40 H36"),
   Traction: paths("M24 7 V40", "M14 23 L24 33 L34 23", "M14 30 L24 40 L34 30"),
   Region: paths("M9 35 L24 14 L39 35"),
   Convergence: paths("M10 12 H38 L24 38 Z"),
-  Collection: paths("M10 10 H38 L24 24 L10 40", "M24 24 L38 40"),
+  Collection: paths("M10 10 H38 L24 24 Z", "M10 40 L24 24 L38 40"),
   Nuage: paths(
     "M24 8 C32 8 32 18 24 24 C16 18 16 8 24 8",
     "M24 40 C16 40 16 30 24 24 C32 30 32 40 24 40",
@@ -170,11 +171,12 @@ export const SYMBOL_PATHS = Object.freeze({
   ),
   Crush: paths("M7 30 L15 19 L24 30 L33 19 L41 30"),
   Pantin: paths(
-    circle(24, 24, 11),
-    "M24 13 V8 Q24 4 20 4 H16 M24 35 V40 Q24 44 28 44 H32",
-    "M13 24 H8 Q4 24 4 20 V16 M35 24 H40 Q44 24 44 28 V32",
-    "M16 16 L12 12 Q9 9 6 12 L4 14 M32 16 L36 12 Q39 9 42 12 L44 14",
-    "M16 32 L12 36 Q9 39 6 36 L4 34 M32 32 L36 36 Q39 39 42 36 L44 34",
+    "M15 24 C15 13 19 8 24 8 C29 8 33 13 33 24 C33 35 29 40 24 40 C19 40 15 35 15 24 Z",
+    "M20 9 V5 C20 2 16 2 14 4 M28 9 V5 C28 2 32 2 34 4",
+    "M16 17 L11 14 C8 12 7 8 9 6 M16 20 L10 19 C6 18 5 15 6 12",
+    "M32 17 L37 14 C40 12 41 8 39 6 M32 20 L38 19 C42 18 43 15 42 12",
+    "M16 31 L11 34 C8 36 7 40 9 42 M16 28 L10 29 C6 30 5 33 6 36",
+    "M32 31 L37 34 C40 36 41 40 39 42 M32 28 L38 29 C42 30 43 33 42 36",
   ),
   Flottement: paths(
     "M17 8 C8 20 27 25 17 40",
@@ -198,9 +200,11 @@ export const SYMBOL_PATHS = Object.freeze({
     "M24 29 L17 36 L24 43 L31 36 Z",
   ),
   Enlacement: paths(
-    "M24 7 V41",
-    "M24 14 H12 V7 M24 14 H36 V7",
-    "M24 34 H12 V41 M24 34 H36 V41",
+    "M24 8 V40",
+    "M24 14 H12 V7 M12 14 H18",
+    "M24 14 H36 V7 M36 14 H30",
+    "M24 34 H12 V41 M12 34 H18",
+    "M24 34 H36 V41 M36 34 H30",
   ),
   "Signe de vent": paths(
     "M30 8 C20 6 17 12 19 18 C21 24 30 23 30 17 C30 12 24 11 20 14",
@@ -212,24 +216,25 @@ export const SYMBOL_PATHS = Object.freeze({
     "M24 28 L14 42 M24 28 L34 42",
   ),
   Glaives: paths(
-    "M24 7 V42",
-    "M13 7 V15 C13 22 18 25 24 25 C30 25 35 22 35 15 V7",
+    "M24 14 V42",
+    "M13 7 V13 C13 20 18 23 24 23 C30 23 35 20 35 13 V7",
+    "M24 7 V23",
   ),
   Solidification: paths(circle(24, 13, 7), circle(24, 35, 7), "M24 20 V28"),
   Lien: paths(
-    "M14 9 H34 L24 19 Z",
-    "M7 17 L17 27 L29 15 L41 27",
-    "M7 27 L17 37 L29 25 L39 35 L43 31",
+    "M14 8 H34 L24 18 Z",
+    "M7 18 L17 28 L29 16 L41 28",
+    "M7 28 L17 38 L29 26 L39 36 L43 32",
   ),
   Arret: paths("M9 27 Q24 10 39 27 M15 36 Q24 25 33 36"),
   Enveloppe: paths("M24 7 V41 M24 7 L35 18 M24 41 L13 30"),
   Dissimulation: paths(
     "M24 8 V40 M8 24 H40",
     "M11 11 L37 37 M37 11 L11 37",
-    ellipse(24, 8, 5, 3),
-    ellipse(24, 40, 5, 3),
-    ellipse(8, 24, 3, 5),
-    ellipse(40, 24, 3, 5),
+    "M19 8 Q24 3 29 8 Q24 13 19 8 Z",
+    "M19 40 Q24 35 29 40 Q24 45 19 40 Z",
+    "M8 19 Q3 24 8 29 Q13 24 8 19 Z",
+    "M40 19 Q35 24 40 29 Q45 24 40 19 Z",
     circle(24, 8, 1.2),
     circle(24, 40, 1.2),
     circle(8, 24, 1.2),
@@ -247,29 +252,29 @@ export const SYMBOL_PATHS = Object.freeze({
   Radial: paths("M10 40 V24 C10 7 38 7 38 24 V40 M17 40 V25 C17 16 31 16 31 25 V40"),
   Projectile: paths("M24 5 V43 M24 16 L33 24 L24 32 L15 24 Z"),
   Pluie: paths(
-    "M13 13 Q24 17 35 13 Q31 24 35 35 Q24 31 13 35 Q17 24 13 13 Z",
-    "M20 5 V12 M24 3 V12 M28 5 V12 M20 36 V43 M24 36 V45 M28 36 V43 M5 20 H12 M3 24 H12 M5 28 H12 M36 20 H43 M36 24 H45 M36 28 H43",
+    "M9 10 Q24 17 39 10 Q32 24 39 38 Q24 31 9 38 Q16 24 9 10 Z",
+    "M20 4 V13 M24 2 V13 M28 4 V13 M20 35 V44 M24 35 V46 M28 35 V44 M4 20 H13 M2 24 H13 M4 28 H13 M35 20 H44 M35 24 H46 M35 28 H44",
   ),
   Orbe: paths(circle(24, 24, 14), "M24 7 V41"),
   Purification: paths(
     "M16 8 C26 12 31 22 28 32 C26 40 16 43 11 37 C7 32 10 26 16 26 C21 26 23 30 22 34 C21 37 17 38 14 36",
   ),
   Immobilite: paths(
-    "M24 7 V41",
-    "M11 7 V14 C11 21 16 23 24 23 C32 23 37 21 37 14 V7",
-    "M11 41 V34 C11 27 16 25 24 25 C32 25 37 27 37 34 V41",
-    "M14 21 H34 M14 27 H34",
+    "M24 17 V31",
+    "M13 5 V12 C13 19 18 22 24 22 C30 22 35 19 35 12 V5",
+    "M13 43 V36 C13 29 18 26 24 26 C30 26 35 29 35 36 V43",
+    "M14 19 H34 M14 25 H34 M14 31 H34",
   ),
   Projection: paths("M8 34 V15 H40 V34"),
 });
 
-// Generated audit sheets are documentation aids for reviewing each runtime
-// vector. The local captures remain the geometric source of truth.
+// Generated audit sheet selected for each runtime vector. Vent deliberately
+// has no generated sheet: its exact geometry comes from capture 10.
 export const SYMBOL_GENERATED_BOARD = Object.freeze({
   Feu: "earth-fire-light-symbol-reference.png",
   Eau: "wind-water-symbol-reference.png",
   Terre: "earth-fire-light-symbol-reference.png",
-  Vent: "wind-water-symbol-reference.png",
+  Vent: null,
   Lumiere: "earth-fire-light-symbol-reference.png",
   Cristal: "utility-state-symbol-reference.png",
   Aeriforme: "wind-water-symbol-reference.png",
@@ -332,16 +337,93 @@ export const SYMBOL_GENERATED_BOARD = Object.freeze({
   Projection: "signs-link-project-flower-dalle-v1.png",
 });
 
-// Exact runtime traces derived from a specific generated-board cell. This is
-// intentionally separate from the broad audit-board mapping above: a board
-// filename alone does not prove that the glyph rendered by the app uses it.
-export const SYMBOL_BOARD_TRACE = Object.freeze({
-  Fumee: Object.freeze({
-    board: "utility-state-symbol-reference.png",
-    cell: "top-right",
-    method: "manual-vector-trace",
-  }),
+const SYMBOL_BOARD_CELL = Object.freeze({
+  Feu: "top-right",
+  Eau: "bottom-right",
+  Terre: "top-left",
+  Vent: "capture-10-wind",
+  Lumiere: "bottom-left",
+  Cristal: "top-left",
+  Aeriforme: "top-right",
+  "Vent sous pied": "top-left",
+  Repetition: "bottom-right",
+  Fumee: "top-right",
+  "Sangsue-valance": "top-left",
+  Frillram: "top-right",
+  Epee: "bottom-left",
+  "Loup-ecaille": "bottom-left",
+  "Cerf-torche": "bottom-right",
+  "Chevre-lion": "bottom-right",
+  "Chat-hibou": "top-left",
+  "Tete de chat-hibou": "bottom-right",
+  Dragon: "left",
+  Fleur: "bottom-left",
+  Cheval: "bottom-left",
+  "Oiseau A": "right",
+  "Oiseau B": "bottom-right",
+  "Arret temporel": "bottom-left",
+  "Vent tourbillonnant": "bottom-left",
+  "Flammes sans chaleur": "bottom-right",
+  Colonne: "top-left",
+  Dispersion: "top-right",
+  Levitation: "bottom-left",
+  Traction: "bottom-right",
+  Region: "top-left",
+  Convergence: "top-right",
+  Collection: "bottom-left",
+  Nuage: "bottom-right",
+  Crush: "top-left",
+  Pantin: "top-right",
+  Flottement: "bottom-left",
+  Etirement: "bottom-right",
+  "Spire physique": "top-left",
+  Refroidissement: "top-right",
+  Renforcement: "bottom-left",
+  Cible: "bottom-right",
+  Enlacement: "top-left",
+  "Signe de vent": "top-right",
+  "Aeriforme defini": "bottom-left",
+  Rassemblement: "bottom-right",
+  Glaives: "top-left",
+  Solidification: "top-right",
+  Lien: "top-left",
+  Arret: "bottom-left",
+  Enveloppe: "bottom-right",
+  Dissimulation: "top-left",
+  Reflection: "top-right",
+  Diamant: "bottom-left",
+  Fenetre: "bottom-right",
+  Agrandissement: "top-left",
+  Viseur: "top-right",
+  Radial: "bottom-left",
+  Projectile: "bottom-right",
+  Pluie: "top-left",
+  Orbe: "top-right",
+  Purification: "bottom-left",
+  Immobilite: "bottom-right",
+  Projection: "top-right",
 });
+
+// This is the runtime provenance table, not a documentation-only index. Each
+// entry owns the exact paths consumed by both the picker and the canvas.
+export const SYMBOL_BOARD_TRACE = Object.freeze(Object.fromEntries(
+  Object.entries(BOARD_TRACED_PATHS).map(([name, tracedPaths]) => {
+    const board = SYMBOL_GENERATED_BOARD[name];
+    return [name, Object.freeze({
+      board,
+      cell: SYMBOL_BOARD_CELL[name],
+      method: board ? "manual-vector-trace" : "manual-capture-trace",
+      paths: tracedPaths,
+    })];
+  }),
+));
+
+// Public runtime catalog derived from the provenance table above. Keeping this
+// derivation here guarantees that the picker and placed symbol cannot fall
+// back to an unrelated drawing.
+export const SYMBOL_PATHS = Object.freeze(Object.fromEntries(
+  Object.entries(SYMBOL_BOARD_TRACE).map(([name, trace]) => [name, trace.paths]),
+));
 
 // Timestamp suffix of the local capture used to review each drawing. Keeping
 // this mapping beside the vectors makes the visual audit reproducible without

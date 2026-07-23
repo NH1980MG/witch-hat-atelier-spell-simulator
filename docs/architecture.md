@@ -32,7 +32,7 @@ parametres.html     static settings notes
 
 Two high-risk concerns have already been extracted:
 
-- `symbol-catalog.mjs` is the single source for all 47 visible drawings. This
+- `symbol-catalog.mjs` is the single source for all 64 visible drawings. This
   prevents the picker, placed symbol and 3D result from showing different
   shapes for the same name.
 - `spell-grammar.mjs` is DOM-free. It turns sigils and signs into a deterministic
@@ -64,7 +64,7 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-  Catalog["symbol-catalog.mjs\n47 shared paths"] --> Picker["Symbol picker"]
+  Catalog["symbol-catalog.mjs\n64 shared paths"] --> Picker["Symbol picker"]
   Catalog --> Canvas["2D canvas"]
   Catalog --> Ink3D["Sampled 3D ink"]
   Input["Manual glyphs + grouped freehand strokes"] --> App["app.js recognizer"]

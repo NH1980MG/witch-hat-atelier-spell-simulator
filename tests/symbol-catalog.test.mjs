@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 
 import {
   SYMBOL_BOARD_TRACE,
@@ -21,8 +21,8 @@ const correctedReferencePaths = Object.freeze({
     "M20 24 C21 19 29 19 30 24 C31 28 26 30 23 28 C20 27 20 24 22 22 C24 20 27 21 27 24",
   ],
   Fumee: [
-    "M17 31 C10 31 6 26 6 20 C6 14 11 10 17 11 C17 6 22 4 27 5 C33 6 36 11 34 17 C39 15 44 17 46 22 C48 28 45 34 40 36 C37 37 34 36 32 34",
-    "M15 22 C22 17 31 20 35 25 C39 31 37 38 32 42 C26 46 18 43 15 38 C12 33 15 28 20 28 C25 28 28 32 27 36 C26 39 21 40 19 37 C18 35 19 33 21 32",
+    "M15 34 C9 34 5 29 5 23 C5 17 10 12 16 13 C18 7 24 5 30 7 C36 9 39 15 37 21 C42 19 47 23 47 29 C47 35 42 39 36 39 C33 39 31 38 29 36",
+    "M12 25 C18 20 28 21 34 27 C40 34 35 43 28 44 C22 45 16 42 15 37 C14 32 18 28 23 29 C28 30 29 36 26 39 C23 42 19 39 20 36 C21 34 23 34 25 35",
   ],
   "Sangsue-valance": [
     "M4 25 L14 26 L18 34 L33 29 L37 18 L26 11 L15 17 Z",
@@ -61,12 +61,46 @@ test("les glyphes cibles correspondent aux captures et planches de reference", (
 });
 
 test("Smoke provient explicitement de la case superieure droite de sa planche", () => {
-  assert.deepEqual(SYMBOL_BOARD_TRACE.Fumee, {
-    board: "utility-state-symbol-reference.png",
-    cell: "top-right",
-    method: "manual-vector-trace",
-  });
+  assert.equal(SYMBOL_BOARD_TRACE.Fumee.board, "utility-state-symbol-reference.png");
+  assert.equal(SYMBOL_BOARD_TRACE.Fumee.cell, "top-right");
+  assert.equal(SYMBOL_BOARD_TRACE.Fumee.method, "manual-vector-trace");
+  assert.strictEqual(SYMBOL_BOARD_TRACE.Fumee.paths, SYMBOL_PATHS.Fumee);
   assert.equal(SYMBOL_GENERATED_BOARD.Fumee, SYMBOL_BOARD_TRACE.Fumee.board);
+});
+
+test("chaque glyphe runtime provient d'une case de planche implementee", () => {
+  assert.deepEqual(Object.keys(SYMBOL_BOARD_TRACE), Object.keys(SYMBOL_PATHS));
+
+  const usedCells = new Set();
+  for (const [name, trace] of Object.entries(SYMBOL_BOARD_TRACE)) {
+    assert.strictEqual(trace.paths, SYMBOL_PATHS[name], `${name} doit exposer le trace utilise par l'application`);
+
+    if (!trace.board) {
+      assert.equal(name, "Vent");
+      assert.equal(trace.cell, "capture-10-wind");
+      assert.equal(trace.method, "manual-capture-trace");
+      continue;
+    }
+
+    assert.equal(trace.board, SYMBOL_GENERATED_BOARD[name], `${name} doit utiliser sa planche declaree`);
+    assert.match(trace.cell, /^(?:(?:top|bottom)-(?:left|right)|left|right)$/, `${name} doit indiquer une case precise`);
+    assert.equal(trace.method, "manual-vector-trace");
+
+    const cellKey = `${trace.board}:${trace.cell}`;
+    assert.ok(!usedCells.has(cellKey), `${name} reutilise la case ${cellKey}`);
+    usedCells.add(cellKey);
+  }
+});
+
+test("toutes les planches de sigils et signes alimentent le catalogue runtime", async () => {
+  const generatedFiles = await readdir(new URL("../docs/generated/", import.meta.url));
+  const symbolBoards = generatedFiles
+    .filter((file) => file.endsWith(".png") && file !== "support-cards-dalle-v1.png")
+    .sort();
+  const runtimeBoards = [...new Set(Object.values(SYMBOL_BOARD_TRACE).map(({ board }) => board).filter(Boolean))].sort();
+
+  assert.equal(symbolBoards.length, 18);
+  assert.deepEqual(runtimeBoards, symbolBoards);
 });
 
 test("Smoke garde un trait fin et lisible dans le catalogue", async () => {
@@ -90,8 +124,8 @@ test("le navigateur charge la nouvelle version du catalogue partage", async () =
   const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 
-  assert.match(app, /symbol-catalog\.mjs\?v=20260718-refined-smoke-v2/);
-  assert.match(html, /app\.js\?v=20260718-guides-smoke-v2/);
+  assert.match(app, /symbol-catalog\.mjs\?v=20260722-board-runtime-v1/);
+  assert.match(html, /app\.js\?v=20260722-board-runtime-v1/);
   assert.match(html, /styles\.css\?v=20260718-guides-smoke-v3/);
 });
 
@@ -100,6 +134,10 @@ test("chaque glyphe partage possede une planche d'audit generee", () => {
   assert.deepEqual(Object.keys(SYMBOL_GENERATED_BOARD), Object.keys(SYMBOL_PATHS));
 
   for (const [name, board] of Object.entries(SYMBOL_GENERATED_BOARD)) {
+    if (name === "Vent") {
+      assert.equal(board, null);
+      continue;
+    }
     assert.match(board, /\.png$/, `${name} doit pointer vers une planche PNG`);
   }
 });
@@ -116,14 +154,14 @@ test("les 64 glyphes restent visuellement distincts", () => {
 
 test("les signes corriges gardent la topologie des captures", () => {
   const expectedFragments = {
-    Dispersion: ["M24 7 V30", "Q24 43 36 34"],
-    Collection: ["M10 10 H38", "M24 24 L38 40"],
+    Dispersion: ["M24 6 V25", "Q24 44 37 34"],
+    Collection: ["M10 10 H38", "M10 40 L24 24"],
     "Signe de vent": ["M30 8 C20 6", "M20 14 C18 24"],
     Rassemblement: ["M24 42 V11", "M24 28 L14 42"],
     Dissimulation: ["M24 8 V40", "circle"],
     Fenetre: ["M17 8 H31", "M8 17 H40"],
     Purification: ["M16 8 C26 12", "C7 32 10 26"],
-    Immobilite: ["M24 7 V41", "M14 21 H34"],
+    Immobilite: ["M24 17 V31", "M14 19 H34"],
   };
 
   for (const [name, fragments] of Object.entries(expectedFragments)) {
