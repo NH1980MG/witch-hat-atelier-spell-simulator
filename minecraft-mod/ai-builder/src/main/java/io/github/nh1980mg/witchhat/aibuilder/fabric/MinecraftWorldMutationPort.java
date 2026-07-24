@@ -32,13 +32,13 @@ public final class MinecraftWorldMutationPort implements WorldMutationPort {
     }
 
     @Override
-    public void setBlockState(ResolvedPlacement placement, String blockState) {
+    public boolean setBlockState(ResolvedPlacement placement, String blockState) {
         try {
             BlockState parsed = BlockStateParser.parseForBlock(
                     server.registryAccess().lookupOrThrow(Registries.BLOCK),
                     blockState,
                     false).blockState();
-            level(placement).setBlock(position(placement), parsed, Block.UPDATE_ALL);
+            return level(placement).setBlock(position(placement), parsed, Block.UPDATE_ALL);
         } catch (CommandSyntaxException error) {
             throw new IllegalArgumentException("Invalid block state: " + blockState, error);
         }
@@ -46,8 +46,12 @@ public final class MinecraftWorldMutationPort implements WorldMutationPort {
 
     @Override
     public boolean isProtected(ResolvedPlacement placement) {
-        BlockState state = level(placement).getBlockState(position(placement));
-        return protectedBlocks.contains(BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString());
+        ServerLevel level = level(placement);
+        BlockPos position = position(placement);
+        BlockState state = level.getBlockState(position);
+        return level.isOutsideBuildHeight(position)
+                || level.getBlockEntity(position) != null
+                || protectedBlocks.contains(BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString());
     }
 
     public PreviewStatus previewStatus(ResolvedPlacement placement) {

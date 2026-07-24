@@ -82,6 +82,34 @@ class BuildSessionTest {
         assertFalse(manager.undo());
     }
 
+    @Test
+    void undoAfterCancellationLeavesUnprocessedDestinationsUntouched() {
+        FakeWorld world = new FakeWorld();
+        BuildManager manager = manager(world);
+        manager.start("partial", placements(3), 1);
+        manager.tick();
+        manager.cancel();
+        world.states.put(2, "player-change");
+
+        assertTrue(manager.undo());
+        assertEquals("player-change", world.states.get(2));
+        assertEquals("minecraft:air", world.states.get(0));
+    }
+
+    @Test
+    void rejectedWorldMutationFailsWithoutAdvancingCursor() {
+        FakeWorld world = new FakeWorld();
+        world.rejectedX = 1;
+        BuildManager manager = manager(world);
+        manager.start("rejected", placements(2), 2);
+
+        manager.tick();
+
+        assertEquals(BuildState.FAILED, manager.status().state());
+        assertEquals(1, manager.status().placedCount());
+        assertEquals(List.of("target-0"), world.appliedStates);
+    }
+
     private BuildManager manager(FakeWorld world) {
         return new BuildManager(world, new TransactionStore(tempDir.resolve("latest.json")));
     }
@@ -99,6 +127,7 @@ class BuildSessionTest {
         private final Map<Integer, String> states = new HashMap<>();
         private final List<String> appliedStates = new ArrayList<>();
         private int protectedX = -1;
+        private int rejectedX = -1;
 
         @Override
         public String getBlockState(ResolvedPlacement placement) {
@@ -106,9 +135,13 @@ class BuildSessionTest {
         }
 
         @Override
-        public void setBlockState(ResolvedPlacement placement, String blockState) {
+        public boolean setBlockState(ResolvedPlacement placement, String blockState) {
+            if (placement.x() == rejectedX) {
+                return false;
+            }
             states.put(placement.x(), blockState);
             appliedStates.add(blockState);
+            return true;
         }
 
         @Override

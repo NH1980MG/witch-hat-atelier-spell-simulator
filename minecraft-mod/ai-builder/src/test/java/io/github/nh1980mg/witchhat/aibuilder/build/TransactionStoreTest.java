@@ -22,7 +22,13 @@ class TransactionStoreTest {
                 1,
                 "transaction-id",
                 "minecraft:overworld",
-                List.of(new BuildTransaction.Entry(1, 64, 2, "minecraft:stone")));
+                0,
+                List.of(new BuildTransaction.Entry(
+                        1,
+                        64,
+                        2,
+                        "minecraft:stone",
+                        "minecraft:sea_lantern")));
 
         store.save(transaction);
 

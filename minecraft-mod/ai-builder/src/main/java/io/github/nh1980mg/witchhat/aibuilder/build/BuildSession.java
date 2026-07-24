@@ -1,12 +1,14 @@
 package io.github.nh1980mg.witchhat.aibuilder.build;
 
 import java.util.List;
+import java.util.function.IntConsumer;
 
 public final class BuildSession {
     private final String planId;
     private final List<ResolvedPlacement> placements;
     private final int blocksPerTick;
     private final WorldMutationPort world;
+    private final IntConsumer progressRecorder;
     private BuildState state = BuildState.RUNNING;
     private int cursor;
 
@@ -14,11 +16,13 @@ public final class BuildSession {
             String planId,
             List<ResolvedPlacement> placements,
             int blocksPerTick,
-            WorldMutationPort world) {
+            WorldMutationPort world,
+            IntConsumer progressRecorder) {
         this.planId = planId;
         this.placements = List.copyOf(placements);
         this.blocksPerTick = blocksPerTick;
         this.world = world;
+        this.progressRecorder = progressRecorder;
     }
 
     public void tick() {
@@ -27,13 +31,23 @@ public final class BuildSession {
         }
         int stop = Math.min(cursor + blocksPerTick, placements.size());
         try {
+            // Write-ahead progress makes the current batch recoverable after a crash.
+            progressRecorder.accept(stop);
+        } catch (RuntimeException error) {
+            state = BuildState.FAILED;
+            return;
+        }
+        try {
             while (cursor < stop) {
                 ResolvedPlacement placement = placements.get(cursor);
                 if (world.isProtected(placement)) {
                     state = BuildState.FAILED;
                     return;
                 }
-                world.setBlockState(placement, placement.targetState());
+                if (!world.setBlockState(placement, placement.targetState())) {
+                    state = BuildState.FAILED;
+                    return;
+                }
                 cursor++;
             }
             if (cursor == placements.size()) {
@@ -41,6 +55,14 @@ public final class BuildSession {
             }
         } catch (RuntimeException error) {
             state = BuildState.FAILED;
+        } finally {
+            if (cursor != stop) {
+                try {
+                    progressRecorder.accept(cursor);
+                } catch (RuntimeException error) {
+                    state = BuildState.FAILED;
+                }
+            }
         }
     }
 

@@ -19,6 +19,7 @@ public final class AiBuilderMod implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        PreviewNetworking.registerPayload();
         var loader = FabricLoader.getInstance();
         var config = new ConfigRepository(loader.getConfigDir()
                 .resolve("witchhat-ai-builder")
@@ -26,7 +27,6 @@ public final class AiBuilderMod implements ModInitializer {
         if (!loader.isDevelopmentEnvironment() && !config.enabledOutsideDevelopment()) {
             return;
         }
-        PreviewNetworking.registerPayload();
         CommandRegistrationCallback.EVENT.register(
                 (dispatcher, registryAccess, environment) ->
                         AiBuilderCommands.register(dispatcher, AiBuilderMod::runtime));

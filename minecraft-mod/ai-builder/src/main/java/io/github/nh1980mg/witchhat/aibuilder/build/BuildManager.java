@@ -1,7 +1,6 @@
 package io.github.nh1980mg.witchhat.aibuilder.build;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,16 +48,23 @@ public final class BuildManager {
                             placement.x(),
                             placement.y(),
                             placement.z(),
-                            world.getBlockState(placement)));
+                            world.getBlockState(placement),
+                            placement.targetState()));
         }
 
         BuildTransaction transaction = new BuildTransaction(
                 1,
                 UUID.randomUUID().toString(),
                 dimension,
+                0,
                 new ArrayList<>(originals.values()));
         transactionStore.save(transaction);
-        session = new BuildSession(planId, placements, blocksPerTick, world);
+        session = new BuildSession(
+                planId,
+                placements,
+                blocksPerTick,
+                world,
+                appliedCount -> transactionStore.save(transaction.withAppliedCount(appliedCount)));
     }
 
     public synchronized void tick() {
@@ -88,18 +94,24 @@ public final class BuildManager {
             return false;
         }
         BuildTransaction transaction = stored.get();
-        List<BuildTransaction.Entry> entries = new ArrayList<>(transaction.entries());
-        Collections.reverse(entries);
-        for (BuildTransaction.Entry entry : entries) {
-            world.setBlockState(
-                    new ResolvedPlacement(
-                            transaction.dimension(),
-                            "undo",
-                            entry.x(),
-                            entry.y(),
-                            entry.z(),
-                            entry.state()),
+        for (int index = transaction.entries().size() - 1; index >= 0; index--) {
+            BuildTransaction.Entry entry = transaction.entries().get(index);
+            ResolvedPlacement placement = new ResolvedPlacement(
+                    transaction.dimension(),
+                    "undo",
+                    entry.x(),
+                    entry.y(),
+                    entry.z(),
                     entry.state());
+            boolean recordedAsApplied = index < transaction.appliedCount();
+            boolean looksAppliedAfterCrash =
+                    world.getBlockState(placement).equals(entry.targetState());
+            if (recordedAsApplied
+                    && looksAppliedAfterCrash
+                    && !world.setBlockState(placement, entry.state())) {
+                throw new IllegalStateException(
+                        "Unable to restore block at " + entry.x() + "," + entry.y() + "," + entry.z());
+            }
         }
         transactionStore.clear();
         session = null;

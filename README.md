@@ -129,3 +129,5 @@ world with operator permission, use:
 Ghost outlines are green for replaceable blocks, amber for occupied blocks,
 and red for protected blocks. Builds are progressive and save
 `run/config/witchhat-ai-builder/history/latest.json` before changing the world.
+Existing block entities such as chests and signs are treated as protected so
+their inventories and NBT data cannot be lost by a build or undo.
