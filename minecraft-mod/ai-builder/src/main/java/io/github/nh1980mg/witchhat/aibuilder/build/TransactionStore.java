@@ -48,7 +48,7 @@ public final class TransactionStore {
         }
         try (Reader reader = Files.newBufferedReader(file)) {
             BuildTransaction transaction = gson.fromJson(reader, BuildTransaction.class);
-            if (transaction == null || transaction.formatVersion() != 1) {
+            if (transaction == null || transaction.formatVersion() != 2) {
                 throw new IllegalStateException("Unsupported or empty build backup");
             }
             return Optional.of(transaction);

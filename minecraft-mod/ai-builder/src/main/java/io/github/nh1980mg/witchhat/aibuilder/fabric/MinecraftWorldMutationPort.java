@@ -38,7 +38,12 @@ public final class MinecraftWorldMutationPort implements WorldMutationPort {
                     server.registryAccess().lookupOrThrow(Registries.BLOCK),
                     blockState,
                     false).blockState();
-            return level(placement).setBlock(position(placement), parsed, Block.UPDATE_ALL);
+            ServerLevel level = level(placement);
+            BlockPos position = position(placement);
+            if (level.getBlockState(position).equals(parsed)) {
+                return true;
+            }
+            return level.setBlock(position, parsed, Block.UPDATE_ALL);
         } catch (CommandSyntaxException error) {
             throw new IllegalArgumentException("Invalid block state: " + blockState, error);
         }
@@ -61,6 +66,20 @@ public final class MinecraftWorldMutationPort implements WorldMutationPort {
         return level(placement).getBlockState(position(placement)).isAir()
                 ? PreviewStatus.REPLACEABLE
                 : PreviewStatus.OCCUPIED;
+    }
+
+    @Override
+    public boolean matchesTargetState(ResolvedPlacement placement, String targetState) {
+        try {
+            BlockState target = BlockStateParser.parseForBlock(
+                    server.registryAccess().lookupOrThrow(Registries.BLOCK),
+                    targetState,
+                    false).blockState();
+            return level(placement).getBlockState(position(placement)).getBlock()
+                    == target.getBlock();
+        } catch (CommandSyntaxException error) {
+            return false;
+        }
     }
 
     private ServerLevel level(ResolvedPlacement placement) {

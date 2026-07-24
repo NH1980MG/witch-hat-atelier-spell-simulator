@@ -53,7 +53,7 @@ public final class BuildManager {
         }
 
         BuildTransaction transaction = new BuildTransaction(
-                1,
+                2,
                 UUID.randomUUID().toString(),
                 dimension,
                 0,
@@ -105,7 +105,7 @@ public final class BuildManager {
                     entry.state());
             boolean recordedAsApplied = index < transaction.appliedCount();
             boolean looksAppliedAfterCrash =
-                    world.getBlockState(placement).equals(entry.targetState());
+                    world.matchesTargetState(placement, entry.targetState());
             if (recordedAsApplied
                     && looksAppliedAfterCrash
                     && !world.setBlockState(placement, entry.state())) {
