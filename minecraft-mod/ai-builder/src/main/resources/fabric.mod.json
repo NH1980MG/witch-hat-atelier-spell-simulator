@@ -8,6 +8,9 @@
   "entrypoints": {
     "main": [
       "io.github.nh1980mg.witchhat.aibuilder.AiBuilderMod"
+    ],
+    "client": [
+      "io.github.nh1980mg.witchhat.aibuilder.client.AiBuilderClient"
     ]
   },
   "depends": {

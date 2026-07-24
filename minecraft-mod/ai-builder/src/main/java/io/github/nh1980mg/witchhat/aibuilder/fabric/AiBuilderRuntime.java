@@ -7,6 +7,7 @@ import io.github.nh1980mg.witchhat.aibuilder.config.ConfigRepository;
 import io.github.nh1980mg.witchhat.aibuilder.plan.PlanLimits;
 import io.github.nh1980mg.witchhat.aibuilder.plan.PlanParser;
 import io.github.nh1980mg.witchhat.aibuilder.plan.PlanRepository;
+import io.github.nh1980mg.witchhat.aibuilder.network.PreviewNetworking;
 import java.nio.file.Path;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.MinecraftServer;
@@ -32,6 +33,9 @@ public record AiBuilderRuntime(
                 new PlanRepository(root.resolve("plans"), new PlanParser()),
                 new PlanResolver(config),
                 new BuildManager(world, new TransactionStore(root.resolve("history/latest.json"))),
-                previews);
+                previews == null
+                        ? (player, planId, placements) ->
+                                PreviewNetworking.send(player, planId, placements, world)
+                        : previews);
     }
 }

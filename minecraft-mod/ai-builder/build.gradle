@@ -12,6 +12,10 @@ base {
 loom {
     splitEnvironmentSourceSets()
 
+    runs.configureEach {
+        runDir = rootProject.file("run").absolutePath
+    }
+
     mods {
         "witchhat_ai_builder" {
             sourceSet sourceSets.main
@@ -51,4 +55,17 @@ processResources {
     filesMatching("fabric.mod.json") {
         expand "version": project.version
     }
+}
+
+tasks.register("installExamplePlan", Copy) {
+    from(rootProject.file("examples/test_platform.json"))
+    into(rootProject.file("run/config/witchhat-ai-builder/plans"))
+}
+
+tasks.named("runClient").configure {
+    dependsOn("installExamplePlan")
+}
+
+tasks.named("runServer").configure {
+    dependsOn("installExamplePlan")
 }

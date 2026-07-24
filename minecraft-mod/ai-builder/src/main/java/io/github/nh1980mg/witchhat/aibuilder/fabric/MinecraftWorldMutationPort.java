@@ -3,6 +3,7 @@ package io.github.nh1980mg.witchhat.aibuilder.fabric;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import io.github.nh1980mg.witchhat.aibuilder.build.ResolvedPlacement;
 import io.github.nh1980mg.witchhat.aibuilder.build.WorldMutationPort;
+import io.github.nh1980mg.witchhat.aibuilder.preview.PreviewStatus;
 import java.util.Set;
 import net.minecraft.commands.arguments.blocks.BlockStateParser;
 import net.minecraft.core.BlockPos;
@@ -47,6 +48,15 @@ public final class MinecraftWorldMutationPort implements WorldMutationPort {
     public boolean isProtected(ResolvedPlacement placement) {
         BlockState state = level(placement).getBlockState(position(placement));
         return protectedBlocks.contains(BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString());
+    }
+
+    public PreviewStatus previewStatus(ResolvedPlacement placement) {
+        if (isProtected(placement)) {
+            return PreviewStatus.PROTECTED;
+        }
+        return level(placement).getBlockState(position(placement)).isAir()
+                ? PreviewStatus.REPLACEABLE
+                : PreviewStatus.OCCUPIED;
     }
 
     private ServerLevel level(ResolvedPlacement placement) {

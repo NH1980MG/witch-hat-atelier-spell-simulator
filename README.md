@@ -94,3 +94,38 @@ runtime CDN dependency.
 
 This is an unofficial fan project. *Witch Hat Atelier* and related names belong
 to their respective rights holders.
+
+## Local Minecraft AI Builder
+
+The unpublished `minecraft-mod/ai-builder` subproject is a Fabric 1.21.1,
+Java 21 development tool for constructing deterministic test scenery from
+local JSON plans. It does not use an API key, a remote service, or natural
+language.
+
+Run the development client:
+
+```bash
+cd minecraft-mod
+GRADLE_USER_HOME=$PWD/.gradle-user-home \
+JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home \
+./gradlew :ai-builder:runClient
+```
+
+The example is installed automatically at
+`run/config/witchhat-ai-builder/plans/test_platform.json`. In a creative local
+world with operator permission, use:
+
+```text
+/whabuilder list
+/whabuilder preview test_platform
+/whabuilder build test_platform
+/whabuilder pause
+/whabuilder resume
+/whabuilder cancel
+/whabuilder undo
+/whabuilder status
+```
+
+Ghost outlines are green for replaceable blocks, amber for occupied blocks,
+and red for protected blocks. Builds are progressive and save
+`run/config/witchhat-ai-builder/history/latest.json` before changing the world.

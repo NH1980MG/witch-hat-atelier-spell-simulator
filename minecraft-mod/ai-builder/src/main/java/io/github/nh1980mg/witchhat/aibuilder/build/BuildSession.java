@@ -41,7 +41,6 @@ public final class BuildSession {
             }
         } catch (RuntimeException error) {
             state = BuildState.FAILED;
-            throw error;
         }
     }
 

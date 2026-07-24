@@ -1,0 +1,35 @@
+{
+  "formatVersion": 1,
+  "id": "test_platform",
+  "dimensions": {
+    "x": 3,
+    "y": 2,
+    "z": 3
+  },
+  "palette": {
+    "floor": "minecraft:stone",
+    "light": "minecraft:sea_lantern"
+  },
+  "phases": [
+    {
+      "name": "foundation",
+      "placements": [
+        {"x": 0, "y": 0, "z": 0, "block": "floor"},
+        {"x": 1, "y": 0, "z": 0, "block": "floor"},
+        {"x": 2, "y": 0, "z": 0, "block": "floor"},
+        {"x": 0, "y": 0, "z": 1, "block": "floor"},
+        {"x": 1, "y": 0, "z": 1, "block": "light"},
+        {"x": 2, "y": 0, "z": 1, "block": "floor"},
+        {"x": 0, "y": 0, "z": 2, "block": "floor"},
+        {"x": 1, "y": 0, "z": 2, "block": "floor"},
+        {"x": 2, "y": 0, "z": 2, "block": "floor"}
+      ]
+    },
+    {
+      "name": "marker",
+      "placements": [
+        {"x": 1, "y": 1, "z": 1, "block": "light"}
+      ]
+    }
+  ]
+}
