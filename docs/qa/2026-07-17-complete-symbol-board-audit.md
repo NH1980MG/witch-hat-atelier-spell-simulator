@@ -4,10 +4,10 @@ Date: 2026-07-17
 
 ## Scope
 
-This pass audits all 64 editable entries in the shared vector catalogue: 26
-central sigils and 38 modifier signs. The same `SYMBOL_PATHS` geometry is used
-by the picker, drag preview, drawing canvas, recognition display and spell
-recipe model.
+This pass audits all 64 editable entries: 26 central sigils and 38 modifier
+signs. The 63 entries covered by generated sheets use extracted board masks in
+the picker, drag preview and drawing canvas. Wind keeps its capture-derived
+vector because no generated sheet contains that distinct sigil.
 
 ## Source Priority
 
@@ -35,10 +35,12 @@ recipe model.
 
 ## Implementation Controls
 
-- `SYMBOL_BOARD_TRACE` owns the exact runtime paths and the precise board cell.
-- `SYMBOL_PATHS` is derived from that provenance table and is shared by the
-  picker and drawing canvas.
+- `SYMBOL_BOARD_TRACE` owns the precise board cell, extracted asset and paired
+  editable paths.
+- `SYMBOL_BOARD_ASSET` is shared by the picker and drawing canvas.
+- `SYMBOL_PATHS` remains the geometry source for recognition and 3D sampling.
 - All 18 symbol sheets are represented by at least one runtime entry.
+- All 63 board-backed entries have a committed transparent mask.
 - Wind records its direct capture provenance instead of claiming a false cell.
 - Catalogue key order matches the provenance mapping key order.
 - Duplicate path drawings are rejected by automated tests.

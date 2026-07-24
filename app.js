@@ -1,6 +1,10 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { SYMBOL_AUDIT, SYMBOL_PATHS } from "./symbol-catalog.mjs?v=20260722-board-runtime-v1";
+import {
+  SYMBOL_AUDIT,
+  SYMBOL_BOARD_ASSET,
+  SYMBOL_PATHS,
+} from "./symbol-catalog.mjs?v=20260723-board-assets-v1";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
 import { getLocale, t } from "./site-i18n.mjs?v=20260718-onion-guides-v2";
@@ -1211,11 +1215,69 @@ function drawArrow(action, dashed = false) {
   ctx.fill();
 }
 
+const symbolBoardImageCache = new Map();
+const tintedSymbolBoardCache = new Map();
+
+function symbolBoardImage(name) {
+  const asset = SYMBOL_BOARD_ASSET[name];
+  if (!asset) {
+    return null;
+  }
+  if (symbolBoardImageCache.has(asset)) {
+    return symbolBoardImageCache.get(asset);
+  }
+  const image = new Image();
+  image.decoding = "async";
+  image.addEventListener("load", () => {
+    for (const key of tintedSymbolBoardCache.keys()) {
+      if (key.startsWith(`${asset}|`)) {
+        tintedSymbolBoardCache.delete(key);
+      }
+    }
+    render();
+  }, { once: true });
+  image.src = asset;
+  symbolBoardImageCache.set(asset, image);
+  return image;
+}
+
+function tintedSymbolBoardGlyph(name, color) {
+  const asset = SYMBOL_BOARD_ASSET[name];
+  const image = symbolBoardImage(name);
+  if (!asset || !image?.complete || image.naturalWidth === 0) {
+    return null;
+  }
+  const key = `${asset}|${color}`;
+  if (tintedSymbolBoardCache.has(key)) {
+    return tintedSymbolBoardCache.get(key);
+  }
+  const tinted = document.createElement("canvas");
+  tinted.width = image.naturalWidth;
+  tinted.height = image.naturalHeight;
+  const tintedContext = tinted.getContext("2d");
+  tintedContext.drawImage(image, 0, 0);
+  tintedContext.globalCompositeOperation = "source-in";
+  tintedContext.fillStyle = color;
+  tintedContext.fillRect(0, 0, tinted.width, tinted.height);
+  tintedSymbolBoardCache.set(key, tinted);
+  return tinted;
+}
+
 function drawGlyph(action) {
   const { x, y, size, color, rune, element } = action;
   ctx.strokeStyle = color;
   ctx.fillStyle = color;
   ctx.lineWidth = visibleLineWidth(2);
+
+  const tintedGlyph = tintedSymbolBoardGlyph(element, color);
+  if (tintedGlyph) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(action.rotation || 0);
+    ctx.drawImage(tintedGlyph, -size, -size, size * 2, size * 2);
+    ctx.restore();
+    return;
+  }
 
   const catalogPaths = SYMBOL_PATHS[element];
   if (catalogPaths) {
@@ -7144,6 +7206,10 @@ function updateToolButtons() {
 }
 
 function elementIconMarkup(element) {
+  const boardAsset = SYMBOL_BOARD_ASSET[element.name];
+  if (boardAsset) {
+    return `<span class="symbol-board-glyph" style="--symbol-mask:url('${boardAsset}')" aria-hidden="true"></span>`;
+  }
   const catalogPaths = SYMBOL_PATHS[element.name];
   if (catalogPaths) {
     const markup = catalogPaths.map((pathData) => `<path d="${pathData}"></path>`).join("");
