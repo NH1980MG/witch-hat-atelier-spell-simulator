@@ -42,16 +42,17 @@ Eighteen symbol sheets are linked case by case to the runtime vectors in
 19. `signs-link-project-flower-dalle-v1.png`: Link, Project, and Flower.
 
 The second-pass sheets were generated with the built-in DALL-E image workflow.
-Each accepted cell is manually reconstructed as an editable 48 by 48 vector.
-The local captures remain the geometric authority when a generated line
-simplifies or invents part of a symbol.
+Each accepted cell is extracted into a transparent monochrome mask under
+`assets/symbol-glyphs/`. These masks are now the visual source used by the
+symbol picker and by symbols placed on the parchment. The editable 48 by 48
+vectors remain available for recognition, geometry and 3D line sampling.
 
-`SYMBOL_BOARD_TRACE` records the exact sheet, cell, tracing method and vector
-paths for every editable entry. `SYMBOL_PATHS`, consumed by both the picker and
-the drawing canvas, is derived from that table. All eighteen symbol sheets are
-covered by an automated runtime test. The Wind sigil is the documented
-exception: capture 10 is its direct source because no generated sheet contains
-that distinct sigil.
+`SYMBOL_BOARD_TRACE` records the exact sheet, cell, extracted asset, tracing
+method and vector paths for every editable entry. `SYMBOL_BOARD_ASSET` is
+consumed by both the picker and the drawing canvas. All eighteen symbol sheets
+and all 63 cells they provide are covered by an automated runtime test. The
+Wind sigil is the documented exception: capture 10 is its direct vector source
+because no generated sheet contains that distinct sigil.
 
 ## Supplied Capture Inventory
 
@@ -78,5 +79,6 @@ source pages.
 ## Provenance Boundary
 
 The generated sheets are visual research aids, not claims of canonical artwork.
-Behavior, names, bilingual descriptions, drag-and-drop, canvas drawing, and 3D
-rendering continue to use the shared editable vector catalog.
+Behavior, names, bilingual descriptions and drag-and-drop use the shared
+catalogue metadata. The picker and parchment use the extracted board masks;
+recognition and 3D rendering use the paired editable vector geometry.

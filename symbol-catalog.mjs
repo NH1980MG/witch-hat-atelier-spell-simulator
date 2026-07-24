@@ -404,6 +404,26 @@ const SYMBOL_BOARD_CELL = Object.freeze({
   Projection: "top-right",
 });
 
+function symbolBoardAssetPath(name, board) {
+  if (!board) {
+    return null;
+  }
+  const slug = name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return `assets/symbol-glyphs/${slug}.png`;
+}
+
+export const SYMBOL_BOARD_ASSET = Object.freeze(Object.fromEntries(
+  Object.entries(SYMBOL_GENERATED_BOARD).map(([name, board]) => [
+    name,
+    symbolBoardAssetPath(name, board),
+  ]),
+));
+
 // This is the runtime provenance table, not a documentation-only index. Each
 // entry owns the exact paths consumed by both the picker and the canvas.
 export const SYMBOL_BOARD_TRACE = Object.freeze(Object.fromEntries(
@@ -414,6 +434,7 @@ export const SYMBOL_BOARD_TRACE = Object.freeze(Object.fromEntries(
       cell: SYMBOL_BOARD_CELL[name],
       method: board ? "manual-vector-trace" : "manual-capture-trace",
       paths: tracedPaths,
+      asset: SYMBOL_BOARD_ASSET[name],
     })];
   }),
 ));
