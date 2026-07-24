@@ -1,6 +1,7 @@
 import { access, readdir } from "node:fs/promises";
 import { constants } from "node:fs";
 import path from "node:path";
+import { SYMBOL_BOARD_ASSET } from "../symbol-catalog.mjs";
 
 const root = path.resolve(process.argv[2] || "public");
 const required = [
@@ -17,6 +18,7 @@ const required = [
   "sitemap.xml",
   ".nojekyll",
   "vendor/three/LICENSE",
+  ...Object.values(SYMBOL_BOARD_ASSET).filter(Boolean),
 ];
 const forbiddenNames = [/^Witch hat$/i, /^research$/i, /^references?$/i, /^screenshots?$/i];
 const forbiddenExtensions = new Set([".psd", ".kra", ".clip"]);
