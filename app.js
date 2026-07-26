@@ -1217,6 +1217,7 @@ function drawArrow(action, dashed = false) {
 
 const symbolBoardImageCache = new Map();
 const tintedSymbolBoardCache = new Map();
+const BOARD_GLYPH_STROKE_SCALE = 1.25;
 
 function symbolBoardImage(name) {
   const asset = SYMBOL_BOARD_ASSET[name];
@@ -1263,18 +1264,45 @@ function tintedSymbolBoardGlyph(name, color) {
   return tinted;
 }
 
+function drawThickenedBoardGlyph(context, image, size) {
+  const nominalStrokeWidth = size / 12;
+  const growthRadius = nominalStrokeWidth * (BOARD_GLYPH_STROKE_SCALE - 1) / 2;
+  const diagonalOffset = growthRadius * Math.SQRT1_2;
+  const offsets = [
+    [-growthRadius, 0],
+    [growthRadius, 0],
+    [0, -growthRadius],
+    [0, growthRadius],
+    [-diagonalOffset, -diagonalOffset],
+    [diagonalOffset, -diagonalOffset],
+    [-diagonalOffset, diagonalOffset],
+    [diagonalOffset, diagonalOffset],
+    [0, 0],
+  ];
+
+  for (const [offsetX, offsetY] of offsets) {
+    context.drawImage(
+      image,
+      -size + offsetX,
+      -size + offsetY,
+      size * 2,
+      size * 2,
+    );
+  }
+}
+
 function drawGlyph(action) {
   const { x, y, size, color, rune, element } = action;
   ctx.strokeStyle = color;
   ctx.fillStyle = color;
-  ctx.lineWidth = visibleLineWidth(2);
+  ctx.lineWidth = visibleLineWidth(2 * BOARD_GLYPH_STROKE_SCALE);
 
   const tintedGlyph = tintedSymbolBoardGlyph(element, color);
   if (tintedGlyph) {
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(action.rotation || 0);
-    ctx.drawImage(tintedGlyph, -size, -size, size * 2, size * 2);
+    drawThickenedBoardGlyph(ctx, tintedGlyph, size);
     ctx.restore();
     return;
   }
@@ -1287,7 +1315,7 @@ function drawGlyph(action) {
     ctx.rotate(action.rotation || 0);
     ctx.scale(glyphScale, glyphScale);
     ctx.translate(-24, -24);
-    ctx.lineWidth = visibleLineWidth(2) / Math.max(0.01, glyphScale);
+    ctx.lineWidth = visibleLineWidth(2 * BOARD_GLYPH_STROKE_SCALE) / Math.max(0.01, glyphScale);
     for (const pathData of catalogPaths) {
       ctx.stroke(new Path2D(pathData));
     }
