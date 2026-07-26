@@ -4,6 +4,7 @@ import {
   SIGN_PROFILES,
   composeSpellRecipe,
 } from "./spell-grammar.mjs";
+import { INDEXED_ELEMENTAL_MIXTURES } from "./elemental-mixtures.mjs";
 
 export const VARIANT_PAGE_SIZE = 50;
 
@@ -51,6 +52,10 @@ const SUPPORTS = Object.freeze(["none", "shoe"]);
 const SORTS = Object.freeze(["relevance", "name", "fidelity", "id"]);
 const WARNING_FILTERS = Object.freeze(["all", "with", "without"]);
 const ROLES = Object.freeze([...new Set(Object.values(SIGN_PROFILES).map(({ role }) => role))]);
+const MATERIAL_SIGNATURES = Object.freeze([
+  ...MATRIX_SIGIL_NAMES.map((sigil) => Object.freeze([sigil])),
+  ...INDEXED_ELEMENTAL_MIXTURES,
+]);
 
 export function normalizeSearchText(value) {
   return String(value || "")
@@ -106,10 +111,16 @@ function searchScore(record, search) {
   return total;
 }
 
-function makeSearchText(sigil, signs, supportId, recipe) {
+function makeSearchText(sigils, signs, supportId, recipe) {
+  const material = recipe.materialProfile;
   const values = [
-    sigil,
-    ENGLISH_ELEMENT_NAMES[sigil],
+    ...sigils,
+    ...sigils.map((name) => ENGLISH_ELEMENT_NAMES[name]),
+    material?.family,
+    material?.noun,
+    material?.defaultLabel,
+    material?.mechanic,
+    recipe.elementalMixture?.id,
     ...signs,
     ...signs.map((name) => ENGLISH_ELEMENT_NAMES[name]),
     supportId,
@@ -124,14 +135,15 @@ function makeSearchText(sigil, signs, supportId, recipe) {
 export function buildVariantIndex() {
   const records = [];
   for (const supportId of SUPPORTS) {
-    for (const sigil of MATRIX_SIGIL_NAMES) {
+    for (const sigils of MATERIAL_SIGNATURES) {
       for (let first = 0; first < MATRIX_SIGN_NAMES.length; first += 1) {
         for (let second = first; second < MATRIX_SIGN_NAMES.length; second += 1) {
           const signs = [MATRIX_SIGN_NAMES[first], MATRIX_SIGN_NAMES[second]];
-          const recipe = composeSpellRecipe({ sigils: [sigil], signs, supportId, direction: "vers le haut" });
+          const recipe = composeSpellRecipe({ sigils, signs, supportId, direction: "vers le haut" });
           records.push(Object.freeze({
             id: recipe.id,
-            sigil,
+            sigils: Object.freeze([...sigils]),
+            sigil: recipe.material,
             signs: Object.freeze(signs),
             supportId,
             fidelity: recipe.fidelity,
@@ -139,7 +151,7 @@ export function buildVariantIndex() {
             effectCategory: recipe.effectPlan.layers[0] || recipe.materialProfile.family,
             planKey: recipe.effectPlan.pipeline.join("|"),
             roles: Object.freeze([...new Set(signs.map((name) => SIGN_PROFILES[name].role))]),
-            searchText: makeSearchText(sigil, signs, supportId, recipe),
+            searchText: makeSearchText(sigils, signs, supportId, recipe),
           }));
         }
       }
@@ -150,7 +162,7 @@ export function buildVariantIndex() {
 
 export function getVariantDetail(record) {
   const recipe = composeSpellRecipe({
-    sigils: [record.sigil],
+    sigils: [...record.sigils],
     signs: [...record.signs],
     supportId: record.supportId,
     direction: "vers le haut",
@@ -159,11 +171,13 @@ export function getVariantDetail(record) {
   return Object.freeze({
     id: recipe.id,
     sigil: record.sigil,
+    sigils: [...record.sigils],
     signs: [...record.signs],
     supportId: recipe.supportId,
     label: recipe.label,
     fidelity: recipe.fidelity,
     confidence: recipe.confidence,
+    elementalMixture: recipe.elementalMixture,
     operations: recipe.operations,
     pipeline: [...recipe.effectPlan.pipeline],
     ruleIds: [...recipe.ruleIds],
@@ -211,7 +225,7 @@ export function queryVariants(records, state = DEFAULT_EXPLORER_STATE) {
   const requested = { ...DEFAULT_EXPLORER_STATE, ...state };
   const ranked = [];
   for (const record of records) {
-    if (requested.sigil !== "all" && record.sigil !== requested.sigil) continue;
+    if (requested.sigil !== "all" && !record.sigils.includes(requested.sigil)) continue;
     if (requested.sign !== "all" && !record.signs.includes(requested.sign)) continue;
     if (requested.role !== "all" && !record.roles.includes(requested.role)) continue;
     if (requested.support !== "all" && record.supportId !== requested.support) continue;
@@ -224,7 +238,7 @@ export function queryVariants(records, state = DEFAULT_EXPLORER_STATE) {
     ranked.push({ record, score });
   }
 
-  const compareName = (left, right) => `${left.sigil}|${left.signs.join("|")}|${left.supportId}`.localeCompare(`${right.sigil}|${right.signs.join("|")}|${right.supportId}`, "en");
+  const compareName = (left, right) => `${left.sigils.join("|")}|${left.signs.join("|")}|${left.supportId}`.localeCompare(`${right.sigils.join("|")}|${right.signs.join("|")}|${right.supportId}`, "en");
   ranked.sort((left, right) => {
     if (requested.sort === "id") return left.record.id.localeCompare(right.record.id);
     if (requested.sort === "fidelity") return FIDELITY_ORDER[left.record.fidelity] - FIDELITY_ORDER[right.record.fidelity] || compareName(left.record, right.record);

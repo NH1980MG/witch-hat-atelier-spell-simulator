@@ -12,3 +12,8 @@ test("the worker owns the catalog and supports init query and detail messages", 
   assert.match(worker, /case "query"/);
   assert.match(worker, /case "detail"/);
 });
+
+test("the worker resolves details from indexed records rather than a single sigil", () => {
+  assert.match(worker, /getVariantDetail\(record\)/);
+  assert.doesNotMatch(worker, /getVariantDetail\(\{\s*sigil:/);
+});

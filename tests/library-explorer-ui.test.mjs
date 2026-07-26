@@ -39,3 +39,10 @@ test("English recipe details derive combined-effect labels from stable IDs", asy
   assert.match(explorer, /humanizeEffectId/);
   assert.match(explorer, /localizePipeline/);
 });
+
+test("the explorer renders every material component and elemental fidelity", async () => {
+  const explorer = await readFile(new URL("../library-explorer.mjs", import.meta.url), "utf8");
+  assert.match(explorer, /record\.sigils/);
+  assert.match(explorer, /detail\.sigils/);
+  assert.match(explorer, /detail\.elementalMixture/);
+});

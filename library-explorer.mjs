@@ -94,7 +94,7 @@ if (!form) {
   }
 
   function recipeTitle(record) {
-    return `${displayName(record.sigil)} · ${record.signs.map(displayName).join(" + ")} · ${record.supportId === "shoe" ? t("support.shoe.name") : t("support.none.name")}`;
+    return `${record.sigils.map(displayName).join(" + ")} · ${record.signs.map(displayName).join(" + ")} · ${record.supportId === "shoe" ? t("support.shoe.name") : t("support.none.name")}`;
   }
 
   function renderResults(payload) {
@@ -173,8 +173,12 @@ if (!form) {
     const combinedEffectText = getLocale() === "fr"
       ? detail.combinedEffects.join(", ")
       : detail.combinationIds.map(humanizeEffectId).join(", ");
+    const materialLabel = `${t("explorer.sigil")} (${getLocale() === "fr" ? "composants" : "components"})`;
+    const elementalFidelityLabel = getLocale() === "fr" ? "Fidelite elementaire" : "Elemental fidelity";
     list.className = "variant-detail-list";
     list.append(
+      detailRow(materialLabel, detail.sigils.map(displayName).join(" + ")),
+      ...(detail.elementalMixture ? [detailRow(elementalFidelityLabel, t(`library.fidelity.${detail.elementalMixture.fidelity}`))] : []),
       detailRow(t("explorer.detail.fidelity"), t(`library.fidelity.${detail.fidelity}`)),
       detailRow(t("explorer.detail.pipeline"), localizePipeline(detail.pipeline)),
       detailRow(t("explorer.detail.rules"), detail.ruleIds.join(", ")),
