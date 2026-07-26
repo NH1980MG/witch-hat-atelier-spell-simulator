@@ -33,6 +33,8 @@ import {
   topmostGlyphIndexAtPoint,
 } from "./symbol-interactions.mjs";
 
+export const CENTRAL_SIGIL_STROKE_WIDTH = 6.4;
+
 const colors = {
   edge: "#8c6b3f",
   gold: "#c79736",
@@ -532,6 +534,12 @@ function zoomFactor() {
 
 function visibleLineWidth(width) {
   return Math.max(1, width / viewScale());
+}
+
+function centralSigilCanvasLineWidth(size) {
+  return visibleLineWidth(
+    CENTRAL_SIGIL_STROKE_WIDTH * size * 2 / SYMBOL_BOARD_RASTER_SIZE,
+  ) / Math.max(0.01, size / 24);
 }
 
 function lineWidth() {
@@ -1217,7 +1225,8 @@ function drawArrow(action, dashed = false) {
 
 const symbolBoardImageCache = new Map();
 const tintedSymbolBoardCache = new Map();
-const SYMBOL_BOARD_ASSET_VERSION = "20260726-stroke-125-v2";
+const SYMBOL_BOARD_ASSET_VERSION = "20260726-central-weight-v1";
+const SYMBOL_BOARD_RASTER_SIZE = 192;
 
 function runtimeSymbolBoardAsset(name) {
   const asset = SYMBOL_BOARD_ASSET[name];
@@ -1293,7 +1302,11 @@ function drawGlyph(action) {
     ctx.rotate(action.rotation || 0);
     ctx.scale(glyphScale, glyphScale);
     ctx.translate(-24, -24);
-    ctx.lineWidth = visibleLineWidth(2) / Math.max(0.01, glyphScale);
+    if (element === "Vent") {
+      ctx.lineWidth = centralSigilCanvasLineWidth(size);
+    } else {
+      ctx.lineWidth = visibleLineWidth(2) / Math.max(0.01, glyphScale);
+    }
     for (const pathData of catalogPaths) {
       ctx.stroke(new Path2D(pathData));
     }
@@ -7218,7 +7231,12 @@ function elementIconMarkup(element) {
   }
   const catalogPaths = SYMBOL_PATHS[element.name];
   if (catalogPaths) {
-    const markup = catalogPaths.map((pathData) => `<path d="${pathData}"></path>`).join("");
+    const strokeStyle = element.name === "Vent"
+      ? ` style="stroke-width:${CENTRAL_SIGIL_STROKE_WIDTH / 4}"`
+      : "";
+    const markup = catalogPaths
+      .map((pathData) => `<path d="${pathData}"${strokeStyle}></path>`)
+      .join("");
     return `<svg class="symbol-mark" viewBox="0 0 48 48" aria-hidden="true">${markup}</svg>`;
   }
   return `<span class="symbol-rune">${element.rune}</span>`;
