@@ -98,66 +98,138 @@ function tokenScore(query, candidate) {
   return 0;
 }
 
+const SEARCH_TOKEN_CACHE = new Map();
+
+function searchTokens(values) {
+  const normalized = normalizeSearchText(values.filter(Boolean).join(" "));
+  if (!SEARCH_TOKEN_CACHE.has(normalized)) {
+    SEARCH_TOKEN_CACHE.set(normalized, Object.freeze([...new Set(normalized.split(" ").filter(Boolean))]));
+  }
+  return SEARCH_TOKEN_CACHE.get(normalized);
+}
+
+const SUPPORT_SEARCH_TOKENS = Object.freeze({
+  none: searchTokens(["none aucun paper papier"]),
+  shoe: searchTokens(["shoe chaussure flying volante sole semelle"]),
+});
+const FIDELITY_SEARCH_TOKENS = Object.freeze({
+  documented: searchTokens(["documented"]),
+  inferred: searchTokens(["inferred"]),
+  experimental: searchTokens(["experimental"]),
+});
+
 function searchScore(record, search) {
   const queries = normalizeSearchText(search).split(" ").filter(Boolean);
   if (!queries.length) return 0;
-  const candidates = record.searchText.split(" ");
+  const candidates = [
+    record.material.searchTokens,
+    record.signPair.searchTokens,
+    SUPPORT_SEARCH_TOKENS[record.supportId],
+    FIDELITY_SEARCH_TOKENS[record.fidelity],
+    searchTokens([record.effectCategory]),
+  ];
   let total = 0;
   for (const query of queries) {
-    const best = Math.max(0, ...candidates.map((candidate) => tokenScore(query, candidate)));
+    let best = 0;
+    for (const group of candidates) {
+      for (const candidate of group) best = Math.max(best, tokenScore(query, candidate));
+    }
     if (!best) return -1;
     total += best;
   }
   return total;
 }
 
-function makeSearchText(sigils, signs, supportId, recipe) {
-  const material = recipe.materialProfile;
-  const values = [
+function materialDescriptor(sigils) {
+  const recipe = composeSpellRecipe({ sigils, signs: [], supportId: "none", direction: "vers le haut" });
+  return Object.freeze({
+    sigils: Object.freeze([...sigils]),
+    sigil: recipe.material,
+    searchTokens: searchTokens([
     ...sigils,
     ...sigils.map((name) => ENGLISH_ELEMENT_NAMES[name]),
-    material?.family,
-    material?.noun,
-    material?.defaultLabel,
-    material?.mechanic,
+    recipe.materialProfile?.family,
+    recipe.materialProfile?.noun,
+    recipe.materialProfile?.defaultLabel,
+    recipe.materialProfile?.mechanic,
     recipe.elementalMixture?.id,
+    ]),
+  });
+}
+
+function signPairDescriptor(first, second) {
+  const signs = Object.freeze([first, second]);
+  const roles = Object.freeze([...new Set(signs.map((name) => SIGN_PROFILES[name].role))]);
+  return Object.freeze({
+    signs,
+    roles,
+    searchTokens: searchTokens([
     ...signs,
     ...signs.map((name) => ENGLISH_ELEMENT_NAMES[name]),
-    supportId,
-    supportId === "shoe" ? "shoe chaussure flying volante sole semelle" : "none aucun paper papier",
-    recipe.fidelity,
-    recipe.effectPlan.layers.join(" "),
     ...signs.map((name) => SIGN_PROFILES[name]?.role),
-  ];
-  return normalizeSearchText(values.filter(Boolean).join(" "));
+    ...signs.map((name) => SIGN_PROFILES[name]?.operation),
+    ]),
+  });
+}
+
+const RECORD_PROTOTYPE = Object.freeze({
+  get sigils() { return this.material.sigils; },
+  get sigil() { return this.material.sigil; },
+  get signs() { return this.signPair.signs; },
+  get roles() { return this.signPair.roles; },
+});
+
+function compactRecord(values) {
+  return Object.freeze(Object.assign(Object.create(RECORD_PROTOTYPE), values));
 }
 
 export function buildVariantIndex() {
   const records = [];
+  const materials = MATERIAL_SIGNATURES.map(materialDescriptor);
+  const signPairs = [];
+  for (let first = 0; first < MATRIX_SIGN_NAMES.length; first += 1) {
+    for (let second = first; second < MATRIX_SIGN_NAMES.length; second += 1) {
+      signPairs.push(signPairDescriptor(MATRIX_SIGN_NAMES[first], MATRIX_SIGN_NAMES[second]));
+    }
+  }
   for (const supportId of SUPPORTS) {
-    for (const sigils of MATERIAL_SIGNATURES) {
-      for (let first = 0; first < MATRIX_SIGN_NAMES.length; first += 1) {
-        for (let second = first; second < MATRIX_SIGN_NAMES.length; second += 1) {
-          const signs = [MATRIX_SIGN_NAMES[first], MATRIX_SIGN_NAMES[second]];
-          const recipe = composeSpellRecipe({ sigils, signs, supportId, direction: "vers le haut" });
-          records.push(Object.freeze({
+    for (const material of materials) {
+      for (const signPair of signPairs) {
+        const recipe = composeSpellRecipe({ sigils: material.sigils, signs: signPair.signs, supportId, direction: "vers le haut" });
+        records.push(compactRecord({
             id: recipe.id,
-            sigils: Object.freeze([...sigils]),
-            sigil: recipe.material,
-            signs: Object.freeze(signs),
+            material,
+            signPair,
             supportId,
             fidelity: recipe.fidelity,
             warningCount: recipe.warnings.length,
             effectCategory: recipe.effectPlan.layers[0] || recipe.materialProfile.family,
-            planKey: recipe.effectPlan.pipeline.join("|"),
-            roles: Object.freeze([...new Set(signs.map((name) => SIGN_PROFILES[name].role))]),
-            searchText: makeSearchText(sigils, signs, supportId, recipe),
-          }));
-        }
+        }));
       }
     }
   }
   return Object.freeze(records);
+}
+
+function resultRecord(record) {
+  const recipe = composeSpellRecipe({
+    sigils: record.sigils,
+    signs: record.signs,
+    supportId: record.supportId,
+    direction: "vers le haut",
+  });
+  return Object.freeze({
+    id: record.id,
+    sigils: record.sigils,
+    sigil: record.sigil,
+    signs: record.signs,
+    supportId: record.supportId,
+    fidelity: record.fidelity,
+    warningCount: record.warningCount,
+    effectCategory: record.effectCategory,
+    roles: record.roles,
+    planKey: recipe.effectPlan.pipeline.join("|"),
+  });
 }
 
 export function getVariantDetail(record) {
@@ -255,6 +327,6 @@ export function queryVariants(records, state = DEFAULT_EXPLORER_STATE) {
     filtered,
     page,
     pageCount,
-    records: ranked.slice(start, start + VARIANT_PAGE_SIZE).map(({ record }) => record),
+    records: ranked.slice(start, start + VARIANT_PAGE_SIZE).map(({ record }) => resultRecord(record)),
   };
 }

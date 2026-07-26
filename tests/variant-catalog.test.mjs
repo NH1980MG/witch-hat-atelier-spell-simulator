@@ -30,6 +30,16 @@ test("the explorer indexes 54,834 unique deterministic variants", () => {
   assert.ok(records.every(({ sigils, sigil }) => Object.isFrozen(sigils) && sigils.includes(sigil)));
 });
 
+test("the index shares descriptors and derives plan keys for one result page", () => {
+  assert.ok(records.every((record) => !Object.hasOwn(record, "searchText") && !Object.hasOwn(record, "planKey")));
+  assert.equal(new Set(records.map(({ material }) => material)).size, 37);
+  assert.equal(new Set(records.map(({ signPair }) => signPair)).size, 741);
+
+  const result = queryVariants(records, { ...DEFAULT_EXPLORER_STATE, search: "mud" });
+  assert.ok(result.records.length <= VARIANT_PAGE_SIZE);
+  assert.ok(result.records.every(({ planKey }) => typeof planKey === "string" && planKey.length > 0));
+});
+
 test("mixtures are searchable and filterable by either element", () => {
   const result = queryVariants(records, {
     ...DEFAULT_EXPLORER_STATE,

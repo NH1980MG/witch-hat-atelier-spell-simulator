@@ -27,7 +27,10 @@ test("the workshop and library publish valid JSON-LD types", async () => {
   const library = await readFile(new URL("../bibliotheque.html", import.meta.url), "utf8");
   assert.match(workshop, /"@type":\s*"WebApplication"/);
   assert.match(library, /"@type":\s*"CollectionPage"/);
-  assert.match(library, /"numberOfItems":\s*38532/);
+  assert.match(library, /<meta name="description" content="Search 54,834 support-aware spell recipes/);
+  assert.match(library, /<meta property="og:description" content="Explore a bilingual wiki[^\n]+54,834 searchable spell variants/);
+  assert.match(library, /"numberOfItems":\s*54834/);
+  assert.match(library, /54,834 deterministic magic-circle variants/);
 });
 
 test("robots and sitemap advertise every public page", async () => {
