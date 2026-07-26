@@ -57,6 +57,26 @@ website or require a browser.
 The web simulator remains the visual and behavioral reference, but the Minecraft
 screen uses Minecraft widgets, tooltips, narration labels, and GUI scaling.
 
+### Element Selection
+
+The complete workshop supports mouse selection without changing the drawing
+tool currently in use.
+
+- A right-click on a symbol, sign, or circle selects the topmost element under
+  the pointer.
+- Holding the right mouse button and dragging across empty parchment draws a
+  rectangular selection marquee.
+- Every symbol, sign, or circle whose bounds intersect the marquee is selected.
+- Selected elements display one shared bounding box and corner handles.
+- Dragging the selection moves all selected elements together.
+- Dragging a corner handle resizes the selection proportionally around its
+  opposite corner while preserving the relative layout of its elements.
+- Delete removes every selected element after one undoable editor operation.
+- A right-click on empty parchment without dragging clears the selection.
+
+Freehand strokes are not included in rectangular element selection in the first
+playable version. They remain editable through undo, redo, eraser, and clear.
+
 ## Data Model
 
 Each notebook stores:
