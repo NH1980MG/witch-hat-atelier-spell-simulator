@@ -12,7 +12,6 @@ test("primary sigil selection is deterministic", () => {
   assert.equal(selectPrimarySigil({ Eau: 1, Feu: 2 }), "Feu");
   assert.equal(selectPrimarySigil({ Feu: 1, Eau: 1 }), "Eau");
   assert.equal(selectPrimarySigil({ Eau: 1, Feu: 1 }), "Eau");
-  assert.equal(selectPrimarySigil({ Eau: 1, Cristal: 1 }), "Eau");
 });
 
 test("semantic geometry differences keep distinct identities", () => {

@@ -1,5 +1,3 @@
-import { BASE_ELEMENT_NAMES } from "./elemental-mixtures.mjs";
-
 export const SUPPORTED_SUPPORT_IDS = Object.freeze(["none", "shoe"]);
 
 function clamp(value, minimum, maximum, fallback) {
@@ -29,9 +27,7 @@ function freezeDeep(value) {
 export function selectPrimarySigil(sigilCounts = {}) {
   return Object.entries(sigilCounts)
     .filter(([, count]) => Number(count) > 0)
-    .sort((left, right) => Number(right[1]) - Number(left[1])
-      || Number(BASE_ELEMENT_NAMES.includes(right[0])) - Number(BASE_ELEMENT_NAMES.includes(left[0]))
-      || left[0].localeCompare(right[0], "fr"))[0]?.[0] || null;
+    .sort((left, right) => Number(right[1]) - Number(left[1]) || left[0].localeCompare(right[0], "fr"))[0]?.[0] || null;
 }
 
 export function normalizeSpellGeometry(geometry = {}) {

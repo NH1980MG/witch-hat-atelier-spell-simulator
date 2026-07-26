@@ -38,7 +38,8 @@ test("base repetition changes plan parameters and identity", () => {
 test("non-base combinations retain primary-sigil behavior", () => {
   const recipe = composeSpellRecipe({ sigils: ["Eau", "Cristal"] });
   assert.equal(recipe.elementalMixture, null);
-  assert.equal(recipe.materialProfile.family, "water");
+  assert.equal(recipe.material, "Cristal");
+  assert.equal(recipe.materialProfile.family, "crystal");
 });
 
 test("support changes the recipe identity and semantic plan", () => {
