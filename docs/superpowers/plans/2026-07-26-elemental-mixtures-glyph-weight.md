@@ -166,7 +166,7 @@ test("base repetition changes plan parameters and identity", () => {
 test("non-base combinations retain primary-sigil behavior", () => {
   const recipe = composeSpellRecipe({ sigils: ["Eau", "Cristal"] });
   assert.equal(recipe.elementalMixture, null);
-  assert.equal(recipe.materialProfile.family, "water");
+  assert.equal(recipe.materialProfile.family, "crystal");
 });
 ```
 
@@ -211,7 +211,7 @@ git commit -m "feat: compose base materials in spell grammar"
 
 **Files:**
 - Modify: `variant-catalog.mjs`
-- Modify: `variant-explorer.js`
+- Modify: `library-explorer.mjs`
 - Modify: `bibliotheque.html`
 - Modify: `tests/variant-catalog.test.mjs`
 - Modify: `tests/library-explorer-ui.test.mjs`
@@ -281,7 +281,7 @@ Expected: PASS.
 - [ ] **Step 6: Commit the explorer**
 
 ```bash
-git add variant-catalog.mjs variant-explorer.js bibliotheque.html tests/variant-catalog.test.mjs tests/library-explorer-ui.test.mjs tests/variant-worker.test.mjs
+git add variant-catalog.mjs library-explorer.mjs bibliotheque.html tests/variant-catalog.test.mjs tests/library-explorer-ui.test.mjs tests/variant-worker.test.mjs
 git commit -m "feat: index elemental mixture variants"
 ```
 
@@ -374,10 +374,13 @@ git commit -m "fix: match central sigil and sign stroke weights"
 ### Task 5: Bilingual Documentation, Metadata, And Release Verification
 
 **Files:**
-- Modify: `i18n.js`
+- Modify: `i18n.mjs`
+- Modify: `index.html`
 - Modify: `tutoriel.html`
 - Modify: `bibliotheque.html`
 - Modify: `README.md`
+- Modify: `docs/architecture.md`
+- Modify: `docs/release-checklist.md`
 - Modify: `docs/progress-tracker.md`
 - Modify: `tests/tutorial-content.test.mjs`
 - Modify: `tests/wiki-pages.test.mjs`
@@ -424,7 +427,7 @@ Do not claim that inferred mixtures are manga-confirmed.
 
 ```bash
 node --check app.js
-node --check variant-explorer.js
+node --check library-explorer.mjs
 node --test tests/*.test.mjs
 node scripts/validate-spell-matrix.mjs
 node scripts/validate-public-artifact.mjs
@@ -450,7 +453,7 @@ Start the local server, then verify desktop and mobile:
 - [ ] **Step 6: Commit docs and verification updates**
 
 ```bash
-git add i18n.js tutoriel.html bibliotheque.html README.md docs/progress-tracker.md tests/tutorial-content.test.mjs tests/wiki-pages.test.mjs tests/seo.test.mjs
+git add i18n.mjs index.html tutoriel.html bibliotheque.html README.md docs/architecture.md docs/release-checklist.md docs/progress-tracker.md tests/tutorial-content.test.mjs tests/wiki-pages.test.mjs tests/seo.test.mjs
 git commit -m "docs: explain elemental mixture variants"
 ```
 
