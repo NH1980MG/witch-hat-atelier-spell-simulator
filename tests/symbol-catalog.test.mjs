@@ -103,18 +103,18 @@ test("toutes les planches de sigils et signes alimentent le catalogue runtime", 
   assert.deepEqual(runtimeBoards, symbolBoards);
 });
 
-test("les glyphes issus des planches sont epaissis de 25 pour cent partout", async () => {
+test("les glyphes issus des planches utilisent les masques epaissis partages", async () => {
   const styles = await readFile(new URL("../styles.css", import.meta.url), "utf8");
   const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 
-  assert.match(html, /id="symbolStrokeExpansion"[\s\S]*?<feMorphology[^>]+operator="dilate"[^>]+radius="0\.1875"/);
-  assert.match(styles, /\.symbol-board-glyph\s*\{[\s\S]*?filter:\s*url\("#symbolStrokeExpansion"\)/);
-  assert.match(styles, /\.symbol-mark path,[\s\S]*?stroke-width:\s*2\.75/);
-  assert.match(styles, /\[data-symbol="Fumee"\] \.symbol-mark path\s*\{\s*stroke-width:\s*2\.8125/);
-  assert.match(app, /const BOARD_GLYPH_STROKE_SCALE = 1\.25;/);
-  assert.match(app, /drawThickenedBoardGlyph\(ctx, tintedGlyph, size\)/);
-  assert.match(app, /visibleLineWidth\(2 \* BOARD_GLYPH_STROKE_SCALE\)/);
+  assert.doesNotMatch(html, /symbolStrokeExpansion/);
+  assert.doesNotMatch(styles, /symbolStrokeExpansion/);
+  assert.match(styles, /\.symbol-mark path,[\s\S]*?stroke-width:\s*2\.2/);
+  assert.match(styles, /\[data-symbol="Fumee"\] \.symbol-mark path\s*\{\s*stroke-width:\s*2\.25/);
+  assert.doesNotMatch(app, /BOARD_GLYPH_STROKE_SCALE/);
+  assert.match(app, /ctx\.drawImage\(tintedGlyph/);
+  assert.match(app, /visibleLineWidth\(2\)/);
 });
 
 test("les symboles corriges utilisent les nouveaux traces partages", () => {
@@ -134,8 +134,8 @@ test("le navigateur charge la nouvelle version du catalogue partage", async () =
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 
   assert.match(app, /symbol-catalog\.mjs\?v=20260723-board-assets-v1/);
-  assert.match(html, /app\.js\?v=20260726-stroke-125-v1/);
-  assert.match(html, /styles\.css\?v=20260726-stroke-125-v1/);
+  assert.match(html, /app\.js\?v=20260726-stroke-125-v2/);
+  assert.match(html, /styles\.css\?v=20260726-stroke-125-v2/);
 });
 
 test("chaque glyphe partage possede une planche d'audit generee", () => {
