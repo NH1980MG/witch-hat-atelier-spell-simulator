@@ -30,7 +30,7 @@ test("le selecteur et le parchemin utilisent les masques issus des planches", as
   assert.match(app, /SYMBOL_BOARD_ASSET/);
   assert.match(app, /class="symbol-board-glyph"/);
   assert.match(app, /function symbolBoardImage\(/);
-  assert.match(app, /ctx\.drawImage\(tintedGlyph/);
+  assert.match(app, /drawThickenedBoardGlyph\(ctx, tintedGlyph, size\)/);
   assert.match(css, /\.symbol-board-glyph\s*\{/);
   assert.match(css, /mask-image:\s*var\(--symbol-mask\)/);
 });

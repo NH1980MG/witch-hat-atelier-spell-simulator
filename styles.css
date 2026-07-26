@@ -962,6 +962,7 @@ input:focus-visible {
   width: 36px;
   height: 36px;
   background: currentColor;
+  filter: url("#symbolStrokeExpansion");
   -webkit-mask-image: var(--symbol-mask);
   mask-image: var(--symbol-mask);
   -webkit-mask-position: center;
@@ -977,13 +978,13 @@ input:focus-visible {
 .symbol-mark ellipse {
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.2;
+  stroke-width: 2.75;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .ink-button[data-symbol="Fumee"] .symbol-mark path {
-  stroke-width: 2.25;
+  stroke-width: 2.8125;
 }
 
 .symbol-copy {
