@@ -9,6 +9,38 @@ import {
   validateSpellMatrix,
 } from "../spell-grammar.mjs";
 
+test("base sigils compose before signs and supports", () => {
+  const recipe = composeSpellRecipe({
+    sigils: ["Eau", "Terre"],
+    signs: ["Convergence", "Solidification"],
+    supportId: "none",
+  });
+  assert.equal(recipe.elementalMixture.id, "eau+terre");
+  assert.equal(recipe.materialProfile.family, "mud");
+  assert.ok(recipe.ruleIds.includes("material.mix.eau+terre"));
+  assert.ok(recipe.effectPlan.pipeline[0].includes("mud"));
+});
+
+test("element order does not change identity", () => {
+  const left = composeSpellRecipe({ sigils: ["Eau", "Terre"], signs: ["Colonne"] });
+  const right = composeSpellRecipe({ sigils: ["Terre", "Eau"], signs: ["Colonne"] });
+  assert.deepEqual(left, right);
+});
+
+test("base repetition changes plan parameters and identity", () => {
+  const balanced = composeSpellRecipe({ sigils: ["Eau", "Terre"] });
+  const dominant = composeSpellRecipe({ sigils: ["Eau", "Eau", "Terre"] });
+  assert.notEqual(balanced.id, dominant.id);
+  assert.equal(dominant.elementalMixture.dominantElement, "Eau");
+  assert.ok(dominant.effectPlan.parameters.elementIntensity > balanced.effectPlan.parameters.elementIntensity);
+});
+
+test("non-base combinations retain primary-sigil behavior", () => {
+  const recipe = composeSpellRecipe({ sigils: ["Eau", "Cristal"] });
+  assert.equal(recipe.elementalMixture, null);
+  assert.equal(recipe.materialProfile.family, "water");
+});
+
 test("support changes the recipe identity and semantic plan", () => {
   const input = {
     sigils: ["Eau"],

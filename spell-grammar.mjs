@@ -4,6 +4,7 @@ import {
   normalizeSpellGeometry,
   selectPrimarySigil,
 } from "./spell-model.mjs";
+import { composeElementalMixture } from "./elemental-mixtures.mjs";
 import { composeSupportPlan } from "./support-policy.mjs";
 
 const profile = (value) => Object.freeze(value);
@@ -203,7 +204,7 @@ function operationCount(axes, operation) {
   }, 0);
 }
 
-function buildEffectPlan({ axes, material, sigilCounts, signCounts, direction, supportId, geometry }) {
+function buildEffectPlan({ axes, material, sigilCounts, signCounts, direction, supportId, geometry, elementalMixture, primaryName }) {
   const stageOrder = ["supply", "state", "form", "motion", "target", "scope", "relation", "power"];
   const pipeline = [material ? `matiere:${material.family}` : "matiere:indefinie"];
   const layers = [];
@@ -259,6 +260,9 @@ function buildEffectPlan({ axes, material, sigilCounts, signCounts, direction, s
       stateLoad,
       relationLoad,
       repetition: sigilCounts.Repetition || 0,
+      elementBalance: elementalMixture?.balance ?? 1,
+      elementIntensity: elementalMixture?.intensity ?? 1,
+      elementCount: elementalMixture?.elements.length ?? Number(Boolean(primaryName)),
       ...geometryParameters,
     },
   };
@@ -282,7 +286,8 @@ export function composeSpellRecipe({
     .filter(([name]) => SIGIL_PROFILES[name])
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "fr"));
   const primaryName = selectPrimarySigil(Object.fromEntries(orderedSigils));
-  const material = primaryName ? SIGIL_PROFILES[primaryName] : RAW_ENERGY_PROFILE;
+  const elementalMixture = composeElementalMixture(sigilCountObject);
+  const material = elementalMixture?.materialProfile || (primaryName ? SIGIL_PROFILES[primaryName] : RAW_ENERGY_PROFILE);
   const axes = Object.fromEntries(ROLE_KEYS.map((role) => [role, []]));
   const effectNames = [];
   const mechanics = [];
@@ -291,6 +296,13 @@ export function composeSpellRecipe({
   const uncertainSigns = [];
   const ruleIds = new Set();
   let fidelity = "documented";
+
+  if (elementalMixture) {
+    mechanics.push(`Melange elementaire ${elementalMixture.elements.join(" + ")}: ${elementalMixture.materialProfile.mechanic}.`);
+    warnings.push(`Melange elementaire ${elementalMixture.elements.join(" + ")}: interpretation ${elementalMixture.fidelity}.`);
+    ruleIds.add(elementalMixture.ruleId);
+    fidelity = worstFidelity(fidelity, elementalMixture.fidelity);
+  }
 
   for (const [name, count] of [...signCounts.entries()].sort(([a], [b]) => a.localeCompare(b, "fr"))) {
     const sign = SIGN_PROFILES[name];
@@ -450,7 +462,7 @@ export function composeSpellRecipe({
   });
   const id = `spell-v2-${hashSpellIdentity(identity)}`;
   const effectPlan = {
-    ...buildEffectPlan({ axes, material, sigilCounts: sigilCountObject, signCounts: signCountObject, direction, supportId, geometry: normalizedGeometry }),
+    ...buildEffectPlan({ axes, material, sigilCounts: sigilCountObject, signCounts: signCountObject, direction, supportId, geometry: normalizedGeometry, elementalMixture, primaryName }),
     supportPlan,
   };
 
@@ -459,6 +471,7 @@ export function composeSpellRecipe({
     label,
     material: primaryName,
     materialProfile: material,
+    elementalMixture,
     sigilCounts: sigilCountObject,
     signCounts: signCountObject,
     axes,
