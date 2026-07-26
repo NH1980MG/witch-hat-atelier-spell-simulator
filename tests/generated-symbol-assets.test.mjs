@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { access, readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { inflateSync } from "node:zlib";
 
 import {
   SYMBOL_BOARD_ASSET,
@@ -53,8 +54,201 @@ const MODIFIER_SIGN_SHA256 = Object.freeze({
   Projection: "6a2ed71eddd1368bdcde22d2607c628d8e23907d76c5e18af9221ae088866353",
 });
 
+const SOURCE_OPENING_COUNTS = Object.freeze({
+  Feu: 1,
+  Eau: 2,
+  Terre: 0,
+  Lumiere: 5,
+  Cristal: 4,
+  Aeriforme: 0,
+  "Vent sous pied": 4,
+  Repetition: 1,
+  Fumee: 0,
+  "Sangsue-valance": 1,
+  Frillram: 0,
+  Epee: 0,
+  "Loup-ecaille": 10,
+  "Cerf-torche": 1,
+  "Chevre-lion": 4,
+  "Chat-hibou": 2,
+  "Tete de chat-hibou": 2,
+  Dragon: 4,
+  Fleur: 1,
+  Cheval: 2,
+  "Oiseau A": 0,
+  "Oiseau B": 1,
+  "Arret temporel": 13,
+  "Vent tourbillonnant": 4,
+  "Flammes sans chaleur": 1,
+});
+
+const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+const ALPHA_THRESHOLD = 32;
+const MINIMUM_OPENING_AREA = 8;
+
 function sha256(buffer) {
   return createHash("sha256").update(buffer).digest("hex");
+}
+
+function paethPredictor(left, above, upperLeft) {
+  const estimate = left + above - upperLeft;
+  const leftDistance = Math.abs(estimate - left);
+  const aboveDistance = Math.abs(estimate - above);
+  const upperLeftDistance = Math.abs(estimate - upperLeft);
+  if (leftDistance <= aboveDistance && leftDistance <= upperLeftDistance) {
+    return left;
+  }
+  return aboveDistance <= upperLeftDistance ? above : upperLeft;
+}
+
+function decodePngAlpha(buffer) {
+  assert.deepEqual(buffer.subarray(0, PNG_SIGNATURE.length), PNG_SIGNATURE);
+  let offset = PNG_SIGNATURE.length;
+  let width;
+  let height;
+  const compressed = [];
+
+  while (offset < buffer.length) {
+    const length = buffer.readUInt32BE(offset);
+    const type = buffer.toString("ascii", offset + 4, offset + 8);
+    const data = buffer.subarray(offset + 8, offset + 8 + length);
+    offset += length + 12;
+
+    if (type === "IHDR") {
+      width = data.readUInt32BE(0);
+      height = data.readUInt32BE(4);
+      assert.deepEqual(
+        [data[8], data[9], data[10], data[11], data[12]],
+        [8, 6, 0, 0, 0],
+        "les PNG QA doivent etre RGBA 8 bits non entrelaces",
+      );
+    } else if (type === "IDAT") {
+      compressed.push(data);
+    } else if (type === "IEND") {
+      break;
+    }
+  }
+
+  assert.ok(width && height);
+  const bytesPerPixel = 4;
+  const rowLength = width * bytesPerPixel;
+  const filtered = inflateSync(Buffer.concat(compressed));
+  assert.equal(filtered.length, height * (rowLength + 1));
+  const rgba = Buffer.alloc(width * height * bytesPerPixel);
+
+  for (let y = 0; y < height; y += 1) {
+    const filteredRow = y * (rowLength + 1);
+    const outputRow = y * rowLength;
+    const filter = filtered[filteredRow];
+    for (let x = 0; x < rowLength; x += 1) {
+      const source = filtered[filteredRow + x + 1];
+      const left = x >= bytesPerPixel ? rgba[outputRow + x - bytesPerPixel] : 0;
+      const above = y > 0 ? rgba[outputRow + x - rowLength] : 0;
+      const upperLeft = y > 0 && x >= bytesPerPixel
+        ? rgba[outputRow + x - rowLength - bytesPerPixel]
+        : 0;
+      const predictors = [
+        0,
+        left,
+        above,
+        Math.floor((left + above) / 2),
+        paethPredictor(left, above, upperLeft),
+      ];
+      assert.ok(filter < predictors.length, `filtre PNG inconnu: ${filter}`);
+      rgba[outputRow + x] = (source + predictors[filter]) & 0xff;
+    }
+  }
+
+  const alpha = new Uint8Array(width * height);
+  for (let index = 0; index < alpha.length; index += 1) {
+    alpha[index] = rgba[index * bytesPerPixel + 3];
+  }
+  return { alpha, width, height };
+}
+
+function connectedTransparentOpeningCount(alpha, width, height) {
+  const visited = new Uint8Array(alpha.length);
+  const queue = new Int32Array(alpha.length);
+  let openings = 0;
+
+  for (let start = 0; start < alpha.length; start += 1) {
+    if (visited[start] || alpha[start] > ALPHA_THRESHOLD) {
+      continue;
+    }
+    let head = 0;
+    let tail = 1;
+    let area = 0;
+    let touchesEdge = false;
+    queue[0] = start;
+    visited[start] = 1;
+
+    while (head < tail) {
+      const index = queue[head];
+      head += 1;
+      area += 1;
+      const x = index % width;
+      const y = Math.floor(index / width);
+      touchesEdge ||= x === 0 || y === 0 || x === width - 1 || y === height - 1;
+      const neighbors = [index - 1, index + 1, index - width, index + width];
+
+      for (let neighborIndex = 0; neighborIndex < neighbors.length; neighborIndex += 1) {
+        const neighbor = neighbors[neighborIndex];
+        if (
+          neighbor < 0
+          || neighbor >= alpha.length
+          || visited[neighbor]
+          || alpha[neighbor] > ALPHA_THRESHOLD
+          || (neighborIndex < 2 && Math.floor(neighbor / width) !== y)
+        ) {
+          continue;
+        }
+        visited[neighbor] = 1;
+        queue[tail] = neighbor;
+        tail += 1;
+      }
+    }
+
+    if (!touchesEdge && area >= MINIMUM_OPENING_AREA) {
+      openings += 1;
+    }
+  }
+
+  return openings;
+}
+
+function measureStrokeWidth(alpha, width, height) {
+  const foregroundAt = (x, y) => (
+    x >= 0
+      && y >= 0
+      && x < width
+      && y < height
+      && alpha[y * width + x] > ALPHA_THRESHOLD
+  );
+  let area = 0;
+  let perimeter = 0;
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      if (!foregroundAt(x, y)) {
+        continue;
+      }
+      area += 1;
+      perimeter += Number(!foregroundAt(x - 1, y));
+      perimeter += Number(!foregroundAt(x + 1, y));
+      perimeter += Number(!foregroundAt(x, y - 1));
+      perimeter += Number(!foregroundAt(x, y + 1));
+    }
+  }
+
+  return Number(((2 * area) / perimeter).toFixed(4));
+}
+
+function conventionalMedian(values) {
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? Number(((sorted[middle - 1] + sorted[middle]) / 2).toFixed(4))
+    : sorted[middle];
 }
 
 test("chaque cellule de planche possede un masque visuel runtime", async () => {
@@ -80,12 +274,44 @@ test("le selecteur et le parchemin utilisent les masques issus des planches", as
   assert.match(app, /SYMBOL_BOARD_ASSET/);
   assert.match(app, /class="symbol-board-glyph"/);
   assert.match(app, /function symbolBoardImage\(/);
-  assert.match(app, /SYMBOL_BOARD_ASSET_VERSION = "20260726-central-weight-v1"/);
+  assert.match(app, /SYMBOL_BOARD_ASSET_VERSION = "20260726-central-weight-v2"/);
   assert.match(app, /runtimeSymbolBoardAsset\(element\.name\)/);
   assert.match(app, /ctx\.drawImage\(tintedGlyph/);
   assert.match(css, /\.symbol-board-glyph\s*\{/);
   assert.match(css, /mask-image:\s*var\(--symbol-mask\)/);
   assert.doesNotMatch(css, /symbolStrokeExpansion/);
+});
+
+test("la mediane des 38 signes est la moyenne conventionnelle des deux valeurs centrales", async () => {
+  const report = JSON.parse(await readFile(
+    new URL("../docs/qa/2026-07-26-central-sigil-weight-report.json", import.meta.url),
+    "utf8",
+  ));
+  const widths = [];
+
+  for (const name of MATRIX_SIGN_NAMES) {
+    const asset = await readFile(new URL(`../${SYMBOL_BOARD_ASSET[name]}`, import.meta.url));
+    const { alpha, width, height } = decodePngAlpha(asset);
+    widths.push(measureStrokeWidth(alpha, width, height));
+  }
+
+  assert.equal(report.modifierSignMedian, conventionalMedian(widths));
+  assert.equal(report.targetStrokeWidth, report.modifierSignMedian);
+});
+
+test("la topologie finale des 25 PNG est mesuree independamment du rapport", async () => {
+  const expectedNames = MATRIX_SIGIL_NAMES.filter((name) => SYMBOL_BOARD_ASSET[name]);
+  assert.deepEqual(Object.keys(SOURCE_OPENING_COUNTS).sort(), [...expectedNames].sort());
+
+  for (const name of expectedNames) {
+    const asset = await readFile(new URL(`../${SYMBOL_BOARD_ASSET[name]}`, import.meta.url));
+    const { alpha, width, height } = decodePngAlpha(asset);
+    assert.equal(
+      connectedTransparentOpeningCount(alpha, width, height),
+      SOURCE_OPENING_COUNTS[name],
+      `${name} doit conserver le nombre d'ouvertures connectees de sa source`,
+    );
+  }
 });
 
 test("les 25 sigils raster atteignent le poids median des signes sans fermer leurs ouvertures", async () => {
@@ -139,11 +365,19 @@ test("les 25 sigils raster atteignent le poids median des signes sans fermer leu
       `${entry.name} doit rester sous le maximum du poids cible`,
     );
     assert.equal(entry.preservedOpenings, true, `${entry.name} doit conserver ses ouvertures`);
-    assert.equal(
-      entry.outputOpenings,
-      entry.sourceOpenings,
-      `${entry.name} doit conserver la topologie transparente`,
+    const decoded = decodePngAlpha(asset);
+    const actualOutputOpenings = connectedTransparentOpeningCount(
+      decoded.alpha,
+      decoded.width,
+      decoded.height,
     );
+    assert.equal(
+      actualOutputOpenings,
+      SOURCE_OPENING_COUNTS[entry.name],
+      `${entry.name} doit conserver la topologie transparente mesuree depuis le PNG final`,
+    );
+    assert.equal(entry.sourceOpenings, SOURCE_OPENING_COUNTS[entry.name]);
+    assert.equal(entry.outputOpenings, actualOutputOpenings);
     assert.deepEqual(
       [asset.readUInt32BE(16), asset.readUInt32BE(20)],
       [entry.width, entry.height],

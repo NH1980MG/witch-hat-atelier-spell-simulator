@@ -113,14 +113,23 @@ test("les glyphes issus des planches utilisent les masques epaissis partages", a
   assert.match(styles, /\.symbol-mark path,[\s\S]*?stroke-width:\s*2\.2/);
   assert.match(styles, /\[data-symbol="Fumee"\] \.symbol-mark path\s*\{\s*stroke-width:\s*2\.25/);
   assert.doesNotMatch(app, /BOARD_GLYPH_STROKE_SCALE/);
-  assert.match(app, /export const CENTRAL_SIGIL_STROKE_WIDTH = 6\.4;/);
+  assert.match(app, /export const CENTRAL_SIGIL_STROKE_WIDTH = 6\.4365;/);
   assert.match(
     app,
-    /element === "Vent"[\s\S]*?ctx\.lineWidth = centralSigilCanvasLineWidth\(size\);/,
+    /element === "Vent"[\s\S]*?ctx\.lineWidth = centralSigilCanvasLineWidth\(size\) \/ Math\.max\(0\.01, glyphScale\);/,
   );
   assert.match(
     app,
-    /CENTRAL_SIGIL_STROKE_WIDTH \* size \* 2 \/ SYMBOL_BOARD_RASTER_SIZE/,
+    /function centralSigilCanvasLineWidth\(size\) \{\s*return CENTRAL_SIGIL_STROKE_WIDTH \* size \* 2 \/ SYMBOL_BOARD_RASTER_SIZE;\s*\}/,
+  );
+  assert.doesNotMatch(
+    app,
+    /function centralSigilCanvasLineWidth\(size\) \{[^}]*visibleLineWidth/,
+  );
+  assert.match(app, /const SYMBOL_PICKER_VIEWBOX_SIZE = 48;/);
+  assert.match(
+    app,
+    /CENTRAL_SIGIL_STROKE_WIDTH \* SYMBOL_PICKER_VIEWBOX_SIZE \/ SYMBOL_BOARD_RASTER_SIZE/,
   );
   assert.match(app, /ctx\.drawImage\(tintedGlyph/);
   assert.match(app, /visibleLineWidth\(2\)/);
@@ -143,8 +152,8 @@ test("le navigateur charge la nouvelle version du catalogue partage", async () =
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 
   assert.match(app, /symbol-catalog\.mjs\?v=20260723-board-assets-v1/);
-  assert.match(html, /app\.js\?v=20260726-central-weight-v1/);
-  assert.match(html, /styles\.css\?v=20260726-central-weight-v1/);
+  assert.match(html, /app\.js\?v=20260726-central-weight-v2/);
+  assert.match(html, /styles\.css\?v=20260726-central-weight-v2/);
 });
 
 test("chaque glyphe partage possede une planche d'audit generee", () => {

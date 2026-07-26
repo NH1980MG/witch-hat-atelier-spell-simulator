@@ -33,7 +33,7 @@ import {
   topmostGlyphIndexAtPoint,
 } from "./symbol-interactions.mjs";
 
-export const CENTRAL_SIGIL_STROKE_WIDTH = 6.4;
+export const CENTRAL_SIGIL_STROKE_WIDTH = 6.4365;
 
 const colors = {
   edge: "#8c6b3f",
@@ -537,9 +537,7 @@ function visibleLineWidth(width) {
 }
 
 function centralSigilCanvasLineWidth(size) {
-  return visibleLineWidth(
-    CENTRAL_SIGIL_STROKE_WIDTH * size * 2 / SYMBOL_BOARD_RASTER_SIZE,
-  ) / Math.max(0.01, size / 24);
+  return CENTRAL_SIGIL_STROKE_WIDTH * size * 2 / SYMBOL_BOARD_RASTER_SIZE;
 }
 
 function lineWidth() {
@@ -1225,8 +1223,9 @@ function drawArrow(action, dashed = false) {
 
 const symbolBoardImageCache = new Map();
 const tintedSymbolBoardCache = new Map();
-const SYMBOL_BOARD_ASSET_VERSION = "20260726-central-weight-v1";
+const SYMBOL_BOARD_ASSET_VERSION = "20260726-central-weight-v2";
 const SYMBOL_BOARD_RASTER_SIZE = 192;
+const SYMBOL_PICKER_VIEWBOX_SIZE = 48;
 
 function runtimeSymbolBoardAsset(name) {
   const asset = SYMBOL_BOARD_ASSET[name];
@@ -1303,7 +1302,7 @@ function drawGlyph(action) {
     ctx.scale(glyphScale, glyphScale);
     ctx.translate(-24, -24);
     if (element === "Vent") {
-      ctx.lineWidth = centralSigilCanvasLineWidth(size);
+      ctx.lineWidth = centralSigilCanvasLineWidth(size) / Math.max(0.01, glyphScale);
     } else {
       ctx.lineWidth = visibleLineWidth(2) / Math.max(0.01, glyphScale);
     }
@@ -7232,12 +7231,12 @@ function elementIconMarkup(element) {
   const catalogPaths = SYMBOL_PATHS[element.name];
   if (catalogPaths) {
     const strokeStyle = element.name === "Vent"
-      ? ` style="stroke-width:${CENTRAL_SIGIL_STROKE_WIDTH / 4}"`
+      ? ` style="stroke-width:${CENTRAL_SIGIL_STROKE_WIDTH * SYMBOL_PICKER_VIEWBOX_SIZE / SYMBOL_BOARD_RASTER_SIZE}"`
       : "";
     const markup = catalogPaths
       .map((pathData) => `<path d="${pathData}"${strokeStyle}></path>`)
       .join("");
-    return `<svg class="symbol-mark" viewBox="0 0 48 48" aria-hidden="true">${markup}</svg>`;
+    return `<svg class="symbol-mark" viewBox="0 0 ${SYMBOL_PICKER_VIEWBOX_SIZE} ${SYMBOL_PICKER_VIEWBOX_SIZE}" aria-hidden="true">${markup}</svg>`;
   }
   return `<span class="symbol-rune">${element.rune}</span>`;
 }

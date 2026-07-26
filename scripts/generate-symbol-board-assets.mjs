@@ -21,10 +21,10 @@ const reportPath = path.join(root, "docs", "qa", "2026-07-26-central-sigil-weigh
 const outputSize = 192;
 const supersample = 16;
 const alphaThreshold = 32;
-const targetStrokeWidth = 6.4;
 const acceptedBand = Object.freeze({ minimum: 6.3, maximum: 6.5 });
 const maximumDilationRadius = 4;
 const minimumOpeningArea = 8;
+let targetStrokeWidth;
 
 function cellBounds(cell, width, height) {
   const halfWidth = Math.floor(width / 2);
@@ -206,11 +206,73 @@ function transparentOpenings(alpha, width, height) {
         tail += 1;
       }
     }
-    // Preserve a small transparent core while allowing the opening edge to narrow.
+    // Keep one connected transparent core while allowing the opening edge to narrow.
     const guardDepth = Math.max(0, distance[representative] - 1);
+    const guardCandidates = new Uint8Array(width * height);
+    for (const index of pixels) {
+      guardCandidates[index] = Number(distance[index] >= guardDepth);
+    }
+    const guardPixels = [];
+    const guarded = new Uint8Array(width * height);
+    head = 0;
+    tail = 1;
+    queue[0] = representative;
+    guarded[representative] = 1;
+    while (head < tail) {
+      const index = queue[head];
+      head += 1;
+      guardPixels.push(index);
+      const y = Math.floor(index / width);
+      const neighbors = [index - 1, index + 1, index - width, index + width];
+      for (let neighborIndex = 0; neighborIndex < neighbors.length; neighborIndex += 1) {
+        const neighbor = neighbors[neighborIndex];
+        if (
+          neighbor < 0
+          || neighbor >= guardCandidates.length
+          || !guardCandidates[neighbor]
+          || guarded[neighbor]
+          || (neighborIndex < 2 && Math.floor(neighbor / width) !== y)
+        ) {
+          continue;
+        }
+        guarded[neighbor] = 1;
+        queue[tail] = neighbor;
+        tail += 1;
+      }
+    }
+    if (guardPixels.length < minimumOpeningArea) {
+      const componentQueue = [...guardPixels];
+      for (let index = 0; index < componentQueue.length; index += 1) {
+        const pixel = componentQueue[index];
+        const y = Math.floor(pixel / width);
+        const neighbors = [pixel - 1, pixel + 1, pixel - width, pixel + width];
+        for (let neighborIndex = 0; neighborIndex < neighbors.length; neighborIndex += 1) {
+          const neighbor = neighbors[neighborIndex];
+          if (
+            neighbor < 0
+            || neighbor >= component.length
+            || !component[neighbor]
+            || guarded[neighbor]
+            || (neighborIndex < 2 && Math.floor(neighbor / width) !== y)
+          ) {
+            continue;
+          }
+          guarded[neighbor] = 1;
+          componentQueue.push(neighbor);
+          guardPixels.push(neighbor);
+          if (guardPixels.length >= minimumOpeningArea) {
+            break;
+          }
+        }
+        if (guardPixels.length >= minimumOpeningArea) {
+          break;
+        }
+      }
+    }
     openings.push({
       area: pixels.length,
-      guardPixels: pixels.filter((index) => distance[index] >= guardDepth),
+      guardPixels,
+      pixels,
       representative,
     });
   }
@@ -218,18 +280,282 @@ function transparentOpenings(alpha, width, height) {
   return openings;
 }
 
-function protectOpenings(alpha, openings, sourceAlpha) {
+function exteriorTransparentMask(alpha, width, height) {
+  const exterior = new Uint8Array(alpha.length);
+  const queue = new Int32Array(alpha.length);
+  let head = 0;
+  let tail = 0;
+
+  function enqueue(index) {
+    if (!exterior[index] && alpha[index] <= alphaThreshold) {
+      exterior[index] = 1;
+      queue[tail] = index;
+      tail += 1;
+    }
+  }
+
+  for (let x = 0; x < width; x += 1) {
+    enqueue(x);
+    enqueue((height - 1) * width + x);
+  }
+  for (let y = 0; y < height; y += 1) {
+    enqueue(y * width);
+    enqueue(y * width + width - 1);
+  }
+
+  while (head < tail) {
+    const index = queue[head];
+    head += 1;
+    const y = Math.floor(index / width);
+    const neighbors = [index - 1, index + 1, index - width, index + width];
+    for (let neighborIndex = 0; neighborIndex < neighbors.length; neighborIndex += 1) {
+      const neighbor = neighbors[neighborIndex];
+      if (
+        neighbor < 0
+        || neighbor >= alpha.length
+        || exterior[neighbor]
+        || alpha[neighbor] > alphaThreshold
+        || (neighborIndex < 2 && Math.floor(neighbor / width) !== y)
+      ) {
+        continue;
+      }
+      exterior[neighbor] = 1;
+      queue[tail] = neighbor;
+      tail += 1;
+    }
+  }
+
+  return exterior;
+}
+
+function openingFragments(alpha, opening, width) {
+  const component = new Uint8Array(alpha.length);
+  const visited = new Uint8Array(alpha.length);
+  const queue = new Int32Array(alpha.length);
+  const fragments = [];
+  for (const index of opening.pixels) {
+    component[index] = 1;
+  }
+
+  for (const start of opening.pixels) {
+    if (visited[start] || alpha[start] > alphaThreshold) {
+      continue;
+    }
+    const pixels = [];
+    let head = 0;
+    let tail = 1;
+    queue[0] = start;
+    visited[start] = 1;
+    while (head < tail) {
+      const index = queue[head];
+      head += 1;
+      pixels.push(index);
+      const y = Math.floor(index / width);
+      const neighbors = [index - 1, index + 1, index - width, index + width];
+      for (let neighborIndex = 0; neighborIndex < neighbors.length; neighborIndex += 1) {
+        const neighbor = neighbors[neighborIndex];
+        if (
+          neighbor < 0
+          || neighbor >= component.length
+          || !component[neighbor]
+          || visited[neighbor]
+          || alpha[neighbor] > alphaThreshold
+          || (neighborIndex < 2 && Math.floor(neighbor / width) !== y)
+        ) {
+          continue;
+        }
+        visited[neighbor] = 1;
+        queue[tail] = neighbor;
+        tail += 1;
+      }
+    }
+    fragments.push(pixels);
+  }
+
+  return fragments;
+}
+
+function connectOpeningFragments(alpha, opening, sourceAlpha, width) {
+  let fragments = openingFragments(alpha, opening, width);
+  while (fragments.length > 1) {
+    const anchor = fragments.find((pixels) => pixels.includes(opening.representative));
+    const fragment = fragments.find((pixels) => pixels !== anchor);
+    if (!anchor || !fragment) {
+      throw new Error("Cannot identify opening fragments for topology repair");
+    }
+
+    const allowed = new Uint8Array(alpha.length);
+    const anchorMask = new Uint8Array(alpha.length);
+    const visited = new Uint8Array(alpha.length);
+    const parent = new Int32Array(alpha.length);
+    parent.fill(-1);
+    const queue = new Int32Array(alpha.length);
+    for (const index of opening.pixels) {
+      allowed[index] = 1;
+    }
+    for (const index of anchor) {
+      anchorMask[index] = 1;
+    }
+    let head = 0;
+    let tail = 0;
+    for (const index of fragment) {
+      visited[index] = 1;
+      parent[index] = -2;
+      queue[tail] = index;
+      tail += 1;
+    }
+    let connectedAt = -1;
+    while (head < tail && connectedAt < 0) {
+      const index = queue[head];
+      head += 1;
+      const y = Math.floor(index / width);
+      const neighbors = [index - 1, index + 1, index - width, index + width];
+      for (let neighborIndex = 0; neighborIndex < neighbors.length; neighborIndex += 1) {
+        const neighbor = neighbors[neighborIndex];
+        if (
+          neighbor < 0
+          || neighbor >= allowed.length
+          || !allowed[neighbor]
+          || (neighborIndex < 2 && Math.floor(neighbor / width) !== y)
+        ) {
+          continue;
+        }
+        if (anchorMask[neighbor]) {
+          connectedAt = index;
+          break;
+        }
+        if (!visited[neighbor]) {
+          visited[neighbor] = 1;
+          parent[neighbor] = index;
+          queue[tail] = neighbor;
+          tail += 1;
+        }
+      }
+    }
+    if (connectedAt < 0) {
+      throw new Error("Cannot reconnect a split transparent opening");
+    }
+    for (let index = connectedAt; index >= 0; index = parent[index]) {
+      alpha[index] = Math.min(alpha[index], sourceAlpha[index]);
+      if (parent[index] === -2) {
+        break;
+      }
+    }
+    fragments = openingFragments(alpha, opening, width);
+  }
+}
+
+function connectNewOpeningToExterior(
+  alpha,
+  opening,
+  sourceExterior,
+  sourceAlpha,
+  width,
+  height,
+) {
+  const visited = new Uint8Array(alpha.length);
+  const parent = new Int32Array(alpha.length);
+  parent.fill(-1);
+  const queue = new Int32Array(alpha.length);
+  let head = 0;
+  let tail = 0;
+  for (const index of opening.pixels) {
+    if (sourceExterior[index]) {
+      visited[index] = 1;
+      parent[index] = -2;
+      queue[tail] = index;
+      tail += 1;
+    }
+  }
+
+  let exteriorAt = -1;
+  while (head < tail && exteriorAt < 0) {
+    const index = queue[head];
+    head += 1;
+    const x = index % width;
+    const y = Math.floor(index / width);
+    if (x === 0 || y === 0 || x === width - 1 || y === height - 1) {
+      exteriorAt = index;
+      break;
+    }
+    const neighbors = [index - 1, index + 1, index - width, index + width];
+    for (let neighborIndex = 0; neighborIndex < neighbors.length; neighborIndex += 1) {
+      const neighbor = neighbors[neighborIndex];
+      if (
+        neighbor < 0
+        || neighbor >= sourceExterior.length
+        || !sourceExterior[neighbor]
+        || visited[neighbor]
+        || (neighborIndex < 2 && Math.floor(neighbor / width) !== y)
+      ) {
+        continue;
+      }
+      visited[neighbor] = 1;
+      parent[neighbor] = index;
+      queue[tail] = neighbor;
+      tail += 1;
+    }
+  }
+  if (exteriorAt < 0) {
+    throw new Error("Cannot reconnect a new transparent opening to the source exterior");
+  }
+  for (let index = exteriorAt; index >= 0; index = parent[index]) {
+    alpha[index] = Math.min(alpha[index], sourceAlpha[index]);
+    if (parent[index] === -2) {
+      break;
+    }
+  }
+}
+
+function preserveOpeningTopology(
+  alpha,
+  openings,
+  sourceExterior,
+  sourceAlpha,
+  width,
+  height,
+) {
   const protectedAlpha = alpha.slice();
   for (const opening of openings) {
     for (const index of opening.guardPixels) {
       protectedAlpha[index] = Math.min(protectedAlpha[index], sourceAlpha[index]);
     }
+    connectOpeningFragments(protectedAlpha, opening, sourceAlpha, width);
+  }
+  const sourceOpeningMask = new Uint8Array(alpha.length);
+  for (const opening of openings) {
+    for (const index of opening.pixels) {
+      sourceOpeningMask[index] = 1;
+    }
+  }
+  let outputOpenings = transparentOpenings(protectedAlpha, width, height);
+  let newOpenings = outputOpenings.filter((opening) => (
+    !opening.pixels.some((index) => sourceOpeningMask[index])
+  ));
+  while (newOpenings.length > 0) {
+    for (const opening of newOpenings) {
+      connectNewOpeningToExterior(
+        protectedAlpha,
+        opening,
+        sourceExterior,
+        sourceAlpha,
+        width,
+        height,
+      );
+    }
+    outputOpenings = transparentOpenings(protectedAlpha, width, height);
+    newOpenings = outputOpenings.filter((opening) => (
+      !opening.pixels.some((index) => sourceOpeningMask[index])
+    ));
   }
   return protectedAlpha;
 }
 
-function preservedOpeningCount(alpha, openings) {
-  return openings.filter(({ representative }) => alpha[representative] <= alphaThreshold).length;
+function conventionalMedian(values) {
+  const middle = Math.floor(values.length / 2);
+  return values.length % 2 === 0
+    ? rounded((values[middle - 1] + values[middle]) / 2)
+    : values[middle];
 }
 
 async function extractSourceGlyph(name, trace) {
@@ -404,7 +730,7 @@ function interpolatedCandidates(candidates, sourceOpenings) {
           lower.alpha[pixel] * (1 - ratio) + upper.alpha[pixel] * ratio,
         );
       }
-      const outputOpenings = preservedOpeningCount(alpha, sourceOpenings);
+      const outputOpenings = transparentOpenings(alpha, outputSize, outputSize).length;
       interpolated.push({
         alpha,
         dilationUnits: lower.dilationUnits + ratio,
@@ -423,6 +749,7 @@ async function targetCentralSigil(name, trace) {
   const { alpha: sourceAlpha } = await pngAlpha(source.buffer);
   const sourceStrokeWidth = measureStrokeWidth(sourceAlpha, outputSize, outputSize);
   const sourceOpenings = transparentOpenings(sourceAlpha, outputSize, outputSize);
+  const sourceExterior = exteriorTransparentMask(sourceAlpha, outputSize, outputSize);
   const mask = await supersampledMask(source.buffer);
   const maximumUnits = maximumDilationRadius * supersample;
   const candidates = new Map();
@@ -432,8 +759,19 @@ async function targetCentralSigil(name, trace) {
       return candidates.get(dilationUnits);
     }
     const candidate = await dilatedCandidate(mask, dilationUnits);
-    const protectedAlpha = protectOpenings(candidate.alpha, sourceOpenings, sourceAlpha);
-    const outputOpenings = preservedOpeningCount(protectedAlpha, sourceOpenings);
+    const protectedAlpha = preserveOpeningTopology(
+      candidate.alpha,
+      sourceOpenings,
+      sourceExterior,
+      sourceAlpha,
+      outputSize,
+      outputSize,
+    );
+    const outputOpenings = transparentOpenings(
+      protectedAlpha,
+      outputSize,
+      outputSize,
+    ).length;
     const result = {
       ...candidate,
       alpha: protectedAlpha,
@@ -554,6 +892,14 @@ await mkdir(outputRoot, { recursive: true });
 const modifierSignHashes = await assetHashes(MATRIX_SIGN_NAMES);
 const rasterSigilNames = MATRIX_SIGIL_NAMES.filter((name) => SYMBOL_BOARD_ASSET[name]);
 const generated = [];
+const signStrokeWidths = [];
+for (const name of MATRIX_SIGN_NAMES) {
+  const { alpha } = await pngAlpha(await readFile(path.join(root, SYMBOL_BOARD_ASSET[name])));
+  signStrokeWidths.push(measureStrokeWidth(alpha, outputSize, outputSize));
+}
+signStrokeWidths.sort((left, right) => left - right);
+const modifierSignMedian = conventionalMedian(signStrokeWidths);
+targetStrokeWidth = modifierSignMedian;
 
 for (const name of rasterSigilNames) {
   generated.push(await targetCentralSigil(name, SYMBOL_BOARD_TRACE[name]));
@@ -569,16 +915,9 @@ if (JSON.stringify(modifierSignHashesAfter) !== JSON.stringify(modifierSignHashe
 }
 
 const entries = generated.map(({ report }) => report);
-const signStrokeWidths = [];
-for (const name of MATRIX_SIGN_NAMES) {
-  const { alpha } = await pngAlpha(await readFile(path.join(root, SYMBOL_BOARD_ASSET[name])));
-  signStrokeWidths.push(measureStrokeWidth(alpha, outputSize, outputSize));
-}
-signStrokeWidths.sort((left, right) => left - right);
-const modifierSignMedian = signStrokeWidths[Math.floor((signStrokeWidths.length - 1) / 2)];
 const outputStrokeWidths = entries.map((entry) => entry.outputStrokeWidth);
 const report = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   targetReference: "modifier-sign-median",
   targetStrokeWidth,
   modifierSignMedian,
@@ -586,6 +925,7 @@ const report = {
   supersample,
   measurement: "Raster aggregate 2 * foreground area / perimeter",
   alphaThreshold: `alpha > ${alphaThreshold}`,
+  topologyMeasurement: `4-connected transparent components with area >= ${minimumOpeningArea}`,
   modifierSignHashes,
   outputStrokeWidth: {
     minimum: rounded(Math.min(...outputStrokeWidths)),
