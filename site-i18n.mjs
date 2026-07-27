@@ -1,4 +1,8 @@
-import { DEFAULT_LOCALE, resolveLocale, translate } from "./i18n.mjs";
+import {
+  DEFAULT_LOCALE,
+  resolveLocale,
+  translate,
+} from "./i18n.mjs?v=20260727-marquee-v1";
 
 let currentLocale = DEFAULT_LOCALE;
 

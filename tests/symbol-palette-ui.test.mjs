@@ -48,14 +48,14 @@ test("l'application cable la selection contextuelle et son historique", async ()
   const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
 
   assert.match(app, /contextmenu/);
-  assert.match(app, /selectedGlyphIndex/);
+  assert.match(app, /selectedActionIndices/);
   assert.match(app, /undoStack/);
   assert.match(app, /resizeSelectedGlyph/);
-  assert.match(app, /function beginSelectionDrag\(/);
-  assert.match(app, /function moveSelectionDrag\(/);
-  assert.match(app, /function finishSelectionDrag\(/);
+  assert.match(app, /function beginRightSelection\(/);
+  assert.match(app, /function moveRightSelection\(/);
+  assert.match(app, /function finishRightSelection\(/);
   const restoreBody = app.match(/function restoreActions\(snapshot\) \{([\s\S]*?)\n\}/)?.[1] || "";
-  assert.match(restoreBody, /selectedGlyphIndex = null/);
+  assert.match(restoreBody, /selectedActionIndices = \[\]/);
   assert.match(app, /function onPointerCancel\(event\)/);
   assert.match(app, /addEventListener\("pointercancel", onPointerCancel\)/);
 });

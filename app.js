@@ -8,7 +8,7 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260727-mixture-runtime-v3";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260727-mixture-runtime-v3";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260718-onion-guides-v2";
+import { getLocale, t } from "./site-i18n.mjs?v=20260727-marquee-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260716-shoe-camera-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -19,20 +19,20 @@ import {
 } from "./guide-storage.mjs";
 import { classifySymbolDragGesture } from "./symbol-drag-gesture.mjs?v=20260716-touch-scroll-v1";
 import {
+  combinedSelectionBounds,
   canDropGlyph,
   clampGlyphCenter,
   cloneActions,
-  GLYPH_SELECTION_SCALE,
-  glyphResizeHandleAtPoint,
   guideResizeHandleAtPoint,
-  resizeGlyphFromCorner,
   resizeGuideScaleFromCorner,
-  resizeGlyphSize,
+  scaleSelectedActions,
   scaledGuideBounds,
+  selectableIndicesInRect,
   shouldArmLongPress,
   shouldDeferTouchTool,
-  topmostGlyphIndexAtPoint,
-} from "./symbol-interactions.mjs";
+  topmostSelectableIndexAtPoint,
+  translateSelectedActions,
+} from "./symbol-interactions.mjs?v=20260727-marquee-v1";
 
 export const CENTRAL_SIGIL_STROKE_WIDTH = 6.4365;
 
@@ -439,8 +439,8 @@ const state = {
   activation: null,
   activeSpell: null,
   recognizedSymbol: null,
-  selectedGlyphIndex: null,
-  selectionDrag: null,
+  selectedActionIndices: [],
+  rightSelection: null,
   symbolDrag: null,
   symbolDragIntent: null,
   longPress: null,
@@ -6557,52 +6557,108 @@ function drawMeasureCounter(width, height) {
   ctx.restore();
 }
 
-function selectedGlyph() {
-  const action = state.actions[state.selectedGlyphIndex];
-  return action?.type === "glyph" ? action : null;
+function normalizeSelection() {
+  state.selectedActionIndices = [...new Set(state.selectedActionIndices)]
+    .filter((index) => {
+      const action = state.actions[index];
+      return action && ["glyph", "circle", "ring"].includes(action.type);
+    })
+    .sort((a, b) => a - b);
+  return state.selectedActionIndices;
+}
+
+function selectionBounds(actions = state.actions, indices = state.selectedActionIndices) {
+  return combinedSelectionBounds(actions, indices);
+}
+
+function clearSelection() {
+  state.selectedActionIndices = [];
+  state.rightSelection = null;
+}
+
+function setSelectionStatus() {
+  const indices = normalizeSelection();
+  if (indices.length === 0) {
+    setStatus(t("status.selectionEmpty"));
+  } else if (indices.length === 1) {
+    const action = state.actions[indices[0]];
+    setStatus(t("status.selectionReady", {
+      name: elementDisplayName(action.element || action.label),
+    }));
+  } else {
+    setStatus(t("status.selectionCount", { count: indices.length }));
+  }
 }
 
 function updateSelectionControls() {
-  const action = selectedGlyph();
-  state.selectedGlyphIndex = action ? state.selectedGlyphIndex : null;
+  const hasSelection = normalizeSelection().length > 0;
   if (shrinkSelectionButton) {
-    shrinkSelectionButton.disabled = !action || action.size <= 12;
+    shrinkSelectionButton.disabled = !hasSelection;
   }
   if (growSelectionButton) {
-    growSelectionButton.disabled = !action || action.size >= 120;
+    growSelectionButton.disabled = !hasSelection;
   }
 }
 
-function drawSelectedGlyph() {
+function selectionHandleAtPoint(bounds, point, tolerance = 10) {
+  if (!bounds) {
+    return null;
+  }
+  const handles = [
+    ["nw", bounds.left, bounds.top],
+    ["ne", bounds.right, bounds.top],
+    ["se", bounds.right, bounds.bottom],
+    ["sw", bounds.left, bounds.bottom],
+  ];
+  return handles.find(([, x, y]) => Math.hypot(point.x - x, point.y - y) <= tolerance)?.[0] || null;
+}
+
+function drawSelection() {
   if (state.exporting) {
     return;
   }
-  const action = selectedGlyph();
-  if (!action) {
+  const bounds = selectionBounds();
+  if (!bounds) {
     return;
   }
 
-  const halfSize = action.size * GLYPH_SELECTION_SCALE;
   ctx.save();
-  ctx.translate(action.x, action.y);
-  ctx.rotate(action.rotation || 0);
   ctx.strokeStyle = colors.gold;
   ctx.fillStyle = colors.gold;
   ctx.lineWidth = visibleLineWidth(2);
   ctx.setLineDash([visibleLineWidth(7), visibleLineWidth(5)]);
-  ctx.strokeRect(-halfSize, -halfSize, halfSize * 2, halfSize * 2);
+  ctx.strokeRect(bounds.left, bounds.top, bounds.width, bounds.height);
   ctx.setLineDash([]);
   for (const [x, y] of [
-    [-halfSize, -halfSize],
-    [halfSize, -halfSize],
-    [halfSize, halfSize],
-    [-halfSize, halfSize],
+    [bounds.left, bounds.top],
+    [bounds.right, bounds.top],
+    [bounds.right, bounds.bottom],
+    [bounds.left, bounds.bottom],
   ]) {
     ctx.beginPath();
     ctx.arc(x, y, visibleLineWidth(6), 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
   }
+  ctx.restore();
+}
+
+function drawSelectionMarquee() {
+  const drag = state.rightSelection;
+  if (state.exporting || drag?.mode !== "marquee") {
+    return;
+  }
+  const left = Math.min(drag.start.x, drag.current.x);
+  const right = Math.max(drag.start.x, drag.current.x);
+  const top = Math.min(drag.start.y, drag.current.y);
+  const bottom = Math.max(drag.start.y, drag.current.y);
+  ctx.save();
+  ctx.fillStyle = "rgba(199, 151, 54, 0.14)";
+  ctx.strokeStyle = colors.gold;
+  ctx.lineWidth = visibleLineWidth(1.5);
+  ctx.setLineDash([visibleLineWidth(6), visibleLineWidth(4)]);
+  ctx.fillRect(left, top, right - left, bottom - top);
+  ctx.strokeRect(left, top, right - left, bottom - top);
   ctx.restore();
 }
 
@@ -6750,7 +6806,8 @@ function render() {
   }
 
   drawSelectedGuide(width, height);
-  drawSelectedGlyph();
+  drawSelection();
+  drawSelectionMarquee();
   drawActiveAura(width, height);
   drawActivation(width, height);
   ctx.restore();
@@ -6848,7 +6905,7 @@ function restoreActions(snapshot) {
   state.actions = cloneActions(snapshot);
   state.activeSpell = null;
   state.activation = null;
-  state.selectedGlyphIndex = null;
+  state.selectedActionIndices = [];
   refreshCircleCenter();
   updateSelectionControls();
   updateUsedList();
@@ -7069,8 +7126,8 @@ function hitsAction(point, action) {
 }
 
 function selectGlyphAt(point) {
-  const index = topmostGlyphIndexAtPoint(state.actions, point);
-  state.selectedGlyphIndex = index >= 0 ? index : null;
+  const index = topmostSelectableIndexAtPoint(state.actions, point);
+  state.selectedActionIndices = index >= 0 ? [index] : [];
   const { width, height } = canvasSize();
   const guideBounds = activeGuideBounds(width, height);
   const guideHit = index < 0 && state.guideVisible && guideBounds &&
@@ -7080,7 +7137,9 @@ function selectGlyphAt(point) {
   updateSelectionControls();
   if (index >= 0) {
     state.guideSelected = false;
-    setStatus(t("status.selectionReady", { name: elementDisplayName(state.actions[index].element) }));
+    setStatus(t("status.selectionReady", {
+      name: elementDisplayName(state.actions[index].element || state.actions[index].label),
+    }));
   } else if (guideHit) {
     setStatus(t("status.guideResizeReady"));
   } else {
@@ -7148,89 +7207,165 @@ function cancelGuideResize() {
   render();
 }
 
-function beginSelectionDrag(event, point) {
-  const current = selectedGlyph();
-  const resizeHandle = current
-    ? glyphResizeHandleAtPoint(current, point, 12 / Math.max(0.1, viewScale()))
-    : null;
-  if (resizeHandle) {
-    state.selectionDrag = {
+function oppositeCorner(bounds, handle) {
+  const corners = {
+    nw: { x: bounds.right, y: bounds.bottom },
+    ne: { x: bounds.left, y: bounds.bottom },
+    se: { x: bounds.left, y: bounds.top },
+    sw: { x: bounds.right, y: bounds.top },
+  };
+  return corners[handle];
+}
+
+function draggedCorner(bounds, handle) {
+  const corners = {
+    nw: { x: bounds.left, y: bounds.top },
+    ne: { x: bounds.right, y: bounds.top },
+    se: { x: bounds.right, y: bounds.bottom },
+    sw: { x: bounds.left, y: bounds.bottom },
+  };
+  return corners[handle];
+}
+
+function beginRightSelection(event, point) {
+  state.tool = "select";
+  state.guideSelected = false;
+  updateToolButtons();
+  normalizeSelection();
+  const bounds = selectionBounds();
+  const handle = selectionHandleAtPoint(bounds, point, 12 / Math.max(0.1, viewScale()));
+  const snapshot = cloneActions(state.actions);
+  if (handle && bounds) {
+    state.rightSelection = {
       mode: "resize",
-      handle: resizeHandle,
       pointerId: event.pointerId,
-      index: state.selectedGlyphIndex,
-      snapshot: cloneActions(state.actions),
-      startSize: current.size,
+      start: point,
+      current: point,
+      snapshot,
+      bounds,
+      handle,
+      origin: oppositeCorner(bounds, handle),
+      startCorner: draggedCorner(bounds, handle),
       moved: false,
     };
-    canvas.style.cursor = ["nw", "se"].includes(resizeHandle) ? "nwse-resize" : "nesw-resize";
+    canvas.style.cursor = ["nw", "se"].includes(handle) ? "nwse-resize" : "nesw-resize";
     return;
   }
-  const index = topmostGlyphIndexAtPoint(state.actions, point);
-  state.selectedGlyphIndex = index >= 0 ? index : null;
-  state.guideSelected = false;
+
+  const index = topmostSelectableIndexAtPoint(state.actions, point);
+  if (index >= 0) {
+    if (!state.selectedActionIndices.includes(index)) {
+      state.selectedActionIndices = [index];
+    }
+    state.rightSelection = {
+      mode: "move",
+      pointerId: event.pointerId,
+      start: point,
+      current: point,
+      snapshot,
+      bounds: selectionBounds(),
+      moved: false,
+    };
+    setSelectionStatus();
+    canvas.style.cursor = "move";
+  } else {
+    state.rightSelection = {
+      mode: "pending",
+      pointerId: event.pointerId,
+      start: point,
+      current: point,
+      snapshot,
+      moved: false,
+    };
+    canvas.style.cursor = "crosshair";
+  }
   updateSelectionControls();
-  if (index < 0) {
-    state.pointerDown = false;
-    state.selectionDrag = null;
-    setStatus(t("status.selectionEmpty"));
-    render();
-    return;
-  }
-  const action = state.actions[index];
-  state.selectionDrag = {
-    mode: "move",
-    pointerId: event.pointerId,
-    index,
-    snapshot: cloneActions(state.actions),
-    grabOffsetX: action.x - point.x,
-    grabOffsetY: action.y - point.y,
-    startX: action.x,
-    startY: action.y,
-    moved: false,
-  };
-  setStatus(t("status.selectionReady", { name: elementDisplayName(action.element) }));
   render();
 }
 
-function moveSelectionDrag(point) {
-  const drag = state.selectionDrag;
-  const action = drag ? state.actions[drag.index] : null;
-  if (!drag || action?.type !== "glyph") {
-    return;
-  }
-  if (drag.mode === "resize") {
-    action.size = resizeGlyphFromCorner(action, point);
-    action.userAdjusted = true;
-    drag.moved = drag.moved || Math.abs(action.size - drag.startSize) >= 0.5;
-    state.activeSpell = null;
-    updateSelectionControls();
-    render();
-    return;
-  }
+function beginSelectionDrag(event, point) {
+  beginRightSelection(event, point);
+}
+
+function clampSelectionDelta(bounds, dx, dy) {
   const { width, height } = canvasSize();
-  const next = clampGlyphCenter({
-    x: point.x + drag.grabOffsetX,
-    y: point.y + drag.grabOffsetY,
-  }, action.size * 1.18, drawingLimitBounds(width, height));
-  action.x = next.x;
-  action.y = next.y;
-  drag.moved = drag.moved || Math.hypot(action.x - drag.startX, action.y - drag.startY) > 2;
-  state.activeSpell = null;
-  render();
+  const limit = drawingLimitBounds(width, height);
+  return {
+    dx: Math.max(limit.left - bounds.left, Math.min(limit.right - bounds.right, dx)),
+    dy: Math.max(limit.top - bounds.top, Math.min(limit.bottom - bounds.bottom, dy)),
+  };
 }
 
-function finishSelectionDrag(point) {
-  const drag = state.selectionDrag;
-  if (!drag) {
-    return;
+function selectionScaleForPoint(drag, point) {
+  const startX = drag.startCorner.x - drag.origin.x;
+  const startY = drag.startCorner.y - drag.origin.y;
+  const scaleX = Math.abs(startX) > 0.001 ? Math.abs((point.x - drag.origin.x) / startX) : 1;
+  const scaleY = Math.abs(startY) > 0.001 ? Math.abs((point.y - drag.origin.y) / startY) : 1;
+  return Math.max(0.1, Math.min(5, Math.max(scaleX, scaleY)));
+}
+
+function moveRightSelection(event) {
+  const drag = state.rightSelection;
+  if (!drag || drag.pointerId !== event.pointerId) {
+    return false;
   }
-  moveSelectionDrag(point);
-  const action = state.actions[drag.index];
-  state.selectionDrag = null;
+  const point = clampPointToDrawingLimit(pointFromEvent(event));
+  drag.current = point;
+  const movedDistance = Math.hypot(point.x - drag.start.x, point.y - drag.start.y);
+  if (drag.mode === "pending" && movedDistance > 4 / Math.max(0.1, viewScale())) {
+    drag.mode = "marquee";
+  }
+  if (drag.mode === "marquee") {
+    state.selectedActionIndices = selectableIndicesInRect(state.actions, {
+      left: drag.start.x,
+      right: point.x,
+      top: drag.start.y,
+      bottom: point.y,
+    });
+  } else if (drag.mode === "move") {
+    const delta = clampSelectionDelta(
+      drag.bounds,
+      point.x - drag.start.x,
+      point.y - drag.start.y,
+    );
+    state.actions = translateSelectedActions(
+      drag.snapshot,
+      state.selectedActionIndices,
+      delta.dx,
+      delta.dy,
+    );
+    drag.moved = Math.hypot(delta.dx, delta.dy) > 2;
+  } else if (drag.mode === "resize") {
+    const scale = selectionScaleForPoint(drag, point);
+    state.actions = scaleSelectedActions(
+      drag.snapshot,
+      state.selectedActionIndices,
+      drag.origin,
+      scale,
+    );
+    drag.moved = Math.abs(scale - 1) > 0.01;
+  }
+  state.activeSpell = null;
+  updateSelectionControls();
+  render();
+  return true;
+}
+
+function finishRightSelection(event) {
+  const drag = state.rightSelection;
+  if (!drag || drag.pointerId !== event.pointerId) {
+    return false;
+  }
+  moveRightSelection(event);
+  state.rightSelection = null;
   state.pointerDown = false;
   state.start = null;
-  if (drag.moved) {
+  if (drag.mode === "pending") {
+    state.selectedActionIndices = [];
+    setStatus(t("status.selectionEmpty"));
+  } else if (drag.mode === "marquee") {
+    setSelectionStatus();
+  } else if (drag.moved) {
     state.undoStack.push(drag.snapshot);
     if (state.undoStack.length > 100) {
       state.undoStack.shift();
@@ -7239,73 +7374,81 @@ function finishSelectionDrag(point) {
     refreshCircleCenter();
     updateUsedList();
     updateSpellState();
-    setStatus(t(drag.mode === "resize" ? "status.selectionResized" : "status.selectionMoved", {
-      name: elementDisplayName(action.element),
-    }));
+    setStatus(t(
+      drag.mode === "resize" ? "status.selectionGroupResized" : "status.selectionGroupMoved",
+      { count: state.selectedActionIndices.length },
+    ));
   }
+  updateSelectionControls();
   canvas.style.cursor = "default";
   render();
+  return true;
 }
 
-function cancelSelectionDrag(restore = false) {
-  const drag = state.selectionDrag;
-  if (!drag) {
-    return;
+function cancelRightSelection(event, restore = true) {
+  const drag = state.rightSelection;
+  if (!drag || drag.pointerId !== event.pointerId) {
+    return false;
   }
   if (restore && drag.moved) {
     state.actions = cloneActions(drag.snapshot);
   }
-  state.selectionDrag = null;
+  state.rightSelection = null;
   state.pointerDown = false;
   state.start = null;
   updateSelectionControls();
   canvas.style.cursor = "default";
   render();
+  return true;
 }
 
-function deleteSelectedGlyph() {
-  const action = selectedGlyph();
-  if (!action) {
+function cancelSelectionDrag(restore = false) {
+  const drag = state.rightSelection;
+  if (drag) {
+    cancelRightSelection({ pointerId: drag.pointerId }, restore);
+  }
+}
+
+function deleteSelectedActions() {
+  const indices = normalizeSelection();
+  if (indices.length === 0) {
     return false;
   }
-  const name = elementDisplayName(action.element);
   recordHistory();
-  state.actions.splice(state.selectedGlyphIndex, 1);
-  state.selectedGlyphIndex = null;
+  for (const index of [...indices].sort((a, b) => b - a)) {
+    state.actions.splice(index, 1);
+  }
+  state.selectedActionIndices = [];
   state.activeSpell = null;
   refreshCircleCenter();
   updateSelectionControls();
   updateUsedList();
   updateSpellState();
-  setStatus(t("status.selectionDeleted", { name }));
+  setStatus(t("status.selectionGroupDeleted", { count: indices.length }));
   render();
   return true;
 }
 
 function resizeSelectedGlyph(direction) {
-  const action = selectedGlyph();
-  if (!action) {
+  const indices = normalizeSelection();
+  const bounds = selectionBounds();
+  if (!bounds) {
     setStatus(t("status.selectBeforeResize"));
     return;
   }
-
-  const nextSize = resizeGlyphSize(action.size, direction);
-  if (nextSize === action.size) {
-    updateSelectionControls();
-    return;
-  }
-
+  const factor = direction === "shrink" ? 0.9 : 1.1;
   recordHistory();
-  action.size = nextSize;
-  action.userAdjusted = true;
+  state.actions = scaleSelectedActions(
+    state.actions,
+    indices,
+    { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 },
+    factor,
+  );
   state.activeSpell = null;
   updateSelectionControls();
   updateUsedList();
   updateSpellState();
-  setStatus(t("status.symbolResized", {
-    name: elementDisplayName(action.element),
-    direction: t(direction === "grow" ? "status.symbolGrown" : "status.symbolShrunk"),
-  }));
+  setStatus(t("status.selectionGroupResized", { count: indices.length }));
   render();
 }
 
@@ -7345,11 +7488,9 @@ function eraseAt(point) {
     if (hitsAction(point, state.actions[index])) {
       recordHistory();
       state.actions.splice(index, 1);
-      if (state.selectedGlyphIndex === index) {
-        state.selectedGlyphIndex = null;
-      } else if (state.selectedGlyphIndex > index) {
-        state.selectedGlyphIndex -= 1;
-      }
+      state.selectedActionIndices = state.selectedActionIndices
+        .filter((selectedIndex) => selectedIndex !== index)
+        .map((selectedIndex) => selectedIndex > index ? selectedIndex - 1 : selectedIndex);
       state.activeSpell = null;
       refreshCircleCenter();
       updateSelectionControls();
@@ -7365,6 +7506,16 @@ function eraseAt(point) {
 function onPointerDown(event) {
   if (event.button === 2) {
     event.preventDefault();
+    cancelLongPress();
+    const rawPoint = pointFromEvent(event);
+    if (!pointInsideDrawingLimit(rawPoint)) {
+      clearSelection();
+      updateSelectionControls();
+      render();
+      return;
+    }
+    canvas.setPointerCapture(event.pointerId);
+    beginRightSelection(event, clampPointToDrawingLimit(rawPoint));
     return;
   }
   state.activePointers.set(event.pointerId, screenPointFromEvent(event));
@@ -7468,6 +7619,12 @@ function onPointerMove(event) {
     return;
   }
 
+  if (state.rightSelection?.pointerId === event.pointerId) {
+    event.preventDefault();
+    moveRightSelection(event);
+    return;
+  }
+
   if (!state.pointerDown) {
     if (state.tool === "select") {
       const hoverPoint = pointFromEvent(event);
@@ -7476,7 +7633,11 @@ function onPointerMove(event) {
       const guideHandle = guideBounds
         ? guideResizeHandleAtPoint(guideBounds, hoverPoint, 12 / Math.max(0.1, viewScale()))
         : null;
-      const handle = guideHandle || glyphResizeHandleAtPoint(selectedGlyph(), hoverPoint, 12 / Math.max(0.1, viewScale()));
+      const handle = guideHandle || selectionHandleAtPoint(
+        selectionBounds(),
+        hoverPoint,
+        12 / Math.max(0.1, viewScale()),
+      );
       canvas.style.cursor = ["nw", "se"].includes(handle)
         ? "nwse-resize"
         : ["ne", "sw"].includes(handle)
@@ -7489,8 +7650,6 @@ function onPointerMove(event) {
   const point = clampPointToDrawingLimit(pointFromEvent(event));
   if (state.tool === "select" && state.guideResize?.pointerId === event.pointerId) {
     moveGuideResize(point);
-  } else if (state.tool === "select" && state.selectionDrag?.pointerId === event.pointerId) {
-    moveSelectionDrag(point);
   } else if (state.tool === "free" && state.currentAction) {
     state.currentAction.points.push(point);
     render();
@@ -7539,8 +7698,8 @@ function onPointerUp(event) {
     return;
   }
 
-  if (state.selectionDrag?.pointerId === event.pointerId) {
-    finishSelectionDrag(clampPointToDrawingLimit(pointFromEvent(event)));
+  if (state.rightSelection?.pointerId === event.pointerId) {
+    finishRightSelection(event);
     return;
   }
 
@@ -7581,8 +7740,8 @@ function onPointerUp(event) {
 
 function onPointerCancel(event) {
   cancelLongPress();
-  if (state.selectionDrag?.pointerId === event.pointerId) {
-    cancelSelectionDrag(true);
+  if (state.rightSelection?.pointerId === event.pointerId) {
+    cancelRightSelection(event, true);
   }
   if (state.guideResize?.pointerId === event.pointerId) {
     cancelGuideResize();
@@ -7918,7 +8077,7 @@ function selectGuide(source, id) {
   state.activeGuide = { source, id };
   state.guideScale = 1;
   state.guideSelected = true;
-  state.selectedGlyphIndex = null;
+  state.selectedActionIndices = [];
   state.tool = "select";
   state.guideVisible = true;
   localStorage.setItem("whaGuideVisible", "true");
@@ -8013,7 +8172,7 @@ function saveCurrentCircleAsGuide() {
     state.activeGuide = { source: "personal", id: guide.id };
     state.guideScale = 1;
     state.guideSelected = true;
-    state.selectedGlyphIndex = null;
+    state.selectedActionIndices = [];
     state.tool = "select";
     state.guideVisible = true;
     setGuideTab("personal");
@@ -8611,7 +8770,7 @@ function clearCanvas() {
   state.deferredTouchTool = null;
   state.circleCenter = null;
   state.activation = null;
-  state.selectedGlyphIndex = null;
+  state.selectedActionIndices = [];
   updateSelectionControls();
   updateUsedList();
   updateSpellState();
@@ -8761,9 +8920,9 @@ document.addEventListener("keydown", (event) => {
     return;
   }
 
-  if ((event.key === "Delete" || event.key === "Backspace") && state.selectedGlyphIndex !== null) {
+  if ((event.key === "Delete" || event.key === "Backspace") && state.selectedActionIndices.length > 0) {
     event.preventDefault();
-    deleteSelectedGlyph();
+    deleteSelectedActions();
     return;
   }
 
@@ -8794,8 +8953,8 @@ document.addEventListener("keydown", (event) => {
   } else if (event.key === "+" || event.key === "Add") {
     event.preventDefault();
     setCanvasScale(state.canvasScale + 10);
-  } else if (event.key === "Escape" && state.selectedGlyphIndex !== null) {
-    state.selectedGlyphIndex = null;
+  } else if (event.key === "Escape" && state.selectedActionIndices.length > 0) {
+    state.selectedActionIndices = [];
     updateSelectionControls();
     setStatus(t("status.selectionCleared"));
     render();
@@ -8811,10 +8970,6 @@ document.addEventListener("keydown", (event) => {
 
 canvas.addEventListener("contextmenu", (event) => {
   event.preventDefault();
-  cancelLongPress();
-  state.tool = "select";
-  updateToolButtons();
-  selectGlyphAt(pointFromEvent(event));
 });
 canvas.addEventListener("pointerdown", onPointerDown);
 canvas.addEventListener("pointermove", onPointerMove);

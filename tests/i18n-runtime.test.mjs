@@ -30,3 +30,15 @@ test("fidelity details are bilingual", () => {
     assert.notEqual(translate("fr", key), key);
   }
 });
+
+test("group selection statuses are bilingual", () => {
+  for (const key of [
+    "status.selectionCount",
+    "status.selectionGroupMoved",
+    "status.selectionGroupResized",
+    "status.selectionGroupDeleted",
+  ]) {
+    assert.notEqual(translate("en", key, { count: 2 }), key);
+    assert.notEqual(translate("fr", key, { count: 2 }), key);
+  }
+});

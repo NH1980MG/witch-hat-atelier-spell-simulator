@@ -99,6 +99,144 @@ export function topmostGlyphIndexAtPoint(actions, point, padding = 10) {
   return -1;
 }
 
+export function isSelectableAction(action) {
+  return ["glyph", "circle", "ring"].includes(action?.type);
+}
+
+function stableCoordinate(value) {
+  return Math.round(value * 10_000) / 10_000;
+}
+
+export function selectableActionBounds(action) {
+  if (!isSelectableAction(action)) {
+    return null;
+  }
+  if (action.type === "glyph") {
+    const half = action.size * GLYPH_SELECTION_SCALE;
+    return {
+      left: stableCoordinate(action.x - half),
+      right: stableCoordinate(action.x + half),
+      top: stableCoordinate(action.y - half),
+      bottom: stableCoordinate(action.y + half),
+      width: stableCoordinate(half * 2),
+      height: stableCoordinate(half * 2),
+    };
+  }
+  return {
+    left: action.cx - action.radius,
+    right: action.cx + action.radius,
+    top: action.cy - action.radius,
+    bottom: action.cy + action.radius,
+    width: action.radius * 2,
+    height: action.radius * 2,
+  };
+}
+
+function normalizedBounds(bounds) {
+  const left = Math.min(bounds.left, bounds.right);
+  const right = Math.max(bounds.left, bounds.right);
+  const top = Math.min(bounds.top, bounds.bottom);
+  const bottom = Math.max(bounds.top, bounds.bottom);
+  return { left, right, top, bottom, width: right - left, height: bottom - top };
+}
+
+export function boundsIntersect(first, second) {
+  const a = normalizedBounds(first);
+  const b = normalizedBounds(second);
+  return a.left <= b.right && a.right >= b.left && a.top <= b.bottom && a.bottom >= b.top;
+}
+
+export function combinedSelectionBounds(actions, indices) {
+  const bounds = [...new Set(indices)]
+    .map((index) => selectableActionBounds(actions[index]))
+    .filter(Boolean);
+  if (bounds.length === 0) {
+    return null;
+  }
+  const left = Math.min(...bounds.map((item) => item.left));
+  const right = Math.max(...bounds.map((item) => item.right));
+  const top = Math.min(...bounds.map((item) => item.top));
+  const bottom = Math.max(...bounds.map((item) => item.bottom));
+  return {
+    left,
+    right,
+    top,
+    bottom,
+    width: stableCoordinate(right - left),
+    height: stableCoordinate(bottom - top),
+  };
+}
+
+export function topmostSelectableIndexAtPoint(actions, point, padding = 10) {
+  for (let index = actions.length - 1; index >= 0; index -= 1) {
+    const action = actions[index];
+    if (!isSelectableAction(action)) {
+      continue;
+    }
+    if (action.type === "glyph") {
+      const local = pointInGlyphSpace(action, point);
+      const half = action.size * GLYPH_SELECTION_SCALE + padding;
+      if (Math.abs(local.x) <= half && Math.abs(local.y) <= half) {
+        return index;
+      }
+      continue;
+    }
+    const ringDistance = Math.abs(Math.hypot(point.x - action.cx, point.y - action.cy) - action.radius);
+    if (ringDistance <= padding) {
+      return index;
+    }
+  }
+  return -1;
+}
+
+export function selectableIndicesInRect(actions, rect) {
+  const selectionBounds = normalizedBounds(rect);
+  return actions
+    .map((action, index) => ({ index, bounds: selectableActionBounds(action) }))
+    .filter(({ bounds }) => bounds && boundsIntersect(bounds, selectionBounds))
+    .map(({ index }) => index);
+}
+
+export function translateSelectedActions(actions, indices, dx, dy) {
+  const selected = new Set(indices);
+  return cloneActions(actions).map((action, index) => {
+    if (!selected.has(index) || !isSelectableAction(action)) {
+      return action;
+    }
+    if (action.type === "glyph") {
+      action.x += dx;
+      action.y += dy;
+    } else {
+      action.cx += dx;
+      action.cy += dy;
+    }
+    return action;
+  });
+}
+
+export function scaleSelectedActions(actions, indices, origin, scale) {
+  if (!Number.isFinite(scale) || scale <= 0) {
+    throw new TypeError("A finite positive selection scale is required");
+  }
+  const selected = new Set(indices);
+  return cloneActions(actions).map((action, index) => {
+    if (!selected.has(index) || !isSelectableAction(action)) {
+      return action;
+    }
+    if (action.type === "glyph") {
+      action.x = origin.x + (action.x - origin.x) * scale;
+      action.y = origin.y + (action.y - origin.y) * scale;
+      action.size = Math.max(MIN_GLYPH_SIZE, Math.min(MAX_GLYPH_SIZE, action.size * scale));
+      action.userAdjusted = true;
+    } else {
+      action.cx = origin.x + (action.cx - origin.x) * scale;
+      action.cy = origin.y + (action.cy - origin.y) * scale;
+      action.radius = Math.max(1, action.radius * scale);
+    }
+    return action;
+  });
+}
+
 export function canDropGlyph(point, size, bounds) {
   return (
     point.x - size >= bounds.left &&
@@ -125,8 +263,11 @@ export function shouldDeferTouchTool(pointerType, tool) {
 }
 
 export function cloneActions(actions) {
-  return actions.map((action) => ({
-    ...action,
-    points: action.points?.map((point) => ({ ...point })),
-  }));
+  return actions.map((action) => {
+    const clone = { ...action };
+    if (action.points) {
+      clone.points = action.points.map((point) => ({ ...point }));
+    }
+    return clone;
+  });
 }

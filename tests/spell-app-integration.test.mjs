@@ -57,3 +57,26 @@ test("the details drawer exposes structured fidelity information", () => {
     assert.match(app, new RegExp(`#${id}`));
   }
 });
+
+test("selection state supports multiple drawing actions", () => {
+  assert.match(app, /selectedActionIndices:\s*\[\]/);
+  assert.match(app, /function normalizeSelection\(/);
+  assert.match(app, /function selectionBounds\(/);
+  assert.match(app, /function drawSelection\(/);
+  assert.match(app, /function drawSelectionMarquee\(/);
+  assert.doesNotMatch(app, /selectedGlyphIndex:/);
+});
+
+test("right-button selection uses the full pointer lifecycle", () => {
+  assert.match(app, /event\.button === 2[\s\S]*beginRightSelection/);
+  assert.match(app, /moveRightSelection\(event/);
+  assert.match(app, /finishRightSelection\(event/);
+  assert.match(app, /cancelRightSelection\(event/);
+  assert.match(app, /canvas\.setPointerCapture\(event\.pointerId\)/);
+  assert.match(app, /contextmenu[\s\S]*event\.preventDefault\(\)/);
+});
+
+test("marquee selection is limited to drawing actions", () => {
+  assert.match(app, /selectableIndicesInRect\(state\.actions/);
+  assert.doesNotMatch(app, /selectableIndicesInRect\([^,]*guide/i);
+});

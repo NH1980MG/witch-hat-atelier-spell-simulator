@@ -1,18 +1,26 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  boundsIntersect,
   canDropGlyph,
   clampGlyphCenter,
   cloneActions,
+  combinedSelectionBounds,
   glyphResizeHandleAtPoint,
   guideResizeHandleAtPoint,
+  isSelectableAction,
   resizeGuideScaleFromCorner,
   scaledGuideBounds,
   resizeGlyphFromCorner,
   resizeGlyphSize,
+  scaleSelectedActions,
+  selectableActionBounds,
+  selectableIndicesInRect,
   shouldArmLongPress,
   shouldDeferTouchTool,
+  topmostSelectableIndexAtPoint,
   topmostGlyphIndexAtPoint,
+  translateSelectedActions,
 } from "../symbol-interactions.mjs";
 
 test("le guide conserve son centre et ses proportions pendant le redimensionnement", () => {
@@ -97,4 +105,109 @@ test("les outils tactiles irreversibles attendent la fin du clic long", () => {
   assert.equal(shouldDeferTouchTool("touch", "eraser"), true);
   assert.equal(shouldDeferTouchTool("touch", "free"), false);
   assert.equal(shouldDeferTouchTool("pen", "glyph"), false);
+});
+
+test("la selection de groupe accepte glyphes et cercles mais exclut guides et traces", () => {
+  assert.equal(isSelectableAction({ type: "glyph" }), true);
+  assert.equal(isSelectableAction({ type: "circle" }), true);
+  assert.equal(isSelectableAction({ type: "ring" }), true);
+  assert.equal(isSelectableAction({ type: "free" }), false);
+  assert.equal(isSelectableAction({ type: "ray" }), false);
+  assert.equal(isSelectableAction({ type: "spiral" }), false);
+  assert.equal(isSelectableAction({ type: "guide" }), false);
+});
+
+test("selectableActionBounds calcule les limites visuelles des glyphes et cercles", () => {
+  assert.deepEqual(
+    selectableActionBounds({ type: "glyph", x: 50, y: 40, size: 10 }),
+    { left: 38.2, right: 61.8, top: 28.2, bottom: 51.8, width: 23.6, height: 23.6 },
+  );
+  assert.deepEqual(
+    selectableActionBounds({ type: "circle", cx: 30, cy: 40, radius: 20 }),
+    { left: 10, right: 50, top: 20, bottom: 60, width: 40, height: 40 },
+  );
+  assert.equal(selectableActionBounds({ type: "free", points: [] }), null);
+});
+
+test("boundsIntersect accepte les recouvrements partiels et les bords", () => {
+  const first = { left: 10, right: 30, top: 10, bottom: 30 };
+
+  assert.equal(boundsIntersect(first, { left: 25, right: 40, top: 25, bottom: 40 }), true);
+  assert.equal(boundsIntersect(first, { left: 30, right: 40, top: 30, bottom: 40 }), true);
+  assert.equal(boundsIntersect(first, { left: 31, right: 40, top: 31, bottom: 40 }), false);
+});
+
+test("le rectangle selectionne les elements touches quelle que soit sa direction", () => {
+  const actions = [
+    { type: "glyph", x: 20, y: 20, size: 5 },
+    { type: "free", points: [{ x: 30, y: 30 }] },
+    { type: "circle", cx: 60, cy: 50, radius: 15 },
+    { type: "ring", cx: 100, cy: 100, radius: 10 },
+  ];
+
+  assert.deepEqual(
+    selectableIndicesInRect(actions, { left: 75, right: 10, top: 70, bottom: 10 }),
+    [0, 2],
+  );
+  assert.deepEqual(
+    selectableIndicesInRect(actions, { left: 200, right: 150, top: 200, bottom: 150 }),
+    [],
+  );
+});
+
+test("le clic choisit le dernier element selectionnable sous la souris", () => {
+  const actions = [
+    { type: "circle", cx: 50, cy: 50, radius: 20 },
+    { type: "glyph", x: 70, y: 50, size: 8 },
+    { type: "free", points: [{ x: 70, y: 50 }] },
+  ];
+
+  assert.equal(topmostSelectableIndexAtPoint(actions, { x: 70, y: 50 }, 2), 1);
+  assert.equal(topmostSelectableIndexAtPoint(actions, { x: 50, y: 30 }, 2), 0);
+  assert.equal(topmostSelectableIndexAtPoint(actions, { x: 140, y: 140 }, 2), -1);
+});
+
+test("combinedSelectionBounds ignore les indices invalides et reunit le groupe", () => {
+  const actions = [
+    { type: "glyph", x: 20, y: 20, size: 10 },
+    { type: "free", points: [] },
+    { type: "circle", cx: 70, cy: 50, radius: 20 },
+  ];
+
+  assert.deepEqual(combinedSelectionBounds(actions, [2, 99, 0, 0]), {
+    left: 8.2,
+    right: 90,
+    top: 8.2,
+    bottom: 70,
+    width: 81.8,
+    height: 61.8,
+  });
+  assert.equal(combinedSelectionBounds(actions, [1]), null);
+});
+
+test("translateSelectedActions deplace uniquement les elements selectionnes", () => {
+  const source = [
+    { type: "glyph", x: 20, y: 30, size: 10 },
+    { type: "circle", cx: 50, cy: 60, radius: 20 },
+    { type: "ring", cx: 90, cy: 90, radius: 10 },
+  ];
+  const moved = translateSelectedActions(source, [0, 1], 5, -10);
+
+  assert.deepEqual(moved[0], { type: "glyph", x: 25, y: 20, size: 10 });
+  assert.deepEqual(moved[1], { type: "circle", cx: 55, cy: 50, radius: 20 });
+  assert.deepEqual(moved[2], source[2]);
+  assert.notEqual(moved, source);
+});
+
+test("scaleSelectedActions conserve la disposition relative autour du coin oppose", () => {
+  const source = [
+    { type: "glyph", x: 20, y: 30, size: 10 },
+    { type: "circle", cx: 50, cy: 60, radius: 20 },
+    { type: "ring", cx: 90, cy: 90, radius: 10 },
+  ];
+  const scaled = scaleSelectedActions(source, [0, 1], { x: 10, y: 10 }, 2);
+
+  assert.deepEqual(scaled[0], { type: "glyph", x: 30, y: 50, size: 20, userAdjusted: true });
+  assert.deepEqual(scaled[1], { type: "circle", cx: 90, cy: 110, radius: 40 });
+  assert.deepEqual(scaled[2], source[2]);
 });

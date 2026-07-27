@@ -23,3 +23,8 @@ test("runtime status calls do not contain direct user-facing literals", () => {
   assert.doesNotMatch(app, /taille et inclinaison enregistrees|orientation radiale equilibree/);
   assert.doesNotMatch(app, /notice:\s*"Limite du parchemin/);
 });
+
+test("group selection reports useful counts in both languages", () => {
+  assert.equal(translate("en", "status.selectionCount", { count: 3 }), "3 elements selected.");
+  assert.equal(translate("fr", "status.selectionCount", { count: 3 }), "3 elements selectionnes.");
+});
