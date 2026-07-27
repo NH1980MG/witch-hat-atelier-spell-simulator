@@ -10,7 +10,7 @@ Use this before pushing to GitHub or publishing a static site.
 - Run `node --check elemental-mixtures.mjs`.
 - Run `node scripts/validate-spell-matrix.mjs`; require 64 drawings, 26 single
   sigils, 11 balanced base-element mixtures, 37 material signatures, 54,834
-  tested/unique/deterministic variants, a 27,417/27,417 support split, 49,584
+  tested/unique/deterministic variants, a 27,417/27,417 support split, 50,634
   executable plans, and 19 semantic checks.
 - Run `node --test tests/*.test.mjs`; require all tests to pass.
 - After staging the Pages `public/` artifact, run

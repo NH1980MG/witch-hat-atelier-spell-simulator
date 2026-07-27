@@ -38,7 +38,7 @@ The matrix check must report:
 - 38 modifier signs;
 - exactly 54,834 tested, unique and deterministic variants;
 - exactly 27,417 recipes for `none` and 27,417 for `shoe`;
-- 49,584 structured executable plans (plans may be fewer than identities when
+- 50,634 structured executable plans (plans may be fewer than identities when
   incompatible signs are ignored);
 - no missing drawing, duplicate drawing, unknown drawing, nondeterministic
   result or non-finite simulation parameter.

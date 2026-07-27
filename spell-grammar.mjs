@@ -4,7 +4,7 @@ import {
   normalizeSpellGeometry,
   selectPrimarySigil,
 } from "./spell-model.mjs";
-import { composeElementalMixture, INDEXED_ELEMENTAL_MIXTURES } from "./elemental-mixtures.mjs";
+import { composeElementalMixture, INDEXED_ELEMENTAL_MIXTURES } from "./elemental-mixtures.mjs?v=20260727-mixture-runtime-v3";
 import { composeSupportPlan } from "./support-policy.mjs";
 
 const profile = (value) => Object.freeze(value);
@@ -106,6 +106,14 @@ function profileFidelity(sign) {
 
 function worstFidelity(...values) {
   return values.filter(Boolean).sort((left, right) => FIDELITY_RANK[right] - FIDELITY_RANK[left])[0] || "documented";
+}
+
+function materialSupportsAnyPhase(material, requiredPhases) {
+  if (!material || !Array.isArray(requiredPhases) || requiredPhases.length === 0) return true;
+  const availablePhases = material.phase === "mixed"
+    ? ["energy", "liquid", "solid", "gas"]
+    : String(material.phase || "").split("-").filter(Boolean);
+  return requiredPhases.some((phase) => availablePhases.includes(phase));
 }
 
 function slug(value) {
@@ -313,7 +321,7 @@ export function composeSpellRecipe({
       continue;
     }
 
-    if (sign.phases && material && !sign.phases.includes(material.phase)) {
+    if (sign.phases && !materialSupportsAnyPhase(material, sign.phases)) {
       warnings.push(`${name} demande une matiere ${sign.phases.join("/")}; ${material.noun} ne produit donc pas cette transformation.`);
       ignoredSigns.push(name);
       fidelity = worstFidelity(fidelity, "inferred");
@@ -444,7 +452,13 @@ export function composeSpellRecipe({
   }
 
   const flatOperations = ROLE_KEYS.flatMap((role) => operations[role]);
-  const supportPlan = composeSupportPlan({ supportId, primarySigil: primaryName, operations: flatOperations });
+  const supportPlan = composeSupportPlan({
+    supportId,
+    primarySigil: primaryName,
+    materialFamily: elementalMixture?.materialProfile.family || null,
+    materialElements: elementalMixture?.elements || [],
+    operations: flatOperations,
+  });
   fidelity = worstFidelity(fidelity, supportPlan.fidelity);
   supportPlan.ruleIds.forEach((ruleId) => ruleIds.add(ruleId));
   const confidence = fidelity === "documented"

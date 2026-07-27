@@ -20,11 +20,19 @@ remaining large `app.js` sections.
 - Pure `spell-grammar.mjs` with separate material, supply, state, form, motion,
   target, scope, relation and power axes.
 - Automatic validation of 54,834 unique two-sign/support variants: 27,417 with
-  paper only and 27,417 with shoe support. The matrix contains 49,584 distinct
+  paper only and 27,417 with shoe support. The matrix contains 50,634 distinct
   executable plans plus 19 semantic regression checks. Its 37 material
   signatures comprise 26 single sigils and 11 balanced Feu/Eau/Terre/Vent
   mixtures; repeated base sigils are evaluated at runtime as dominance and
   intensity instead of exhaustively indexed.
+- Elemental mixtures preserve their composed identity through reading,
+  activation, 2D animation and 3D rendering. The frozen activation snapshot
+  carries the bilingual name, blended color, element weights and dominance.
+- Shoe-supported mixtures retain their composed support family and render the
+  same material manifestation below the soles instead of falling back to one
+  primary sigil.
+- Composite material phases expose compatible capabilities: liquid-solid mud
+  accepts solid-form signs, while gas-phase steam rejects them.
 - Canonical spell identities now preserve exact geometry, support and recipe
   state. Activation freezes an immutable snapshot so reading, activation and
   the 3D view cannot silently disagree.

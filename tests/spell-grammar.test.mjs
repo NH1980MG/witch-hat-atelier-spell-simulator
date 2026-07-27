@@ -90,6 +90,24 @@ test("incompatible signs are ignored and lower fidelity", () => {
   assert.notEqual(recipe.fidelity, "documented");
 });
 
+test("phase-restricted signs apply when a mixture exposes a compatible phase", () => {
+  for (const sign of ["Etirement", "Spire physique", "Enlacement"]) {
+    const mud = composeSpellRecipe({ sigils: ["Eau", "Terre"], signs: [sign] });
+    assert.ok(!mud.ignoredSigns.includes(sign), `${sign} should apply to liquid-solid mud`);
+  }
+
+  const heatedEarth = composeSpellRecipe({ sigils: ["Feu", "Terre"], signs: ["Spire physique"] });
+  assert.ok(!heatedEarth.ignoredSigns.includes("Spire physique"));
+  assert.ok(heatedEarth.operations.form.includes("coil"));
+});
+
+test("phase-restricted signs remain ignored when no mixture phase matches", () => {
+  const steam = composeSpellRecipe({ sigils: ["Feu", "Eau"], signs: ["Spire physique"] });
+
+  assert.ok(steam.ignoredSigns.includes("Spire physique"));
+  assert.ok(!steam.operations.form.includes("coil"));
+});
+
 test("the public matrix includes all 26 profiled sigils and all modifier signs", () => {
   assert.equal(MATRIX_SIGIL_NAMES.length, 26);
   assert.equal(MATRIX_SIGN_NAMES.length, 38);

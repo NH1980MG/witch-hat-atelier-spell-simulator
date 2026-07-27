@@ -38,10 +38,13 @@ Two high-risk concerns have already been extracted:
   shapes for the same name.
 - `spell-grammar.mjs` is DOM-free. It turns sigils and signs into a deterministic
   material/effect pipeline and can be tested from Node.
+- `elemental-mixtures.mjs` produces the serializable runtime presentation
+  consumed by the activation snapshot, the 2D canvas and the 3D scene.
 - `spell-model.mjs` prevents display rounding and input order from changing a
   recipe identity, then freezes the activation payload consumed by Three.js.
 - `support-policy.mjs` gives no-support and shoe-support recipes explicit,
-  testable plans instead of deriving behavior from translated labels.
+  testable plans instead of deriving behavior from translated labels. It keeps
+  elemental-mixture families composed for both surface and carrier effects.
 
 ## Target Data Flow
 

@@ -5,7 +5,8 @@ import {
   SYMBOL_BOARD_ASSET,
   SYMBOL_PATHS,
 } from "./symbol-catalog.mjs?v=20260723-board-assets-v1";
-import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs";
+import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260727-mixture-runtime-v3";
+import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260727-mixture-runtime-v3";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
 import { getLocale, t } from "./site-i18n.mjs?v=20260718-onion-guides-v2";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260716-shoe-camera-v2";
@@ -501,10 +502,40 @@ function setStatusList(items) {
 }
 
 function localizedRecipeLabel(recipe) {
-  if (getLocale() === "fr") return recipe.label;
-  const sigil = elementDisplayName(recipe.material);
+  const mixture = createElementalMixturePresentation(recipe.elementalMixture);
+  if (getLocale() === "fr") {
+    if (!mixture?.dominantElement) return recipe.label;
+    const dominanceSuffix = mixture.labelFr.slice(mixture.labelFr.indexOf(","));
+    return recipe.label.endsWith(dominanceSuffix) ? recipe.label : `${recipe.label}${dominanceSuffix}`;
+  }
+  const sigil = mixture?.labelEn || elementDisplayName(recipe.material);
   const signs = Object.keys(recipe.signCounts || {}).map(elementDisplayName);
   return signs.length ? `${sigil}: ${signs.join(" + ")}` : sigil;
+}
+
+function runtimeMaterialPresentation(model) {
+  const mixture = createElementalMixturePresentation(model?.recipe?.elementalMixture);
+  if (mixture) return mixture;
+  const element = effectiveElement(model);
+  if (!element) return null;
+  return {
+    kind: element.name === RAW_ENERGY_ELEMENT.name ? "raw-energy" : "single-element",
+    id: element.name,
+    family: model?.recipe?.materialProfile?.family || element.name,
+    labelFr: element.name,
+    labelEn: englishElementNames[element.name] || element.name,
+    color: element.color,
+    elements: [{ name: element.name, count: 1, weight: 1, color: element.color }],
+    dominantElement: element.name,
+    dominantElements: [element.name],
+    balance: 1,
+    intensity: 1,
+  };
+}
+
+function materialPresentationDisplayName(presentation) {
+  if (!presentation) return "";
+  return getLocale() === "en" ? presentation.labelEn : presentation.labelFr;
 }
 
 function localizedRecipeWarnings(recipe, limit = 3) {
@@ -613,6 +644,23 @@ function shoeEffectProfile(model) {
     Object.assign(profile, options);
   };
 
+  const mixturePresentation = createElementalMixturePresentation(model.recipe.elementalMixture);
+  if (mixturePresentation) {
+    const material = materialPresentationDisplayName(mixturePresentation);
+    const moving = supportPlan.movesCarrier;
+    add(
+      t(moving ? "support.mixture.liftEffect" : "support.mixture.surfaceEffect", { material }),
+      t(moving ? "support.mixture.liftLine" : "support.mixture.surfaceLine", { material }),
+      {
+        lift: supportPlan.movesCarrier,
+        stable: supportPlan.stable,
+        motion: supportPlan.effectIds[0] || supportPlan.mode,
+        hazard: supportPlan.hazard,
+      },
+    );
+    return profile;
+  }
+
   if (elementName === "Feu") {
     if (hasLevitation) {
       add("explosion de feu", "Support: Feu + Levitation forme une boule sous les semelles, puis une explosion breve.", { lift: true, motion: "blast", hazard: true });
@@ -685,11 +733,11 @@ function supportStabilityBonus(model = signModel()) {
   if (support.id !== "shoe") {
     return support.stability || 0;
   }
-  const profile = shoeEffectProfile(model);
-  if (profile.stable) {
+  const supportPlan = model.recipe.supportPlan;
+  if (supportPlan.stable) {
     return support.stability;
   }
-  return profile.hazard ? -8 : -4;
+  return supportPlan.hazard ? -8 : -4;
 }
 
 function supportEffectLines(model = signModel()) {
@@ -1842,7 +1890,7 @@ function drawActivation(width, height) {
   if (progress < 1) {
     state.animationFrame = requestAnimationFrame(render);
   } else {
-    const element = effectiveElement(model);
+    const materialPresentation = snapshot.materialPresentation || runtimeMaterialPresentation(model);
     state.activeSpell = {
       ...snapshot,
       startedAt: performance.now(),
@@ -1853,7 +1901,7 @@ function drawActivation(width, height) {
       t("status.ritualActivated", { label: localizedRecipeLabel(snapshot.recipe) }),
       model.rawEnergy
         ? t("status.noMaterialSigil")
-        : t("status.sigilRecognized", { name: elementDisplayName(element), quality: Math.round(symbolQuality) }),
+        : t("status.sigilRecognized", { name: materialPresentationDisplayName(materialPresentation), quality: Math.round(symbolQuality) }),
       t("status.diameter", { value: formatCircleDiameter(state.activeSpell.diameter) }),
       t("status.signBalance", { value: Math.round(model.geometry.balance * 100) }),
       t("status.rotationReach", { rotation: Math.round(Math.abs(model.geometry.spin) * 100), reach: Math.round(model.geometry.reach * 100) }),
@@ -1879,17 +1927,18 @@ function drawActiveAura(width, height) {
   }
 
   const element = elements.find((item) => item.name === state.activeSpell.elementName) || RAW_ENERGY_ELEMENT;
+  const auraColor = state.activeSpell.materialPresentation?.color || element.color;
   const center = state.activeSpell.center;
   const radius = Math.max(60, state.activeSpell.radius);
   ctx.save();
   ctx.globalAlpha = 0.12 + 0.28 * Math.min(1, remaining * 1.8);
   const glow = ctx.createRadialGradient(center.x, center.y, radius * 0.08, center.x, center.y, radius * 1.15);
-  glow.addColorStop(0, element.color);
+  glow.addColorStop(0, auraColor);
   glow.addColorStop(1, "rgba(255, 255, 255, 0)");
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, width, height);
   ctx.globalAlpha = 0.9;
-  ctx.strokeStyle = element.color;
+  ctx.strokeStyle = auraColor;
   ctx.lineWidth = visibleLineWidth(3);
   ctx.setLineDash([12, 9]);
   ctx.beginPath();
@@ -3485,6 +3534,171 @@ function addElementBaseEffect3d(group, elementName, effects, auraRadius, element
   }
 }
 
+function addElementalMixtureEffect3d(group, presentation, auraRadius, elementColor, supportId = "none") {
+  if (!presentation) return;
+  const family = presentation.family;
+  const surfaceY = THREE_LOW_EFFECT_Y;
+  const baseRadius = Math.max(0.1, auraRadius * 0.5);
+  const waterWeight = presentation.elements.find(({ name }) => name === "Eau")?.weight || 0;
+  const earthWeight = presentation.elements.find(({ name }) => name === "Terre")?.weight || 0;
+  const fireWeight = presentation.elements.find(({ name }) => name === "Feu")?.weight || 0;
+  const windWeight = presentation.elements.find(({ name }) => name === "Vent")?.weight || 0;
+  const isVapor = ["steam", "driven-mist", "pressurized-steam"].includes(family);
+  const isGrounded = ["mud", "moving-mud", "heated-mud", "heated-earth"].includes(family);
+  const isParticulate = ["dust", "ash"].includes(family);
+
+  if (isVapor) {
+    const vaporColor = elementColor.clone().lerp(new THREE.Color(0xdce8e5), 0.58);
+    const vaporMaterial = new THREE.MeshBasicMaterial({
+      color: vaporColor,
+      transparent: true,
+      opacity: 0.34,
+      depthWrite: false,
+    });
+    for (let index = 0; index < 18; index += 1) {
+      const puff = new THREE.Mesh(
+        new THREE.SphereGeometry(Math.max(0.032, baseRadius * (0.28 + (index % 4) * 0.08)), 14, 9),
+        vaporMaterial.clone(),
+      );
+      const angle = index * 2.399;
+      const radial = baseRadius * (0.08 + (index % 6) * 0.06);
+      puff.position.set(Math.cos(angle) * radial, surfaceY + 0.03, Math.sin(angle) * radial * 0.5);
+      addAnimatedObject(group, puff, (object, elapsed) => {
+        const phase = (elapsed * (0.12 + fireWeight * 0.12) + index / 18) % 1;
+        const spread = 1 + phase * (0.8 + windWeight * 1.4);
+        object.position.x = Math.cos(angle) * radial * spread + windWeight * phase * baseRadius;
+        object.position.y = surfaceY + 0.04 + phase * (0.5 + fireWeight * 0.8);
+        object.position.z = Math.sin(angle) * radial * (0.45 + phase * 0.65);
+        object.scale.setScalar(0.78 + phase * 2.6);
+        object.material.opacity = Math.max(0.035, 0.38 * (1 - phase));
+      });
+    }
+    if (family === "driven-mist" || family === "pressurized-steam") {
+      for (let index = 0; index < 5; index += 1) {
+        const points = [];
+        for (let step = 0; step <= 48; step += 1) {
+          const phase = step / 48;
+          points.push(new THREE.Vector3(
+            -baseRadius * 0.58 + phase * baseRadius * 1.3,
+            surfaceY + 0.08 + index * 0.025 + Math.sin(phase * Math.PI * 3 + index) * 0.018,
+            (index - 2) * baseRadius * 0.09,
+          ));
+        }
+        const stream = addLine(points, vaporColor, 0.46);
+        if (stream) {
+          addAnimatedObject(group, stream, (object, elapsed) => {
+            object.position.x = Math.sin(elapsed * 1.8 + index) * baseRadius * 0.08;
+            object.material.opacity = 0.2 + Math.sin(elapsed * 2.2 + index) * 0.08;
+          });
+        }
+      }
+    }
+    return;
+  }
+
+  if (isGrounded) {
+    const groundMaterial = new THREE.MeshStandardMaterial({
+      color: elementColor,
+      roughness: family === "heated-earth" ? 0.82 : 0.96,
+      transparent: true,
+      opacity: 0.72,
+    });
+    const surface = new THREE.Mesh(new THREE.CircleGeometry(baseRadius, 72), groundMaterial.clone());
+    surface.rotation.x = -Math.PI / 2;
+    surface.position.y = surfaceY;
+    surface.scale.z = 0.34 + waterWeight * 0.45;
+    addAnimatedObject(group, surface, (object, elapsed) => {
+      const progress = easeOutCubic(spellProgress3d(elapsed));
+      const spread = 0.45 + progress * (0.9 + waterWeight * 1.35);
+      object.scale.set(spread, 1, (0.3 + waterWeight * 0.5) * spread);
+      object.material.opacity = 0.48 + Math.sin(elapsed * 1.6) * 0.06;
+      if (family === "moving-mud") object.rotation.z = elapsed * 0.08 * (0.5 + windWeight);
+    });
+    const clumpCount = Math.round(8 + earthWeight * 14);
+    for (let index = 0; index < clumpCount; index += 1) {
+      const angle = (index / clumpCount) * Math.PI * 2;
+      const radius = baseRadius * (0.16 + (index % 5) * 0.08);
+      const clump = new THREE.Mesh(
+        new THREE.DodecahedronGeometry(0.012 + earthWeight * 0.025 + (index % 2) * 0.006, 0),
+        groundMaterial.clone(),
+      );
+      clump.position.set(Math.cos(angle) * radius, surfaceY + 0.012, Math.sin(angle) * radius * 0.42);
+      addAnimatedObject(group, clump, (object, elapsed) => {
+        object.position.y = surfaceY + 0.01 + Math.abs(Math.sin(elapsed * 1.4 + index)) * (0.004 + windWeight * 0.02);
+        object.rotation.y = elapsed * windWeight * 0.5 + index;
+      });
+    }
+    if (fireWeight > 0) {
+      const emberMaterial = new THREE.MeshBasicMaterial({ color: 0xe38d3c, transparent: true, opacity: 0.72 });
+      for (let index = 0; index < 8; index += 1) {
+        const angle = (index / 8) * Math.PI * 2;
+        const ember = new THREE.Mesh(new THREE.SphereGeometry(0.007, 7, 5), emberMaterial.clone());
+        ember.position.set(Math.cos(angle) * baseRadius * 0.42, surfaceY + 0.018, Math.sin(angle) * baseRadius * 0.18);
+        addAnimatedObject(group, ember, (object, elapsed) => {
+          object.material.opacity = 0.38 + Math.abs(Math.sin(elapsed * 4 + index)) * 0.5;
+        });
+      }
+    }
+    return;
+  }
+
+  if (family === "fire-vortex") {
+    const flameMaterial = new THREE.MeshBasicMaterial({ color: elementColor, transparent: true, opacity: 0.66, depthWrite: false });
+    for (let index = 0; index < 18; index += 1) {
+      const angle = (index / 18) * Math.PI * 2;
+      const flame = new THREE.Mesh(new THREE.ConeGeometry(0.012, 0.065, 7), flameMaterial.clone());
+      flame.position.set(Math.cos(angle) * baseRadius * 0.48, surfaceY + 0.04 + (index % 4) * 0.025, Math.sin(angle) * baseRadius * 0.48);
+      addAnimatedObject(group, flame, (object, elapsed) => {
+        const rotation = angle + elapsed * (0.7 + windWeight * 1.8);
+        const radius = baseRadius * (0.18 + ((index + elapsed * 3) % 18) / 18 * 0.42);
+        object.position.x = Math.cos(rotation) * radius;
+        object.position.z = Math.sin(rotation) * radius;
+        object.position.y = surfaceY + 0.025 + radius * (0.7 + fireWeight);
+        object.scale.y = 0.7 + Math.abs(Math.sin(elapsed * 5 + index)) * 0.8;
+      });
+    }
+    return;
+  }
+
+  if (isParticulate) {
+    const positions = [];
+    for (let index = 0; index < 120; index += 1) {
+      const angle = index * 2.399;
+      const radius = baseRadius * (0.12 + (index % 17) * 0.035);
+      positions.push(Math.cos(angle) * radius, surfaceY + 0.02 + (index % 11) * 0.018, Math.sin(angle) * radius * 0.58);
+    }
+    const particles = new THREE.Points(
+      new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute(positions, 3)),
+      new THREE.PointsMaterial({ color: elementColor, size: 0.014 + earthWeight * 0.018, transparent: true, opacity: 0.68, depthWrite: false }),
+    );
+    addAnimatedObject(group, particles, (object, elapsed) => {
+      object.rotation.y = elapsed * (0.35 + windWeight * 1.2);
+      object.position.y = Math.sin(elapsed * 1.3) * 0.025 + fireWeight * 0.08;
+      object.material.opacity = 0.5 + Math.sin(elapsed * 1.8) * 0.12;
+    });
+    return;
+  }
+
+  for (const [index, component] of presentation.elements.entries()) {
+    const shell = new THREE.Mesh(
+      new THREE.SphereGeometry(baseRadius * (0.2 + component.weight * 0.26), 24, 16),
+      new THREE.MeshBasicMaterial({
+        color: component.color,
+        transparent: true,
+        opacity: 0.16 + component.weight * 0.2,
+        wireframe: true,
+        depthWrite: false,
+      }),
+    );
+    shell.position.y = surfaceY + 0.22 + index * baseRadius * 0.12;
+    addAnimatedObject(group, shell, (object, elapsed) => {
+      object.rotation.y = elapsed * (0.25 + component.weight) * (index % 2 ? -1 : 1);
+      object.rotation.x = elapsed * 0.18 + index;
+      object.scale.setScalar(0.85 + Math.sin(elapsed * 1.4 + index) * 0.12);
+    });
+  }
+}
+
 function addShoeSupportEffects3d(group, supportProp, supportPlan, elementName, elementColor) {
   if (!supportProp || supportProp.userData.kind !== "shoe") {
     return;
@@ -3492,6 +3706,12 @@ function addShoeSupportEffects3d(group, supportProp, supportPlan, elementName, e
 
   const effects = new Set(supportPlan.effectIds);
   const has = (effect) => effects.has(effect);
+  const mixtureSurfaceEffect = supportPlan.isMixture
+    ? [...effects].find((effect) => effect.endsWith("-surface"))
+    : null;
+  const mixtureCarrierEffect = supportPlan.isMixture
+    ? [...effects].find((effect) => effect.endsWith("-carrier-lift"))
+    : null;
   const waterMaterial = new THREE.MeshBasicMaterial({ color: 0x377da4, transparent: true, opacity: 0.42, depthWrite: false, side: THREE.DoubleSide });
   const fireMaterial = new THREE.MeshBasicMaterial({ color: 0xf0a23a, transparent: true, opacity: 0.7, depthWrite: false });
   const scorchMaterial = new THREE.MeshBasicMaterial({ color: 0x21140f, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide });
@@ -3513,6 +3733,50 @@ function addShoeSupportEffects3d(group, supportProp, supportPlan, elementName, e
       });
       object.position.y = baseY + pose.carrierOffsetY;
     });
+  }
+
+  if (mixtureSurfaceEffect) {
+    const surfaceMaterial = new THREE.MeshBasicMaterial({
+      color: elementColor,
+      transparent: true,
+      opacity: 0.38,
+      depthWrite: false,
+    });
+    for (let index = 0; index < 3; index += 1) {
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(0.12 + index * 0.055, 0.008, 10, 72),
+        surfaceMaterial.clone(),
+      );
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = deskEffectY + 0.006 + index * 0.003;
+      addAnimatedObject(group, ring, (object, elapsed) => {
+        const pulse = 0.9 + Math.sin(elapsed * 2.2 + index) * 0.12;
+        object.scale.setScalar(pulse);
+        object.material.opacity = 0.2 + Math.abs(Math.sin(elapsed * 1.8 + index)) * 0.25;
+      });
+    }
+  }
+
+  if (mixtureCarrierEffect) {
+    const carrierMaterial = new THREE.MeshBasicMaterial({
+      color: elementColor,
+      transparent: true,
+      opacity: 0.48,
+      depthWrite: false,
+    });
+    const jetHeight = Math.max(0.08, soleBottomY - deskEffectY);
+    for (const x of shoeXs) {
+      const jet = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.014, 0.032, jetHeight, 16, 1, true),
+        carrierMaterial.clone(),
+      );
+      jet.position.set(x, deskEffectY + jetHeight * 0.5, -0.04);
+      addAnimatedObject(group, jet, (object, elapsed) => {
+        const pulse = 0.82 + Math.abs(Math.sin(elapsed * 5.4 + x * 10)) * 0.35;
+        object.scale.set(1, pulse, 1);
+        object.material.opacity = 0.3 + pulse * 0.2;
+      });
+    }
   }
 
   if (has("water-puddle") || has("water-carrier-lift")) {
@@ -4222,19 +4486,22 @@ function rebuildThreeSpell() {
     threeView.scene.remove(threeView.spellGroup);
   }
 
-  const element = elements.find((item) => item.name === state.activeSpell.elementName) || RAW_ENERGY_ELEMENT;
+  const recipe = state.activeSpell.recipe;
+  const materialPresentation = state.activeSpell.materialPresentation;
+  const runtimeElementName = materialPresentation?.dominantElement || state.activeSpell.elementName;
+  const element = elements.find((item) => item.name === runtimeElementName) || RAW_ENERGY_ELEMENT;
   const group = new THREE.Group();
   const supportId = state.activeSpell.supportId || "none";
   const shoeMode = supportId === "shoe";
   const targetSize = clampCircleDiameterMeters(state.activeSpell.diameter || estimatedCircleDiameterMeters(bounds)) || (environment === "exterior" ? MAX_CIRCLE_DIAMETER_M : 0.8);
   const scale = targetSize / Math.max(bounds.width, bounds.height, 1);
-  const elementColor = new THREE.Color(element.color);
+  const elementColor = new THREE.Color(materialPresentation?.color || element.color);
   const auraRadius = Math.max(MIN_CIRCLE_DIAMETER_M * 0.5, state.activeSpell.radius * scale * 0.95);
   const effects = new Set(state.activeSpell.effects || []);
-  const recipe = state.activeSpell.recipe;
   const model = state.activeSpell.model;
   const combined = new Set(model.combinedEffects || []);
-  const defaultSurfaceEffect = isDefaultSurfaceEffect(element.name, effects, model);
+  const defaultSurfaceEffect = materialPresentation?.kind === "elemental-mixture"
+    || isDefaultSurfaceEffect(element.name, effects, model);
   const floatingCore = usesFloatingCore3d(effects, model);
 
   const supportProp = makeSupportProp3d(supportId, auraRadius);
@@ -4261,9 +4528,13 @@ function rebuildThreeSpell() {
   sealCarrier.add(circleLine(auraRadius * 1.16, shoeMode ? THREE_SHOE_INK_Y + 0.006 : THREE_INK_Y + 0.006, elementColor, 0.5, 192));
   sealCarrier.add(circleLine(auraRadius * 1.35, shoeMode ? THREE_SHOE_INK_Y + 0.011 : THREE_INK_Y + 0.011, elementColor, 0.28, 192));
   const manifestationStartIndex = group.children.length;
-  addElementBaseEffect3d(group, element.name, effects, auraRadius, elementColor, model, supportId);
-  addShoeSupportEffects3d(group, supportProp, recipe.supportPlan, element.name, elementColor);
-  addCombinedSignEffects3d(group, effects, element.name, auraRadius, elementColor, model, supportId);
+  if (materialPresentation?.kind === "elemental-mixture") {
+    addElementalMixtureEffect3d(group, materialPresentation, auraRadius, elementColor, supportId);
+  } else {
+    addElementBaseEffect3d(group, element.name, effects, auraRadius, elementColor, model, supportId);
+  }
+  addShoeSupportEffects3d(group, supportProp, recipe.supportPlan, runtimeElementName, elementColor);
+  addCombinedSignEffects3d(group, effects, runtimeElementName, auraRadius, elementColor, model, supportId);
   addRecipeGrammarEffects3d(group, { ...model, recipe }, auraRadius, elementColor, supportId);
 
   if ((effects.has("dispersion") && !combined.has("colonne diffuse")) || effects.has("repetition")) {
@@ -5833,17 +6104,141 @@ function effectiveElement(model = null) {
   return elements.find((element) => element.name === name) || (resolvedModel.rawEnergy ? RAW_ENERGY_ELEMENT : null);
 }
 
+function drawElementalMixtureEffect2d(presentation, progress, baseRadius, model) {
+  const center = state.circleCenter;
+  const direction = directionVector(model.rays, model.signs, model.geometry);
+  const family = presentation.family;
+  const intensity = Math.max(0.75, Math.min(2.2, presentation.intensity));
+  const windWeight = presentation.elements.find(({ name }) => name === "Vent")?.weight || 0;
+  const waterWeight = presentation.elements.find(({ name }) => name === "Eau")?.weight || 0;
+  const earthWeight = presentation.elements.find(({ name }) => name === "Terre")?.weight || 0;
+  const fireWeight = presentation.elements.find(({ name }) => name === "Feu")?.weight || 0;
+  const isVapor = ["steam", "driven-mist", "pressurized-steam"].includes(family);
+  const isGrounded = ["mud", "moving-mud", "heated-mud", "heated-earth"].includes(family);
+  const isParticulate = ["dust", "ash"].includes(family);
+
+  ctx.save();
+  ctx.strokeStyle = presentation.color;
+  ctx.fillStyle = presentation.color;
+  ctx.lineWidth = visibleLineWidth(3);
+
+  if (isVapor) {
+    const puffCount = Math.round(10 + intensity * 5);
+    for (let index = 0; index < puffCount; index += 1) {
+      const phase = (progress + index / puffCount) % 1;
+      const angle = index * 2.399;
+      const lateralDrift = (Math.cos(angle) * 0.35 + direction.x * windWeight * phase) * baseRadius;
+      const rise = baseRadius * phase * (0.35 + fireWeight * 1.15);
+      const radius = baseRadius * (0.07 + phase * 0.12) * (0.8 + intensity * 0.18);
+      ctx.globalAlpha = Math.max(0.05, 0.34 * (1 - phase));
+      ctx.beginPath();
+      ctx.arc(center.x + lateralDrift, center.y + baseRadius * 0.16 - rise, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (family === "driven-mist") {
+      ctx.globalAlpha = 0.46;
+      for (let index = 0; index < 6; index += 1) {
+        const offset = (index - 2.5) * baseRadius * 0.1;
+        ctx.beginPath();
+        ctx.moveTo(center.x - baseRadius * 0.55, center.y + offset);
+        ctx.quadraticCurveTo(
+          center.x + direction.x * baseRadius * 0.35,
+          center.y + offset + Math.sin(progress * Math.PI * 2 + index) * 9,
+          center.x + baseRadius * 0.62,
+          center.y + offset,
+        );
+        ctx.stroke();
+      }
+    }
+  } else if (isGrounded) {
+    const spread = 0.45 + progress * (0.42 + waterWeight * 0.9);
+    ctx.globalAlpha = 0.3;
+    for (let index = 0; index < 4; index += 1) {
+      const radius = baseRadius * (0.2 + index * 0.1) * spread;
+      ctx.beginPath();
+      ctx.ellipse(center.x, center.y + baseRadius * 0.18, radius * (1.7 + waterWeight), radius * 0.48, index * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 0.66;
+    const clumpCount = Math.round(7 + earthWeight * 14);
+    for (let index = 0; index < clumpCount; index += 1) {
+      const angle = (index / clumpCount) * Math.PI * 2;
+      const radius = baseRadius * (0.12 + (index % 4) * 0.07) * spread;
+      const size = baseRadius * (0.018 + earthWeight * 0.035);
+      ctx.fillRect(
+        center.x + Math.cos(angle) * radius - size,
+        center.y + baseRadius * 0.17 + Math.sin(angle) * radius * 0.34 - size,
+        size * 2,
+        size * 2,
+      );
+    }
+    if (fireWeight > 0) {
+      ctx.strokeStyle = "#d4863d";
+      ctx.globalAlpha = 0.58;
+      for (let index = 0; index < 5; index += 1) {
+        const angle = (index / 5) * Math.PI * 2 + progress;
+        ctx.beginPath();
+        ctx.moveTo(center.x, center.y + baseRadius * 0.12);
+        ctx.lineTo(center.x + Math.cos(angle) * baseRadius * 0.38, center.y + baseRadius * 0.12 + Math.sin(angle) * baseRadius * 0.15);
+        ctx.stroke();
+      }
+    }
+  } else if (family === "fire-vortex") {
+    ctx.globalAlpha = 0.72;
+    for (let index = 0; index < 4; index += 1) {
+      ctx.beginPath();
+      for (let step = 0; step <= 48; step += 1) {
+        const phase = step / 48;
+        const angle = phase * Math.PI * 4 + progress * Math.PI * 2 + index * 0.75;
+        const radius = baseRadius * (0.08 + phase * 0.48);
+        const x = center.x + Math.cos(angle) * radius;
+        const y = center.y + baseRadius * 0.28 - phase * baseRadius * (0.7 + windWeight) + Math.sin(angle) * radius * 0.22;
+        if (step === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+  } else if (isParticulate) {
+    const particleCount = Math.round(28 + intensity * 14);
+    for (let index = 0; index < particleCount; index += 1) {
+      const angle = (index / particleCount) * Math.PI * 2 + progress * (1.2 + windWeight * 2.4);
+      const radius = baseRadius * (0.12 + (index % 9) * 0.07) * (0.65 + progress * 0.7);
+      ctx.globalAlpha = 0.22 + (index % 4) * 0.1;
+      ctx.fillRect(
+        center.x + Math.cos(angle) * radius,
+        center.y + Math.sin(angle) * radius * 0.48 - fireWeight * progress * baseRadius * 0.4,
+        2 + (index % 3),
+        2 + (index % 3),
+      );
+    }
+  } else {
+    for (const [elementIndex, component] of presentation.elements.entries()) {
+      ctx.strokeStyle = component.color;
+      ctx.globalAlpha = 0.28 + component.weight * 0.48;
+      ctx.lineWidth = visibleLineWidth(2 + component.weight * 4);
+      const radius = baseRadius * (0.2 + elementIndex * 0.13 + progress * component.weight * 0.5);
+      ctx.beginPath();
+      ctx.arc(center.x, center.y, radius, progress * Math.PI, progress * Math.PI + Math.PI * (1.1 + component.weight), false);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
 function drawElementEffect(width, height, progress, baseRadius, model = signModel()) {
   const element = effectiveElement(model);
   if (!element) {
     return;
   }
+  const materialPresentation = runtimeMaterialPresentation(model);
   const center = state.circleCenter;
   const direction = directionVector(model.rays, model.signs, model.geometry);
   const particleCount = 18 + state.intensity * 5;
   ctx.save();
 
-  if (element.name === RAW_ENERGY_ELEMENT.name) {
+  if (materialPresentation?.kind === "elemental-mixture") {
+    drawElementalMixtureEffect2d(materialPresentation, progress, baseRadius, model);
+  } else if (element.name === RAW_ENERGY_ELEMENT.name) {
     ctx.strokeStyle = "rgba(215, 166, 62, 0.78)";
     ctx.lineWidth = visibleLineWidth(3);
     for (let index = 0; index < 5; index += 1) {
@@ -7686,7 +8081,7 @@ function updateUsedList() {
     }
     const label = action.type === "glyph"
       ? `${action.kind === "sign" ? t("symbols.category.sign") : t("symbols.category.sigil")}: ${elementDisplayName(action.element)}`
-      : action.label;
+      : actionDisplayLabel(action);
     counts.set(label, (counts.get(label) || 0) + 1);
   }
   if (recognized) {
@@ -7767,7 +8162,8 @@ function spellMetrics(model = signModel()) {
 function updateSpellState() {
   const metrics = spellMetrics();
   const model = signModel();
-  spellElement.textContent = elementDisplayName(metrics.element);
+  spellElement.textContent = materialPresentationDisplayName(runtimeMaterialPresentation(model))
+    || elementDisplayName(metrics.element);
   spellQuality.textContent = `${metrics.quality}%`;
   spellDuration.textContent = `${Math.round(metrics.duration / 1000)}s`;
   spellStability.textContent = `${metrics.stability}%`;
@@ -7802,7 +8198,9 @@ function updateFidelityDetails(recipe) {
   replaceList(
     fidelityWarnings,
     [
-      ...recipe.warnings,
+      ...(getLocale() === "fr"
+        ? recipe.warnings
+        : recipe.warnings.map(() => t("status.recipeWarning"))),
       ...recipe.ignoredSigns.map((name) => t("details.ignoredSign", { name: elementDisplayName(name) })),
     ],
     t("details.noAssumptions"),
@@ -7876,7 +8274,6 @@ function analyzeSpell() {
   const symbolCharge = model.glyphs.reduce((total, action) => total + action.charge, 0);
   const symbolQuality = Math.max(...glyphs.map((glyph) => glyph.quality || 100));
   const power = Math.max(1, state.intensity + state.actions.length + symbolCharge);
-  const spell = guessSpell(elementNames, model);
   const stability = guessStability(model, power);
   const metrics = spellMetrics();
   const metricsSizeIssue = activationSizeIssue(metrics.diameter);
@@ -7899,7 +8296,7 @@ function analyzeSpell() {
   const parameters = model.recipe.effectPlan.parameters;
   updateSpellState();
   setStatusList([
-    t("status.reading", { label: getLocale() === "fr" ? spell : localizedRecipeLabel(model.recipe) }),
+    t("status.reading", { label: localizedRecipeLabel(model.recipe) }),
     t("status.centralSigil", { names: [...elementNames].map(elementDisplayName).join(", ") }),
     t("status.signs", { names: signNames.length > 0 ? signNames.map(elementDisplayName).join(", ") : model.freeSigns.length > 0 ? t("status.freeSigns", { count: model.freeSigns.length }) : t("explorer.none") }),
     t("status.combination", { value: getLocale() === "fr" ? combinationText : model.recipe.ruleIds.join(", ") }),
@@ -8152,12 +8549,14 @@ function activateCircle() {
   const glyphQualities = model.sigils.map((glyph) => glyph.quality || 100);
   const quality = glyphQualities.length > 0 ? Math.max(55, ...glyphQualities) : 100;
   const radius = bounds ? Math.max(bounds.width, bounds.height) / 2 : Math.min(...Object.values(canvasSize())) * 0.18;
+  const materialPresentation = runtimeMaterialPresentation(model);
   state.activation = {
     startedAt: performance.now(),
     snapshot: createActivationSnapshot({
       recipe: model.recipe,
       model,
       elementName: primaryElementNameFromModel(model) || RAW_ENERGY_ELEMENT.name,
+      materialPresentation: runtimeMaterialPresentation(model),
       supportId: support.id,
       supportName: support.name,
       diameter,
@@ -8173,7 +8572,9 @@ function activateCircle() {
     }),
   };
   state.activeSpell = null;
-  setStatus(model.rawEnergy ? t("status.activationRawEnergy") : t("status.activationElement", { name: elementDisplayName(element) }));
+  setStatus(model.rawEnergy
+    ? t("status.activationRawEnergy")
+    : t("status.activationElement", { name: materialPresentationDisplayName(materialPresentation) }));
   render();
 }
 

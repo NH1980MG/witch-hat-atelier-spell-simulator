@@ -53,9 +53,13 @@ Current automatic coverage:
 = 27,417 deterministic recipes per support x 2 supports = 54,834 variants
 ```
 
-Some recipes share a plan because a physically incompatible sign is ignored.
-For example, a solid-only Coil does not invent a new liquid behavior; it emits
-a warning and leaves the compatible layers unchanged.
+Compatibility uses every phase exposed by a composite material: a solid-only
+Coil applies to liquid-solid mud but does not invent a solid behavior for
+gas-phase steam.
+
+The support branch keeps the same composite family. A shoe-supported steam
+recipe therefore renders steam below the soles, while a shoe-supported mud
+recipe remains a grounded liquid-solid manifestation.
 
 The six pair profiles and the four triple profiles are finite simulator
 interpretations. The four-element profile is experimental. None of these
