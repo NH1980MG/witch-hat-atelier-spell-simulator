@@ -24,6 +24,14 @@ test("the explorer has accessible search filters results pagination and details"
   assert.match(html, /library-explorer\.mjs/);
 });
 
+test("the library advertises the 54,834-variant explorer in both locales", () => {
+  assert.match(html, /Explore 54,834 variants/);
+  assert.equal(translate("en", "explorer.title"), "Explore 54,834 variants");
+  assert.equal(translate("fr", "explorer.title"), "Explorer 54 834 variantes");
+  assert.match(translate("en", "explorer.empty"), /54,834/);
+  assert.match(translate("fr", "explorer.empty"), /54 834/);
+});
+
 test("variant fidelity labels never expose translation keys", () => {
   for (const locale of ["en", "fr"]) {
     for (const level of ["documented", "inferred", "experimental"]) {
@@ -38,4 +46,11 @@ test("English recipe details derive combined-effect labels from stable IDs", asy
   assert.match(explorer, /detail\.combinationIds/);
   assert.match(explorer, /humanizeEffectId/);
   assert.match(explorer, /localizePipeline/);
+});
+
+test("the explorer renders every material component and elemental fidelity", async () => {
+  const explorer = await readFile(new URL("../library-explorer.mjs", import.meta.url), "utf8");
+  assert.match(explorer, /record\.sigils/);
+  assert.match(explorer, /detail\.sigils/);
+  assert.match(explorer, /detail\.elementalMixture/);
 });

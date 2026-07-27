@@ -17,3 +17,16 @@ test("the under-sole seal is parented to the shoe support", () => {
   assert.match(app, /supportProp\.add\(sealCarrier\)/);
   assert.match(app, /shoeSupportPose/);
 });
+
+test("shoe-supported mixtures render their composed manifestation", () => {
+  const mixtureEffect = app.match(/function addElementalMixtureEffect3d\([\s\S]*?\n\}/)?.[0] || "";
+  assert.doesNotMatch(mixtureEffect, /supportId !== "none"/);
+
+  const rebuild = app.match(/function rebuildThreeSpell\(\) \{([\s\S]*?)\n\}/)?.[1] || "";
+  assert.match(rebuild, /addElementalMixtureEffect3d\(group, materialPresentation, auraRadius, elementColor, supportId\)/);
+
+  const shoeEffects = app.match(/function addShoeSupportEffects3d\([\s\S]*?\n\}/)?.[0] || "";
+  assert.match(shoeEffects, /supportPlan\.isMixture/);
+  assert.match(shoeEffects, /endsWith\("-surface"\)/);
+  assert.match(shoeEffects, /endsWith\("-carrier-lift"\)/);
+});

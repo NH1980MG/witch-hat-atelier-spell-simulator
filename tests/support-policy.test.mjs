@@ -31,6 +31,44 @@ test("movement signs can move the carrier without changing the element", () => {
   assert.equal(plan.fidelity, "inferred");
 });
 
+test("shoe-supported elemental mixtures keep a composed effect family", () => {
+  const surface = composeSupportPlan({
+    supportId: "shoe",
+    primarySigil: "Eau",
+    materialFamily: "steam",
+    materialElements: ["Feu", "Eau"],
+    operations: [],
+    diameter: 0.2,
+  });
+  const lifted = composeSupportPlan({
+    supportId: "shoe",
+    primarySigil: "Eau",
+    materialFamily: "steam",
+    materialElements: ["Feu", "Eau"],
+    operations: ["lift"],
+    diameter: 0.2,
+  });
+
+  assert.deepEqual(surface.effectIds, ["steam-surface"]);
+  assert.equal(surface.materialFamily, "steam");
+  assert.equal(surface.isMixture, true);
+  assert.equal(surface.hazard, true);
+  assert.deepEqual(lifted.effectIds, ["steam-carrier-lift"]);
+  assert.equal(lifted.movesCarrier, true);
+});
+
+test("legacy carrier effects remain explicitly non-mixture plans", () => {
+  const plan = composeSupportPlan({
+    supportId: "shoe",
+    primarySigil: "Eau",
+    operations: ["lift"],
+    diameter: 0.2,
+  });
+
+  assert.equal(plan.isMixture, false);
+  assert.deepEqual(plan.effectIds, ["water-carrier-lift"]);
+});
+
 test("hazards never receive a stable support bonus", () => {
   const plan = composeSupportPlan({ supportId: "shoe", primarySigil: "Feu", operations: ["focus"], diameter: 0.2 });
   assert.equal(plan.hazard, true);

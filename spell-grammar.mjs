@@ -4,6 +4,7 @@ import {
   normalizeSpellGeometry,
   selectPrimarySigil,
 } from "./spell-model.mjs";
+import { composeElementalMixture, INDEXED_ELEMENTAL_MIXTURES } from "./elemental-mixtures.mjs?v=20260727-mixture-runtime-v3";
 import { composeSupportPlan } from "./support-policy.mjs";
 
 const profile = (value) => Object.freeze(value);
@@ -107,6 +108,14 @@ function worstFidelity(...values) {
   return values.filter(Boolean).sort((left, right) => FIDELITY_RANK[right] - FIDELITY_RANK[left])[0] || "documented";
 }
 
+function materialSupportsAnyPhase(material, requiredPhases) {
+  if (!material || !Array.isArray(requiredPhases) || requiredPhases.length === 0) return true;
+  const availablePhases = material.phase === "mixed"
+    ? ["energy", "liquid", "solid", "gas"]
+    : String(material.phase || "").split("-").filter(Boolean);
+  return requiredPhases.some((phase) => availablePhases.includes(phase));
+}
+
 function slug(value) {
   return String(value)
     .normalize("NFD")
@@ -203,7 +212,7 @@ function operationCount(axes, operation) {
   }, 0);
 }
 
-function buildEffectPlan({ axes, material, sigilCounts, signCounts, direction, supportId, geometry }) {
+function buildEffectPlan({ axes, material, sigilCounts, signCounts, direction, supportId, geometry, elementalMixture, primaryName }) {
   const stageOrder = ["supply", "state", "form", "motion", "target", "scope", "relation", "power"];
   const pipeline = [material ? `matiere:${material.family}` : "matiere:indefinie"];
   const layers = [];
@@ -259,6 +268,9 @@ function buildEffectPlan({ axes, material, sigilCounts, signCounts, direction, s
       stateLoad,
       relationLoad,
       repetition: sigilCounts.Repetition || 0,
+      elementBalance: elementalMixture?.balance ?? 1,
+      elementIntensity: elementalMixture?.intensity ?? 1,
+      elementCount: elementalMixture?.elements.length ?? Number(Boolean(primaryName)),
       ...geometryParameters,
     },
   };
@@ -282,7 +294,8 @@ export function composeSpellRecipe({
     .filter(([name]) => SIGIL_PROFILES[name])
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "fr"));
   const primaryName = selectPrimarySigil(Object.fromEntries(orderedSigils));
-  const material = primaryName ? SIGIL_PROFILES[primaryName] : RAW_ENERGY_PROFILE;
+  const elementalMixture = composeElementalMixture(sigilCountObject);
+  const material = elementalMixture?.materialProfile || (primaryName ? SIGIL_PROFILES[primaryName] : RAW_ENERGY_PROFILE);
   const axes = Object.fromEntries(ROLE_KEYS.map((role) => [role, []]));
   const effectNames = [];
   const mechanics = [];
@@ -291,6 +304,13 @@ export function composeSpellRecipe({
   const uncertainSigns = [];
   const ruleIds = new Set();
   let fidelity = "documented";
+
+  if (elementalMixture) {
+    mechanics.push(`Melange elementaire ${elementalMixture.elements.join(" + ")}: ${elementalMixture.materialProfile.mechanic}.`);
+    warnings.push(`Melange elementaire ${elementalMixture.elements.join(" + ")}: interpretation ${elementalMixture.fidelity}.`);
+    ruleIds.add(elementalMixture.ruleId);
+    fidelity = worstFidelity(fidelity, elementalMixture.fidelity);
+  }
 
   for (const [name, count] of [...signCounts.entries()].sort(([a], [b]) => a.localeCompare(b, "fr"))) {
     const sign = SIGN_PROFILES[name];
@@ -301,7 +321,7 @@ export function composeSpellRecipe({
       continue;
     }
 
-    if (sign.phases && material && !sign.phases.includes(material.phase)) {
+    if (sign.phases && !materialSupportsAnyPhase(material, sign.phases)) {
       warnings.push(`${name} demande une matiere ${sign.phases.join("/")}; ${material.noun} ne produit donc pas cette transformation.`);
       ignoredSigns.push(name);
       fidelity = worstFidelity(fidelity, "inferred");
@@ -432,7 +452,13 @@ export function composeSpellRecipe({
   }
 
   const flatOperations = ROLE_KEYS.flatMap((role) => operations[role]);
-  const supportPlan = composeSupportPlan({ supportId, primarySigil: primaryName, operations: flatOperations });
+  const supportPlan = composeSupportPlan({
+    supportId,
+    primarySigil: primaryName,
+    materialFamily: elementalMixture?.materialProfile.family || null,
+    materialElements: elementalMixture?.elements || [],
+    operations: flatOperations,
+  });
   fidelity = worstFidelity(fidelity, supportPlan.fidelity);
   supportPlan.ruleIds.forEach((ruleId) => ruleIds.add(ruleId));
   const confidence = fidelity === "documented"
@@ -450,7 +476,7 @@ export function composeSpellRecipe({
   });
   const id = `spell-v2-${hashSpellIdentity(identity)}`;
   const effectPlan = {
-    ...buildEffectPlan({ axes, material, sigilCounts: sigilCountObject, signCounts: signCountObject, direction, supportId, geometry: normalizedGeometry }),
+    ...buildEffectPlan({ axes, material, sigilCounts: sigilCountObject, signCounts: signCountObject, direction, supportId, geometry: normalizedGeometry, elementalMixture, primaryName }),
     supportPlan,
   };
 
@@ -459,6 +485,7 @@ export function composeSpellRecipe({
     label,
     material: primaryName,
     materialProfile: material,
+    elementalMixture,
     sigilCounts: sigilCountObject,
     signCounts: signCountObject,
     axes,
@@ -483,6 +510,10 @@ export function composeSpellRecipe({
 
 export function validateSpellMatrix() {
   const sigils = MATRIX_SIGIL_NAMES;
+  const materialSignatures = [
+    ...sigils.map((sigil) => [sigil]),
+    ...INDEXED_ELEMENTAL_MIXTURES,
+  ];
   const signs = MATRIX_SIGN_NAMES;
   const supportIds = ["none", "shoe"];
   const ids = new Set();
@@ -494,20 +525,20 @@ export function validateSpellMatrix() {
   let interpretedRecipes = 0;
 
   for (const supportId of supportIds) {
-    for (const sigil of sigils) {
+    for (const materialSignature of materialSignatures) {
       for (let first = 0; first < signs.length; first += 1) {
         for (let second = first; second < signs.length; second += 1) {
-          const input = { sigils: [sigil], signs: [signs[first], signs[second]], direction: "vers le haut", supportId };
+          const input = { sigils: materialSignature, signs: [signs[first], signs[second]], direction: "vers le haut", supportId };
           const recipe = composeSpellRecipe(input);
           const duplicate = composeSpellRecipe(input);
           tested += 1;
           supports[supportId] += 1;
           if (!recipe.id || !recipe.label || !recipe.material || recipe.effectNames.some((effect) => !effect)) {
-            throw new Error(`Recette invalide: ${sigil} + ${signs[first]} + ${signs[second]} + ${supportId}`);
+            throw new Error(`Recette invalide: ${materialSignature.join(" + ")} + ${signs[first]} + ${signs[second]} + ${supportId}`);
           }
           const parameters = Object.values(recipe.effectPlan?.parameters || {});
           if (!recipe.effectPlan?.pipeline?.length || parameters.length === 0 || parameters.some((value) => !Number.isFinite(value))) {
-            throw new Error(`Plan d'effet invalide: ${sigil} + ${signs[first]} + ${signs[second]} + ${supportId}`);
+            throw new Error(`Plan d'effet invalide: ${materialSignature.join(" + ")} + ${signs[first]} + ${signs[second]} + ${supportId}`);
           }
           if (JSON.stringify(recipe) !== JSON.stringify(duplicate)) {
             throw new Error(`Recette non deterministe: ${recipe.id}`);
@@ -527,6 +558,7 @@ export function validateSpellMatrix() {
 
   return {
     sigils: sigils.length,
+    materialSignatures: materialSignatures.length,
     signs: signs.length,
     tested,
     unique: ids.size,

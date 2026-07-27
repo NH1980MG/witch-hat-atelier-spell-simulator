@@ -22,11 +22,39 @@ test("every indexed sigil has an English library label", () => {
   }
 });
 
-test("the explorer indexes exactly 38,532 deterministic variants", () => {
-  assert.equal(records.length, 38_532);
-  assert.equal(new Set(records.map(({ id }) => id)).size, 38_532);
-  assert.equal(records.filter(({ supportId }) => supportId === "none").length, 19_266);
-  assert.equal(records.filter(({ supportId }) => supportId === "shoe").length, 19_266);
+test("the explorer indexes 54,834 unique deterministic variants", () => {
+  assert.equal(records.length, 54_834);
+  assert.equal(new Set(records.map(({ id }) => id)).size, 54_834);
+  assert.equal(records.filter(({ supportId }) => supportId === "none").length, 27_417);
+  assert.equal(records.filter(({ supportId }) => supportId === "shoe").length, 27_417);
+  assert.ok(records.every(({ sigils, sigil }) => Object.isFrozen(sigils) && sigils.includes(sigil)));
+});
+
+test("the index shares descriptors and derives plan keys for one result page", () => {
+  assert.ok(records.every((record) => !Object.hasOwn(record, "searchText") && !Object.hasOwn(record, "planKey")));
+  assert.equal(new Set(records.map(({ material }) => material)).size, 37);
+  assert.equal(new Set(records.map(({ signPair }) => signPair)).size, 741);
+
+  const result = queryVariants(records, { ...DEFAULT_EXPLORER_STATE, search: "mud" });
+  assert.ok(result.records.length <= VARIANT_PAGE_SIZE);
+  assert.ok(result.records.every(({ planKey }) => typeof planKey === "string" && planKey.length > 0));
+});
+
+test("mixtures are searchable and filterable by either element", () => {
+  const result = queryVariants(records, {
+    ...DEFAULT_EXPLORER_STATE,
+    search: "mud",
+    sigil: "Eau",
+  });
+  assert.ok(result.filtered > 0);
+  assert.ok(result.records.every(({ sigils }) => sigils.includes("Eau") && sigils.includes("Terre")));
+});
+
+test("mixture details retain their components and elemental fidelity", () => {
+  const record = records.find(({ sigils }) => sigils.length === 2 && sigils.includes("Eau") && sigils.includes("Terre"));
+  const detail = getVariantDetail(record);
+  assert.deepEqual(detail.sigils, ["Eau", "Terre"]);
+  assert.equal(detail.elementalMixture.fidelity, "inferred");
 });
 
 test("every record opens a deterministic documented detail", () => {
@@ -51,7 +79,7 @@ test("search normalization handles accents punctuation prefixes aliases and typo
   for (const search of ["levit water", "eau lévitation", "water levtation"]) {
     const result = queryVariants(records, { ...DEFAULT_EXPLORER_STATE, search });
     assert.ok(result.filtered > 0, `${search} should find variants`);
-    assert.ok(result.records.every(({ sigil, signs }) => sigil === "Eau" && signs.includes("Levitation")));
+    assert.ok(result.records.every(({ sigils, signs }) => sigils.includes("Eau") && signs.includes("Levitation")));
   }
 });
 
@@ -70,7 +98,7 @@ test("filters sorting and pagination cover stable non-overlapping pages", () => 
   assert.equal(first.records.length, VARIANT_PAGE_SIZE);
   assert.ok(first.records.every((record) => record.signs.includes("Levitation") && record.supportId === "shoe"));
   assert.equal(new Set([...first.records, ...second.records].map(({ id }) => id)).size, first.records.length + second.records.length);
-  assert.equal(first.total, 38_532);
+  assert.equal(first.total, 54_834);
 });
 
 test("URL state round-trips and sanitizes invalid values", () => {

@@ -5,12 +5,16 @@ Use this before pushing to GitHub or publishing a static site.
 ## Code Checks
 
 - Run `node --check` on `app.js`, `symbol-catalog.mjs`, `spell-grammar.mjs`,
-  `variant-catalog.mjs`, `library-explorer.mjs`, `variant-index-worker.mjs`, and
-  `scripts/validate-spell-matrix.mjs`.
-- Run `node scripts/validate-spell-matrix.mjs`; require 64 drawings, 38,532
-  tested/unique/deterministic variants, a 19,266/19,266 support split, 34,932
+  `variant-catalog.mjs`, `library-explorer.mjs`,
+  `variant-index-worker.mjs`, and `scripts/validate-spell-matrix.mjs`.
+- Run `node --check elemental-mixtures.mjs`.
+- Run `node scripts/validate-spell-matrix.mjs`; require 64 drawings, 26 single
+  sigils, 11 balanced base-element mixtures, 37 material signatures, 54,834
+  tested/unique/deterministic variants, a 27,417/27,417 support split, 50,634
   executable plans, and 19 semantic checks.
 - Run `node --test tests/*.test.mjs`; require all tests to pass.
+- After staging the Pages `public/` artifact, run
+  `node scripts/validate-public-artifact.mjs public`.
 - Run `node scripts/security-audit.mjs`.
 - Parse all HTML pages to catch broken tags.
 - Search for risky browser APIs: `eval`, `new Function`, `document.write`,
@@ -32,6 +36,10 @@ Use this before pushing to GitHub or publishing a static site.
 - Activate a complete ring without a sigil and confirm a short raw-energy
   discharge instead of a material effect.
 - Press `Lire` and confirm signs appear as signs, not only as plume strokes.
+- Add `Eau` and `Terre`; require the readout to identify the inferred mud/clay
+  composition. Add a second `Eau`; require Eau to become dominant with higher
+  intensity. Add `Lumiere` with Eau; require the existing primary-sigil
+  behavior to remain unchanged.
 - Confirm the central sigil is not counted as repeated `Region`, `Colonne`, or
   `Signe de vent` entries.
 - Combine two signs, such as `Projectile + Region` or `Pluie + Orbe`, and
@@ -49,6 +57,8 @@ Use this before pushing to GitHub or publishing a static site.
   visible under the paper.
 - Test `Bibliotheque`, `Tutoriel`, and `Parametres`, then return to the main
   menu from each page title.
+- In the library, search `mud`, `boue`, `steam`, and `vapeur`; filter a mixture
+  by either base component and confirm the 54,834-record index remains usable.
 
 ## Public Asset Check
 

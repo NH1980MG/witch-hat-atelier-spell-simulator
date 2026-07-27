@@ -105,6 +105,7 @@ function finishPlan(policy, values) {
     fidelity: "documented",
     ruleIds: [],
     effectIds: [],
+    isMixture: false,
     valid: true,
     issue: null,
     ...values,
@@ -114,18 +115,26 @@ function finishPlan(policy, values) {
 export function composeSupportPlan({
   supportId = "none",
   primarySigil = null,
+  materialFamily = null,
+  materialElements = [],
   operations = [],
   diameter = null,
 } = {}) {
   const policy = getSupportPolicy(supportId);
   const normalizedOperations = [...new Set(operations.filter(Boolean))];
   const has = (operation) => normalizedOperations.includes(operation);
+  const composedFamily = materialFamily || familyId(primarySigil);
+  const composedElements = materialElements.length > 0 ? materialElements : [primarySigil].filter(Boolean);
+  const isMixture = Boolean(materialFamily);
+  const hazard = composedElements.includes("Feu");
 
   if (supportId === "none") {
     return finishPlan(policy, {
       mode: "paper-origin",
       fidelity: "documented",
       ruleIds: ["ring.closed", "support.paper-origin"],
+      materialFamily: composedFamily,
+      isMixture,
     });
   }
 
@@ -134,6 +143,8 @@ export function composeSupportPlan({
       stable: false,
       fidelity: "documented",
       ruleIds: ["support.shoe-size"],
+      materialFamily: composedFamily,
+      isMixture,
       valid: false,
       issue: "shoe-diameter",
     });
@@ -151,7 +162,6 @@ export function composeSupportPlan({
   }
 
   if (has("lift") || has("float") || has("carrier")) {
-    const hazard = primarySigil === "Feu";
     return finishPlan(policy, {
       mode: "carrier-lift",
       movesCarrier: true,
@@ -159,11 +169,12 @@ export function composeSupportPlan({
       hazard,
       fidelity: "inferred",
       ruleIds: ["support.carrier-target"],
-      effectIds: [`${familyId(primarySigil)}-carrier-lift`],
+      effectIds: [`${composedFamily}-carrier-lift`],
+      materialFamily: composedFamily,
+      isMixture,
     });
   }
 
-  const hazard = primarySigil === "Feu";
   return finishPlan(policy, {
     mode: "surface-manifestation",
     movesCarrier: false,
@@ -171,6 +182,8 @@ export function composeSupportPlan({
     hazard,
     fidelity: "experimental",
     ruleIds: ["support.surface-origin"],
-    effectIds: [surfaceEffectId(primarySigil)],
+    effectIds: [isMixture ? `${composedFamily}-surface` : surfaceEffectId(primarySigil)],
+    materialFamily: composedFamily,
+    isMixture,
   });
 }

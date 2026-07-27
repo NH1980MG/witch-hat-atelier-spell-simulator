@@ -7,9 +7,9 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'">
-    <meta name="description" content="Search 38,532 support-aware spell recipes and browse 33 cropped reference circles in the Witch Hat Atelier Spell Simulator library.">
+    <meta name="description" content="Search 54,834 support-aware spell recipes and browse 33 cropped reference circles in the Witch Hat Atelier Spell Simulator library.">
     <meta property="og:title" content="Spell Library | Witch Hat Atelier Spell Simulator">
-    <meta property="og:description" content="Explore a bilingual wiki of sigils, signs, supports, fidelity notes, and 38,532 searchable spell variants.">
+    <meta property="og:description" content="Explore a bilingual wiki of sigils, signs, supports, fidelity notes, and 54,834 searchable spell variants.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://nh1980mg.github.io/witch-hat-atelier-spell-simulator/bibliotheque.html">
     <link rel="canonical" href="https://nh1980mg.github.io/witch-hat-atelier-spell-simulator/bibliotheque.html">
@@ -21,8 +21,8 @@
         "name": "Witch Hat Atelier Spell Variant Library",
         "url": "https://nh1980mg.github.io/witch-hat-atelier-spell-simulator/bibliotheque.html",
         "inLanguage": ["en", "fr"],
-        "numberOfItems": 38532,
-        "description": "A searchable bilingual collection of 38,532 deterministic magic-circle variants and 33 cropped reference circles."
+        "numberOfItems": 54834,
+        "description": "A searchable bilingual collection of 54,834 deterministic magic-circle variants and 33 cropped reference circles."
       }
     </script>
     <script>
@@ -32,7 +32,7 @@
     </script>
     <link rel="stylesheet" href="styles.css?v=20260716-serif-labels-v1">
     <script type="module" src="site-i18n.mjs?v=20260718-onion-guides-v2"></script>
-    <script type="module" src="library-explorer.mjs?v=20260716-wiki-v1"></script>
+    <script type="module" src="library-explorer.mjs?v=20260726-mixtures-v1"></script>
   </head>
   <body>
     <main class="app-shell settings-page">
@@ -69,6 +69,11 @@
           <a href="#sigils" data-i18n="wiki.sigils">Central sigils</a>
           <a href="#signs" data-i18n="wiki.signs">Modifier signs</a>
           <a href="#supports" data-i18n="wiki.supports">Supports</a>
+          <a href="#elements" data-i18n="wiki.elements">Base elements and indexed mixtures</a>
+          <a href="#pair-behaviors" data-i18n="wiki.pairBehaviors">Six pair behaviors</a>
+          <a href="#triple-quadruple" data-i18n="wiki.tripleQuadruple">Triple and quadruple interpretations</a>
+          <a href="#dominance" data-i18n="wiki.dominance">Balance and dominance</a>
+          <a href="#index-scope" data-i18n="wiki.indexScope">Index scope and searching</a>
           <a href="#fidelity" data-i18n="wiki.fidelity">Fidelity and limitations</a>
         </nav>
       <section class="library-board circle-library-board wiki-content" data-i18n-aria-label="library.region" aria-label="Magic-circle library">
@@ -81,8 +86,8 @@
           <div class="wiki-section-heading">
             <div>
               <p class="wiki-kicker" data-i18n="explorer.kicker">Canonical recipe index</p>
-              <h2 id="variantExplorerTitle" data-i18n="explorer.title">Explore 38,532 variants</h2>
-              <p data-i18n="explorer.description">Search all 26 profiled central sigils, unordered pairs of 38 signs, and both support modes.</p>
+              <h2 id="variantExplorerTitle" data-i18n="explorer.title">Explore 54,834 variants</h2>
+              <p data-i18n="explorer.description">Search 26 profiled central sigils, 11 elemental mixtures, unordered pairs of 38 signs, and both support modes.</p>
             </div>
             <output id="variantCount" class="variant-count" aria-live="polite" data-i18n="explorer.loading">Building the index…</output>
           </div>
@@ -178,6 +183,11 @@
         <section class="wiki-reference-section" id="sigils"><h2 data-i18n="wiki.sigils">Central sigils</h2><p data-i18n="wiki.sigilsBody">Twenty-six profiled central sigils define the recipe material, form, or governing action. Every profiled sigil available in the editor participates in the validated matrix.</p></section>
         <section class="wiki-reference-section" id="signs"><h2 data-i18n="wiki.signs">Modifier signs</h2><p data-i18n="wiki.signsBody">Thirty-eight signs modify supply, state, form, motion, target, scope, relation, or power. Size, position, connection, and rotation affect the result.</p></section>
         <section class="wiki-reference-section" id="supports"><h2 data-i18n="wiki.supports">Supports</h2><p data-i18n="wiki.supportsBody">No link keeps the paper on the desk. Shoe support fixes a small paper below the sole and applies stricter physical limits.</p></section>
+        <section class="wiki-reference-section" id="elements"><h2 data-i18n="wiki.elements">Base elements and indexed mixtures</h2><p data-i18n="wiki.elementsBody">The mixture system is limited to Fire, Water, Earth, and Wind. The index includes 26 single sigils plus 11 balanced mixture signatures; Light and other non-base sigils preserve their existing primary behavior.</p></section>
+        <section class="wiki-reference-section" id="pair-behaviors"><h2 data-i18n="wiki.pairBehaviors">Six pair behaviors</h2><p data-i18n="wiki.pairBehaviorsBody">Balanced pairs infer steam, heated earth, fire vortex, driven mist, mud, or dust. These labels are simulator interpretations, not manga-confirmed mixtures.</p></section>
+        <section class="wiki-reference-section" id="triple-quadruple"><h2 data-i18n="wiki.tripleQuadruple">Triple and quadruple interpretations</h2><p data-i18n="wiki.tripleQuadrupleBody">Balanced triples infer moving mud, pressurized steam, heated mud, or ash. The balanced four-element combination is an experimental unstable elemental mixture.</p></section>
+        <section class="wiki-reference-section" id="dominance"><h2 data-i18n="wiki.dominance">Balance and dominance</h2><p data-i18n="wiki.dominanceBody">Equal counts are balanced. Repeating a base sigil at runtime makes that element dominant, lowers balance, and raises intensity while keeping the same material class; arbitrary repetitions are not exhaustively indexed.</p></section>
+        <section class="wiki-reference-section" id="index-scope"><h2 data-i18n="wiki.indexScope">Index scope and searching</h2><p data-i18n="wiki.indexScopeBody">Search 54,834 records: 37 material signatures times 741 unordered sign pairs times 2 supports. Search aliases such as mud/boue and steam/vapeur, or filter a mixture by either component.</p></section>
         <section class="wiki-reference-section" id="fidelity"><h2 data-i18n="wiki.fidelity">Fidelity and limitations</h2><p data-i18n="wiki.fidelityBody">Documented rules have direct research support. Inferred and experimental labels identify combinations completed logically by the simulator.</p></section>
       </section>
       </div>
