@@ -1,6 +1,6 @@
 # Progress Tracker
 
-Last updated: 2026-07-16.
+Last updated: 2026-07-27.
 
 ## Current Status
 
@@ -19,9 +19,12 @@ remaining large `app.js` sections.
   latest pass corrected 9 sigils and added 17 decorative or specialized sigils.
 - Pure `spell-grammar.mjs` with separate material, supply, state, form, motion,
   target, scope, relation and power axes.
-- Automatic validation of 38,532 unique two-sign/support variants: 19,266 with
-  paper only and 19,266 with shoe support. The matrix contains 34,932 distinct
-  executable plans plus 19 semantic regression checks.
+- Automatic validation of 54,834 unique two-sign/support variants: 27,417 with
+  paper only and 27,417 with shoe support. The matrix contains 49,584 distinct
+  executable plans plus 19 semantic regression checks. Its 37 material
+  signatures comprise 26 single sigils and 11 balanced Feu/Eau/Terre/Vent
+  mixtures; repeated base sigils are evaluated at runtime as dominance and
+  intensity instead of exhaustively indexed.
 - Canonical spell identities now preserve exact geometry, support and recipe
   state. Activation freezes an immutable snapshot so reading, activation and
   the 3D view cannot silently disagree.
@@ -90,14 +93,17 @@ remaining large `app.js` sections.
 - Library page restored with 33 local, original SVG simulator schematics,
   stable categories and bilingual labels. No remote or copied panel image is
   required by the public build.
-- Tutorial updated in French and English with the exact 38,532-variant matrix,
-  ring, balance, rotation, support and physical-size rules.
+- Tutorial updated in French and English with the exact 54,834-variant matrix,
+  elemental mixture scope, dominance, ring, balance, rotation, support and
+  physical-size rules. Inferred mixture interpretations are explicitly not
+  presented as manga-confirmed.
 - Desktop and mobile browser QA completed for the library and tutorial, plus
   nonblank raw-ring and water-on-shoe 3D activation scenes.
 - Tutorial and settings pages.
-- Searchable wiki explorer for all 38,532 profiled variants with flexible
+- Searchable wiki explorer for all 54,834 indexed variants with flexible
   bilingual search, eight filters, sorting, pagination, shareable URL state and
-  deterministic recipe details.
+  deterministic recipe details. `mud`/`boue` and `steam`/`vapeur` aliases
+  locate inferred mixtures, and either base element can filter a mixture.
 - Canonical SEO metadata, JSON-LD, `robots.txt`, `sitemap.xml`, security audit
   and restricted GitHub Pages artifact validation.
 - Final canonical release QA: 89 automated tests, complete matrix validation,

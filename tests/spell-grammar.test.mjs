@@ -96,12 +96,13 @@ test("the public matrix includes all 26 profiled sigils and all modifier signs",
   assert.deepEqual(MATRIX_SIGIL_NAMES, Object.keys(SIGIL_PROFILES));
 });
 
-test("the matrix validates exactly 38,532 deterministic support variants", () => {
+test("the matrix validates every indexed material signature", () => {
   const result = validateSpellMatrix();
 
-  assert.equal(result.tested, 38_532);
-  assert.equal(result.unique, 38_532);
-  assert.equal(result.deterministic, 38_532);
-  assert.deepEqual(result.supports, { none: 19_266, shoe: 19_266 });
+  assert.equal(result.materialSignatures, 37);
+  assert.equal(result.tested, 54_834);
+  assert.equal(result.unique, 54_834);
+  assert.equal(result.deterministic, 54_834);
+  assert.deepEqual(result.supports, { none: 27_417, shoe: 27_417 });
   assert.ok(result.distinctPlans > 0);
 });

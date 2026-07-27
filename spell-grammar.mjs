@@ -4,7 +4,7 @@ import {
   normalizeSpellGeometry,
   selectPrimarySigil,
 } from "./spell-model.mjs";
-import { composeElementalMixture } from "./elemental-mixtures.mjs";
+import { composeElementalMixture, INDEXED_ELEMENTAL_MIXTURES } from "./elemental-mixtures.mjs";
 import { composeSupportPlan } from "./support-policy.mjs";
 
 const profile = (value) => Object.freeze(value);
@@ -496,6 +496,10 @@ export function composeSpellRecipe({
 
 export function validateSpellMatrix() {
   const sigils = MATRIX_SIGIL_NAMES;
+  const materialSignatures = [
+    ...sigils.map((sigil) => [sigil]),
+    ...INDEXED_ELEMENTAL_MIXTURES,
+  ];
   const signs = MATRIX_SIGN_NAMES;
   const supportIds = ["none", "shoe"];
   const ids = new Set();
@@ -507,20 +511,20 @@ export function validateSpellMatrix() {
   let interpretedRecipes = 0;
 
   for (const supportId of supportIds) {
-    for (const sigil of sigils) {
+    for (const materialSignature of materialSignatures) {
       for (let first = 0; first < signs.length; first += 1) {
         for (let second = first; second < signs.length; second += 1) {
-          const input = { sigils: [sigil], signs: [signs[first], signs[second]], direction: "vers le haut", supportId };
+          const input = { sigils: materialSignature, signs: [signs[first], signs[second]], direction: "vers le haut", supportId };
           const recipe = composeSpellRecipe(input);
           const duplicate = composeSpellRecipe(input);
           tested += 1;
           supports[supportId] += 1;
           if (!recipe.id || !recipe.label || !recipe.material || recipe.effectNames.some((effect) => !effect)) {
-            throw new Error(`Recette invalide: ${sigil} + ${signs[first]} + ${signs[second]} + ${supportId}`);
+            throw new Error(`Recette invalide: ${materialSignature.join(" + ")} + ${signs[first]} + ${signs[second]} + ${supportId}`);
           }
           const parameters = Object.values(recipe.effectPlan?.parameters || {});
           if (!recipe.effectPlan?.pipeline?.length || parameters.length === 0 || parameters.some((value) => !Number.isFinite(value))) {
-            throw new Error(`Plan d'effet invalide: ${sigil} + ${signs[first]} + ${signs[second]} + ${supportId}`);
+            throw new Error(`Plan d'effet invalide: ${materialSignature.join(" + ")} + ${signs[first]} + ${signs[second]} + ${supportId}`);
           }
           if (JSON.stringify(recipe) !== JSON.stringify(duplicate)) {
             throw new Error(`Recette non deterministe: ${recipe.id}`);
@@ -540,6 +544,7 @@ export function validateSpellMatrix() {
 
   return {
     sigils: sigils.length,
+    materialSignatures: materialSignatures.length,
     signs: signs.length,
     tested,
     unique: ids.size,

@@ -39,11 +39,12 @@ for (const [name, drawing] of Object.entries(SYMBOL_PATHS)) {
 
 const result = validateSpellMatrix();
 if (
-  result.tested !== 38_532
-  || result.unique !== 38_532
-  || result.deterministic !== 38_532
-  || result.supports.none !== 19_266
-  || result.supports.shoe !== 19_266
+  result.materialSignatures !== 37
+  || result.tested !== 54_834
+  || result.unique !== 54_834
+  || result.deterministic !== 54_834
+  || result.supports.none !== 27_417
+  || result.supports.shoe !== 27_417
   || result.distinctPlans < 1
   || result.distinctPlans > result.tested
 ) {

@@ -10,6 +10,7 @@ styles.css          shared visual styling
 app.js              UI, drawing, freehand recognition, scoring and Three.js
 symbol-catalog.mjs  shared vector paths for picker, canvas and 3D ink
 spell-grammar.mjs   pure sigil/sign profiles and combination engine
+elemental-mixtures.mjs  finite base-element profiles and runtime dominance
 spell-model.mjs     canonical identity, geometry and activation snapshots
 support-policy.mjs  support validation and stable effect identifiers
 support-geometry.mjs grounded support poses and shoe camera
@@ -69,13 +70,15 @@ flowchart TD
   Catalog --> Ink3D["Sampled 3D ink"]
   Input["Manual glyphs + grouped freehand strokes"] --> App["app.js recognizer"]
   App --> Grammar["spell-grammar.mjs"]
+  Grammar --> Mixtures["elemental-mixtures.mjs"]
   Grammar --> Read["Lire status list"]
   Grammar --> Effects["Composable Three.js layers"]
   Validator["validate-spell-matrix.mjs"] --> Catalog
   Validator --> Grammar
 ```
 
-The grammar processes these axes in a fixed order:
+The grammar first recognizes the finite base-element material signature, then
+processes these axes in a fixed order:
 
 ```text
 material -> supply -> state -> form -> motion -> target -> scope -> relation -> power
@@ -203,8 +206,10 @@ Per-effect recipe:
 Minimum practical tests:
 
 - Syntax checks for JS and Python.
-- Pure matrix test for all 38,532 support-aware variants: 26 profiled central
-  sigils, 741 unordered sign pairs and 2 support modes.
+- Pure matrix test for all 54,834 support-aware variants: 26 single sigils plus
+  11 balanced Feu/Eau/Terre/Vent mixtures, 741 unordered sign pairs and 2
+  support modes. Arbitrary repeated base sigils remain runtime dominance and
+  intensity inputs, not exhaustively indexed material signatures.
 - Shared-drawing test for all 64 sigils/signs.
 - Determinism and finite-parameter assertions for every effect plan.
 - Browser smoke test for the main simulator.
@@ -220,6 +225,7 @@ Current deployment can remain static:
 - `app.js`
 - `symbol-catalog.mjs`
 - `spell-grammar.mjs`
+- `elemental-mixtures.mjs`
 - `variant-catalog.mjs`
 - `variant-index-worker.mjs`
 - `library-explorer.mjs`

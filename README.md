@@ -6,19 +6,24 @@ sigil and modifier signs, read the result, then activate a live Three.js scene.
 
 The public site is designed as both a workshop and a small wiki. Its library
 contains 33 tightly cropped reference circles and a searchable catalog of exactly
-38,532 deterministic, support-aware recipes:
+54,834 deterministic, support-aware recipes:
 
 ```text
 38 * 39 / 2 = 741 unordered sign pairs with repetition
-26 profiled central sigils * 741 pairs = 19,266 recipes
-19,266 recipes * 2 support modes = 38,532 variants
+26 single sigils + 11 balanced base-element mixtures = 37 material signatures
+37 material signatures * 741 pairs = 27,417 recipes
+27,417 recipes * 2 support modes = 54,834 variants
 ```
 
 The two support modes are paper only and a small paper fixed under a shoe. This
-count is a simulator validation matrix, not a claim that the manga names 38,532
-spells. Three-sign, multi-sigil, nested and arbitrary freehand variants remain
-outside the indexed matrix. Every profiled sigil available in the editor is
-included in this public contract.
+count is a simulator validation matrix, not a claim that the manga names 54,834
+spells. The 11 indexed mixtures use only Feu, Eau, Terre and Vent; their pair
+and triple interpretations are inferred, and the four-element mixture is
+experimental, not manga-confirmed. Arbitrary repeated base sigils are evaluated
+at runtime as dominance and intensity rather than exhaustively indexed. Three-
+sign, linked, nested and arbitrary freehand variants also remain outside the
+finite public matrix. Every profiled sigil available in the editor is included
+in this public contract.
 
 ## Features
 
@@ -61,8 +66,9 @@ node scripts/validate-spell-matrix.mjs
 node scripts/security-audit.mjs
 ```
 
-The matrix validator must report 64 drawings, 26 indexed sigils, 38 signs,
-38,532 tested/unique/deterministic variants, a 19,266/19,266 support split and all
+The matrix validator must report 64 drawings, 26 single sigils, 11 balanced
+base-element mixtures, 37 material signatures, 38 signs, 54,834
+tested/unique/deterministic variants, a 27,417/27,417 support split and all
 semantic checks passing.
 
 ## Project Map
@@ -72,7 +78,8 @@ semantic checks passing.
 - `tutoriel.html`, `parametres.html`: bilingual guide and settings reference.
 - `symbol-catalog.mjs`: shared vector drawings for the editor and renderer.
 - `spell-grammar.mjs`, `spell-model.mjs`: deterministic mechanics and snapshots.
-- `variant-catalog.mjs`, `variant-index-worker.mjs`: 38,532-recipe index.
+- `elemental-mixtures.mjs`: finite base-element profiles and runtime dominance.
+- `variant-catalog.mjs`, `variant-index-worker.mjs`: 54,834-recipe index.
 - `support-policy.mjs`, `support-geometry.mjs`: support limits and 3D placement.
 - `assets/library-schematics/`: 33 local PNG crops containing only the named reference circles.
 - `docs/`: architecture, fidelity, QA, release and research provenance notes.
