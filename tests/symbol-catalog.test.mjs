@@ -153,7 +153,7 @@ test("le navigateur charge la nouvelle version du catalogue partage", async () =
 
   assert.match(app, /symbol-catalog\.mjs\?v=20260723-board-assets-v1/);
   assert.match(html, /app\.js\?v=20260726-central-weight-v2/);
-  assert.match(html, /styles\.css\?v=20260726-central-weight-v2/);
+  assert.match(html, /styles\.css\?v=20260727-elemental-mixtures-v1/);
 });
 
 test("chaque glyphe partage possede une planche d'audit generee", () => {

@@ -1236,8 +1236,8 @@ input:focus-visible {
   padding: 10px 12px;
   font-weight: 700;
   min-width: 0;
-  white-space: nowrap;
-  overflow-wrap: normal;
+  white-space: normal;
+  overflow-wrap: anywhere;
   font-size: clamp(0.94rem, 1.05vw, 1.08rem);
   line-height: 1.12;
 }
