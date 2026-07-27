@@ -48,13 +48,20 @@ only the manifestation group; spin rotates that group; reach scales its height.
 Current automatic coverage:
 
 ```text
-26 profiled central sigils x 741 unordered two-sign pairs (repetition allowed)
-= 19,266 deterministic recipes per support and 34,932 distinct executable plans across both supports
+26 single sigils + 11 balanced Feu/Eau/Terre/Vent mixtures = 37 material signatures
+37 material signatures x 741 unordered two-sign pairs (repetition allowed)
+= 27,417 deterministic recipes per support x 2 supports = 54,834 variants
 ```
 
 Some recipes share a plan because a physically incompatible sign is ignored.
 For example, a solid-only Coil does not invent a new liquid behavior; it emits
 a warning and leaves the compatible layers unchanged.
+
+The six pair profiles and the four triple profiles are finite simulator
+interpretations. The four-element profile is experimental. None of these
+inferred mixtures are presented as manga-confirmed, and arbitrary repeated base
+sigils remain runtime dominance/intensity inputs rather than additional indexed
+material signatures.
 
 ## Recognition Rules
 

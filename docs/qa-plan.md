@@ -21,6 +21,7 @@ These checks have been run manually from the project folder:
 node --check app.js
 node --check symbol-catalog.mjs
 node --check spell-grammar.mjs
+node --check elemental-mixtures.mjs
 node --check variant-catalog.mjs
 node --check library-explorer.mjs
 node --check variant-index-worker.mjs
@@ -32,17 +33,22 @@ node scripts/security-audit.mjs
 The matrix check must report:
 
 - 64 drawings;
-- 26 indexed and editable profiled central sigils;
+- 26 indexed single sigils plus 11 balanced Feu/Eau/Terre/Vent mixtures, for
+  37 finite material signatures;
 - 38 modifier signs;
-- exactly 38,532 tested, unique and deterministic variants;
-- exactly 19,266 recipes for `none` and 19,266 for `shoe`;
-- 34,932 structured executable plans (plans may be fewer than identities when
+- exactly 54,834 tested, unique and deterministic variants;
+- exactly 27,417 recipes for `none` and 27,417 for `shoe`;
+- 49,584 structured executable plans (plans may be fewer than identities when
   incompatible signs are ignored);
 - no missing drawing, duplicate drawing, unknown drawing, nondeterministic
   result or non-finite simulation parameter.
 - all 19 semantic invariants pass, including radial/directional separation,
   incompatible material filtering, staged stillness, target-conflict warnings
   repeated-sign scaling, bare-ring energy, balance, tilt and disconnected marks.
+
+Arbitrary repeated base sigils are evaluated at runtime as dominance and
+intensity; they are not exhaustively indexed. The finite mixture profiles are
+simulator inferences or experiments where labeled, not manga-confirmed claims.
 
 Also parse `index.html`, `bibliotheque.html`, `tutoriel.html`, and
 `parametres.html` with an HTML parser before publishing.

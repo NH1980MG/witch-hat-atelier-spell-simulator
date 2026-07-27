@@ -5,8 +5,9 @@ Use this before pushing to GitHub or publishing a static site.
 ## Code Checks
 
 - Run `node --check` on `app.js`, `symbol-catalog.mjs`, `spell-grammar.mjs`,
-  `variant-catalog.mjs`, `library-explorer.mjs`, `variant-index-worker.mjs`, and
-  `scripts/validate-spell-matrix.mjs`.
+  `variant-catalog.mjs`, `library-explorer.mjs`,
+  `variant-index-worker.mjs`, and `scripts/validate-spell-matrix.mjs`.
+- Run `node --check elemental-mixtures.mjs`.
 - Run `node scripts/validate-spell-matrix.mjs`; require 64 drawings, 26 single
   sigils, 11 balanced base-element mixtures, 37 material signatures, 54,834
   tested/unique/deterministic variants, a 27,417/27,417 support split, 49,584
