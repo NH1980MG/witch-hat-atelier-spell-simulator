@@ -1,7 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://nh1980mg.github.io/witch-hat-atelier-spell-simulator/</loc></url>
-  <url><loc>https://nh1980mg.github.io/witch-hat-atelier-spell-simulator/bibliotheque.html</loc></url>
-  <url><loc>https://nh1980mg.github.io/witch-hat-atelier-spell-simulator/tutoriel.html</loc></url>
-  <url><loc>https://nh1980mg.github.io/witch-hat-atelier-spell-simulator/parametres.html</loc></url>
+  <url>
+    <loc>https://nh1980mg.github.io/witch-hat-atelier-spell-simulator/</loc>
+    <lastmod>2026-07-27</lastmod>
+  </url>
+  <url>
+    <loc>https://nh1980mg.github.io/witch-hat-atelier-spell-simulator/bibliotheque.html</loc>
+    <lastmod>2026-07-27</lastmod>
+  </url>
+  <url>
+    <loc>https://nh1980mg.github.io/witch-hat-atelier-spell-simulator/tutoriel.html</loc>
+    <lastmod>2026-07-27</lastmod>
+  </url>
+  <url>
+    <loc>https://nh1980mg.github.io/witch-hat-atelier-spell-simulator/parametres.html</loc>
+    <lastmod>2026-07-27</lastmod>
+  </url>
 </urlset>
