@@ -31,16 +31,30 @@ than decorative. The disarm path must also decide whether it clears the carried
 element or only restores the previous tool, because those differ in what the
 next canvas click does.
 
-## 3. Diverging English name tables silently shrink the result set (measured)
+## 3. Diverging English name tables (measured; FALSIFIED, downgraded)
 
-`app.js` defines `englishElementNames` with 66 entries while
-`variant-catalog.mjs` exports `ENGLISH_ELEMENT_NAMES` with 64, and the keys
-`Etirement`, `Energie brute`, and `Aucun` differ between them. The names are
-near identical and either import satisfies the type. Choosing the wrong one
-produces a search that works for most queries and quietly returns nothing for a
-handful, which is the worst failure profile because it survives casual manual
-testing. Mitigated by a test asserting the built index covers all 64 palette
-elements rather than merely asserting that some query returns some result.
+**This case as originally written was wrong, and the correction is the point.**
+
+The original claim: `app.js` defines `englishElementNames` with 66 entries while
+`variant-catalog.mjs` exports `ENGLISH_ELEMENT_NAMES` with 64, three keys
+differ, so importing the wrong one silently drops entries from search results.
+
+Codex refuted it and an executed re-check on this side agreed. Both tables cover
+**all 64 palette keys**; neither drops any. The 66 are the 64 plus two
+non-palette entries, `Energie brute` and `Aucun`. Exactly one palette label
+differs: `Etirement` is `Stretch / Weave` in `app.js` and `Stretch Weave` in
+`variant-catalog.mjs`.
+
+The real case is smaller: the app table is the display-label source of truth, so
+using the other yields one wrong label. Severity P2, not a trap.
+
+The methodological failure is worth keeping on the record. A count mismatch
+(66 versus 64) and a list of three differing keys were treated as evidence of a
+consequence (dropped results) without checking whether those three keys were
+even in the palette. They were not. This is conclusion-favouring measurement:
+the discovery signal was real, the classification drawn from it was invented.
+The mitigation still stands on its own merits - assert the built index covers
+all 64 elements rather than that some query returns some result.
 
 ## 4. Cache-bust bump breaks four unrelated test files (reasoned)
 
@@ -59,9 +73,20 @@ miss during review.
 bounds check. Duplicating a symbol already close to the boundary therefore
 places a copy partially or wholly outside the drawing limit, where the existing
 placement path would have refused to put it. Worse, duplicating repeatedly
-walks copies further out on each press. The duplication path must clamp through
-`clampGlyphCenter` and `canDropGlyph`, and the test needs to assert the clamped
-result rather than merely that the action count increased.
+walks copies further out on each press.
+
+The original mitigation named `clampGlyphCenter` and `canDropGlyph`. Codex
+refuted that too: both express a single glyph centre and size, so clamping each
+copy of a mixed glyph/circle/ring selection against its own bounds distorts the
+group's relative spacing. `app.js:7290` already has the correct primitive,
+`clampSelectionDelta(bounds, dx, dy)`, used for group moves at `app.js:7326`.
+Duplication takes one shared delta from `combinedSelectionBounds`.
+
+That correction exposes a further case the original missed: against an edge the
+clamp can return zero on both axes, appending an exact overlapping copy on every
+press and building an invisible stack. Zero delta is therefore a no-op with
+localized feedback. The test must assert relative spacing is preserved across a
+mixed selection, not merely that the action count increased.
 
 ## 6. Duplicate silently ignores most of what is on the canvas (reasoned)
 

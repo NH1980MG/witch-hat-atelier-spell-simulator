@@ -1,5 +1,9 @@
 # Element Search and Pointer Placement Design
 
+> Revision 2, 2026-07-27. Amended after independent review by Codex
+> (thread `WITCH-HAT-ATELIER-SPELL-SIMULATOR-SPEC-221826-dd5`, verdict
+> request-changes, P1=6 P2=2). Changes are listed under Review History.
+
 ## Objective
 
 Give the workshop a keyboard route from "I want the Push sign" to "it is on the
@@ -17,12 +21,14 @@ In scope:
 
 - A search overlay over the 64 palette elements, opened with `Cmd/Ctrl+K`.
 - A visible armed-pointer state with a ghost preview that follows the cursor.
-- One shared arming path for the search overlay, drawer clicks, and drawer
-  Enter presses.
+- One shared arming path for the search overlay, drawer clicks, drawer Enter
+  presses, and the direct glyph toolbar button.
 - `Cmd/Ctrl+D` duplication of the current selection, plus a toolbar button so
   the same action is reachable without a keyboard.
-- An `Escape` guard that stops the existing clear-canvas fallback from firing
-  while the overlay is open.
+- A modal keyboard gate that suppresses every canvas command while the overlay
+  is open.
+- A DOM-free palette-data seam, so the runtime join between the element list
+  and the display-name table is testable.
 
 Out of scope, deliberately:
 
@@ -36,12 +42,12 @@ Out of scope, deliberately:
 
 ### Opening and searching
 
-`Cmd/Ctrl+K` opens a modal overlay with a text input focused. `Escape` or a
-click outside closes it without changing anything.
+`Cmd/Ctrl+K` opens a modal overlay with a text input focused. Escape, the close
+button, or a click outside closes it without changing anything.
 
 Typing filters the 64 elements. An empty query lists all of them in palette
-order, so the overlay doubles as a fast full list. Arrow keys move the
-highlighted result, `Enter` confirms it, and confirming closes the overlay.
+order, so the overlay doubles as a fast full list. Arrow keys move the active
+option, `Enter` confirms it, and confirming closes the overlay.
 
 Matching runs against three fields per element: the canonical French name, the
 English display name, and the two-letter rune. Queries are folded with
@@ -60,23 +66,25 @@ Ties resolve by palette order, which keeps results stable between keystrokes.
 
 ### Arming and placing
 
-Confirming a result arms the pointer: the element becomes `state.element`, the
-tool becomes `glyph`, any open drawer closes, and a ghost preview follows the
-cursor over the canvas.
+Confirming a result arms the pointer: the element becomes the carried element,
+the tool becomes `glyph`, any open drawer closes, and a ghost preview follows
+the cursor over the canvas.
 
 Clicking the parchment places the symbol. The pointer stays armed, so repeated
 clicks stamp repeatedly. This is stamp mode, and it is the behaviour the glyph
-tool already has today; this design makes it visible rather than inventing it.
+tool already has today; this design makes it visible and reversible rather than
+inventing it.
 
-`Escape` disarms and restores the previously active tool.
+`Escape` disarms and restores the tool the user was in before arming.
 
 Drag-to-size and drag-to-rotate on placement are unchanged.
 
 ### Duplicating
 
-`Cmd/Ctrl+D` duplicates every selected action, offsetting the copies slightly
-and leaving the copies selected so a follow-up drag moves them as a group. One
-undo snapshot is recorded per duplication.
+`Cmd/Ctrl+D` duplicates every selected action as one group, offsetting the
+copies by a single shared translation and leaving the copies selected so a
+follow-up drag moves them together. One undo snapshot is recorded per
+duplication.
 
 A duplicate button joins the existing shrink and grow buttons in the floating
 tool strip, disabled when nothing is selected, so touch users reach the same
@@ -88,23 +96,28 @@ existing selection model rather than extending it.
 
 ## Architecture
 
+### symbol-palette-data.mjs (new, DOM-free seam)
+
+The 64-element array and the English display-name table move out of `app.js`
+into a module with no DOM access, re-exported for `app.js` to consume.
+
+This exists because of a testability constraint, not for tidiness: `app.js`
+cannot be imported under Node (verified - `import('./app.js')` throws
+`ReferenceError: document is not defined`), and both tables are currently
+private `const`s in it. Without this seam, no test can prove the running app
+joined the correct tables; a fixture copy would only prove the fixture.
+
 ### symbol-search.mjs
 
-A new module with no DOM access, so its behaviour is testable under
-`node:test` without a browser.
+A module with no DOM access.
 
 - `buildSymbolSearchIndex(elements, englishNames)` returns frozen records
   pairing each element with its normalized French name, English name, and rune.
 - `searchSymbols(index, query, limit)` returns ranked matches, or every record
   in palette order when the query is empty.
 
-It imports `normalizeSearchText` from `variant-catalog.mjs`. No new dependency
-is introduced.
-
-The index must be built from the `elements` array in `app.js` joined with that
-file's `englishElementNames` table. The similarly named `ENGLISH_ELEMENT_NAMES`
-exported by `variant-catalog.mjs` is a different set and must not be
-substituted. See Hazards.
+It imports `normalizeSearchText` from `variant-catalog.mjs`, and its inputs come
+from `symbol-palette-data.mjs`. No new dependency is introduced.
 
 ### Overlay markup
 
@@ -114,16 +127,19 @@ follows the pattern already used by the variant dialog in `bibliotheque.html`.
 
 ### app.js wiring
 
-- `armSymbol(element)` sets the element, records the outgoing tool in
-  `state.previousTool`, switches to the glyph tool, closes any open drawer, and
-  shows the ghost.
-- `disarmSymbol()` restores `state.previousTool` and hides the ghost.
+- `setTool(nextTool, { element })` is the single centralized tool transition.
+  Every path that changes the tool routes through it: the toolbar buttons at
+  `app.js:8795-8801`, drawer click, drawer Enter, drag completion, and search
+  confirmation. Nothing assigns `state.tool` directly.
+- `armSymbol(element)` calls `setTool("glyph", { element })`, closes any open
+  drawer, and takes ghost ownership.
+- `disarmSymbol()` restores the recorded return tool and releases ghost
+  ownership.
 - `duplicateSelectedActions()` follows the shape of the existing
-  `deleteSelectedActions()`: record history, clone, append, offset, reselect,
-  refresh, render.
-- The ghost reuses the existing `#symbolDragGhost` element, repositioned on
-  pointer move while the glyph tool is active. Today that element only appears
-  during a drawer drag; this gives it a second, longer-lived role.
+  `deleteSelectedActions()`: record history, clone, append, translate once,
+  reselect the appended range, refresh circle-derived state, render.
+- The ghost reuses the existing `#symbolDragGhost` element under the ownership
+  rules below.
 
 Placement itself needs no new code. The existing glyph branch in
 `onPointerDown` already builds the action.
@@ -131,17 +147,49 @@ Placement itself needs no new code. The existing glyph branch in
 ## State
 
 No new "armed" flag. `state.tool === "glyph"` already means the pointer is
-carrying `state.element`, and adding a parallel flag would create a second
-source of truth that can drift out of sync.
+carrying an element, and a parallel flag would be a second source of truth.
 
-Two additions only:
+**This is only safe under two invariants, both of which the first revision of
+this design failed to state:**
 
-- `state.previousTool`, so `Escape` can restore the tool the user was in.
-- `state.searchOpen`, so the global key handler can bail out while the overlay
-  has focus.
+1. **Centralized transitions.** Every write to `state.tool` goes through
+   `setTool`. The direct toolbar handler currently does not (verified at
+   `app.js:8795-8801`, a generic loop over all tool buttons), so it must be
+   routed through `setTool` as part of this work.
+2. **Edge-triggered capture.** `state.previousTool` is recorded only on a
+   transition from a non-glyph tool into `glyph`. Arming again while already
+   armed must not overwrite it, or Escape restores `glyph` and cannot disarm.
+
+Additions:
+
+- `state.previousTool` - the tool to restore on disarm. Written only on the
+  non-glyph-to-glyph edge.
+- `state.searchOpen` - true from `showModal()` until the dialog is closed by any
+  path. Synchronized on all five: Escape, the close button, an outside click,
+  confirmation, and programmatic close.
+- `state.ghostOwner` - `null`, `"armed"`, or `"drag"`. See Ghost Ownership.
 
 Selection-only changes stay out of history, consistent with the marquee design.
 Each duplication records exactly one snapshot.
+
+## Ghost Ownership
+
+The persistent armed preview and the transient drawer-drag preview share
+`#symbolDragGhost` and the `is-dragging-symbol` body class.
+`cancelSymbolDrag()` clears both unconditionally (verified at
+`app.js:8012-8013`), so a drawer drag started while armed leaves the glyph tool
+active with no visible preview - which silently breaks the invariant that armed
+and never-chosen are distinguishable.
+
+Rules:
+
+- `state.ghostOwner` is set to `"drag"` when a drawer drag begins and restored
+  to its previous value when the drag ends by any path.
+- Drag teardown calls a single `renderGhost()` rather than clearing the element
+  directly. `renderGhost()` draws the armed preview when the owner is `"armed"`
+  and clears when the owner is `null`.
+- Covered cases: reopen drawer while armed then cancel the drag; reopen drawer
+  while armed then drop the drag.
 
 ## Keyboard Map
 
@@ -149,41 +197,94 @@ Each duplication records exactly one snapshot.
 | --- | --- | --- |
 | `Cmd/Ctrl+K` | unbound | Open element search |
 | `Cmd/Ctrl+D` | unbound | Duplicate selection |
-| `Escape`, overlay open | Falls through to clear canvas | Close overlay only |
-| `Escape`, pointer armed | Falls through to clear canvas | Disarm, restore tool |
+| Any key, overlay open | Reaches the canvas handler | **Suppressed** except the overlay's own keys |
+| `Escape`, pointer armed | Falls through to clear canvas | Disarm, restore return tool |
 | `Escape`, otherwise | Unchanged | Unchanged |
+
+**The modal gate is the whole shortcut map, not just Escape.** When
+`state.searchOpen` is true, the document handler returns immediately after
+handling the overlay's own keys. It is the first branch in the handler, ahead
+of the modifier block and ahead of the `isTyping` guard. Scoping the guard to
+Escape alone would leave `Cmd/Ctrl+D`, `Cmd/Ctrl+Z`, `Cmd/Ctrl+S`, and the bare
+letters `A` and `L` able to mutate a canvas the user cannot see.
+
+A stale `state.searchOpen` is its own failure: it would suppress Escape
+permanently. Hence the requirement that every close path synchronizes it.
 
 Both new bindings call `preventDefault()`, because browsers bind `Cmd/Ctrl+D`
 to bookmarking and may bind `Cmd/Ctrl+K` to a search or address bar.
 
-Both are registered beside the existing `Cmd+Z` and `Cmd+S` handlers, ahead of
-the `isTyping` guard, matching how those two are already wired.
+## Duplication Policy
+
+One shared clamped translation, never per-action clamping. A selection may mix
+glyphs, circles, and rings; clamping each copy independently against its own
+bounds would distort the group's relative spacing.
+
+`app.js` already has the right primitive: `clampSelectionDelta(bounds, dx, dy)`
+at `app.js:7290`, used for group moves at `app.js:7326`. It clamps a single
+delta against `drawingLimitBounds` using combined bounds. Duplication uses
+`combinedSelectionBounds` plus `clampSelectionDelta`, then one call to
+`translateSelectedActions` over the appended indices.
+
+The earlier draft named `clampGlyphCenter` and `canDropGlyph`. Those express a
+single glyph centre and size and are the wrong tool for a heterogeneous group.
+
+**Zero legal delta.** Against an edge, the clamp can return `dx = dy = 0`, which
+would append an exact overlapping copy on every press and build an invisible
+stack. When the clamped delta is zero in both axes, duplication is a no-op and
+reports a localized blocked status. No alternate direction is attempted; a
+deterministic fallback is more surface than the case warrants.
+
+Duplication also refreshes circle-derived state, since copying a circle or ring
+can move the spell centre.
+
+## Accessibility
+
+The listbox keeps DOM focus in the search input and tracks the active option
+with `aria-activedescendant`, rather than moving focus between results.
+
+- Each result carries a stable id and `role="option"` with `aria-selected`.
+- The result count is announced through a localized live region on change.
+- Cancelling restores focus to the control that opened the overlay.
+- Confirming closes the overlay and leaves pointer placement intact; the canvas
+  is not a focus target and gains no `tabindex`.
 
 ## Verified Constraints
 
-These were confirmed by running the app on 2026-07-27, not inferred from
-reading:
+Confirmed by running the app on 2026-07-27, not inferred from reading. The
+first four are this side's; the fifth is Codex's independent reproduction.
 
 - Selecting the glyph tool and dispatching three canvas clicks placed three
   symbols and reported `Sigil: Fire x3`. Stamp mode already exists.
-- With no symbol chosen, those clicks placed Fire, because `state.element`
-  initialises to `elements[0]`. Armed and never-chosen are indistinguishable
-  today, which is why the ghost preview is required rather than cosmetic.
+- With no symbol chosen, those clicks placed Fire, because the carried element
+  initialises to the first palette entry. Armed and never-chosen are
+  indistinguishable today, which is why the ghost preview is required rather
+  than cosmetic.
 - Pressing `Escape` with three symbols placed, nothing selected, and no drawer
   open emptied the drawing and set the status to `Blank parchment.`
 - A keydown of `Escape` dispatched inside an open native `<dialog>` reached a
   listener bound on `document`.
+- Codex reproduced the same case in a real browser with a dialog button focused
+  and recorded the ordering: dialog `keydown`, then the app status changing to
+  `Blank parchment.`, then dialog `cancel`, then dialog `close`. **The canvas is
+  already cleared before `cancel` fires**, so the guard must live on the
+  document handler. Listening for the dialog's `cancel` event is too late.
 
-The last two combine into the single most important requirement in this design:
-without an explicit guard, dismissing the search overlay destroys the drawing.
+Also verified: `import('./app.js')` under Node throws `ReferenceError: document
+is not defined`, and `app.js` exposes exactly one `export` across 9019 lines.
 
 ## Hazards
 
-**English name tables diverge.** `app.js` defines `englishElementNames` with 66
-entries. `variant-catalog.mjs` exports `ENGLISH_ELEMENT_NAMES` with 64, and the
-keys `Etirement`, `Energie brute`, and `Aucun` differ between them. They look
-interchangeable. Building the index from the wrong one silently drops entries
-from search results.
+**English name tables differ by one label, and one is authoritative.** `app.js`
+defines `englishElementNames` with 66 entries; `variant-catalog.mjs` exports
+`ENGLISH_ELEMENT_NAMES` with 64. An executed comparison shows **both cover all
+64 palette keys** - neither drops any. The 66 are the 64 plus two non-palette
+entries, `Energie brute` and `Aucun`. Exactly one palette label differs:
+`Etirement` is `Stretch / Weave` in `app.js` and `Stretch Weave` in
+`variant-catalog.mjs`. The app table is the display-label source of truth, so
+the search index uses it; substituting the other yields one wrong label, not
+missing results. Revision 1 of this document claimed silent entry loss. That
+was wrong.
 
 **Cache-bust strings are pinned by tests.** `index.html` carries `?v=` query
 strings on `app.js` and `styles.css`. Four test files assert their exact
@@ -194,19 +295,22 @@ assets, so both versions must be bumped and all four tests updated in the same
 commit.
 
 **Placeholder translations escape the bilingual check.** The attribute scan in
-`tests/i18n-html.test.mjs` covers `data-i18n`, `-title`, `-aria-label`, and
-`-alt`, but not `-placeholder`. The search input needs a translated
-placeholder, so that regex should be extended to cover it. Doing so also brings
+`tests/i18n-html.test.mjs` line 24 covers `data-i18n`, `-title`,
+`-aria-label`, and `-alt`, but not `-placeholder`. The search input needs a
+translated placeholder, so that regex must be extended. Doing so also brings
 the existing use in `bibliotheque.html` under test for the first time.
 
-**Duplication does not clamp.** `translateSelectedActions` applies an offset
-without bounding it, so a duplicate of a symbol near the edge can land outside
-the drawing limit. The duplication path must clamp with the existing
-`clampGlyphCenter` and `canDropGlyph` helpers.
+**The catalogue-parity test cannot see dynamic keys.** `tests/i18n.test.mjs`
+asserts the two catalogues expose identical key sets, and `i18n-html` asserts
+declared HTML attributes resolve. Neither reaches a key constructed in
+`app.js` at runtime. Every new status message needs a test that asserts the key
+directly.
 
 ## Testing
 
-New pure tests in `tests/symbol-search.test.mjs`:
+### Pure tests
+
+`tests/symbol-search.test.mjs`:
 
 - `wind` returns Wind and Wind underfoot.
 - `vent` returns the same two elements, confirming both name fields match.
@@ -215,38 +319,93 @@ New pure tests in `tests/symbol-search.test.mjs`:
 - `SV` ranks Sangsue-valance first, confirming rune matching outranks prefixes.
 - An empty query returns all 64 records in palette order.
 - A nonsense query returns nothing.
-- The index built from `elements` covers all 64 entries. This is the guard
-  against the diverging name tables described above.
 
-New behavioural tests for duplication in `tests/symbol-interactions.test.mjs`,
-which already covers the neighbouring selection helpers:
+### Seam tests
 
-- Duplicating a selection appends the same number of actions.
-- The copies, not the originals, end up selected.
+The index must be built from `symbol-palette-data.mjs`, which both `app.js` and
+the tests import. A test asserts the seam exports exactly 64 elements and a
+display-name entry for every one of them. This is what makes the join
+verifiable; without the seam it is not testable at all, and revision 1 of this
+document specified a test that could not have been written.
+
+### Duplication tests
+
+Extending `tests/symbol-interactions.test.mjs`, which already covers the
+neighbouring selection helpers:
+
+- Duplicating appends the same number of actions.
+- The appended copies, not the originals, end up selected.
+- A mixed glyph, circle, and ring selection preserves relative spacing, proving
+  one shared delta rather than per-action clamping.
+- A selection with no legal delta is a no-op and appends nothing.
 - Non-selectable action types are left untouched.
-- A duplicate near the boundary stays inside the drawing limit.
 
-A regression test asserting that the drawing survives an `Escape` press while
-the search overlay is open. This is the one test that must not be skipped; it
-covers the failure mode described under Verified Constraints.
+### Browser test
 
-Static assertions extend `tests/symbol-palette-ui.test.mjs` in its existing
-style: the overlay and duplicate-button element IDs exist in `index.html`, and
-the new classes exist in `styles.css`.
+One browser smoke test, which the current Node-only suite cannot express: with
+the search overlay open and a symbol placed, pressing Escape closes the overlay
+and **leaves the drawing intact**. This covers the highest-severity case in the
+design and there is no static substitute for it. The keyboard-routing gate is
+additionally extracted far enough to be unit-testable, so the browser test is a
+confirmation rather than the only coverage.
 
-No new i18n test is required. `tests/i18n.test.mjs` already asserts the English
-and French catalogues expose identical keys, and `tests/i18n-html.test.mjs`
-already checks that every translation attribute resolves in both.
+### Static assertions
+
+Extending `tests/symbol-palette-ui.test.mjs` in its existing style: the overlay
+and duplicate-button element IDs exist in `index.html`, and the new classes
+exist in `styles.css`.
 
 ## Localisation
 
-Six new keys, added to both catalogues in `i18n.mjs`: `search.title`,
-`search.placeholder`, `search.empty`, `search.results`, `status.symbolArmed`,
-and `status.symbolDisarmed`. Duplication reuses the existing status-message
-conventions.
+New keys, added to both catalogues in `i18n.mjs`:
+
+Search overlay - `search.title`, `search.placeholder`, `search.empty`,
+`search.results`.
+
+Arming - `status.symbolArmed`, `status.symbolDisarmed`.
+
+Duplication - `tool.duplicate` (button accessible name and tooltip, matching
+how the existing shrink and grow controls each carry a `tool.` key),
+`status.duplicated`, `status.duplicateNoSelection`, `status.duplicateBlocked`.
+
+Each status key gets a direct assertion, because the existing parity and HTML
+scans cannot reach a key constructed at runtime.
 
 ## Discoverability
 
 A small `Cmd+K` hint in the symbol drawer heading, so the overlay is findable
 from where players already look for symbols. The duplicate button carries a
 tooltip naming its shortcut, matching the existing tool buttons.
+
+## Implementation Staging
+
+One product unit, one user-facing release, two internal stages. The first
+stage carries the risk and is independently testable.
+
+1. **Seams.** Extract `symbol-palette-data.mjs`; centralize tool transitions
+   behind `setTool`; extract the keyboard-routing gate; implement group
+   duplication on `clampSelectionDelta`. All testable under Node.
+2. **UI.** Wire the overlay markup, the ghost lifecycle, the duplicate button,
+   and the localized strings. Add the browser smoke test.
+
+## Review History
+
+Revision 2 amends revision 1 (`b823ac6`) after independent review by Codex at
+pin `d3e49e7`. Every source citation below was re-verified on this side before
+being accepted.
+
+| Finding | Change |
+| --- | --- |
+| codex-spec-001 (P2) | Name-table hazard rewritten. Revision 1 claimed silent entry loss; both tables cover all 64 keys and only the `Etirement` label differs. |
+| codex-spec-002 (P1) | New centralized `setTool` contract and edge-triggered `previousTool`. The direct toolbar path bypassed arming entirely. |
+| codex-spec-003 (P1) | Modal gate widened from Escape to the entire canvas shortcut map, with close-path synchronization. |
+| codex-spec-004 (P1) | Duplication respecified on `combinedSelectionBounds` plus the existing `clampSelectionDelta`, with a zero-delta no-op. |
+| codex-spec-005 (P1) | New Ghost Ownership section; drag teardown must restore the armed preview. |
+| codex-spec-006 (P1) | New DOM-free palette-data seam. Revision 1's keystone test could not have been written. |
+| codex-spec-007 (P1) | Duplicate control and status keys enumerated; runtime-key assertions required. |
+| codex-spec-008 (P2) | New Accessibility section fixing the listbox focus model. |
+
+Codex confirmed unchanged: the matching design (names plus rune, exact then
+prefix, no fuzzy) as appropriately lean for 64 records, the decision to keep
+fuzzy matching and meaning search out of scope, and this remaining one product
+unit.
