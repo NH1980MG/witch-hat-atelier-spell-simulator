@@ -94,3 +94,17 @@ test("le defilement tactile vertical ne demarre pas le transport d'un symbole", 
   assert.match(inkButtonRule, /touch-action:\s*pan-y/);
   assert.doesNotMatch(inkButtonRule, /touch-action:\s*none/);
 });
+
+test("une seule affectation de state.tool subsiste, dans setTool", async () => {
+  const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
+  const assignments = app.match(/state\.tool = /g) || [];
+
+  assert.equal(
+    assignments.length,
+    1,
+    "toute transition d'outil doit passer par setTool, sinon l'apercu arme survit a un changement d'outil",
+  );
+  assert.match(app, /function setTool\(/);
+  assert.match(app, /function armSymbol\(/);
+  assert.match(app, /function disarmSymbol\(/);
+});

@@ -34,6 +34,7 @@ import {
   translateSelectedActions,
 } from "./symbol-interactions.mjs?v=20260727-marquee-v1";
 import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs";
+import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260729-element-search-v1";
 
 export const CENTRAL_SIGIL_STROKE_WIDTH = 6.4365;
 
@@ -326,6 +327,9 @@ const state = {
   guideScale: 1,
   guideSelected: false,
   guideResize: null,
+  previousTool: "select",
+  ghostOwner: null,
+  ghostOwnerBeforeDrag: null,
 };
 
 const guideImageCache = new Map();
@@ -7096,8 +7100,61 @@ function draggedCorner(bounds, handle) {
   return corners[handle];
 }
 
+function setTool(nextTool, options = {}) {
+  const previous = state.tool;
+  const nextElement = options.element;
+  const elementChanged = Boolean(nextElement) && nextElement !== state.element;
+  if (elementChanged) {
+    state.element = nextElement;
+  }
+  // Edge-triggered: only a transition INTO glyph from something else records the
+  // return tool. Arming while already armed must not overwrite it, or Escape
+  // restores glyph and can never disarm.
+  if (nextTool === "glyph" && previous !== "glyph") {
+    state.previousTool = previous;
+  }
+  state.tool = nextTool;
+  if (previous === "glyph" && nextTool !== "glyph" && state.ghostOwner === "armed") {
+    state.ghostOwner = null;
+  }
+  updateToolButtons();
+  // Only when the element actually changed. updateInkSelection queries the whole
+  // drawer, reads SIGN_PROFILES/SIGIL_PROFILES and calls t() several times;
+  // beginRightSelection routes through setTool on every marquee drag start, so
+  // calling it unconditionally would put that work on a pointer-move path.
+  if (elementChanged) {
+    updateInkSelection();
+  }
+  renderGhost();
+}
+
+function armSymbol(element) {
+  setTool("glyph", { element });
+  // A live drag keeps the ghost element until it tears down; arming during one
+  // records the intent and Task 9's teardown restores "armed" afterwards.
+  if (state.ghostOwner !== "drag") {
+    state.ghostOwner = "armed";
+  } else {
+    state.ghostOwnerBeforeDrag = "armed";
+  }
+  setOpenDrawer(null);
+  renderGhost();
+  setStatus(t("status.symbolArmed", { name: elementDisplayName(element) }));
+}
+
+function disarmSymbol() {
+  const returnTool = state.previousTool || "select";
+  state.ghostOwner = null;
+  setTool(returnTool);
+  setStatus(t("status.symbolDisarmed"));
+}
+
+function renderGhost() {
+  // Body implemented in Task 9 (ghost ownership).
+}
+
 function beginRightSelection(event, point) {
-  state.tool = "select";
+  setTool("select");
   state.guideSelected = false;
   updateToolButtons();
   normalizeSelection();
@@ -7711,9 +7768,7 @@ function renderInkList() {
         </span>
       `;
       button.addEventListener("click", () => {
-        state.element = element;
-        updateInkSelection();
-        setStatus(t("status.symbolPrepared", { name: elementDisplayName(element) }));
+        armSymbol(element);
       });
       button.addEventListener("pointerdown", (event) => startSymbolDrag(event, element));
       button.addEventListener("dragstart", (event) => event.preventDefault());
@@ -7722,11 +7777,7 @@ function renderInkList() {
           return;
         }
         event.preventDefault();
-        state.element = element;
-        state.tool = "glyph";
-        updateInkSelection();
-        updateToolButtons();
-        setSymbolDrawer(false);
+        armSymbol(element);
         setStatus(t("status.symbolClickToPlace", { name: elementDisplayName(element) }));
       });
       section.append(button);
@@ -7947,7 +7998,7 @@ function selectGuide(source, id) {
   state.guideScale = 1;
   state.guideSelected = true;
   state.selectedActionIndices = [];
-  state.tool = "select";
+  setTool("select");
   state.guideVisible = true;
   localStorage.setItem("whaGuideVisible", "true");
   if (guideVisibleInput) {
@@ -8042,7 +8093,7 @@ function saveCurrentCircleAsGuide() {
     state.guideScale = 1;
     state.guideSelected = true;
     state.selectedActionIndices = [];
-    state.tool = "select";
+    setTool("select");
     state.guideVisible = true;
     setGuideTab("personal");
     renderGuideLists();
@@ -8664,7 +8715,7 @@ function saveCanvas() {
 
 for (const button of toolButtons) {
   button.addEventListener("click", () => {
-    state.tool = button.dataset.tool;
+    setTool(button.dataset.tool);
     updateToolButtons();
     setStatus(t("status.toolSelected", { name: t(`tool.${state.tool}`) }));
   });
@@ -8764,76 +8815,69 @@ clearGuideButton?.addEventListener("click", () => {
 shrinkSelectionButton?.addEventListener("click", () => resizeSelectedGlyph("shrink"));
 growSelectionButton?.addEventListener("click", () => resizeSelectedGlyph("grow"));
 
+function searchOpen() {
+  return false;
+}
+
+function openSymbolSearch() {
+  // Body implemented in Task 8 (overlay wiring).
+}
+
+function duplicateSelectedActions() {
+  // Body implemented in Task 6 (duplicate selection).
+}
+
 document.addEventListener("keydown", (event) => {
   const target = event.target;
-  const isTyping = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement;
-  const modifier = event.metaKey || event.ctrlKey;
+  const { command, preventDefault } = resolveKeyCommand(event, {
+    isTyping: target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement,
+    searchOpen: searchOpen(),
+    view3dOpen: !view3dPanel.hidden,
+    drawerOpen:
+      document.body.classList.contains("symbols-open") ||
+      document.body.classList.contains("details-open") ||
+      document.body.classList.contains("support-open") ||
+      document.body.classList.contains("guides-open"),
+    hasSelection: state.selectedActionIndices.length > 0,
+    guideSelected: state.guideSelected,
+    armed: state.tool === "glyph" && state.ghostOwner === "armed",
+  });
 
-  if (modifier && event.key.toLowerCase() === "z") {
-    event.preventDefault();
-    if (event.shiftKey) {
-      redo();
-    } else {
-      undo();
-    }
+  if (command === "none") {
     return;
   }
-
-  if (modifier && event.key.toLowerCase() === "s") {
+  if (preventDefault) {
     event.preventDefault();
-    saveCanvas();
-    return;
   }
 
-  if (isTyping) {
-    return;
-  }
-
-  if ((event.key === "Delete" || event.key === "Backspace") && state.selectedActionIndices.length > 0) {
-    event.preventDefault();
-    deleteSelectedActions();
-    return;
-  }
-
-  if (event.key === "Escape" && !view3dPanel.hidden) {
-    event.preventDefault();
-    close3dView();
-    setStatus(t("status.view3dClosed"));
-    return;
-  }
-
-  if (event.key === "Escape" && (document.body.classList.contains("symbols-open") || document.body.classList.contains("details-open") || document.body.classList.contains("support-open") || document.body.classList.contains("guides-open"))) {
-    event.preventDefault();
-    setOpenDrawer(null);
-    setStatus(t("status.drawerClosed"));
-    return;
-  }
-
-  if (event.key.toLowerCase() === "a") {
-    activateCircle();
-  } else if (event.key.toLowerCase() === "l") {
-    analyzeSpell();
-  } else if (event.key === "-" || event.key === "_") {
-    event.preventDefault();
-    setCanvasScale(state.canvasScale - 10);
-  } else if (event.key === "=") {
-    event.preventDefault();
-    setCanvasScale(100);
-  } else if (event.key === "+" || event.key === "Add") {
-    event.preventDefault();
-    setCanvasScale(state.canvasScale + 10);
-  } else if (event.key === "Escape" && state.selectedActionIndices.length > 0) {
-    state.selectedActionIndices = [];
-    updateSelectionControls();
-    setStatus(t("status.selectionCleared"));
-    render();
-  } else if (event.key === "Escape" && state.guideSelected) {
-    state.guideSelected = false;
-    state.guideResize = null;
-    setStatus(t("status.selectionCleared"));
-    render();
-  } else if (event.key === "Escape") {
-    clearCanvas();
+  switch (command) {
+    case "undo": undo(); break;
+    case "redo": redo(); break;
+    case "save": saveCanvas(); break;
+    case "delete": deleteSelectedActions(); break;
+    case "close3d": close3dView(); setStatus(t("status.view3dClosed")); break;
+    case "closeDrawer": setOpenDrawer(null); setStatus(t("status.drawerClosed")); break;
+    case "openSearch": openSymbolSearch(); break;
+    case "duplicate": duplicateSelectedActions(); break;
+    case "disarm": disarmSymbol(); break;
+    case "activateCircle": activateCircle(); break;
+    case "analyzeSpell": analyzeSpell(); break;
+    case "zoomOut": setCanvasScale(state.canvasScale - 10); break;
+    case "zoomReset": setCanvasScale(100); break;
+    case "zoomIn": setCanvasScale(state.canvasScale + 10); break;
+    case "clearSelection":
+      state.selectedActionIndices = [];
+      updateSelectionControls();
+      setStatus(t("status.selectionCleared"));
+      render();
+      break;
+    case "clearGuide":
+      state.guideSelected = false;
+      state.guideResize = null;
+      setStatus(t("status.selectionCleared"));
+      render();
+      break;
+    case "clearCanvas": clearCanvas(); break;
   }
 });
 
