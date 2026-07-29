@@ -19,6 +19,7 @@
 - **Source has no accented characters in identifiers or palette names.** Palette names are stored unaccented (`Fumee`, `Lumiere`, `Repetition`). Do not add accents to stored data; folding is a query-side concern only.
 - **Every new i18n key goes into BOTH catalogues in `i18n.mjs`** (`en` starting at line 4, `fr` starting near line 494). `tests/i18n.test.mjs` asserts `catalogKeys("en")` deep-equals `catalogKeys("fr")` and will fail on a one-sided addition.
 - **Cache-bust strings.** New values for this release: `styles.css?v=20260729-element-search-v1` and `app.js?v=20260729-element-search-v1`. They are bumped once, in Task 7, together with the four test rows that pin them. `symbol-catalog.mjs?v=20260723-board-assets-v1` does not change.
+- **Module import specifiers carry their own `?v=`.** Seven of `app.js`'s eleven relative imports are cache-busted at the specifier (`./symbol-interactions.mjs?v=20260727-marquee-v1`, `./spell-grammar.mjs?v=20260727-mixture-runtime-v3`, and five more); four are not. Bumping `app.js` re-fetches `app.js` but **not** its children — a browser holding a cached child module reuses it. The three modules this plan adds (`symbol-palette-data.mjs`, `symbol-search.mjs`, `keyboard-routing.mjs`) are the feature itself, so a stale child after a later bugfix would ship the old behaviour behind a new `app.js`. Task 8 Step 0 retrofits `?v=20260729-element-search-v1` onto all three. Do not touch the four pre-existing un-busted imports — that is separate, pre-existing debt.
 - **Commit message discipline.** `feat:` only when the diff contains source; docs-only or test-only changes are `docs:` / `test:`. Never add `Co-authored-by` or any vendor/model attribution.
 - **Nothing assigns `state.tool` directly after Task 5.** The single assignment lives inside `setTool`.
 
@@ -1274,12 +1275,28 @@ four tests that pin their exact values move in the same commit."
 - Consumes: `buildSymbolSearchIndex` / `searchSymbols` (Task 2), `armSymbol` (Task 5), the six element ids (Task 7).
 - Produces: `searchOpen()` → boolean, read by the keydown dispatcher; `openSymbolSearch()`, called on the `openSearch` command.
 
+- [ ] **Step 0: Retrofit the module cache-bust specifiers**
+
+Bumping `app.js` does not re-fetch its child modules. Three of this plan's new modules are imported without a `?v=`, so a browser holding a cached copy would keep running the old module behind a new `app.js`. Add the release stamp to all three specifiers in `app.js`:
+
+```js
+// before                                    // after
+"./symbol-palette-data.mjs"                  "./symbol-palette-data.mjs?v=20260729-element-search-v1"
+"./keyboard-routing.mjs"                     "./keyboard-routing.mjs?v=20260729-element-search-v1"
+```
+
+and write the third one busted from the start in Step 1 below.
+
+Leave `./spell-model.mjs`, `./library-circle-data.mjs`, and `./guide-storage.mjs` alone — they are pre-existing un-busted imports and not this plan's business.
+
+Verify with `grep -c 'from "\./[^"]*?v=' app.js` — expect the seven pre-existing plus these three, so **10**.
+
 - [ ] **Step 1: Import the matcher and build the index once**
 
 At the top of `app.js`:
 
 ```js
-import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs";
+import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260729-element-search-v1";
 ```
 
 Near the other module-level constants:
