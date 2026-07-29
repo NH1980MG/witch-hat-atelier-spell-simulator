@@ -8,7 +8,7 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260727-mixture-runtime-v3";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260727-mixture-runtime-v3";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260729-select-all-rotate-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260729-select-all-rotate-v2";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260716-shoe-camera-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -34,7 +34,7 @@ import {
   shouldDeferTouchTool,
   topmostSelectableIndexAtPoint,
   translateSelectedActions,
-} from "./symbol-interactions.mjs?v=20260729-select-all-rotate-v1";
+} from "./symbol-interactions.mjs?v=20260729-select-all-rotate-v2";
 
 export const CENTRAL_SIGIL_STROKE_WIDTH = 6.4365;
 
@@ -7491,6 +7491,58 @@ function deleteSelectedActions() {
   return true;
 }
 
+let actionClipboard = [];
+let pasteCascade = 0;
+
+function selectAllActions() {
+  state.selectedActionIndices = state.actions
+    .map((action, index) => (isSelectableAction(action) ? index : -1))
+    .filter((index) => index >= 0);
+  state.tool = "select";
+  updateToolButtons();
+  updateSelectionControls();
+  setSelectionStatus();
+  render();
+}
+
+function copySelection() {
+  const indices = normalizeSelection();
+  if (indices.length === 0) {
+    setStatus(t("status.copyEmpty"));
+    return;
+  }
+  actionClipboard = cloneActions(indices.map((index) => state.actions[index]));
+  pasteCascade = 0;
+  setStatus(t("status.selectionCopied", { count: indices.length }));
+}
+
+function pasteSelection() {
+  if (actionClipboard.length === 0) {
+    setStatus(t("status.pasteEmpty"));
+    return;
+  }
+  pasteCascade += 1;
+  const offset = 16 * pasteCascade;
+  recordHistory();
+  const pasted = translateSelectedActions(
+    cloneActions(actionClipboard),
+    actionClipboard.map((_, index) => index),
+    offset,
+    offset,
+  );
+  const firstNewIndex = state.actions.length;
+  state.actions = [...state.actions, ...pasted];
+  state.selectedActionIndices = pasted.map((_, index) => firstNewIndex + index);
+  state.activeSpell = null;
+  state.tool = "select";
+  updateToolButtons();
+  updateSelectionControls();
+  updateUsedList();
+  updateSpellState();
+  setStatus(t("status.selectionPasted", { count: pasted.length }));
+  render();
+}
+
 function resizeSelectedGlyph(direction) {
   const indices = normalizeSelection();
   const bounds = selectionBounds();
@@ -9037,6 +9089,24 @@ document.addEventListener("keydown", (event) => {
   if (modifier && event.key.toLowerCase() === "s") {
     event.preventDefault();
     saveCanvas();
+    return;
+  }
+
+  if (modifier && !isTyping && event.key.toLowerCase() === "a") {
+    event.preventDefault();
+    selectAllActions();
+    return;
+  }
+
+  if (modifier && !isTyping && event.key.toLowerCase() === "c") {
+    event.preventDefault();
+    copySelection();
+    return;
+  }
+
+  if (modifier && !isTyping && event.key.toLowerCase() === "v") {
+    event.preventDefault();
+    pasteSelection();
     return;
   }
 
