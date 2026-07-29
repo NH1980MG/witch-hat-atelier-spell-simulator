@@ -7158,7 +7158,19 @@ function disarmSymbol() {
 }
 
 function renderGhost() {
-  // Body implemented in Task 9 (ghost ownership).
+  if (!symbolDragGhost) {
+    return;
+  }
+  if (state.ghostOwner === "drag") {
+    return; // the drag path owns the element while a drag is in flight
+  }
+  if (state.ghostOwner === "armed" && state.element) {
+    symbolDragGhost.innerHTML = `<span class="symbol-icon" style="--symbol-color:${state.element.color}">${elementIconMarkup(state.element)}</span>`;
+    symbolDragGhost.classList.add("is-armed");
+    return;
+  }
+  symbolDragGhost.innerHTML = "";
+  symbolDragGhost.classList.remove("is-armed");
 }
 
 function beginRightSelection(event, point) {
@@ -7804,6 +7816,9 @@ function startSymbolDrag(event, element) {
     return;
   }
 
+  state.ghostOwnerBeforeDrag = state.ghostOwner;
+  state.ghostOwner = "drag";
+
   const source = event.currentTarget;
   if (classifySymbolDragGesture(event.pointerType, 0, 0) === "pending") {
     state.symbolDragIntent = {
@@ -7937,8 +7952,10 @@ function cancelSymbolDrag(event) {
   window.removeEventListener("pointercancel", cancelSymbolDrag);
   state.symbolDrag = null;
   state.preview = null;
-  symbolDragGhost.innerHTML = "";
   document.body.classList.remove("is-dragging-symbol", "is-valid-drop");
+  state.ghostOwner = state.ghostOwnerBeforeDrag ?? null;
+  state.ghostOwnerBeforeDrag = null;
+  renderGhost();
   render();
 }
 
@@ -9010,6 +9027,13 @@ canvas.addEventListener("contextmenu", (event) => {
 canvas.addEventListener("pointerdown", onPointerDown);
 canvas.addEventListener("pointermove", onPointerMove);
 canvas.addEventListener("pointerup", onPointerUp);
+window.addEventListener("pointermove", (event) => {
+  if (state.ghostOwner !== "armed") {
+    return; // a live drag owns positioning through moveSymbolDrag
+  }
+  symbolDragGhost.style.left = event.clientX + "px";
+  symbolDragGhost.style.top = event.clientY + "px";
+});
 canvas.addEventListener("pointercancel", onPointerCancel);
 canvas.addEventListener("wheel", onCanvasWheel, { passive: false });
 window.addEventListener("resize", resizeCanvas);
