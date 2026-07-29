@@ -6480,6 +6480,9 @@ function updateSelectionControls() {
   if (growSelectionButton) {
     growSelectionButton.disabled = !hasSelection;
   }
+  if (duplicateSelectionButton) {
+    duplicateSelectionButton.disabled = !hasSelection;
+  }
 }
 
 function selectionHandleAtPoint(bounds, point, tolerance = 10) {
@@ -8912,6 +8915,8 @@ clearGuideButton?.addEventListener("click", () => {
 });
 shrinkSelectionButton?.addEventListener("click", () => resizeSelectedGlyph("shrink"));
 growSelectionButton?.addEventListener("click", () => resizeSelectedGlyph("grow"));
+const duplicateSelectionButton = document.getElementById("duplicateSelectionButton");
+duplicateSelectionButton?.addEventListener("click", () => duplicateSelectedActions());
 
 // Derived, never mirrored. A boolean field would have to be synchronized on
 // every close path, and a stale true suppresses Escape permanently and
