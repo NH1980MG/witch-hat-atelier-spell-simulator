@@ -2315,6 +2315,28 @@ input:focus-visible {
   opacity: 0.75;
 }
 
+/* The hint must stay a SIBLING of the heading: site-i18n assigns textContent to
+   every [data-i18n] node, which would delete a nested child on locale switch.
+   Making the heading inline-block lets the two share a line while the following
+   paragraph still starts its own. */
+.symbol-drawer .panel-heading h2 {
+  display: inline-block;
+}
+
+.symbol-drawer-hint {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--ink);
+  opacity: 0.7;
+  font-size: 0.72rem;
+  font-variant: small-caps;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+}
+
 .symbol-drag-ghost.is-armed {
   opacity: 0.55;
 }

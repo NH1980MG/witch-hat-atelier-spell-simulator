@@ -133,4 +133,5 @@ test("la superposition de recherche est stylee", async () => {
   assert.match(css, /\.symbol-search-result/);
   assert.match(css, /\.symbol-search-result\[aria-selected="true"\]/);
   assert.match(css, /\.symbol-drag-ghost\.is-armed/);
+  assert.match(css, /\.symbol-drawer-hint/);
 });
