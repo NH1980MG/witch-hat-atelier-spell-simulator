@@ -1330,6 +1330,19 @@ four tests that pin their exact values move in the same commit."
 - Consumes: `buildSymbolSearchIndex` / `searchSymbols` (Task 2), `armSymbol` (Task 5), the six element ids (Task 7).
 - Produces: `searchOpen()` → boolean, read by the keydown dispatcher; `openSymbolSearch()`, called on the `openSearch` command.
 
+- [ ] **Step 0a: Give the search input a real accessible name**
+
+Task 7's markup left `#symbolSearchInput` with no `aria-label` or `aria-labelledby`, so its accessible name falls back to the `placeholder` attribute. That works in current browsers but is fragile — a name that depends solely on a placeholder is a known WCAG weak spot, and the placeholder is also the first thing a browser hides once the user types. Add a label attribute alongside the existing `data-i18n-placeholder`:
+
+```html
+        data-i18n-aria-label="search.title"
+        aria-label="Find an element"
+```
+
+`search.title` already exists in both catalogues from Task 7, so this adds no new key.
+
+While you are there, drop the redundant `data-i18n-aria-label="search.title"` / `aria-label="Find an element"` pair from the `<ul id="symbolSearchResults">` — the dialog is already labelled by `aria-labelledby="symbolSearchTitle"`, so the listbox repeating the same string just makes a screen reader say it twice.
+
 - [ ] **Step 0: Retrofit the module cache-bust specifiers**
 
 Bumping `app.js` does not re-fetch its child modules. Three of this plan's new modules are imported without a `?v=`, so a browser holding a cached copy would keep running the old module behind a new `app.js`. Add the release stamp to all three specifiers in `app.js`:
