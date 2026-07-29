@@ -24,6 +24,7 @@ import {
   clampGlyphCenter,
   cloneActions,
   guideResizeHandleAtPoint,
+  planDuplication,
   resizeGuideScaleFromCorner,
   scaleSelectedActions,
   scaledGuideBounds,
@@ -32,7 +33,7 @@ import {
   shouldDeferTouchTool,
   topmostSelectableIndexAtPoint,
   translateSelectedActions,
-} from "./symbol-interactions.mjs?v=20260727-marquee-v1";
+} from "./symbol-interactions.mjs?v=20260729-element-search-v1";
 import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs";
 import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260729-element-search-v1";
 
@@ -8823,8 +8824,39 @@ function openSymbolSearch() {
   // Body implemented in Task 8 (overlay wiring).
 }
 
+const DUPLICATE_OFFSET = 16;
+
 function duplicateSelectedActions() {
-  // Body implemented in Task 6 (duplicate selection).
+  const indices = normalizeSelection();
+  if (indices.length === 0) {
+    setStatus(t("status.duplicateNoSelection"));
+    return false;
+  }
+  const bounds = combinedSelectionBounds(state.actions, indices);
+  if (!bounds) {
+    setStatus(t("status.duplicateNoSelection"));
+    return false;
+  }
+  // One shared clamped delta, never a clamp per action: a mixed
+  // glyph/circle/ring selection would otherwise have its relative spacing
+  // distorted by copies that each hit the limit at a different offset.
+  const { dx, dy } = clampSelectionDelta(bounds, DUPLICATE_OFFSET, DUPLICATE_OFFSET);
+  if (dx === 0 && dy === 0) {
+    setStatus(t("status.duplicateBlocked"));
+    return false;
+  }
+  recordHistory();
+  const result = planDuplication(state.actions, indices, dx, dy);
+  state.actions = result.actions;
+  state.selectedActionIndices = result.indices;
+  state.activeSpell = null;
+  refreshCircleCenter();
+  updateSelectionControls();
+  updateUsedList();
+  updateSpellState();
+  setStatus(t("status.duplicated", { count: result.indices.length }));
+  render();
+  return true;
 }
 
 document.addEventListener("keydown", (event) => {
