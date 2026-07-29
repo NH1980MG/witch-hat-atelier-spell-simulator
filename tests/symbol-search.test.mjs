@@ -74,3 +74,22 @@ test("la limite tronque sans changer l'ordre", () => {
   const results = searchSymbols(index, "", 5);
   assert.deepEqual(names(results), PALETTE_ELEMENTS.slice(0, 5).map((element) => element.name));
 });
+
+test("le departage utilise l'ordre de palette, pas l'ordre du tableau", () => {
+  // L'index reel est toujours construit dans l'ordre de la palette, donc le tri
+  // stable de JavaScript donnerait le bon resultat meme sans terme de
+  // departage. On construit ici un index volontairement desordonne: seul le
+  // comparateur peut alors rendre l'ordre de palette.
+  const shuffled = [...index].reverse();
+  const results = searchSymbols(shuffled, "sv");
+
+  assert.deepEqual(
+    results.map((element) => element.name),
+    ["Sangsue-valance", "Signe de vent"],
+    "sans le terme a.record.order - b.record.order, l'ordre inverse ressortirait",
+  );
+});
+
+test("la limite s'applique aussi aux resultats classes", () => {
+  assert.deepEqual(names(searchSymbols(index, "vent", 2)), ["Vent", "Vent sous pied"]);
+});
