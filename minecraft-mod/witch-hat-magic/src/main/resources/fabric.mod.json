@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "witch_hat_magic",
+  "version": "${version}",
+  "name": "Witch Hat Magic",
+  "description": "A native magic-circle notebook for Minecraft.",
+  "authors": [
+    "NH1980MG"
+  ],
+  "license": "ARR",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "io.github.nh1980mg.witchhat.magic.WitchHatMagicMod"
+    ],
+    "client": [
+      "io.github.nh1980mg.witchhat.magic.client.WitchHatMagicClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

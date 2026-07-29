@@ -11,3 +11,4 @@ pluginManagement {
 
 rootProject.name = "witch-hat-minecraft"
 include("ai-builder")
+include("witch-hat-magic")
