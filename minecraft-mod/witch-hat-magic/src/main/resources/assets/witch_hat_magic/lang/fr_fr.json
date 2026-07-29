@@ -1,7 +1,19 @@
 {
   "item.witch_hat_magic.magic_circle_notebook": "Carnet de cercles magiques",
   "screen.witch_hat_magic.notebook": "Carnet de cercles magiques",
+  "screen.witch_hat_magic.pen": "Plume",
+  "screen.witch_hat_magic.eraser": "Effacer",
+  "screen.witch_hat_magic.undo": "Annuler",
+  "screen.witch_hat_magic.redo": "Refaire",
+  "screen.witch_hat_magic.clear": "Vider",
   "screen.witch_hat_magic.save": "Enregistrer",
   "screen.witch_hat_magic.pages": "Pages",
-  "screen.witch_hat_magic.workshop": "Atelier"
+  "screen.witch_hat_magic.previous": "Précédente",
+  "screen.witch_hat_magic.next": "Suivante",
+  "screen.witch_hat_magic.add_page": "Ajouter",
+  "screen.witch_hat_magic.delete_page": "Supprimer",
+  "screen.witch_hat_magic.workshop": "Atelier",
+  "screen.witch_hat_magic.page_count": "Page %s / %s",
+  "screen.witch_hat_magic.workshop_shell": "Atelier compact",
+  "screen.witch_hat_magic.workshop_shell_hint": "Catalogue et guides dans la prochaine phase"
 }

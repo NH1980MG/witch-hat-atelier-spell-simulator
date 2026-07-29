@@ -1,7 +1,19 @@
 {
   "item.witch_hat_magic.magic_circle_notebook": "Magic Circle Notebook",
   "screen.witch_hat_magic.notebook": "Magic Circle Notebook",
+  "screen.witch_hat_magic.pen": "Pen",
+  "screen.witch_hat_magic.eraser": "Erase",
+  "screen.witch_hat_magic.undo": "Undo",
+  "screen.witch_hat_magic.redo": "Redo",
+  "screen.witch_hat_magic.clear": "Clear",
   "screen.witch_hat_magic.save": "Save",
   "screen.witch_hat_magic.pages": "Pages",
-  "screen.witch_hat_magic.workshop": "Workshop"
+  "screen.witch_hat_magic.previous": "Previous",
+  "screen.witch_hat_magic.next": "Next",
+  "screen.witch_hat_magic.add_page": "Add page",
+  "screen.witch_hat_magic.delete_page": "Delete",
+  "screen.witch_hat_magic.workshop": "Workshop",
+  "screen.witch_hat_magic.page_count": "Page %s / %s",
+  "screen.witch_hat_magic.workshop_shell": "Compact workshop",
+  "screen.witch_hat_magic.workshop_shell_hint": "Catalogue and guides arrive in the next phase"
 }

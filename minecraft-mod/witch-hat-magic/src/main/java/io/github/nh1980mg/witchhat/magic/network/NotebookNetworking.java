@@ -16,6 +16,7 @@ public final class NotebookNetworking {
 
     public static void registerPayloads() {
         PayloadTypeRegistry.playS2C().register(OpenNotebookPayload.TYPE, OpenNotebookPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(SyncNotebookPayload.TYPE, SyncNotebookPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(SaveNotebookPayload.TYPE, SaveNotebookPayload.CODEC);
     }
 
@@ -46,12 +47,12 @@ public final class NotebookNetworking {
                     heldStack, MagicItems.MAGIC_CIRCLE_NOTEBOOK, payload.data());
             heldStack.set(MagicComponents.NOTEBOOK_DATA, validated);
             ServerPlayNetworking.send(
-                    player, new OpenNotebookPayload(payload.hand(), validated));
+                    player, new SyncNotebookPayload(payload.hand(), validated));
         } catch (IllegalArgumentException ignored) {
             NotebookData authoritative = heldStack.getOrDefault(
                     MagicComponents.NOTEBOOK_DATA, NotebookData.createDefault());
             ServerPlayNetworking.send(
-                    player, new OpenNotebookPayload(payload.hand(), authoritative));
+                    player, new SyncNotebookPayload(payload.hand(), authoritative));
         }
     }
 }
