@@ -9,6 +9,7 @@ import {
   glyphResizeHandleAtPoint,
   guideResizeHandleAtPoint,
   isSelectableAction,
+  planDuplication,
   resizeGuideScaleFromCorner,
   scaledGuideBounds,
   resizeGlyphFromCorner,
@@ -210,4 +211,77 @@ test("scaleSelectedActions conserve la disposition relative autour du coin oppos
   assert.deepEqual(scaled[0], { type: "glyph", x: 30, y: 50, size: 20, userAdjusted: true });
   assert.deepEqual(scaled[1], { type: "circle", cx: 90, cy: 110, radius: 40 });
   assert.deepEqual(scaled[2], source[2]);
+});
+
+// Glyphs carry x/y; circles and rings carry cx/cy. `translateSelectedActions`
+// branches on exactly that (`symbol-interactions.mjs:206-212`), so a circle
+// written with x/y silently produces NaN coordinates and null bounds. Measured,
+// not assumed.
+const duplicationFixture = () => [
+  { type: "glyph", x: 100, y: 100, size: 40, element: { name: "Feu" } },
+  { type: "circle", cx: 200, cy: 150, radius: 50 },
+  { type: "pen", points: [{ x: 10, y: 10 }] },
+];
+
+test("la duplication ajoute autant d'actions qu'il y en avait de selectionnees", () => {
+  const actions = duplicationFixture();
+  const result = planDuplication(actions, [0, 1], 12, 12);
+
+  assert.equal(result.actions.length, 5);
+  assert.equal(result.indices.length, 2);
+});
+
+test("ce sont les copies, pas les originaux, qui restent selectionnees", () => {
+  const actions = duplicationFixture();
+  const result = planDuplication(actions, [0, 1], 12, 12);
+
+  assert.deepEqual(result.indices, [3, 4]);
+  assert.equal(result.actions[0].x, 100, "le glyphe original ne bouge pas");
+  assert.equal(result.actions[1].cx, 200, "le cercle original ne bouge pas");
+  assert.equal(result.actions[3].x, 112, "la copie du glyphe est decalee");
+  assert.equal(result.actions[4].cx, 212, "la copie du cercle est decalee du meme delta");
+});
+
+test("un delta partage preserve l'espacement relatif d'une selection mixte", () => {
+  const actions = duplicationFixture();
+  // Le glyphe expose son centre en x/y, le cercle en cx/cy. On compare bien
+  // deux centres; seul le nom du champ differe.
+  const spacingX = actions[1].cx - actions[0].x;
+  const spacingY = actions[1].cy - actions[0].y;
+  const result = planDuplication(actions, [0, 1], 25, -10);
+
+  assert.equal(result.actions[3].x, 125);
+  assert.equal(result.actions[3].y, 90);
+  assert.equal(result.actions[4].cx, 225);
+  assert.equal(result.actions[4].cy, 140);
+  assert.equal(
+    result.actions[4].cx - result.actions[3].x,
+    spacingX,
+    "un clamp par action deformerait le groupe",
+  );
+  assert.equal(result.actions[4].cy - result.actions[3].y, spacingY);
+});
+
+test("un delta nul est un non-evenement et n'empile rien", () => {
+  const actions = duplicationFixture();
+  const result = planDuplication(actions, [0, 1], 0, 0);
+
+  assert.equal(result.actions.length, 3);
+  assert.deepEqual(result.indices, []);
+});
+
+test("une selection vide ne duplique rien", () => {
+  const actions = duplicationFixture();
+  const result = planDuplication(actions, [], 12, 12);
+
+  assert.equal(result.actions.length, 3);
+  assert.deepEqual(result.indices, []);
+});
+
+test("les originaux non selectionnes sont laisses intacts", () => {
+  const actions = duplicationFixture();
+  const result = planDuplication(actions, [0], 12, 12);
+
+  assert.deepEqual(result.actions[2], actions[2], "le trait a main levee n'est pas touche");
+  assert.equal(result.actions.length, 4);
 });
