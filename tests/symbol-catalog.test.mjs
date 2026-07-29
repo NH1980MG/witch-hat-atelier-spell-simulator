@@ -152,7 +152,7 @@ test("le navigateur charge la nouvelle version du catalogue partage", async () =
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 
   assert.match(app, /symbol-catalog\.mjs\?v=20260723-board-assets-v1/);
-  assert.match(html, /app\.js\?v=20260727-mixture-marquee-v1/);
+  assert.match(html, /app\.js\?v=20260729-select-all-rotate-v1/);
   assert.match(html, /styles\.css\?v=20260727-elemental-mixtures-v1/);
 });
 
