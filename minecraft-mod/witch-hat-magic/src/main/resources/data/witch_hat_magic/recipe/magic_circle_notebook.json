@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "minecraft:book"
+    },
+    {
+      "item": "minecraft:ink_sac"
+    },
+    {
+      "item": "minecraft:feather"
+    }
+  ],
+  "result": {
+    "id": "witch_hat_magic:magic_circle_notebook",
+    "count": 1
+  }
+}
