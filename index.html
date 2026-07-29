@@ -40,8 +40,8 @@
         }
       }
     </script>
-    <script type="module" src="site-i18n.mjs?v=20260727-marquee-v1"></script>
-    <script type="module" src="app.js?v=20260727-mixture-marquee-v1"></script>
+    <script type="module" src="site-i18n.mjs?v=20260729-select-all-rotate-v1"></script>
+    <script type="module" src="app.js?v=20260729-select-all-rotate-v1"></script>
   </head>
   <body class="simulator-page">
     <main class="app-shell">
@@ -116,6 +116,12 @@
             </button>
             <button class="tool-button selection-tool" id="growSelectionButton" type="button" data-i18n-aria-label="tool.grow" data-i18n-title="tool.grow" aria-label="Enlarge selected symbol" title="Enlarge selected symbol" disabled>
               <span aria-hidden="true">+</span>
+            </button>
+            <button class="tool-button selection-tool" id="rotateSelectionLeftButton" type="button" data-i18n-aria-label="tool.rotateLeft" data-i18n-title="tool.rotateLeft" aria-label="Rotate selection counterclockwise" title="Rotate selection counterclockwise" disabled>
+              <span aria-hidden="true">&#8634;</span>
+            </button>
+            <button class="tool-button selection-tool" id="rotateSelectionRightButton" type="button" data-i18n-aria-label="tool.rotateRight" data-i18n-title="tool.rotateRight" aria-label="Rotate selection clockwise" title="Rotate selection clockwise" disabled>
+              <span aria-hidden="true">&#8635;</span>
             </button>
           </div>
           <canvas id="magicCanvas" data-i18n-aria-label="atelier.parchment" aria-label="Drawing parchment"></canvas>
