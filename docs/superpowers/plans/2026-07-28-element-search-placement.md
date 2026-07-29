@@ -22,6 +22,7 @@
 - **Module import specifiers carry their own `?v=`.** Seven of `app.js`'s eleven relative imports are cache-busted at the specifier (`./symbol-interactions.mjs?v=20260727-marquee-v1`, `./spell-grammar.mjs?v=20260727-mixture-runtime-v3`, and five more); four are not. Bumping `app.js` re-fetches `app.js` but **not** its children — a browser holding a cached child module reuses it. The three modules this plan adds (`symbol-palette-data.mjs`, `symbol-search.mjs`, `keyboard-routing.mjs`) are the feature itself, so a stale child after a later bugfix would ship the old behaviour behind a new `app.js`. Task 8 Step 0 retrofits `?v=20260729-element-search-v1` onto all three. Do not touch the four pre-existing un-busted imports — that is separate, pre-existing debt.
 - **Commit message discipline.** `feat:` only when the diff contains source; docs-only or test-only changes are `docs:` / `test:`. Never add `Co-authored-by` or any vendor/model attribution.
 - **Nothing assigns `state.tool` directly after Task 5.** The single assignment lives inside `setTool`.
+- **`app.js` line numbers in this plan are approximate — locate by symbol, not by line.** They were captured against `1e80f99`; Task 1 removed ~131 lines from `app.js`, and Tasks 5, 6, 8, 9 and 10 each add more. Numbers below were re-derived at `a77cd1d`, but they drift again with every task. Always find your edit site with `grep -n "function <name>" app.js` (or `grep -n 'state\.tool = ' app.js`) and treat a cited line as a sanity check on what you found, not as the address. A line number that disagrees with the symbol is stale, not a signal that the plan means somewhere else.
 
 ---
 
@@ -564,12 +565,44 @@ test("Echap desarme le pointeur avant de toucher au dessin", () => {
   assert.equal(press("Escape", {}, { armed: true, hasSelection: true }).command, "disarm");
 });
 
-test("l'ordre de repli d'Echap est preserve pour les etats existants", () => {
+test("chaque etat d'Echap est bien relie", () => {
   assert.equal(press("Escape", {}, { view3dOpen: true }).command, "close3d");
   assert.equal(press("Escape", {}, { drawerOpen: true }).command, "closeDrawer");
   assert.equal(press("Escape", {}, { hasSelection: true }).command, "clearSelection");
   assert.equal(press("Escape", {}, { guideSelected: true }).command, "clearGuide");
   assert.equal(press("Escape").command, "clearCanvas");
+});
+
+test("l'ordre de repli d'Echap est preserve quand plusieurs etats sont vrais", () => {
+  // Un seul drapeau par assertion ne prouve pas l'ordre: intervertir deux
+  // branches passerait quand meme. Chaque cas ci-dessous active DEUX etats et
+  // n'a qu'une seule bonne reponse, celle de la branche la plus haute.
+  const chain = [
+    ["view3dOpen", "drawerOpen", "close3d"],
+    ["drawerOpen", "armed", "closeDrawer"],
+    ["armed", "hasSelection", "disarm"],
+    ["hasSelection", "guideSelected", "clearSelection"],
+  ];
+  for (const [higher, lower, expected] of chain) {
+    assert.equal(
+      press("Escape", {}, { [higher]: true, [lower]: true }).command,
+      expected,
+      `${higher} doit primer sur ${lower}`,
+    );
+  }
+  // Et le dernier repli ne doit pas avaler un etat plus prioritaire.
+  assert.equal(press("Escape", {}, { guideSelected: true, hasSelection: true }).command, "clearSelection");
+});
+
+test("tous les raccourcis modificateurs survivent a la saisie, pas seulement Cmd+S", () => {
+  // La version precedente ne testait que Cmd+S: une regression qui aurait
+  // deplace z/k/d sous le garde isTyping serait passee inapercue.
+  const typing = { isTyping: true };
+  assert.equal(press("z", { metaKey: true }, typing).command, "undo");
+  assert.equal(press("z", { metaKey: true, shiftKey: true }, typing).command, "redo");
+  assert.equal(press("s", { metaKey: true }, typing).command, "save");
+  assert.equal(press("k", { metaKey: true }, typing).command, "openSearch");
+  assert.equal(press("d", { metaKey: true }, typing).command, "duplicate");
 });
 
 test("Supprimer n'agit que sur une selection", () => {
@@ -670,7 +703,7 @@ and not merely Escape."
 ### Task 5: Centralize tool transitions and dispatch the router
 
 **Files:**
-- Modify: `app.js:7231` (`beginRightSelection`), `app.js:7857` (drawer Enter), `app.js:8081` (`selectGuide`), `app.js:8176` (guide creation), `app.js:8795-8801` (toolbar loop), `app.js:8898-8969` (keydown handler), `app.js:7844` (drawer click)
+- Modify: `app.js:7100` (`beginRightSelection`), `app.js:7726` (drawer Enter), `app.js:7950` (`selectGuide`), `app.js:8045` (guide creation), `app.js:8664-8670` (toolbar loop), `app.js:8767-8838` (keydown handler), `app.js:7713` (drawer click)
 - Test: `tests/symbol-palette-ui.test.mjs` (append a source-shape assertion)
 
 **Interfaces:**
@@ -709,7 +742,7 @@ Expected: FAIL — `Expected values to be strictly equal: 5 !== 1`
 
 - [ ] **Step 3: Add the state fields**
 
-In the `state` initializer near `app.js:419`, add:
+In the `state` initializer near `app.js:288`, add:
 
 ```js
   previousTool: "select",
@@ -721,7 +754,7 @@ Do **not** add a `searchOpen` field. Overlay openness is derived in Task 8 from 
 
 - [ ] **Step 4: Write `setTool`, `armSymbol`, `disarmSymbol`**
 
-Place these immediately above `beginRightSelection` (currently `app.js:7230`), so they precede every caller:
+Place these immediately above `beginRightSelection` (currently `app.js:7098`), so they precede every caller:
 
 ```js
 function setTool(nextTool, options = {}) {
@@ -788,15 +821,15 @@ Replace each direct assignment with a `setTool` call. The three `select`-forcing
 
 | Line | Before | After |
 | --- | --- | --- |
-| `app.js:7231` (`beginRightSelection`) | `state.tool = "select";` | `setTool("select");` |
-| `app.js:7857` (drawer Enter) | `state.element = element;` then `state.tool = "glyph";` | `armSymbol(element);` |
-| `app.js:8081` (`selectGuide`) | `state.tool = "select";` | `setTool("select");` |
-| `app.js:8176` (guide creation) | `state.tool = "select";` | `setTool("select");` |
-| `app.js:8798` (toolbar loop) | `state.tool = button.dataset.tool;` | `setTool(button.dataset.tool);` |
+| `app.js:7100` (`beginRightSelection`) | `state.tool = "select";` | `setTool("select");` |
+| `app.js:7726` (drawer Enter) | `state.element = element;` then `state.tool = "glyph";` | `armSymbol(element);` |
+| `app.js:7950` (`selectGuide`) | `state.tool = "select";` | `setTool("select");` |
+| `app.js:8045` (guide creation) | `state.tool = "select";` | `setTool("select");` |
+| `app.js:8667` (toolbar loop) | `state.tool = button.dataset.tool;` | `setTool(button.dataset.tool);` |
 
-At `app.js:7857` the drawer Enter handler currently also calls `updateInkSelection()`, `updateToolButtons()`, and `setSymbolDrawer(false)` — `armSymbol` and `setTool` now do all three, so delete those three lines. Keep the `event.preventDefault()`.
+At `app.js:7726` the drawer Enter handler currently also calls `updateInkSelection()`, `updateToolButtons()`, and `setSymbolDrawer(false)` — `armSymbol` and `setTool` now do all three, so delete those three lines. Keep the `event.preventDefault()`.
 
-At `app.js:7844` the drawer **click** handler sets `state.element` but never `state.tool`, so it currently prepares a symbol without arming — the dead end this feature removes. Replace its body:
+At `app.js:7713` the drawer **click** handler sets `state.element` but never `state.tool`, so it currently prepares a symbol without arming — the dead end this feature removes. Replace its body:
 
 ```js
       button.addEventListener("click", () => {
@@ -804,7 +837,7 @@ At `app.js:7844` the drawer **click** handler sets `state.element` but never `st
       });
 ```
 
-At `app.js:8798` the toolbar loop's `setStatus` call reads `state.tool` after the assignment; it still works, because `setTool` has assigned by the time the next line runs. Leave it.
+At `app.js:8667` the toolbar loop's `setStatus` call reads `state.tool` after the assignment; it still works, because `setTool` has assigned by the time the next line runs. Leave it.
 
 - [ ] **Step 6: Dispatch the keydown handler through the router**
 
@@ -814,7 +847,7 @@ Add the import at the top of `app.js`:
 import { resolveKeyCommand } from "./keyboard-routing.mjs";
 ```
 
-Replace the whole handler at `app.js:8898-8969` with a dispatcher. Every command body is lifted verbatim from the branch it replaces:
+Replace the whole handler at `app.js:8767-8838` with a dispatcher. Every command body is lifted verbatim from the branch it replaces:
 
 ```js
 document.addEventListener("keydown", (event) => {
@@ -920,11 +953,11 @@ router rather than carrying the shortcut map inline."
 ### Task 6: Wire duplication into the app
 
 **Files:**
-- Modify: `app.js` (add `duplicateSelectedActions` beside `deleteSelectedActions` at `app.js:7412`)
+- Modify: `app.js` (add `duplicateSelectedActions` beside `deleteSelectedActions` at `app.js:7281`)
 - Test: covered by Task 3's primitive tests plus the i18n assertions in Task 10
 
 **Interfaces:**
-- Consumes: `planDuplication` from Task 3; `combinedSelectionBounds` from `symbol-interactions.mjs:149`; `clampSelectionDelta` at `app.js:7290`.
+- Consumes: `planDuplication` from Task 3; `combinedSelectionBounds` from `symbol-interactions.mjs:149`; `clampSelectionDelta` at `app.js:7159`.
 - Produces: `duplicateSelectedActions()` → `boolean`, mirroring `deleteSelectedActions()`'s signature and shape.
 
 - [ ] **Step 1: Add `planDuplication` to the app's import list**
@@ -933,7 +966,7 @@ router rather than carrying the shortcut map inline."
 
 - [ ] **Step 2: Implement the function**
 
-Insert immediately after `deleteSelectedActions` ends (currently `app.js:7430`). The offset of 16 device pixels matches the visual step the drawing already uses for a nudge:
+Insert immediately after `deleteSelectedActions` ends (currently `app.js:7299`). The offset of 16 device pixels matches the visual step the drawing already uses for a nudge:
 
 ```js
 const DUPLICATE_OFFSET = 16;
@@ -1470,7 +1503,7 @@ change so a rebuilt list cannot strand the pointer on a detached node."
 ### Task 9: Ghost ownership
 
 **Files:**
-- Modify: `app.js:8012-8013` (`cancelSymbolDrag` teardown), the Task 5 `renderGhost` stub, `finishSymbolDrag`, `startSymbolDrag`
+- Modify: `app.js:7881-7882` (`cancelSymbolDrag` teardown), the Task 5 `renderGhost` stub, `finishSymbolDrag`, `startSymbolDrag`
 - Test: covered by Task 11's browser smoke test and the Task 5 source assertion
 
 **Interfaces:**
@@ -1512,7 +1545,7 @@ In `startSymbolDrag`, before the existing body:
 
 - [ ] **Step 3: Route both teardown paths through `renderGhost`**
 
-In `cancelSymbolDrag` (`app.js:8012-8013`), replace the two unconditional clears:
+In `cancelSymbolDrag` (`app.js:7881-7882`), replace the two unconditional clears:
 
 ```js
   symbolDragGhost.innerHTML = "";
@@ -1532,7 +1565,7 @@ Apply the identical three-line restore to `finishSymbolDrag`, so a drop and a ca
 
 - [ ] **Step 4: Make the armed ghost follow the cursor**
 
-The ghost is positioned in `moveSymbolDrag` (`app.js:7964-7965`), which is bound to `window` only for the duration of a drag. The armed ghost needs its own always-on listener. Add it beside the canvas listeners near the bottom of `app.js`:
+The ghost is positioned in `moveSymbolDrag` (`app.js:7833-7834`), which is bound to `window` only for the duration of a drag. The armed ghost needs its own always-on listener. Add it beside the canvas listeners near the bottom of `app.js`:
 
 ```js
 window.addEventListener("pointermove", (event) => {
@@ -1635,7 +1668,7 @@ const duplicateSelectionButton = document.getElementById("duplicateSelectionButt
 duplicateSelectionButton?.addEventListener("click", () => duplicateSelectedActions());
 ```
 
-And in `updateSelectionControls` (`app.js:6593`), beside the two existing guards:
+And in `updateSelectionControls` (`app.js:6462`), beside the two existing guards:
 
 ```js
   if (duplicateSelectionButton) {
