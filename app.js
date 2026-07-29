@@ -278,6 +278,7 @@ const supportDrawer = document.querySelector("#supportDrawer");
 const closeSupportButton = document.querySelector("#closeSupportButton");
 const shrinkSelectionButton = document.querySelector("#shrinkSelectionButton");
 const growSelectionButton = document.querySelector("#growSelectionButton");
+const duplicateSelectionButton = document.querySelector("#duplicateSelectionButton");
 const guideToggleButton = document.querySelector("#guideToggleButton");
 const guideDrawer = document.querySelector("#guideDrawer");
 const closeGuidesButton = document.querySelector("#closeGuidesButton");
@@ -8915,7 +8916,6 @@ clearGuideButton?.addEventListener("click", () => {
 });
 shrinkSelectionButton?.addEventListener("click", () => resizeSelectedGlyph("shrink"));
 growSelectionButton?.addEventListener("click", () => resizeSelectedGlyph("grow"));
-const duplicateSelectionButton = document.getElementById("duplicateSelectionButton");
 duplicateSelectionButton?.addEventListener("click", () => duplicateSelectedActions());
 
 // Derived, never mirrored. A boolean field would have to be synchronized on
