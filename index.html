@@ -147,7 +147,7 @@
         <aside class="sidebar symbol-drawer" id="symbolDrawer" data-i18n-aria-label="drawer.symbolDictionary" aria-label="Symbol dictionary" aria-hidden="true">
           <div class="panel-heading">
             <div>
-              <h2 data-i18n="drawer.symbols">Sigils and signs</h2>
+              <h2 data-i18n="drawer.symbols">Sigils and signs</h2><span class="symbol-drawer-hint" data-i18n="search.hint">Cmd+K</span>
               <p data-i18n="drawer.symbolsDescription">Choose a symbol, then drag it like a Scratch block onto the parchment.</p>
             </div>
             <button class="drawer-close" id="closeSymbolsButton" type="button" data-i18n-aria-label="drawer.closeSymbols" aria-label="Close sigils and signs">&times;</button>
@@ -326,8 +326,10 @@
         aria-controls="symbolSearchResults"
         data-i18n-placeholder="search.placeholder"
         placeholder="Name or rune"
+        data-i18n-aria-label="search.title"
+        aria-label="Find an element"
       >
-      <ul class="symbol-search-results" id="symbolSearchResults" role="listbox" data-i18n-aria-label="search.title" aria-label="Find an element"></ul>
+      <ul class="symbol-search-results" id="symbolSearchResults" role="listbox"></ul>
       <p class="symbol-search-status" id="symbolSearchStatus" aria-live="polite"></p>
     </dialog>
     <div class="symbol-drag-ghost" id="symbolDragGhost" aria-hidden="true"></div>

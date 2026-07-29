@@ -34,8 +34,9 @@ import {
   topmostSelectableIndexAtPoint,
   translateSelectedActions,
 } from "./symbol-interactions.mjs?v=20260729-element-search-v1";
-import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs";
+import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260729-element-search-v1";
 import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260729-element-search-v1";
+import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260729-element-search-v1";
 
 export const CENTRAL_SIGIL_STROKE_WIDTH = 6.4365;
 
@@ -86,6 +87,8 @@ const supportOptions = [
 ];
 
 const englishElementNames = ENGLISH_DISPLAY_NAMES;
+
+const symbolSearchIndex = buildSymbolSearchIndex(PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES);
 
 const englishSigilMeanings = Object.freeze({
   "Feu": "Fire sigil: creates and manipulates flames or heat.",
@@ -286,6 +289,10 @@ const guideVisibleInput = document.querySelector("#guideVisibleInput");
 const guideOpacityInput = document.querySelector("#guideOpacityInput");
 const clearGuideButton = document.querySelector("#clearGuideButton");
 const saveExampleButton = document.querySelector("#saveExampleButton");
+const symbolSearchDialog = document.getElementById("symbolSearchDialog");
+const symbolSearchInput = document.getElementById("symbolSearchInput");
+const symbolSearchResults = document.getElementById("symbolSearchResults");
+const symbolSearchStatus = document.getElementById("symbolSearchStatus");
 
 const state = {
   tool: "free",
@@ -8816,13 +8823,97 @@ clearGuideButton?.addEventListener("click", () => {
 shrinkSelectionButton?.addEventListener("click", () => resizeSelectedGlyph("shrink"));
 growSelectionButton?.addEventListener("click", () => resizeSelectedGlyph("grow"));
 
+// Derived, never mirrored. A boolean field would have to be synchronized on
+// every close path, and a stale true suppresses Escape permanently and
+// silently. dialog.open is the browser's own state and cannot drift.
 function searchOpen() {
-  return false;
+  return symbolSearchDialog?.open === true;
+}
+
+let symbolSearchMatches = [];
+let symbolSearchActiveIndex = 0;
+
+function renderSymbolSearchResults() {
+  symbolSearchMatches = searchSymbols(symbolSearchIndex, symbolSearchInput.value);
+  // Every query change resets the active index. The list rebuilds on each
+  // keystroke, so an index held across a rebuild can point at a detached node:
+  // nothing is announced and Enter confirms a stale record.
+  symbolSearchActiveIndex = 0;
+  symbolSearchResults.innerHTML = "";
+
+  symbolSearchMatches.forEach((element, position) => {
+    const item = document.createElement("li");
+    item.className = "symbol-search-result";
+    item.id = `symbolSearchResult-${position}`;
+    item.setAttribute("role", "option");
+    item.setAttribute("aria-selected", position === 0 ? "true" : "false");
+    item.innerHTML = `
+      <span class="symbol-icon" style="--symbol-color:${element.color}">${elementIconMarkup(element)}</span>
+      <span class="symbol-search-name">${elementDisplayName(element)}</span>
+      <span class="symbol-search-rune">${element.rune}</span>
+    `;
+    item.addEventListener("click", () => confirmSymbolSearch(position));
+    symbolSearchResults.append(item);
+  });
+
+  if (symbolSearchMatches.length === 0) {
+    symbolSearchInput.removeAttribute("aria-activedescendant");
+    symbolSearchStatus.textContent = t("search.empty");
+    return;
+  }
+  symbolSearchInput.setAttribute("aria-activedescendant", "symbolSearchResult-0");
+  symbolSearchStatus.textContent = t("search.results", { count: symbolSearchMatches.length });
+}
+
+function setSymbolSearchActive(nextIndex) {
+  if (symbolSearchMatches.length === 0) {
+    return;
+  }
+  const count = symbolSearchMatches.length;
+  symbolSearchActiveIndex = ((nextIndex % count) + count) % count;
+  for (const [position, item] of [...symbolSearchResults.children].entries()) {
+    item.setAttribute("aria-selected", position === symbolSearchActiveIndex ? "true" : "false");
+  }
+  symbolSearchInput.setAttribute("aria-activedescendant", `symbolSearchResult-${symbolSearchActiveIndex}`);
+  symbolSearchResults.children[symbolSearchActiveIndex]?.scrollIntoView({ block: "nearest" });
+}
+
+function confirmSymbolSearch(position = symbolSearchActiveIndex) {
+  const element = symbolSearchMatches[position];
+  if (!element) {
+    return;
+  }
+  symbolSearchDialog.close();
+  armSymbol(element);
 }
 
 function openSymbolSearch() {
-  // Body implemented in Task 8 (overlay wiring).
+  if (!symbolSearchDialog || symbolSearchDialog.open) {
+    return;
+  }
+  symbolSearchInput.value = "";
+  renderSymbolSearchResults();
+  symbolSearchDialog.showModal();
+  symbolSearchInput.focus();
 }
+
+symbolSearchInput?.addEventListener("input", renderSymbolSearchResults);
+
+symbolSearchInput?.addEventListener("keydown", (event) => {
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+    setSymbolSearchActive(symbolSearchActiveIndex + 1);
+  } else if (event.key === "ArrowUp") {
+    event.preventDefault();
+    setSymbolSearchActive(symbolSearchActiveIndex - 1);
+  } else if (event.key === "Enter") {
+    event.preventDefault();
+    confirmSymbolSearch();
+  }
+  // Escape is deliberately not handled here. The dialog closes itself, and the
+  // document dispatcher sees searchOpen() === true on the same keydown and
+  // suppresses the canvas command - which is the whole point of the gate.
+});
 
 const DUPLICATE_OFFSET = 16;
 
