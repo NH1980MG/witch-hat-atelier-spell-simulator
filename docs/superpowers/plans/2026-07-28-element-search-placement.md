@@ -726,8 +726,10 @@ Place these immediately above `beginRightSelection` (currently `app.js:7230`), s
 ```js
 function setTool(nextTool, options = {}) {
   const previous = state.tool;
-  if (Object.prototype.hasOwnProperty.call(options, "element") && options.element) {
-    state.element = options.element;
+  const nextElement = options.element;
+  const elementChanged = Boolean(nextElement) && nextElement !== state.element;
+  if (elementChanged) {
+    state.element = nextElement;
   }
   // Edge-triggered: only a transition INTO glyph from something else records the
   // return tool. Arming while already armed must not overwrite it, or Escape
@@ -736,11 +738,17 @@ function setTool(nextTool, options = {}) {
     state.previousTool = previous;
   }
   state.tool = nextTool;
-  if (previous === "glyph" && nextTool !== "glyph") {
-    state.ghostOwner = state.ghostOwner === "armed" ? null : state.ghostOwner;
+  if (previous === "glyph" && nextTool !== "glyph" && state.ghostOwner === "armed") {
+    state.ghostOwner = null;
   }
   updateToolButtons();
-  updateInkSelection();
+  // Only when the element actually changed. updateInkSelection queries the whole
+  // drawer, reads SIGN_PROFILES/SIGIL_PROFILES and calls t() several times;
+  // beginRightSelection routes through setTool on every marquee drag start, so
+  // calling it unconditionally would put that work on a pointer-move path.
+  if (elementChanged) {
+    updateInkSelection();
+  }
   renderGhost();
 }
 
