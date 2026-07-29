@@ -19,7 +19,7 @@
 - **Source has no accented characters in identifiers or palette names.** Palette names are stored unaccented (`Fumee`, `Lumiere`, `Repetition`). Do not add accents to stored data; folding is a query-side concern only.
 - **Every new i18n key goes into BOTH catalogues in `i18n.mjs`** (`en` starting at line 4, `fr` starting near line 494). `tests/i18n.test.mjs` asserts `catalogKeys("en")` deep-equals `catalogKeys("fr")` and will fail on a one-sided addition.
 - **Cache-bust strings.** New values for this release: `styles.css?v=20260729-element-search-v1` and `app.js?v=20260729-element-search-v1`. They are bumped once, in Task 7, together with the four test rows that pin them. `symbol-catalog.mjs?v=20260723-board-assets-v1` does not change.
-- **Module import specifiers carry their own `?v=`.** Seven of `app.js`'s eleven relative imports are cache-busted at the specifier (`./symbol-interactions.mjs?v=20260727-marquee-v1`, `./spell-grammar.mjs?v=20260727-mixture-runtime-v3`, and five more); four are not. Bumping `app.js` re-fetches `app.js` but **not** its children — a browser holding a cached child module reuses it. The three modules this plan adds (`symbol-palette-data.mjs`, `symbol-search.mjs`, `keyboard-routing.mjs`) are the feature itself, so a stale child after a later bugfix would ship the old behaviour behind a new `app.js`. Task 8 Step 0 retrofits `?v=20260729-element-search-v1` onto all three. Do not touch the four pre-existing un-busted imports — that is separate, pre-existing debt.
+- **Module import specifiers carry their own `?v=`.** Seven of `app.js`'s eleven relative imports are cache-busted at the specifier (`./symbol-interactions.mjs?v=20260727-marquee-v1`, `./spell-grammar.mjs?v=20260727-mixture-runtime-v3`, and five more); four are not. Bumping `app.js` re-fetches `app.js` but **not** its children — a browser holding a cached child module reuses it. The three modules this plan adds (`symbol-palette-data.mjs`, `symbol-search.mjs`, `keyboard-routing.mjs`) are the feature itself, so a stale child after a later bugfix would ship the old behaviour behind a new `app.js`. Task 8 Step 0 retrofits `?v=20260729-element-search-v1` onto all three. **The same hazard applies to `symbol-interactions.mjs`, a pre-existing module whose content Task 3 changes** — its specifier still reads `?v=20260727-marquee-v1`, so a cached copy would lack `planDuplication` and throw at import. Task 6 Step 1 bumps it. Do not touch the four pre-existing un-busted imports or any module this plan does not modify — that is separate, pre-existing debt.
 - **Commit message discipline.** `feat:` only when the diff contains source; docs-only or test-only changes are `docs:` / `test:`. Never add `Co-authored-by` or any vendor/model attribution.
 - **Nothing assigns `state.tool` directly after Task 5.** The single assignment lives inside `setTool`.
 - **`app.js` line numbers in this plan are approximate — locate by symbol, not by line.** They were captured against `1e80f99`; Task 1 removed ~131 lines from `app.js`, and Tasks 5, 6, 8, 9 and 10 each add more. Numbers below were re-derived at `a77cd1d`, but they drift again with every task. Always find your edit site with `grep -n "function <name>" app.js` (or `grep -n 'state\.tool = ' app.js`) and treat a cited line as a sanity check on what you found, not as the address. A line number that disagrees with the symbol is stale, not a signal that the plan means somewhere else.
@@ -960,9 +960,23 @@ router rather than carrying the shortcut map inline."
 - Consumes: `planDuplication` from Task 3; `combinedSelectionBounds` from `symbol-interactions.mjs:149`; `clampSelectionDelta` at `app.js:7159`.
 - Produces: `duplicateSelectedActions()` → `boolean`, mirroring `deleteSelectedActions()`'s signature and shape.
 
-- [ ] **Step 1: Add `planDuplication` to the app's import list**
+- [ ] **Step 1: Add `planDuplication` to the import list AND bump that module's stamp**
 
-`app.js` already imports from `symbol-interactions.mjs`. Add `planDuplication` and `combinedSelectionBounds` to that import if either is absent.
+`app.js` already imports from `symbol-interactions.mjs`, and `combinedSelectionBounds` is already in that list. Add `planDuplication` to it alphabetically.
+
+**Then bump the specifier.** Task 3 added `planDuplication` to `symbol-interactions.mjs`, but `app.js` still imports it as `./symbol-interactions.mjs?v=20260727-marquee-v1` — the stamp from before the module changed. A browser holding that cached copy would fetch the old module, which has no `planDuplication`, and `Cmd+D` would throw at import time rather than fail quietly. Change it to:
+
+```js
+} from "./symbol-interactions.mjs?v=20260729-element-search-v1";
+```
+
+This is the same hazard the Global Constraints describe for the three new modules, but for the one **pre-existing** module whose content this plan changes. Verify no other stale specifier remains for a module this plan touched:
+
+```
+grep -n 'symbol-interactions\.mjs?v=' app.js    # expect the new stamp, nothing else
+```
+
+Leave every other module's stamp alone — their content is unchanged.
 
 - [ ] **Step 2: Implement the function**
 
