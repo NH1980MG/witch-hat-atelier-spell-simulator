@@ -131,3 +131,24 @@ and red for protected blocks. Builds are progressive and save
 `run/config/witchhat-ai-builder/history/latest.json` before changing the world.
 Existing block entities such as chests and signs are treated as protected so
 their inventories and NBT data cannot be lost by a build or undo.
+
+## Local Minecraft Magic Mod
+
+The unpublished `minecraft-mod/witch-hat-magic` subproject is a separate Fabric
+1.21.1 mod. Its first playable milestone provides a persistent magic-circle
+notebook with bounded pages, native circular drawing, pen and eraser tools,
+undo/redo, zoom, bilingual labels, and server-authoritative saves.
+
+Build the local JAR:
+
+```bash
+cd minecraft-mod
+GRADLE_USER_HOME=$PWD/.gradle-user-home \
+JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home \
+./gradlew :witch-hat-magic:test :witch-hat-magic:build
+```
+
+The playable JAR is written to
+`witch-hat-magic/build/libs/witch-hat-magic-0.1.0-local.jar`. The complete
+symbol workshop, advanced page operations, and in-world spell preview remain
+separate implementation phases. The magic mod does not depend on AI Builder.

@@ -1,6 +1,6 @@
 # Progress Tracker
 
-Last updated: 2026-07-27.
+Last updated: 2026-07-29.
 
 ## Current Status
 
@@ -126,11 +126,19 @@ remaining large `app.js` sections.
 - Initial review and documentation set.
 - Reference manifest scaffold.
 - QA plan scaffold.
+- Local Fabric 1.21.1 AI Builder with validated JSON plans, ghost previews,
+  progressive creative-mode construction, pause/resume/cancel, bounded backups,
+  exact undo, and 22 passing unit tests.
+- First playable Fabric 1.21.1 magic notebook with persistent bounded pages,
+  native circular drawing, pen and eraser tools, undo/redo, zoom, bilingual
+  labels, server-authoritative saves, an original item texture, and 24 passing
+  unit tests. The dedicated-server and client startup smoke tests pass.
 
 ## In Progress
 
 - Extracting effect layers from `app.js` without adding a build system.
-- Extracting effect layers from `app.js` without adding a build system.
+- Minecraft complete workshop: generated symbol catalogue, advanced page
+  operations, selection transforms, and optional in-world spell preview.
 
 ## Next Milestones
 
