@@ -35,7 +35,7 @@
 | `app.js` | modify | Imports the seams; gains `setTool`, `armSymbol`, `disarmSymbol`, `renderGhost`, `duplicateSelectedActions`, overlay wiring. Loses `elements`, `englishElementNames`, and four of its five `state.tool` assignments. |
 | `index.html` | modify | Overlay `<dialog>`, duplicate button, bumped `?v=` strings. |
 | `styles.css` | modify | Overlay and duplicate-button styles, armed-ghost class. |
-| `i18n.mjs` | modify | Ten new keys in both catalogues. |
+| `i18n.mjs` | modify | Eleven new keys in both catalogues. |
 | `tests/symbol-palette-data.test.mjs` | create | Seam coverage: 64 elements, a display name for each. |
 | `tests/symbol-search.test.mjs` | create | Matcher coverage. |
 | `tests/keyboard-routing.test.mjs` | create | Router coverage, including the modal gate. |
@@ -945,9 +945,10 @@ overlapping copy."
 
 ---
 
-### Task 7: Overlay markup, styles, and the cache-bust bump
+### Task 7: Localized strings, overlay markup, styles, and the cache-bust bump
 
 **Files:**
+- Modify: `i18n.mjs` (both catalogues), `tests/i18n-html.test.mjs:24`
 - Modify: `index.html:34` (styles link), `index.html:44` (app script), `index.html:114-120` (tool strip), `index.html:311` (beside the ghost)
 - Modify: `styles.css`
 - Modify: `tests/symbol-catalog.test.mjs:155-156`, `tests/symbol-palette-ui.test.mjs:21`, `tests/support-illustrations.test.mjs:22`
@@ -955,7 +956,78 @@ overlapping copy."
 
 **Interfaces:**
 - Consumes: nothing.
-- Produces: element ids `symbolSearchDialog`, `symbolSearchInput`, `symbolSearchResults`, `symbolSearchStatus`, `closeSymbolSearchButton`, `duplicateSelectionButton`. Task 8 queries all six by id.
+- Produces: element ids `symbolSearchDialog`, `symbolSearchInput`, `symbolSearchResults`, `symbolSearchStatus`, `closeSymbolSearchButton`, `duplicateSelectionButton`. Task 8 queries all six by id. Eleven i18n keys in both catalogues, listed in Steps 1-3.
+
+**The catalogue entries land in this task, not a later one.** The markup added below carries `data-i18n` attributes, and `tests/i18n-html.test.mjs` asserts every declared attribute resolves in both catalogues. Adding the markup without the keys leaves the suite red.
+
+- [ ] **Step A1: Extend the attribute scan**
+
+In `tests/i18n-html.test.mjs`, line 24:
+
+```js
+// current
+for (const match of html.matchAll(/data-i18n(?:-title|-aria-label|-alt)?="([^"]+)"/g)) {
+
+// replace with
+for (const match of html.matchAll(/data-i18n(?:-title|-aria-label|-alt|-placeholder)?="([^"]+)"/g)) {
+```
+
+This also brings the existing `data-i18n-placeholder` use at `bibliotheque.html:95` under test for the first time. If that key is missing from a catalogue, the test will now say so — fix the catalogue, do not narrow the regex back.
+
+- [ ] **Step A2: Add the English keys**
+
+In the `en` catalogue in `i18n.mjs`, beside `"tool.grow"` at line 41:
+
+```js
+  "tool.duplicate": "Duplicate the selection",
+```
+
+And beside `"status.symbolClickToPlace"` at line 152:
+
+```js
+  "search.title": "Find an element",
+  "search.placeholder": "Name or rune",
+  "search.close": "Close the element search",
+  "search.empty": "No element matches.",
+  "search.results": "{count} results",
+  "search.hint": "Cmd+K",
+  "status.symbolArmed": "{name} armed. Click the parchment to stamp it.",
+  "status.symbolDisarmed": "Pointer released.",
+  "status.duplicated": "{count} copies added.",
+  "status.duplicateNoSelection": "Select something before duplicating.",
+  "status.duplicateBlocked": "No room to place a copy here.",
+```
+
+- [ ] **Step A3: Add the French keys**
+
+In the `fr` catalogue, beside `"tool.grow"` at line 531:
+
+```js
+  "tool.duplicate": "Dupliquer la selection",
+```
+
+And beside `"status.symbolClickToPlace"` at line 642:
+
+```js
+  "search.title": "Trouver un element",
+  "search.placeholder": "Nom ou rune",
+  "search.close": "Fermer la recherche d'element",
+  "search.empty": "Aucun element ne correspond.",
+  "search.results": "{count} resultats",
+  "search.hint": "Cmd+K",
+  "status.symbolArmed": "{name} arme. Clique sur le parchemin pour l'apposer.",
+  "status.symbolDisarmed": "Pointeur relache.",
+  "status.duplicated": "{count} copies ajoutees.",
+  "status.duplicateNoSelection": "Selectionne quelque chose avant de dupliquer.",
+  "status.duplicateBlocked": "Pas de place pour poser une copie ici.",
+```
+
+No accented characters — the catalogues are written unaccented throughout, and `tests/i18n.test.mjs` compares exact strings.
+
+- [ ] **Step A4: Confirm catalogue parity before touching the markup**
+
+Run: `node --test tests/i18n.test.mjs`
+Expected: PASS, including `English and French expose identical keys`. That test is what catches a one-sided addition; confirm it ran rather than assuming a later suite run covers it.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1129,16 +1201,20 @@ Expected: no output. Any hit is a test that will fail or, worse, an asset refere
 Run: `node --test tests/*.test.mjs`
 Expected: PASS, 198 tests.
 
-`tests/i18n-html.test.mjs` will fail here if you ran Step 3 before Task 8 extends its regex — the `data-i18n="search.title"` attribute resolves against a catalogue that has no such key yet. If it does, the two remaining i18n keys land in Task 10; either land Task 10 before committing this one, or accept the temporary red and note it. Prefer landing Task 10 first if you are executing out of order.
+If `tests/i18n-html.test.mjs` reports a missing key, a `data-i18n` attribute in the markup names a key Steps A2/A3 did not add. Add the key to both catalogues — do not delete the attribute.
 
 - [ ] **Step 9: Commit**
 
 ```bash
-git add index.html styles.css tests/symbol-catalog.test.mjs tests/symbol-palette-ui.test.mjs tests/support-illustrations.test.mjs
+git add i18n.mjs index.html styles.css tests/i18n-html.test.mjs tests/symbol-catalog.test.mjs tests/symbol-palette-ui.test.mjs tests/support-illustrations.test.mjs
 git commit -m "feat: add the element search overlay markup and duplicate button
 
 Native dialog with a listbox result list, following the pattern the
-variant dialog already uses. Both cache-bust strings are bumped and all
+variant dialog already uses. Eleven localized keys land with the markup
+that declares them, since the HTML attribute scan asserts every
+declared attribute resolves in both catalogues. The scan now covers
+data-i18n-placeholder, which also brings the existing use in the
+library page under test. Both cache-bust strings are bumped and all
 four tests that pin their exact values move in the same commit."
 ```
 
@@ -1427,29 +1503,17 @@ restore ownership and re-render rather than clearing."
 
 ---
 
-### Task 10: Localized strings
+### Task 10: Runtime-key assertions and the duplicate button wiring
 
 **Files:**
-- Modify: `i18n.mjs` (both catalogues), `app.js` (duplicate button wiring)
-- Test: `tests/i18n.test.mjs` (append), `tests/i18n-html.test.mjs:24` (extend the regex)
+- Modify: `app.js` (duplicate button wiring)
+- Test: `tests/i18n.test.mjs` (append)
 
 **Interfaces:**
-- Consumes: nothing.
-- Produces: ten keys in both catalogues.
+- Consumes: the eleven catalogue keys from Task 7; `duplicateSelectedActions` from Task 6; `duplicateSelectionButton` markup from Task 7.
+- Produces: the duplicate button is live and disabled without a selection.
 
-- [ ] **Step 1: Extend the attribute scan**
-
-In `tests/i18n-html.test.mjs`, line 24:
-
-```js
-// current
-for (const match of html.matchAll(/data-i18n(?:-title|-aria-label|-alt)?="([^"]+)"/g)) {
-
-// replace with
-for (const match of html.matchAll(/data-i18n(?:-title|-aria-label|-alt|-placeholder)?="([^"]+)"/g)) {
-```
-
-This also brings the existing `data-i18n-placeholder` use at `bibliotheque.html:95` under test for the first time. If that key is missing from a catalogue, the test will now say so — fix the catalogue, do not narrow the regex back.
+The catalogue entries themselves landed in Task 7, because the markup that declares them could not ship without them. What remains here is the coverage the HTML scan structurally cannot provide: the status keys are constructed at runtime in `app.js`, so neither `tests/i18n.test.mjs`'s parity check nor `tests/i18n-html.test.mjs`'s attribute scan can reach them. Each needs a direct assertion.
 
 - [ ] **Step 2: Write the failing test**
 
@@ -1469,6 +1533,8 @@ test("the element search and duplication keys resolve in both locales", () => {
     assert.notMatch(translate("fr", key), /^\[/, `missing French ${key}`);
   }
 
+  // The rest are constructed at runtime in app.js, so neither the parity test
+  // nor the HTML attribute scan can reach them. Assert the exact strings.
   assert.equal(translate("en", "search.results", { count: 2 }), "2 results");
   assert.equal(translate("fr", "search.results", { count: 2 }), "2 resultats");
   assert.equal(translate("en", "status.symbolArmed", { name: "Fire" }), "Fire armed. Click the parchment to stamp it.");
@@ -1484,60 +1550,12 @@ test("the element search and duplication keys resolve in both locales", () => {
 });
 ```
 
-- [ ] **Step 3: Run test to verify it fails**
+- [ ] **Step 3: Run test to verify it passes**
 
 Run: `node --test tests/i18n.test.mjs`
-Expected: FAIL — `missing English search.title`
+Expected: PASS. Task 7 added the keys, so this test is confirming a contract rather than driving new code — its value is that it locks the exact runtime-constructed strings against a future edit that only touches one catalogue.
 
-- [ ] **Step 4: Add the English keys**
-
-In the `en` catalogue in `i18n.mjs`, beside `"tool.grow"` at line 41:
-
-```js
-  "tool.duplicate": "Duplicate the selection",
-```
-
-And beside `"status.symbolClickToPlace"` at line 152:
-
-```js
-  "search.title": "Find an element",
-  "search.placeholder": "Name or rune",
-  "search.close": "Close the element search",
-  "search.empty": "No element matches.",
-  "search.results": "{count} results",
-  "search.hint": "Cmd+K",
-  "status.symbolArmed": "{name} armed. Click the parchment to stamp it.",
-  "status.symbolDisarmed": "Pointer released.",
-  "status.duplicated": "{count} copies added.",
-  "status.duplicateNoSelection": "Select something before duplicating.",
-  "status.duplicateBlocked": "No room to place a copy here.",
-```
-
-- [ ] **Step 5: Add the French keys**
-
-In the `fr` catalogue, beside `"tool.grow"` at line 531:
-
-```js
-  "tool.duplicate": "Dupliquer la selection",
-```
-
-And beside `"status.symbolClickToPlace"` at line 642:
-
-```js
-  "search.title": "Trouver un element",
-  "search.placeholder": "Nom ou rune",
-  "search.close": "Fermer la recherche d'element",
-  "search.empty": "Aucun element ne correspond.",
-  "search.results": "{count} resultats",
-  "search.hint": "Cmd+K",
-  "status.symbolArmed": "{name} arme. Clique sur le parchemin pour l'apposer.",
-  "status.symbolDisarmed": "Pointeur relache.",
-  "status.duplicated": "{count} copies ajoutees.",
-  "status.duplicateNoSelection": "Selectionne quelque chose avant de dupliquer.",
-  "status.duplicateBlocked": "Pas de place pour poser une copie ici.",
-```
-
-No accented characters — the catalogues are written unaccented throughout, and `tests/i18n.test.mjs` compares exact strings.
+If it FAILS with `missing English <key>` or a string mismatch, Task 7's catalogue additions are wrong or incomplete. Fix `i18n.mjs`, not the assertion.
 
 - [ ] **Step 6: Wire the duplicate button**
 
@@ -1566,16 +1584,20 @@ Expected: PASS, 199 tests.
 Run: `node --test tests/i18n.test.mjs`
 Expected: PASS, including `English and French expose identical keys`. That test is what catches a one-sided addition; confirm it ran rather than assuming the suite covered it.
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 9: Manual check**
+
+Serve the page. With nothing selected the duplicate button is greyed out. Select a symbol: it enables. Press it, and press `Cmd+D`: each adds one offset copy, and the copy ends up selected.
+
+- [ ] **Step 10: Commit**
 
 ```bash
-git add i18n.mjs app.js tests/i18n.test.mjs tests/i18n-html.test.mjs
-git commit -m "feat: localize the element search and duplication strings
+git add app.js tests/i18n.test.mjs
+git commit -m "feat: wire the duplicate button and lock the runtime status keys
 
-Ten keys in both catalogues, each with a direct assertion because the
-parity test and the HTML attribute scan cannot reach a key constructed
-at runtime. The attribute scan now covers data-i18n-placeholder, which
-also brings the existing use in the library page under test."
+The status strings are built at runtime, so the catalogue parity test
+and the HTML attribute scan structurally cannot reach them; each gets a
+direct assertion on its exact text instead. The button mirrors the
+existing shrink and grow controls, disabled while nothing is selected."
 ```
 
 ---
@@ -1677,10 +1699,10 @@ dialog's cancel event fires, so a listener on cancel would be too late."
 | Testing — duplication | 3 |
 | Testing — browser | 11 |
 | Testing — static assertions | 5, 7 |
-| Localisation | 10 |
-| Discoverability | 7, 8, 10 |
+| Localisation | 7, 10 |
+| Discoverability | 7, 8 |
 | Hazard: cache-bust pins | 7 |
-| Hazard: placeholder scan | 10 |
+| Hazard: placeholder scan | 7 |
 | Hazard: runtime-constructed keys | 10 |
 | Hazard: name-table labels | 1 |
 
