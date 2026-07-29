@@ -1,5 +1,6 @@
 package io.github.nh1980mg.witchhat.magic.notebook;
 
+import io.github.nh1980mg.witchhat.magic.symbol.MagicSymbolCatalog;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -74,7 +75,8 @@ public final class NotebookLimits {
     private static void validateSymbol(PlacedSymbol symbol) {
         if (symbol.symbolId().isBlank()
                 || symbol.symbolId().length() > PlacedSymbol.MAX_ID_LENGTH
-                || !symbol.symbolId().matches("[a-z0-9_-]+")) {
+                || !symbol.symbolId().matches("[a-z0-9_-]+")
+                || !MagicSymbolCatalog.contains(symbol.symbolId())) {
             throw new IllegalArgumentException("Invalid symbol identifier");
         }
         validatePoint(symbol.center());

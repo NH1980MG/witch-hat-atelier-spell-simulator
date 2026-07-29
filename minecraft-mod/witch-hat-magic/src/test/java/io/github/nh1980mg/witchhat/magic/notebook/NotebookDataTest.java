@@ -110,7 +110,7 @@ class NotebookDataTest {
     @Test
     void storesPlacedSymbolsWithoutSharingMutableLists() {
         PlacedSymbol symbol = new PlacedSymbol(
-                "fire",
+                "feu",
                 new NormalizedPoint(0.5F, 0.5F),
                 0.24F,
                 45.0F);
@@ -132,11 +132,13 @@ class NotebookDataTest {
         assertInvalidSymbol(new PlacedSymbol(
                 "", new NormalizedPoint(0.5F, 0.5F), 0.2F, 0.0F));
         assertInvalidSymbol(new PlacedSymbol(
-                "fire", new NormalizedPoint(0.95F, 0.5F), 0.2F, 0.0F));
+                "feu", new NormalizedPoint(0.95F, 0.5F), 0.2F, 0.0F));
         assertInvalidSymbol(new PlacedSymbol(
-                "fire", new NormalizedPoint(0.5F, 0.5F), 0.01F, 0.0F));
+                "feu", new NormalizedPoint(0.5F, 0.5F), 0.01F, 0.0F));
         assertInvalidSymbol(new PlacedSymbol(
-                "fire", new NormalizedPoint(0.5F, 0.5F), 0.2F, Float.NaN));
+                "feu", new NormalizedPoint(0.5F, 0.5F), 0.2F, Float.NaN));
+        assertInvalidSymbol(new PlacedSymbol(
+                "unknown", new NormalizedPoint(0.5F, 0.5F), 0.2F, 0.0F));
     }
 
     @Test
@@ -144,7 +146,7 @@ class NotebookDataTest {
         List<PlacedSymbol> symbols = IntStream
                 .rangeClosed(0, NotebookLimits.MAX_SYMBOLS_PER_PAGE)
                 .mapToObj(index -> new PlacedSymbol(
-                        "fire",
+                        "feu",
                         new NormalizedPoint(0.5F, 0.5F),
                         0.1F,
                         0.0F))
