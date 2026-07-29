@@ -24,6 +24,7 @@ minecraft-mod/.gradle/
 minecraft-mod/build/
 minecraft-mod/*/build/
 minecraft-mod/run/
+minecraft-mod/run-magic/
 
 # Isolated agent workspaces
 .worktrees/
