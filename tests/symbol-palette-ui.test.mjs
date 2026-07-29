@@ -18,7 +18,7 @@ test("la page expose un seul tiroir de symboles et les outils de taille", async 
   }
   assert.doesNotMatch(html, /id=["']placement(?:ToggleButton|Drawer|List)["']/);
   assert.doesNotMatch(html, /id=["']closePlacementButton["']/);
-  assert.match(html, /styles\.css\?v=20260727-elemental-mixtures-v1/);
+  assert.match(html, /styles\.css\?v=20260729-element-search-v1/);
   assert.match(html, /app\.js\?v=\d{8}-[^"']+/);
 });
 
@@ -107,4 +107,30 @@ test("une seule affectation de state.tool subsiste, dans setTool", async () => {
   assert.match(app, /function setTool\(/);
   assert.match(app, /function armSymbol\(/);
   assert.match(app, /function disarmSymbol\(/);
+});
+
+test("la superposition de recherche et le bouton dupliquer sont dans la page", async () => {
+  const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  for (const id of [
+    "symbolSearchDialog",
+    "symbolSearchInput",
+    "symbolSearchResults",
+    "symbolSearchStatus",
+    "closeSymbolSearchButton",
+    "duplicateSelectionButton",
+  ]) {
+    assert.match(html, new RegExp("id=[\\\"']" + id + "[\\\"']"));
+  }
+  assert.match(html, /id=["']symbolSearchResults["'][^>]*role=["']listbox["']/);
+  assert.match(html, /id=["']symbolSearchStatus["'][^>]*aria-live=["']polite["']/);
+  assert.match(html, /data-i18n-placeholder=["']search\.placeholder["']/);
+});
+
+test("la superposition de recherche est stylee", async () => {
+  const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
+
+  assert.match(css, /\.symbol-search-dialog/);
+  assert.match(css, /\.symbol-search-result/);
+  assert.match(css, /\.symbol-search-result\[aria-selected="true"\]/);
+  assert.match(css, /\.symbol-drag-ghost\.is-armed/);
 });
