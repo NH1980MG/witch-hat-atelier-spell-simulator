@@ -1,8 +1,10 @@
 # Element Search and Pointer Placement Design
 
-> Revision 2, 2026-07-27. Amended after independent review by Codex
-> (thread `WITCH-HAT-ATELIER-SPELL-SIMULATOR-SPEC-221826-dd5`, verdict
-> request-changes, P1=6 P2=2). Changes are listed under Review History.
+> Revision 3, 2026-07-29. Revision 2 was amended after review by an independent
+> reviewer (second model) (thread
+> `WITCH-HAT-ATELIER-SPELL-SIMULATOR-SPEC-221826-dd5`, verdict request-changes,
+> P1=6 P2=2). Revision 3 adds four self-review findings against revision 2's own
+> new contracts. Changes are listed under Review History.
 
 ## Objective
 
@@ -153,9 +155,16 @@ carrying an element, and a parallel flag would be a second source of truth.
 this design failed to state:**
 
 1. **Centralized transitions.** Every write to `state.tool` goes through
-   `setTool`. The direct toolbar handler currently does not (verified at
-   `app.js:8795-8801`, a generic loop over all tool buttons), so it must be
-   routed through `setTool` as part of this work.
+   `setTool`. There are five direct writes today, not one - `grep -c
+   "state\.tool = " app.js` returns 5, at lines 7231, 7857, 8081, 8176, 8798.
+   Two are the paths this design already names (8798, the generic toolbar loop;
+   7857, the drawer Enter handler). The other three force `"select"` from paths
+   the first two revisions never mentioned: `beginRightSelection` (7231),
+   `selectGuide` (8081), and personal guide creation (8176). All five route
+   through `setTool`. The three `select`-forcing paths matter for ghost
+   ownership rather than arming: without them, right-dragging a marquee or
+   picking a guide while armed leaves the ghost following a cursor whose tool
+   no longer stamps.
 2. **Edge-triggered capture.** `state.previousTool` is recorded only on a
    transition from a non-glyph tool into `glyph`. Arming again while already
    armed must not overwrite it, or Escape restores `glyph` and cannot disarm.
@@ -164,9 +173,14 @@ Additions:
 
 - `state.previousTool` - the tool to restore on disarm. Written only on the
   non-glyph-to-glyph edge.
-- `state.searchOpen` - true from `showModal()` until the dialog is closed by any
-  path. Synchronized on all five: Escape, the close button, an outside click,
-  confirmation, and programmatic close.
+- Overlay openness is **derived, never mirrored**: `searchOpen()` reads
+  `symbolSearchDialog?.open === true`. No `state.searchOpen` field exists. A
+  mirrored flag would have to be synchronized on every close path, and a stale
+  `true` suppresses Escape permanently and silently - a failure any future
+  sixth close path would reintroduce. `dialog.open` is the browser's own state
+  and cannot drift. The Verified Constraints below establish that the document
+  handler runs before `cancel` and `close` fire, so the guard reads the dialog
+  at handler time either way.
 - `state.ghostOwner` - `null`, `"armed"`, or `"drag"`. See Ghost Ownership.
 
 Selection-only changes stay out of history, consistent with the marquee design.
@@ -202,14 +216,19 @@ Rules:
 | `Escape`, otherwise | Unchanged | Unchanged |
 
 **The modal gate is the whole shortcut map, not just Escape.** When
-`state.searchOpen` is true, the document handler returns immediately after
-handling the overlay's own keys. It is the first branch in the handler, ahead
-of the modifier block and ahead of the `isTyping` guard. Scoping the guard to
-Escape alone would leave `Cmd/Ctrl+D`, `Cmd/Ctrl+Z`, `Cmd/Ctrl+S`, and the bare
+`searchOpen()` is true, the document handler returns immediately after handling
+the overlay's own keys. It is the first branch in the handler, ahead of the
+modifier block and ahead of the `isTyping` guard. Scoping the guard to Escape
+alone would leave `Cmd/Ctrl+D`, `Cmd/Ctrl+Z`, `Cmd/Ctrl+S`, and the bare
 letters `A` and `L` able to mutate a canvas the user cannot see.
 
-A stale `state.searchOpen` is its own failure: it would suppress Escape
-permanently. Hence the requirement that every close path synchronizes it.
+**Armed and open at once.** `Cmd/Ctrl+K` while already armed is legal - the
+player wants a different symbol - so the overlay-open and pointer-armed rows
+can both apply to the same press. The overlay wins: Escape closes the overlay
+and leaves the pointer armed exactly as it was. Disarming takes a second
+Escape. This is stated because the edge-triggered `previousTool` rule means
+that second press restores a tool chosen several interactions earlier, and
+picking the other reading would make one keystroke do both.
 
 Both new bindings call `preventDefault()`, because browsers bind `Cmd/Ctrl+D`
 to bookmarking and may bind `Cmd/Ctrl+K` to a search or address bar.
@@ -244,6 +263,13 @@ The listbox keeps DOM focus in the search input and tracks the active option
 with `aria-activedescendant`, rather than moving focus between results.
 
 - Each result carries a stable id and `role="option"` with `aria-selected`.
+- **Every query change resets the active index to 0** and rewrites
+  `aria-activedescendant` to the first result, clearing it when there are no
+  results. The list rebuilds on each keystroke, so an active id held across a
+  rebuild can point at a detached node: nothing is announced and `Enter`
+  confirms a stale record. This needs an assertion in the static UI test - the
+  pure search tests cannot see the DOM, and the browser smoke test covers
+  Escape rather than filtering.
 - The result count is announced through a localized live region on change.
 - Cancelling restores focus to the control that opened the overlay.
 - Confirming closes the overlay and leaves pointer placement intact; the canvas
@@ -252,7 +278,8 @@ with `aria-activedescendant`, rather than moving focus between results.
 ## Verified Constraints
 
 Confirmed by running the app on 2026-07-27, not inferred from reading. The
-first four are this side's; the fifth is Codex's independent reproduction.
+first four are this side's; the fifth is the independent reviewer's
+reproduction.
 
 - Selecting the glyph tool and dispatching three canvas clicks placed three
   symbols and reported `Sigil: Fire x3`. Stamp mode already exists.
@@ -264,11 +291,12 @@ first four are this side's; the fifth is Codex's independent reproduction.
   open emptied the drawing and set the status to `Blank parchment.`
 - A keydown of `Escape` dispatched inside an open native `<dialog>` reached a
   listener bound on `document`.
-- Codex reproduced the same case in a real browser with a dialog button focused
-  and recorded the ordering: dialog `keydown`, then the app status changing to
-  `Blank parchment.`, then dialog `cancel`, then dialog `close`. **The canvas is
-  already cleared before `cancel` fires**, so the guard must live on the
-  document handler. Listening for the dialog's `cancel` event is too late.
+- The independent reviewer reproduced the same case in a real browser with a
+  dialog button focused and recorded the ordering: dialog `keydown`, then the
+  app status changing to `Blank parchment.`, then dialog `cancel`, then dialog
+  `close`. **The canvas is already cleared before `cancel` fires**, so the
+  guard must live on the document handler. Listening for the dialog's `cancel`
+  event is too late.
 
 Also verified: `import('./app.js')` under Node throws `ReferenceError: document
 is not defined`, and `app.js` exposes exactly one `export` across 9019 lines.
@@ -390,22 +418,38 @@ stage carries the risk and is independently testable.
 
 ## Review History
 
-Revision 2 amends revision 1 (`b823ac6`) after independent review by Codex at
-pin `d3e49e7`. Every source citation below was re-verified on this side before
-being accepted.
+Revision 2 amends revision 1 (`b823ac6`) after review by an independent
+reviewer (second model) at pin `d3e49e7`. Finding ids are the reviewer's, with
+the vendor prefix removed; the numbering is unchanged. Every source citation
+below was re-verified on this side before being accepted.
 
 | Finding | Change |
 | --- | --- |
-| codex-spec-001 (P2) | Name-table hazard rewritten. Revision 1 claimed silent entry loss; both tables cover all 64 keys and only the `Etirement` label differs. |
-| codex-spec-002 (P1) | New centralized `setTool` contract and edge-triggered `previousTool`. The direct toolbar path bypassed arming entirely. |
-| codex-spec-003 (P1) | Modal gate widened from Escape to the entire canvas shortcut map, with close-path synchronization. |
-| codex-spec-004 (P1) | Duplication respecified on `combinedSelectionBounds` plus the existing `clampSelectionDelta`, with a zero-delta no-op. |
-| codex-spec-005 (P1) | New Ghost Ownership section; drag teardown must restore the armed preview. |
-| codex-spec-006 (P1) | New DOM-free palette-data seam. Revision 1's keystone test could not have been written. |
-| codex-spec-007 (P1) | Duplicate control and status keys enumerated; runtime-key assertions required. |
-| codex-spec-008 (P2) | New Accessibility section fixing the listbox focus model. |
+| spec-001 (P2) | Name-table hazard rewritten. Revision 1 claimed silent entry loss; both tables cover all 64 keys and only the `Etirement` label differs. |
+| spec-002 (P1) | New centralized `setTool` contract and edge-triggered `previousTool`. The direct toolbar path bypassed arming entirely. |
+| spec-003 (P1) | Modal gate widened from Escape to the entire canvas shortcut map, with close-path synchronization. |
+| spec-004 (P1) | Duplication respecified on `combinedSelectionBounds` plus the existing `clampSelectionDelta`, with a zero-delta no-op. |
+| spec-005 (P1) | New Ghost Ownership section; drag teardown must restore the armed preview. |
+| spec-006 (P1) | New DOM-free palette-data seam. Revision 1's keystone test could not have been written. |
+| spec-007 (P1) | Duplicate control and status keys enumerated; runtime-key assertions required. |
+| spec-008 (P2) | New Accessibility section fixing the listbox focus model. |
 
-Codex confirmed unchanged: the matching design (names plus rune, exact then
-prefix, no fuzzy) as appropriately lean for 64 records, the decision to keep
-fuzzy matching and meaning search out of scope, and this remaining one product
-unit.
+The reviewer confirmed unchanged: the matching design (names plus rune, exact
+then prefix, no fuzzy) as appropriately lean for 64 records, the decision to
+keep fuzzy matching and meaning search out of scope, and this remaining one
+product unit.
+
+Revision 3 amends revision 2 (`a710525`). The second-model meta-review of
+revision 2's new contracts was declined, so these are self-review findings,
+recorded in `docs/stress-tests/2026-07-27-element-search-placement.md` as cases
+11-14. They carry the weaker warrant that implies: one side found them.
+
+| Finding | Change |
+| --- | --- |
+| self-011 (P1, measured) | `setTool` inventory corrected from one site to five. `grep -c "state\.tool = " app.js` returns 5; three `select`-forcing paths (`beginRightSelection` 7231, `selectGuide` 8081, guide creation 8176) were unlisted, and each strands the armed ghost. |
+| self-012 (P2, reasoned) | Keyboard Map now states the armed-and-overlay-open reading: Escape closes the overlay only, disarming takes a second press. |
+| self-013 (P1, reasoned) | `state.searchOpen` replaced by a derived `searchOpen()` read of `dialog.open`. A mirrored flag makes a permanent, silent Escape suppression reachable from any future close path. |
+| self-014 (P2, reasoned) | Accessibility now requires resetting the active index and `aria-activedescendant` on every query change; a rebuilt list can leave the pointer on a detached node. |
+
+Revision 3 changes no scope, adds no user-facing surface, and removes one state
+field.

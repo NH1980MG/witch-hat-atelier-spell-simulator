@@ -1,9 +1,8 @@
-# RUN - Codex (independent spec review, witch-hat-atelier-spell-simulator)
+# RUN - independent spec review (witch-hat-atelier-spell-simulator)
 
-You are **Codex**, the independent reviewer of a design specification in a
-two-model (Claude Code + Codex) review. **This file is your complete,
-self-contained instruction set - follow it exactly.** You need no other file and
-no prior conversation.
+You are the **independent reviewer (second model)** of a design specification in
+a two-model review. **This file is your complete, self-contained instruction set
+- follow it exactly.** You need no other file and no prior conversation.
 
 **Nothing is implemented.** This is a review of two committed documents against
 the real source they describe. There is no diff to read and no fix branch to
@@ -18,7 +17,7 @@ The ordering is not cosmetic - see the anti-anchoring note.
 ## Anti-anchoring (read before anything else)
 
 The spec under review already contains a "Verified Constraints" section and a
-"Hazards" section listing what the Claude side found. If you read those first,
+"Hazards" section listing what the authoring side found. If you read those first,
 you will almost certainly ratify them. That failure mode is the specific reason
 this review exists.
 
@@ -45,7 +44,7 @@ gd="$(cd "$(git rev-parse --git-dir)" && pwd -P)"
 gcd="$(cd "$(git rev-parse --git-common-dir)" && pwd -P)"
 test "$gd" = "$gcd" || { echo "ABORT: linked worktree"; exit 1; }
 test "$(basename "$git_top")" = "witch-hat-atelier-spell-simulator" || { echo "ABORT: repo mismatch"; exit 1; }
-mkdir -p docs/audits/handoffs/from-codex
+mkdir -p docs/audits/handoffs/from-reviewer
 ```
 
 Capture the short SHA as `applies_to_commit`. Every `location` you cite is
@@ -82,7 +81,7 @@ Both committed at `b823ac6`.
 
 ### Source surfaces the design depends on
 
-Verify claims against these; the line numbers are the Claude side's, and
+Verify claims against these; the line numbers are the authoring side's, and
 confirming or correcting them is part of the job:
 
 - `app.js` (9019 lines) - `state` init and `state.element` default near :421;
@@ -111,7 +110,7 @@ than reason statically - and to say so explicitly when you do not.
 
 ## Findings schema
 
-- finding_id: `codex-spec-<NNN>`
+- finding_id: `spec-<NNN>`
 - Fields, one `key: value` per line, no reformatting:
   - `finding_id`
   - `category` - one of: wrong-claim-about-source | missing-constraint |
@@ -129,7 +128,7 @@ than reason statically - and to say so explicitly when you do not.
 - Priority: wrong claims about source first, then missing constraints, then
   design flaws, then ambiguity, then leanness.
 
-Write findings to `docs/audits/handoffs/from-codex/` (gitignored). Begin the
+Write findings to `docs/audits/handoffs/from-reviewer/` (gitignored). Begin the
 file with frontmatter carrying `handoff_id`, `repo_name`, `phase: spec-review`,
 `pin: applies_to_commit=<your STEP-0 SHA>`, `status: complete`. Close it with
 the END sentinel as the final line:
@@ -201,4 +200,4 @@ justification and the count of findings by severity. Reply to the vault handoff
 that pointed you here, following its Response Instructions.
 
 Do not implement anything. Do not open branches or PRs. Do not modify tracked
-source. You may write only under `docs/audits/handoffs/from-codex/`.
+source. You may write only under `docs/audits/handoffs/from-reviewer/`.

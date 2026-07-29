@@ -39,11 +39,11 @@ The original claim: `app.js` defines `englishElementNames` with 66 entries while
 `variant-catalog.mjs` exports `ENGLISH_ELEMENT_NAMES` with 64, three keys
 differ, so importing the wrong one silently drops entries from search results.
 
-Codex refuted it and an executed re-check on this side agreed. Both tables cover
-**all 64 palette keys**; neither drops any. The 66 are the 64 plus two
-non-palette entries, `Energie brute` and `Aucun`. Exactly one palette label
-differs: `Etirement` is `Stretch / Weave` in `app.js` and `Stretch Weave` in
-`variant-catalog.mjs`.
+The independent reviewer refuted it and an executed re-check on this side
+agreed. Both tables cover **all 64 palette keys**; neither drops any. The 66
+are the 64 plus two non-palette entries, `Energie brute` and `Aucun`. Exactly
+one palette label differs: `Etirement` is `Stretch / Weave` in `app.js` and
+`Stretch Weave` in `variant-catalog.mjs`.
 
 The real case is smaller: the app table is the display-label source of truth, so
 using the other yields one wrong label. Severity P2, not a trap.
@@ -75,10 +75,11 @@ places a copy partially or wholly outside the drawing limit, where the existing
 placement path would have refused to put it. Worse, duplicating repeatedly
 walks copies further out on each press.
 
-The original mitigation named `clampGlyphCenter` and `canDropGlyph`. Codex
-refuted that too: both express a single glyph centre and size, so clamping each
-copy of a mixed glyph/circle/ring selection against its own bounds distorts the
-group's relative spacing. `app.js:7290` already has the correct primitive,
+The original mitigation named `clampGlyphCenter` and `canDropGlyph`. The
+reviewer refuted that too: both express a single glyph centre and size, so
+clamping each copy of a mixed glyph/circle/ring selection against its own
+bounds distorts the group's relative spacing. `app.js:7290` already has the
+correct primitive,
 `clampSelectionDelta(bounds, dx, dy)`, used for group moves at `app.js:7326`.
 Duplication takes one shared delta from `combinedSelectionBounds`.
 
@@ -132,3 +133,78 @@ cheap, but the result list rebuilds on each input event and the elements carry
 inline SVG icons. If the implementation re-parses icon markup per keystroke
 rather than reusing nodes, the overlay will feel sluggish while deleting a
 query even though the dataset is trivially small.
+
+---
+
+## Revision 2 cases
+
+Cases 1-10 were written against revision 1 of the design. Cases 11-14 are
+adversarial against the five contracts revision 2 added (`setTool`, the modal
+keyboard gate, group duplication, ghost ownership, the listbox focus model),
+which no second reviewer has challenged. Added 2026-07-29.
+
+## 11. The `setTool` inventory is incomplete (measured)
+
+The design states that nothing assigns `state.tool` directly and enumerates the
+paths to route: the toolbar loop, drawer click, drawer Enter, drag completion,
+search confirmation. An executed count disagrees. `grep -c "state\.tool = "
+app.js` returns **5**, at lines 7231, 7857, 8081, 8176, and 8798. Only two of
+those are on the spec's list (8798 the toolbar loop, 7857 the drawer Enter
+handler). The other three force `"select"` from paths the design never
+mentions: `beginRightSelection` (7231), `selectGuide` (8081), and personal
+guide creation (8176).
+
+The consequence lands on ghost ownership, not on arming. A player who arms a
+symbol and then right-drags a marquee, or clicks a guide, silently leaves the
+`glyph` tool while `state.ghostOwner` is still `"armed"` - so the ghost keeps
+following the cursor for a tool that no longer stamps. Routing those three
+through `setTool` is what makes the "no parallel armed flag" decision hold; the
+design's own justification for that decision assumes an enumeration that is
+two sites short. The plan must re-derive the list with a grep rather than
+copying the spec's.
+
+## 12. Two Escapes with different meanings, one keyboard map (reasoned)
+
+`Cmd/Ctrl+K` while already armed is legal and useful - the player wants a
+different symbol. The Keyboard Map gives Escape two rows, "overlay open" and
+"pointer armed", but the armed-and-overlay-open state satisfies both. Under the
+modal gate the overlay wins, which is right, but it leaves the player one
+Escape from disarming and the design never says the second press does that.
+Worse, the edge-triggered `previousTool` rule means the arm-while-armed path
+correctly preserves the original return tool, so the second Escape restores a
+tool chosen several interactions ago with no visible cue that it will. Pick a
+reading and state it: Escape closes the overlay and leaves the pointer armed as
+it was.
+
+## 13. `state.searchOpen` is a mirror, and mirrors go stale (reasoned)
+
+The design requires five close paths to synchronize `state.searchOpen` and
+notes that a stale `true` suppresses Escape permanently. That is the correct
+severity and the wrong mitigation. Any sixth path added later - a close during
+a re-render, a teardown that hides the dialog, a thrown exception between
+`close()` and the assignment - reintroduces the same permanent, silent failure,
+and no test written today covers a path that does not exist yet.
+
+A derived read cannot go stale: `dialog.open` is the browser's own state, so
+`const searchOpen = () => symbolSearchDialog?.open === true` removes the
+synchronization requirement rather than distributing it across five call sites.
+The spec's own Verified Constraints already establish that the document handler
+sees the keydown before `cancel` and `close` fire, so the guard must read the
+dialog's state at handler time regardless - which is exactly what a derived
+read does.
+
+## 14. The active option can be deleted out from under the listbox (reasoned)
+
+`aria-activedescendant` points at an option id, and the option list is rebuilt
+on every keystroke. Typing `w`, arrowing to the third result, then typing `i`
+leaves the pointer aimed at an id that no longer exists in the DOM: screen
+readers announce nothing, and `Enter` either confirms a stale record or does
+nothing, depending on how the active index is resolved. The failure is
+invisible to sighted mouse users and total for keyboard-and-screen-reader ones,
+which is the combination the Accessibility section exists to serve.
+
+The fix is one line of policy the design does not state: every query change
+resets the active index to 0 and rewrites `aria-activedescendant` to the first
+result, or clears it when there are no results. It needs an assertion in the
+static UI test, because the pure search tests cannot see the DOM and the
+browser smoke test covers Escape rather than filtering.
