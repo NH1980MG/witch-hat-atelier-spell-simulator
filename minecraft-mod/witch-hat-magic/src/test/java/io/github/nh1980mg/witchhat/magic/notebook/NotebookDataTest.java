@@ -3,6 +3,7 @@ package io.github.nh1980mg.witchhat.magic.notebook;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.stream.IntStream;
@@ -106,6 +107,61 @@ class NotebookDataTest {
         assertThrows(IllegalArgumentException.class, () -> NotebookLimits.validate(invalid));
     }
 
+    @Test
+    void storesPlacedSymbolsWithoutSharingMutableLists() {
+        PlacedSymbol symbol = new PlacedSymbol(
+                "fire",
+                new NormalizedPoint(0.5F, 0.5F),
+                0.24F,
+                45.0F);
+        NotebookPage page = new NotebookPage(
+                "page-1", "Page 1", List.of(), List.of(symbol));
+        NotebookData data = new NotebookData(
+                NotebookData.CURRENT_FORMAT, page.id(), List.of(page));
+
+        NotebookLimits.validate(data);
+
+        assertEquals(symbol, data.selectedPage().symbols().getFirst());
+        assertThrows(
+                UnsupportedOperationException.class,
+                () -> data.selectedPage().symbols().clear());
+    }
+
+    @Test
+    void rejectsInvalidPlacedSymbolGeometryAndIdentifiers() {
+        assertInvalidSymbol(new PlacedSymbol(
+                "", new NormalizedPoint(0.5F, 0.5F), 0.2F, 0.0F));
+        assertInvalidSymbol(new PlacedSymbol(
+                "fire", new NormalizedPoint(0.95F, 0.5F), 0.2F, 0.0F));
+        assertInvalidSymbol(new PlacedSymbol(
+                "fire", new NormalizedPoint(0.5F, 0.5F), 0.01F, 0.0F));
+        assertInvalidSymbol(new PlacedSymbol(
+                "fire", new NormalizedPoint(0.5F, 0.5F), 0.2F, Float.NaN));
+    }
+
+    @Test
+    void rejectsTooManyPlacedSymbols() {
+        List<PlacedSymbol> symbols = IntStream
+                .rangeClosed(0, NotebookLimits.MAX_SYMBOLS_PER_PAGE)
+                .mapToObj(index -> new PlacedSymbol(
+                        "fire",
+                        new NormalizedPoint(0.5F, 0.5F),
+                        0.1F,
+                        0.0F))
+                .toList();
+        NotebookPage page = new NotebookPage(
+                "page-1", "Page 1", List.of(), symbols);
+        NotebookData invalid = new NotebookData(
+                NotebookData.CURRENT_FORMAT, page.id(), List.of(page));
+
+        assertThrows(IllegalArgumentException.class, () -> NotebookLimits.validate(invalid));
+    }
+
+    @Test
+    void blankPagesStartWithoutPlacedSymbols() {
+        assertTrue(NotebookData.createDefault().selectedPage().symbols().isEmpty());
+    }
+
     private static NotebookData dataWithPoint(NormalizedPoint point) {
         return dataWithStroke(new NotebookStroke(List.of(point)));
     }
@@ -113,5 +169,13 @@ class NotebookDataTest {
     private static NotebookData dataWithStroke(NotebookStroke stroke) {
         NotebookPage page = new NotebookPage("page-1", "Page 1", List.of(stroke));
         return new NotebookData(NotebookData.CURRENT_FORMAT, page.id(), List.of(page));
+    }
+
+    private static void assertInvalidSymbol(PlacedSymbol symbol) {
+        NotebookPage page = new NotebookPage(
+                "page-1", "Page 1", List.of(), List.of(symbol));
+        NotebookData invalid = new NotebookData(
+                NotebookData.CURRENT_FORMAT, page.id(), List.of(page));
+        assertThrows(IllegalArgumentException.class, () -> NotebookLimits.validate(invalid));
     }
 }

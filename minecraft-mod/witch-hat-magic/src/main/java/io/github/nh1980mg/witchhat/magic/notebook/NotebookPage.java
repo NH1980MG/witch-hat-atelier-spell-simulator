@@ -8,14 +8,19 @@ import java.util.Objects;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 
-public record NotebookPage(String id, String title, List<NotebookStroke> strokes) {
+public record NotebookPage(
+        String id,
+        String title,
+        List<NotebookStroke> strokes,
+        List<PlacedSymbol> symbols) {
     public static final int MAX_ID_LENGTH = 64;
     public static final int MAX_TITLE_LENGTH = 64;
 
     public static final Codec<NotebookPage> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.STRING.fieldOf("id").forGetter(NotebookPage::id),
             Codec.STRING.fieldOf("title").forGetter(NotebookPage::title),
-            NotebookStroke.CODEC.listOf().fieldOf("strokes").forGetter(NotebookPage::strokes))
+            NotebookStroke.CODEC.listOf().fieldOf("strokes").forGetter(NotebookPage::strokes),
+            PlacedSymbol.CODEC.listOf().optionalFieldOf("symbols", List.of()).forGetter(NotebookPage::symbols))
             .apply(instance, NotebookPage::new));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, NotebookPage> STREAM_CODEC =
@@ -25,10 +30,15 @@ public record NotebookPage(String id, String title, List<NotebookStroke> strokes
         id = Objects.requireNonNull(id, "id");
         title = Objects.requireNonNull(title, "title");
         strokes = List.copyOf(Objects.requireNonNull(strokes, "strokes"));
+        symbols = List.copyOf(Objects.requireNonNull(symbols, "symbols"));
+    }
+
+    public NotebookPage(String id, String title, List<NotebookStroke> strokes) {
+        this(id, title, strokes, List.of());
     }
 
     public static NotebookPage blank(String id, String title) {
-        return new NotebookPage(id, title, List.of());
+        return new NotebookPage(id, title, List.of(), List.of());
     }
 
     private void write(RegistryFriendlyByteBuf buffer) {
@@ -36,6 +46,8 @@ public record NotebookPage(String id, String title, List<NotebookStroke> strokes
         buffer.writeUtf(title, MAX_TITLE_LENGTH);
         buffer.writeVarInt(strokes.size());
         strokes.forEach(stroke -> NotebookStroke.STREAM_CODEC.encode(buffer, stroke));
+        buffer.writeVarInt(symbols.size());
+        symbols.forEach(symbol -> PlacedSymbol.STREAM_CODEC.encode(buffer, symbol));
     }
 
     private static NotebookPage read(RegistryFriendlyByteBuf buffer) {
@@ -47,6 +59,12 @@ public record NotebookPage(String id, String title, List<NotebookStroke> strokes
         for (int index = 0; index < count; index++) {
             strokes.add(NotebookStroke.STREAM_CODEC.decode(buffer));
         }
-        return new NotebookPage(id, title, strokes);
+        int symbolCount = NotebookStroke.readBoundedCount(
+                buffer, NotebookLimits.MAX_SYMBOLS_PER_PAGE, "page symbols");
+        List<PlacedSymbol> symbols = new ArrayList<>(symbolCount);
+        for (int index = 0; index < symbolCount; index++) {
+            symbols.add(PlacedSymbol.STREAM_CODEC.decode(buffer));
+        }
+        return new NotebookPage(id, title, strokes, symbols);
     }
 }
