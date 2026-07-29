@@ -137,7 +137,10 @@ their inventories and NBT data cannot be lost by a build or undo.
 The unpublished `minecraft-mod/witch-hat-magic` subproject is a separate Fabric
 1.21.1 mod. Its first playable milestone provides a persistent magic-circle
 notebook with bounded pages, native circular drawing, pen and eraser tools,
-undo/redo, zoom, bilingual labels, and server-authoritative saves.
+undo/redo, zoom, bilingual labels, server-authoritative saves, and the complete
+64-entry symbol catalogue generated from the web simulator. Workshop mode
+supports placement, right-click selection, selection rectangles, grouped
+movement, proportional corner resizing, deletion, and undo.
 
 Build the local JAR:
 
@@ -149,6 +152,6 @@ JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home \
 ```
 
 The playable JAR is written to
-`witch-hat-magic/build/libs/witch-hat-magic-0.1.0-local.jar`. The complete
-symbol workshop, advanced page operations, and in-world spell preview remain
+`witch-hat-magic/build/libs/witch-hat-magic-0.1.0-local.jar`. Advanced page
+operations, tracing guides, spell details, and in-world spell preview remain
 separate implementation phases. The magic mod does not depend on AI Builder.

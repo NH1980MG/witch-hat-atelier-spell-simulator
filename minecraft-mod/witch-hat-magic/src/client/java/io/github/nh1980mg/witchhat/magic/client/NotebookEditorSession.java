@@ -182,7 +182,9 @@ public final class NotebookEditorSession {
         List<PlacedSymbol> symbols = data.selectedPage().symbols();
         for (int index = symbols.size() - 1; index >= 0; index--) {
             if (SymbolSelection.contains(symbols.get(index), point)) {
-                symbolSelection = SymbolSelection.single(index);
+                if (!symbolSelection.indices().contains(index)) {
+                    symbolSelection = SymbolSelection.single(index);
+                }
                 return true;
             }
         }

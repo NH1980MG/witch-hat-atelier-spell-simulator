@@ -171,6 +171,20 @@ class NotebookEditorSessionTest {
     }
 
     @Test
+    void clickingInsideAnExistingGroupKeepsTheGroupSelected() {
+        NotebookEditorSession session = sessionWithSymbols(
+                symbol("feu", 0.35F, 0.5F, 0.16F),
+                symbol("eau", 0.55F, 0.5F, 0.16F));
+        session.selectSymbolsInBox(
+                new NormalizedPoint(0.25F, 0.4F),
+                new NormalizedPoint(0.65F, 0.6F));
+
+        assertTrue(session.selectSymbolAt(new NormalizedPoint(0.35F, 0.5F)));
+
+        assertEquals(List.of(0, 1), session.selectedSymbolIndices());
+    }
+
+    @Test
     void movesSelectedSymbolsTogetherAndKeepsThemInsideThePage() {
         NotebookEditorSession session = sessionWithSymbols(
                 symbol("feu", 0.4F, 0.5F, 0.12F),

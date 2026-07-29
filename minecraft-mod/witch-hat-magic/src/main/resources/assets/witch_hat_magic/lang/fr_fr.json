@@ -14,6 +14,6 @@
   "screen.witch_hat_magic.delete_page": "Supprimer",
   "screen.witch_hat_magic.workshop": "Atelier",
   "screen.witch_hat_magic.page_count": "Page %s / %s",
-  "screen.witch_hat_magic.workshop_shell": "Atelier compact",
-  "screen.witch_hat_magic.workshop_shell_hint": "Catalogue et guides dans la prochaine phase"
+  "screen.witch_hat_magic.catalog": "Symboles",
+  "screen.witch_hat_magic.catalog_hint": "Choisis, puis clique sur la page"
 }
