@@ -354,9 +354,13 @@ The caller owns the clamp. This function never reads canvas bounds — that is w
 Append to `tests/symbol-interactions.test.mjs`. Add `planDuplication` to the existing import list at the top of that file, then:
 
 ```js
+// Glyphs carry x/y; circles and rings carry cx/cy. `translateSelectedActions`
+// branches on exactly that (`symbol-interactions.mjs:206-212`), so a circle
+// written with x/y silently produces NaN coordinates and null bounds. Measured,
+// not assumed.
 const duplicationFixture = () => [
   { type: "glyph", x: 100, y: 100, size: 40, element: { name: "Feu" } },
-  { type: "circle", x: 200, y: 150, radius: 50 },
+  { type: "circle", cx: 200, cy: 150, radius: 50 },
   { type: "pen", points: [{ x: 10, y: 10 }] },
 ];
 
@@ -373,18 +377,30 @@ test("ce sont les copies, pas les originaux, qui restent selectionnees", () => {
   const result = planDuplication(actions, [0, 1], 12, 12);
 
   assert.deepEqual(result.indices, [3, 4]);
-  assert.equal(result.actions[0].x, 100, "l'original ne bouge pas");
-  assert.equal(result.actions[3].x, 112, "la copie est decalee");
+  assert.equal(result.actions[0].x, 100, "le glyphe original ne bouge pas");
+  assert.equal(result.actions[1].cx, 200, "le cercle original ne bouge pas");
+  assert.equal(result.actions[3].x, 112, "la copie du glyphe est decalee");
+  assert.equal(result.actions[4].cx, 212, "la copie du cercle est decalee du meme delta");
 });
 
 test("un delta partage preserve l'espacement relatif d'une selection mixte", () => {
   const actions = duplicationFixture();
-  const before = actions[1].x - actions[0].x;
+  // Le glyphe expose son centre en x/y, le cercle en cx/cy. On compare bien
+  // deux centres; seul le nom du champ differe.
+  const spacingX = actions[1].cx - actions[0].x;
+  const spacingY = actions[1].cy - actions[0].y;
   const result = planDuplication(actions, [0, 1], 25, -10);
-  const after = result.actions[4].x - result.actions[3].x;
 
-  assert.equal(after, before, "un clamp par action deformerait le groupe");
-  assert.equal(result.actions[4].y - result.actions[3].y, actions[1].y - actions[0].y);
+  assert.equal(result.actions[3].x, 125);
+  assert.equal(result.actions[3].y, 90);
+  assert.equal(result.actions[4].cx, 225);
+  assert.equal(result.actions[4].cy, 140);
+  assert.equal(
+    result.actions[4].cx - result.actions[3].x,
+    spacingX,
+    "un clamp par action deformerait le groupe",
+  );
+  assert.equal(result.actions[4].cy - result.actions[3].y, spacingY);
 });
 
 test("un delta nul est un non-evenement et n'empile rien", () => {
