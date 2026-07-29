@@ -192,12 +192,31 @@ test("l'index couvre les 64 elements et reste fige", () => {
   assert.ok(Object.isFrozen(index[0]));
 });
 
-test("une requete anglaise trouve les deux elements de vent", () => {
-  assert.deepEqual(names(searchSymbols(index, "wind")), ["Vent", "Vent sous pied"]);
+test("une requete anglaise trouve les elements de vent, exact d'abord", () => {
+  // Mesure contre les donnees reelles, pas devinee: Wind est exact (12), les
+  // trois autres sont des prefixes (8), departages par ordre de palette.
+  assert.deepEqual(names(searchSymbols(index, "wind")), [
+    "Vent",
+    "Vent sous pied",
+    "Signe de vent",
+    "Fenetre",
+  ]);
 });
 
-test("la requete francaise equivalente donne le meme resultat", () => {
-  assert.deepEqual(names(searchSymbols(index, "vent")), ["Vent", "Vent sous pied"]);
+test("Fenetre repond a 'wind' parce que Window commence par wind", () => {
+  // Faux positif reel du choix de conception (prefixe, pas de fuzzy): le nom
+  // anglais de Fenetre est "Window". Le test le verrouille pour qu'un
+  // changement de classement le rende visible plutot que surprenant.
+  assert.ok(names(searchSymbols(index, "wind")).includes("Fenetre"));
+  assert.deepEqual(names(searchSymbols(index, "window")), ["Fenetre"]);
+});
+
+test("la requete francaise trouve les elements dont le nom commence par vent", () => {
+  assert.deepEqual(names(searchSymbols(index, "vent")), [
+    "Vent",
+    "Vent sous pied",
+    "Vent tourbillonnant",
+  ]);
 });
 
 test("les accents de la requete sont replies sur les noms stockes", () => {
@@ -206,8 +225,17 @@ test("les accents de la requete sont replies sur les noms stockes", () => {
 });
 
 test("une rune exacte passe devant les correspondances par prefixe", () => {
-  const results = searchSymbols(index, "fe");
-  assert.equal(results[0].name, "Feu", "la rune FE doit primer sur les prefixes en fe");
+  // FE est la rune de Feu et n'est partagee avec rien. Fenetre suit par
+  // prefixe uniquement.
+  assert.deepEqual(names(searchSymbols(index, "fe")), ["Feu", "Fenetre"]);
+});
+
+test("une rune partagee rend les deux elements, departages par ordre de palette", () => {
+  // Six runes sont partagees entre un sigil et un signe. SV en fait partie:
+  // Sangsue-valance (index 10) et Signe de vent (index 43) marquent toutes
+  // deux exact, donc l'ordre de palette tranche. Une rune n'identifie pas
+  // toujours un seul element.
+  assert.deepEqual(names(searchSymbols(index, "sv")), ["Sangsue-valance", "Signe de vent"]);
 });
 
 test("une requete vide rend les 64 elements dans l'ordre de la palette", () => {
