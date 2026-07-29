@@ -7817,6 +7817,18 @@ function renderInkList() {
   updateInkSelection();
 }
 
+// How far the pointer must travel during a drawer-button press before the
+// trailing click is treated as drag debris rather than a click-to-arm. Real
+// pointing hardware doesn't produce perfectly stationary clicks - trackpads
+// and high-poll-rate mice emit sub-pixel pointermove events even while the
+// user experiences the press as still. Deliberately smaller than
+// symbol-drag-gesture.mjs's TOUCH_DRAG_THRESHOLD (10px): that threshold
+// answers "is this a scroll or a drag" for touch, a different question from
+// "did the pointer move enough that a trailing click is drag debris" - reusing
+// it here would let a real 6px drag-and-drop through unsuppressed and bring
+// back the spurious re-arm.
+const DRAWER_CLICK_DRAG_SLOP = 4;
+
 function clientPointInsideRect(clientX, clientY, rect) {
   return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
 }
@@ -7907,6 +7919,8 @@ function beginSymbolDrag(event, element, source) {
     element,
     source,
     size: 16 + state.intensity * 3,
+    startX: event.clientX,
+    startY: event.clientY,
   };
   symbolDragGhost.innerHTML =
     '<span class="symbol-icon" style="--symbol-color:' + element.color + '">' +
@@ -7933,9 +7947,14 @@ function moveSymbolDrag(event) {
   // drag rather than a stationary click. A mouse click is a zero-distance
   // pointerdown+pointerup on this same button (classifySymbolDragGesture
   // always answers "drag" for a mouse, so it takes this exact path too), and
-  // must still arm via its trailing click - only a drag that actually moved
-  // should suppress it.
-  if (event.type === "pointermove") {
+  // must still arm via its trailing click. But the event *type* alone isn't
+  // enough either: trackpads and high-poll-rate mice emit sub-pixel
+  // pointermove events during a click the user experiences as stationary, so
+  // gate on distance travelled, not merely on a pointermove having occurred.
+  if (
+    event.type === "pointermove" &&
+    Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) >= DRAWER_CLICK_DRAG_SLOP
+  ) {
     state.suppressNextDrawerClick = true;
   }
   symbolDragGhost.style.left = event.clientX + "px";
