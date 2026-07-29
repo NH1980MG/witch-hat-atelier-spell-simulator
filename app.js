@@ -338,6 +338,7 @@ const state = {
   previousTool: "select",
   ghostOwner: null,
   ghostOwnerBeforeDrag: null,
+  suppressNextDrawerClick: false,
 };
 
 const guideImageCache = new Map();
@@ -7788,6 +7789,15 @@ function renderInkList() {
         </span>
       `;
       button.addEventListener("click", () => {
+        // A mouse drag ends with a click on the origin button (pointer capture
+        // retargets the trailing mouseup/click back here). Before arming
+        // existed that click was harmless; now it would arm the pointer the
+        // user never asked for, so a completed drag consumes the click that
+        // follows it instead of arming again.
+        if (state.suppressNextDrawerClick) {
+          state.suppressNextDrawerClick = false;
+          return;
+        }
         armSymbol(element);
       });
       button.addEventListener("pointerdown", (event) => startSymbolDrag(event, element));
@@ -7859,11 +7869,15 @@ function resolveSymbolDragIntent(event) {
 
   event.preventDefault();
   const { element, source } = intent;
-  cancelSymbolDragIntent(event);
+  // The intent is resolving into a real drag, not being abandoned - ownership
+  // stays "drag" (already grabbed by startSymbolDrag) and beginSymbolDrag
+  // continues it, so this call must not restore ownership out from under it.
+  cancelSymbolDragIntent(event, { restoreOwnership: false });
   beginSymbolDrag(event, element, source);
 }
 
-function cancelSymbolDragIntent(event) {
+function cancelSymbolDragIntent(event, options = {}) {
+  const { restoreOwnership = true } = options;
   const intent = state.symbolDragIntent;
   if (!intent || (event?.pointerId !== undefined && event.pointerId !== intent.pointerId)) {
     return;
@@ -7872,6 +7886,14 @@ function cancelSymbolDragIntent(event) {
   window.removeEventListener("pointerup", cancelSymbolDragIntent);
   window.removeEventListener("pointercancel", cancelSymbolDragIntent);
   state.symbolDragIntent = null;
+  // A touch tap that never became a real drag still grabbed ownership in
+  // startSymbolDrag ("drag", to keep the armed listener from fighting a drag
+  // that might start) - if it never does, that ownership must come back, or
+  // ghostOwner is stuck at "drag" forever and the armed preview never renders
+  // again for the rest of the session.
+  if (restoreOwnership) {
+    releaseGhostDrag();
+  }
 }
 
 function beginSymbolDrag(event, element, source) {
@@ -7904,6 +7926,18 @@ function moveSymbolDrag(event) {
     return;
   }
   event.preventDefault();
+  // beginSymbolDrag seeds the ghost's position by calling this once with the
+  // originating pointerdown (or, for a touch drag already past the intent
+  // threshold, the resolving pointermove) event - only a *subsequent*
+  // "pointermove" here means the pointer actually moved, i.e. this is a real
+  // drag rather than a stationary click. A mouse click is a zero-distance
+  // pointerdown+pointerup on this same button (classifySymbolDragGesture
+  // always answers "drag" for a mouse, so it takes this exact path too), and
+  // must still arm via its trailing click - only a drag that actually moved
+  // should suppress it.
+  if (event.type === "pointermove") {
+    state.suppressNextDrawerClick = true;
+  }
   symbolDragGhost.style.left = event.clientX + "px";
   symbolDragGhost.style.top = event.clientY + "px";
 
@@ -7930,7 +7964,10 @@ function finishSymbolDrag(event) {
   moveSymbolDrag(event);
   const action = state.preview ? cloneActions([state.preview])[0] : null;
   const elementName = state.symbolDrag.element.name;
-  cancelSymbolDrag();
+  // This pointerup's mouseup is about to be retargeted (by pointer capture)
+  // into a trailing click on the origin drawer button, so tell cancelSymbolDrag
+  // to leave the suppression flag alone for that click to consume.
+  cancelSymbolDrag(event, { expectTrailingClick: true });
   if (action) {
     commitAction(action);
     setStatus(t("status.symbolDropped", { name: elementDisplayName(elementName) }));
@@ -7939,7 +7976,18 @@ function finishSymbolDrag(event) {
   }
 }
 
-function cancelSymbolDrag(event) {
+// Shared by both drag-teardown paths (cancelSymbolDrag) and the touch-intent
+// abort path (cancelSymbolDragIntent) so ownership is restored identically
+// everywhere a drag or a mere drag intent ends without becoming - or after
+// having been - a live drag.
+function releaseGhostDrag() {
+  state.ghostOwner = state.ghostOwnerBeforeDrag ?? null;
+  state.ghostOwnerBeforeDrag = null;
+  renderGhost();
+}
+
+function cancelSymbolDrag(event, options = {}) {
+  const { expectTrailingClick = false } = options;
   const drag = state.symbolDrag;
   if (!drag || (event?.pointerId !== undefined && event.pointerId !== drag.pointerId)) {
     return;
@@ -7953,9 +8001,15 @@ function cancelSymbolDrag(event) {
   state.symbolDrag = null;
   state.preview = null;
   document.body.classList.remove("is-dragging-symbol", "is-valid-drop");
-  state.ghostOwner = state.ghostOwnerBeforeDrag ?? null;
-  state.ghostOwnerBeforeDrag = null;
-  renderGhost();
+  // Only finishSymbolDrag's real pointerup is followed by a retargeted click
+  // on the origin button; every other caller (pointercancel, or a
+  // programmatic cancel such as Escape closing the drawer mid-drag) means no
+  // click is coming, so the flag must not survive to swallow some later,
+  // unrelated click.
+  if (!expectTrailingClick) {
+    state.suppressNextDrawerClick = false;
+  }
+  releaseGhostDrag();
   render();
 }
 
@@ -8908,6 +8962,12 @@ function openSymbolSearch() {
   if (!symbolSearchDialog || symbolSearchDialog.open) {
     return;
   }
+  // Defensive: cancelSymbolDrag/cancelSymbolDragIntent already clear this flag
+  // on every abort path that isn't immediately followed by a real click, but
+  // opening search is a natural "fresh start" point, so a stale true here
+  // (from some path not yet accounted for) can't swallow a later legitimate
+  // drawer click instead of arming it.
+  state.suppressNextDrawerClick = false;
   symbolSearchInput.value = "";
   renderSymbolSearchResults();
   symbolSearchDialog.showModal();
