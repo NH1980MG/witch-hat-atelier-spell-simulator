@@ -2,7 +2,7 @@ import {
   DEFAULT_LOCALE,
   resolveLocale,
   translate,
-} from "./i18n.mjs?v=20260729-select-all-rotate-v1";
+} from "./i18n.mjs?v=20260729-select-all-rotate-v2";
 
 let currentLocale = DEFAULT_LOCALE;
 
