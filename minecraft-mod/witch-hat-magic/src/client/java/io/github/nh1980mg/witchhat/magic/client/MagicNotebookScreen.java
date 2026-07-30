@@ -25,7 +25,7 @@ import net.minecraft.world.InteractionHand;
 import org.lwjgl.glfw.GLFW;
 
 public final class MagicNotebookScreen extends Screen {
-    private static final int BACKGROUND = 0xE0182230;
+    private static final int BACKGROUND = 0xFF182230;
     private static final int PARCHMENT = 0xFFF6E8BF;
     private static final int PARCHMENT_EDGE = 0xFF9D7440;
     private static final int INK = 0xFF17243A;
@@ -318,6 +318,14 @@ public final class MagicNotebookScreen extends Screen {
         updateCanvasBounds();
         updatePageWidgetVisibility();
         updateButtonStates();
+    }
+
+    @Override
+    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        // No-op: vanilla's blurred background runs mid-frame inside
+        // super.render() and would smear every custom element drawn before
+        // it, while vanilla widgets render after and stay sharp. Our opaque
+        // backdrop painted at the top of render() replaces it.
     }
 
     @Override
