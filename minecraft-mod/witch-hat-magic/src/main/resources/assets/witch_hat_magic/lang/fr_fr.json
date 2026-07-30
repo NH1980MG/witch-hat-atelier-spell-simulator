@@ -45,5 +45,6 @@
   "screen.witch_hat_magic.activation.canvas_success": "Activation acceptee : %s (puissance %sx, %ss) — %s utilisation(s) restante(s)",
   "screen.witch_hat_magic.activation.canvas_not_found": "Toile introuvable",
   "screen.witch_hat_magic.activation.canvas_depleted": "Cette toile est usee — repare-la avec un carre de toile",
-  "block.witch_hat_magic.large_canvas": "Grande toile magique"
+  "block.witch_hat_magic.large_canvas": "Grande toile magique",
+  "item.witch_hat_magic.sylph_shoes": "Chaussures de sylphe"
 }

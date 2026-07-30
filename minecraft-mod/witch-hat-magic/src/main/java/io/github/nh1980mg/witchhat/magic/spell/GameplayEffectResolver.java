@@ -56,6 +56,10 @@ public final class GameplayEffectResolver {
             effects.add(GameplayEffect.apply(
                     "minecraft:invisibility", duration / 2, 0));
         }
+        if (sigils.contains("vent_sous_pied")) {
+            // Underfoot wind lifts the wearer — only usable with sylph shoes.
+            effects.add(GameplayEffect.grantFlight(duration));
+        }
         if (signs.contains("levitation")) {
             effects.add(GameplayEffect.apply(
                     "minecraft:levitation",

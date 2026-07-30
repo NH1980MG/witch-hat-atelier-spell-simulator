@@ -11,7 +11,8 @@ public record GameplayEffect(Kind kind, String effectId, int durationTicks, int 
     public enum Kind {
         APPLY,
         CLEAR_HARMFUL,
-        EXTINGUISH_FIRE
+        EXTINGUISH_FIRE,
+        GRANT_FLIGHT
     }
 
     public GameplayEffect {
@@ -37,5 +38,12 @@ public record GameplayEffect(Kind kind, String effectId, int durationTicks, int 
 
     public static GameplayEffect extinguishFire() {
         return new GameplayEffect(Kind.EXTINGUISH_FIRE, null, 0, 0);
+    }
+
+    public static GameplayEffect grantFlight(int durationTicks) {
+        if (durationTicks <= 0) {
+            throw new IllegalArgumentException("Flight needs a positive duration");
+        }
+        return new GameplayEffect(Kind.GRANT_FLIGHT, null, durationTicks, 0);
     }
 }

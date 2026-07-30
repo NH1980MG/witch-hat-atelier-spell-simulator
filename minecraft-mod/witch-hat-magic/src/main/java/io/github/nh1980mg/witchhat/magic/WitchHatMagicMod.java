@@ -23,7 +23,9 @@ public final class WitchHatMagicMod implements ModInitializer {
         NotebookNetworking.registerServerReceivers();
         CanvasNetworking.registerPayloads();
         CanvasNetworking.registerServerReceivers();
-        ServerTickEvents.END_SERVER_TICK.register(
-                server -> SpellManifestationService.scheduler().tick());
+        ServerTickEvents.END_SERVER_TICK.register(server -> {
+            SpellManifestationService.scheduler().tick();
+            io.github.nh1980mg.witchhat.magic.spell.FlightService.instance().tick();
+        });
     }
 }

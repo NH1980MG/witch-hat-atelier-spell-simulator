@@ -84,6 +84,27 @@ final class GameplayEffectResolverTest {
                 effect -> effect.kind() == GameplayEffect.Kind.EXTINGUISH_FIRE));
     }
 
+    @Test
+    void underfootWindGrantsFlightForTheSpellDuration() {
+        List<GameplayEffect> effects = GameplayEffectResolver.resolve(
+                success(List.of("vent_sous_pied"), List.of(), 1.0, 220));
+
+        GameplayEffect flight = effects.stream()
+                .filter(effect -> effect.kind() == GameplayEffect.Kind.GRANT_FLIGHT)
+                .findFirst()
+                .orElseThrow();
+        assertEquals(220, flight.durationTicks());
+    }
+
+    @Test
+    void plainWindDoesNotGrantFlight() {
+        List<GameplayEffect> effects = GameplayEffectResolver.resolve(
+                success(List.of("vent"), List.of(), 1.0, 220));
+
+        assertTrue(effects.stream().noneMatch(
+                effect -> effect.kind() == GameplayEffect.Kind.GRANT_FLIGHT));
+    }
+
     private static int amplifierOf(List<GameplayEffect> effects, String id) {
         return effects.stream()
                 .filter(effect -> effect.effectId() != null && effect.effectId().equals(id))

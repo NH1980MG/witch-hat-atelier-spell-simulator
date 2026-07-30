@@ -2,6 +2,7 @@ package io.github.nh1980mg.witchhat.magic.registry;
 
 import io.github.nh1980mg.witchhat.magic.WitchHatMagicMod;
 import io.github.nh1980mg.witchhat.magic.item.MagicCircleNotebookItem;
+import io.github.nh1980mg.witchhat.magic.item.SylphShoesItem;
 import io.github.nh1980mg.witchhat.magic.notebook.NotebookData;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.core.Registry;
@@ -36,6 +37,13 @@ public final class MagicItems {
             ResourceLocation.fromNamespaceAndPath(WitchHatMagicMod.MOD_ID, "large_canvas"),
             new BlockItem(MagicBlocks.LARGE_CANVAS, new Item.Properties().stacksTo(8)));
 
+    public static final SylphShoesItem SYLPH_SHOES = Registry.register(
+            BuiltInRegistries.ITEM,
+            ResourceLocation.fromNamespaceAndPath(WitchHatMagicMod.MOD_ID, "sylph_shoes"),
+            new SylphShoesItem(new Item.Properties()
+                    .stacksTo(1)
+                    .durability(65)));
+
     private MagicItems() {
     }
 
@@ -45,6 +53,7 @@ public final class MagicItems {
                     entries.accept(MAGIC_CIRCLE_NOTEBOOK);
                     entries.accept(CANVAS_SQUARE);
                     entries.accept(LARGE_CANVAS);
+                    entries.accept(SYLPH_SHOES);
                 });
     }
 

@@ -20,17 +20,7 @@ public final class GameplayEffectService {
         for (GameplayEffect effect : effects) {
             switch (effect.kind()) {
                 case APPLY -> {
-                    Holder<MobEffect> mobEffect = BuiltInRegistries.MOB_EFFECT
-                            .getHolder(ResourceLocation.parse(effect.effectId()))
-                            .orElse(null);
-                    if (mobEffect != null) {
-                        player.addEffect(new MobEffectInstance(
-                                mobEffect,
-                                effect.durationTicks(),
-                                effect.amplifier(),
-                                true,   // ambient
-                                false,  // hide vanilla particles — the seal shows them
-                                true)); // show icon
+                    if (applySimple(player, effect.effectId(), effect.durationTicks(), effect.amplifier())) {
                         applied++;
                     }
                 }
@@ -46,8 +36,33 @@ public final class GameplayEffectService {
                     player.clearFire();
                     applied++;
                 }
+                case GRANT_FLIGHT -> {
+                    if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer
+                            && serverPlayer.getInventory().getArmor(0).is(
+                                    io.github.nh1980mg.witchhat.magic.registry.MagicItems.SYLPH_SHOES)) {
+                        FlightService.instance().grant(serverPlayer, effect.durationTicks());
+                        applied++;
+                    }
+                }
             }
         }
         return applied;
+    }
+
+    public static boolean applySimple(Player player, String effectId, int durationTicks, int amplifier) {
+        Holder<MobEffect> mobEffect = BuiltInRegistries.MOB_EFFECT
+                .getHolder(ResourceLocation.parse(effectId))
+                .orElse(null);
+        if (mobEffect == null) {
+            return false;
+        }
+        player.addEffect(new MobEffectInstance(
+                mobEffect,
+                durationTicks,
+                amplifier,
+                true,   // ambient
+                false,  // hide vanilla particles — the seal shows them
+                true)); // show icon
+        return true;
     }
 }
