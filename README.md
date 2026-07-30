@@ -143,7 +143,10 @@ supports placement, right-click selection, selection rectangles, grouped
 movement, proportional corner resizing, deletion, and undo. The native page
 index supports direct selection, renaming, duplication, and reordering.
 Persistent tracing guides can reuse another notebook page below the active
-drawing, then be hidden, switched, reduced, or enlarged.
+drawing, then be hidden, switched, reduced, or enlarged. Workshop mode also
+recognizes exact placed sigils and signs, then sends activation requests to the
+server for authoritative notebook and page validation. Accepted activations do
+not yet create world effects.
 
 Build the local JAR:
 
@@ -156,5 +159,6 @@ JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home \
 
 The playable JAR is written to
 `witch-hat-magic/build/libs/witch-hat-magic-0.1.0-local.jar`. Spell details,
-support selection, activation controls, and in-world spell preview remain
-separate implementation phases. The magic mod does not depend on AI Builder.
+support selection, activation manifestations, and in-world spell interactions
+remain separate implementation phases. The magic mod does not depend on AI
+Builder.

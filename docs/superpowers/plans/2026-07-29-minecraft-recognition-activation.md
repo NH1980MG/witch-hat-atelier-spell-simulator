@@ -34,10 +34,10 @@
 - Produces: `SpellRecognizer.recognize(NotebookPage)` returning `RecognizedSpell`.
 - Produces: `RecognizedSpell.activatable()`, `sigilIds()`, `signIds()`, and `status()`.
 
-- [ ] Write failing tests for an empty page, signs without a sigil, one sigil with repeated signs, and multiple sigils.
-- [ ] Run `./gradlew :witch-hat-magic:test --tests io.github.nh1980mg.witchhat.magic.spell.SpellRecognizerTest` and confirm the spell classes are missing.
-- [ ] Implement immutable recognition that separates `SIGIL` and `SIGN` entries while preserving list order and duplicates.
-- [ ] Re-run the focused tests and commit.
+- [x] Write failing tests for an empty page, signs without a sigil, one sigil with repeated signs, and multiple sigils.
+- [x] Run `./gradlew :witch-hat-magic:test --tests io.github.nh1980mg.witchhat.magic.spell.SpellRecognizerTest` and confirm the spell classes are missing.
+- [x] Implement immutable recognition that separates `SIGIL` and `SIGN` entries while preserving list order and duplicates.
+- [x] Re-run the focused tests and commit.
 
 ### Task 2: Server-Authoritative Activation
 
@@ -57,11 +57,11 @@
 - Produces: C2S `ActivateSpellPayload(InteractionHand hand, String pageId)`.
 - Produces: S2C `SpellActivationResultPayload` containing only server-computed status and recognized IDs.
 
-- [ ] Write failing tests for wrong items, missing pages, missing sigils, successful activation, and bounded payload round trips.
-- [ ] Run the focused tests and confirm the activation classes are missing.
-- [ ] Implement validation without world mutation.
-- [ ] Register both payloads and handle activation by reading the authoritative held item component.
-- [ ] Re-run the focused tests and commit.
+- [x] Write failing tests for wrong items, missing pages, missing sigils, successful activation, and bounded payload round trips.
+- [x] Run the focused tests and confirm the activation classes are missing.
+- [x] Implement validation without world mutation.
+- [x] Register both payloads and handle activation by reading the authoritative held item component.
+- [x] Re-run the focused tests and commit.
 
 ### Task 3: Native Activation Control and Feedback
 
@@ -76,10 +76,10 @@
 - Sends: save payload followed by `ActivateSpellPayload`.
 - Receives: `SpellActivationResultPayload` only for the open hand and selected page.
 
-- [ ] Add a workshop-only `Activate` button and a compact recognition summary.
-- [ ] Save the current notebook before requesting activation.
-- [ ] Display localized ready, missing-sigil, missing-page, and invalid-notebook results.
-- [ ] Compile the client and verify controls do not cover the circular page at supported GUI sizes.
+- [x] Add a workshop-only `Activate` button and a compact recognition summary.
+- [x] Save the current notebook before requesting activation.
+- [x] Display localized ready, missing-sigil, missing-page, and invalid-notebook results.
+- [x] Compile the client and verify controls do not cover the circular page at supported GUI sizes.
 
 ### Task 4: Complete Verification
 
@@ -88,7 +88,7 @@
 - Modify: `docs/progress-tracker.md`
 - Modify: this plan.
 
-- [ ] Run all 46+ magic tests, all 22 AI Builder tests, both clean builds, and the symbol export test.
-- [ ] Start the dedicated server and confirm `witch_hat_magic` reaches `Done`.
-- [ ] Start the client and confirm resources load without mod errors or missing symbol textures.
-- [ ] Update documentation and commit locally without pushing.
+- [x] Run all 46+ magic tests, all 22 AI Builder tests, both clean builds, and the symbol export test.
+- [x] Start the dedicated server and confirm `witch_hat_magic` reaches `Done`.
+- [x] Start the client and confirm resources load without mod errors or missing symbol textures.
+- [x] Update documentation and commit locally without pushing.

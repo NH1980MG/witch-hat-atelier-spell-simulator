@@ -139,13 +139,17 @@ remaining large `app.js` sections.
   deletion, undo, and bilingual catalogue labels.
 - Minecraft notebook page index with direct selection, renaming, duplication,
   reordering, and persistent page-based tracing guides with visibility, source,
-  and size controls. The complete magic module has 46 passing unit tests.
+  and size controls.
+- Deterministic Minecraft recognition for exact placed sigils and signs,
+  including repetitions and multiple sigils, plus bounded server-authoritative
+  activation requests and bilingual workshop feedback. The complete magic
+  module has 59 passing unit tests.
 
 ## In Progress
 
 - Extracting effect layers from `app.js` without adding a build system.
-- Minecraft spell details, support selection, activation controls, and optional
-  in-world spell preview.
+- Minecraft spell details, support selection, activation manifestations, world
+  interactions, and optional in-world spell preview.
 
 ## Next Milestones
 
