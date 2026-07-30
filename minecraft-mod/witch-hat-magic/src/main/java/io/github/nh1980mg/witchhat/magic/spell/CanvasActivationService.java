@@ -83,7 +83,8 @@ public final class CanvasActivationService {
             ServerLevel level,
             BlockPos pos,
             ActivationResult result,
-            CanvasBlockEntity canvas) {
+            CanvasBlockEntity canvas,
+            net.minecraft.server.level.ServerPlayer player) {
         Objects.requireNonNull(result, "result");
         Objects.requireNonNull(canvas, "canvas");
         if (result.status() != ActivationStatus.SUCCESS) {
@@ -102,5 +103,6 @@ public final class CanvasActivationService {
         SpellManifestationService.enqueue(
                 plan, result.durationTicks(), level,
                 SpellManifestationService.levitationDrift(result));
+        GameplayEffectService.apply(player, result);
     }
 }

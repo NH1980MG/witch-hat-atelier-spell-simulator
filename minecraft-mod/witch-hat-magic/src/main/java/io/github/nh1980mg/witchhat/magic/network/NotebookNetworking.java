@@ -6,6 +6,7 @@ import io.github.nh1980mg.witchhat.magic.registry.MagicComponents;
 import io.github.nh1980mg.witchhat.magic.registry.MagicItems;
 import io.github.nh1980mg.witchhat.magic.spell.ActivationResult;
 import io.github.nh1980mg.witchhat.magic.spell.ActivationStatus;
+import io.github.nh1980mg.witchhat.magic.spell.GameplayEffectService;
 import io.github.nh1980mg.witchhat.magic.spell.SpellActivationService;
 import io.github.nh1980mg.witchhat.magic.spell.SpellManifestationService;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
@@ -88,6 +89,9 @@ public final class NotebookNetworking {
                 () -> ServerPlayNetworking.send(
                         player,
                         SpellActivationResultPayload.from(payload.hand(), result)),
-                () -> SpellManifestationService.show(player, result));
+                () -> {
+                    SpellManifestationService.show(player, result);
+                    GameplayEffectService.apply(player, result);
+                });
     }
 }

@@ -93,7 +93,7 @@ public final class CanvasNetworking {
         boolean manifestationAllowed = result.status() != ActivationStatus.SUCCESS
                 || ActivationRateLimits.tryAcquire(player);
         if (manifestationAllowed && result.status() == ActivationStatus.SUCCESS) {
-            CanvasActivationService.commit(player.serverLevel(), payload.pos(), result, canvas);
+            CanvasActivationService.commit(player.serverLevel(), payload.pos(), result, canvas, player);
         } else if (result.status() == ActivationStatus.SUCCESS) {
             result = ActivationResult.failure(ActivationStatus.COOLDOWN, result.pageId());
         }
