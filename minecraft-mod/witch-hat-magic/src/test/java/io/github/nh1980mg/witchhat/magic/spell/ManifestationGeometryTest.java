@@ -33,6 +33,18 @@ final class ManifestationGeometryTest {
     }
 
     @Test
+    void normalizesExtremeFiniteDirectionsWithoutDegenerating() {
+        List<Vec3> points = ManifestationGeometry.circle(
+                Vec3.ZERO,
+                new Vec3(Double.MAX_VALUE, Double.MAX_VALUE, 0.0),
+                1.0,
+                12);
+
+        assertTrue(points.stream().allMatch(ManifestationGeometryTest::isFinite));
+        points.forEach(point -> assertEquals(1.0, point.length(), 0.000001));
+    }
+
+    @Test
     void interpolatesBoundedLinesIncludingBothEnds() {
         Vec3 start = new Vec3(1.0, 2.0, 3.0);
         Vec3 end = new Vec3(5.0, 6.0, 7.0);
@@ -57,6 +69,17 @@ final class ManifestationGeometryTest {
         assertThrows(IllegalArgumentException.class, () ->
                 ManifestationGeometry.line(
                         Vec3.ZERO, new Vec3(1.0, 0.0, 0.0), 1));
+        assertThrows(IllegalArgumentException.class, () ->
+                ManifestationGeometry.circle(
+                        new Vec3(Double.MAX_VALUE, 0.0, 0.0),
+                        new Vec3(0.0, 0.0, 1.0),
+                        Double.MAX_VALUE,
+                        12));
+        assertThrows(IllegalArgumentException.class, () ->
+                ManifestationGeometry.line(
+                        new Vec3(Double.MAX_VALUE, 0.0, 0.0),
+                        new Vec3(-Double.MAX_VALUE, 0.0, 0.0),
+                        3));
     }
 
     private static boolean isFinite(Vec3 point) {

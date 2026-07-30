@@ -149,7 +149,8 @@ server for authoritative notebook and page validation. Accepted activations do
 create a temporary, non-destructive particle seal 2.5 blocks in front of the
 player. The particle family follows the primary sigil, the accepted spell is
 shown in the action bar, and the notebook closes before the manifestation is
-revealed.
+revealed. Server-side manifestations are limited to one per player per second
+to prevent repeated activation packets from amplifying particle traffic.
 
 Build the local JAR:
 

@@ -1,9 +1,14 @@
 package io.github.nh1980mg.witchhat.magic.client;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.nh1980mg.witchhat.magic.network.SpellActivationResultPayload;
 import io.github.nh1980mg.witchhat.magic.spell.ActivationStatus;
 import io.github.nh1980mg.witchhat.magic.spell.RecognitionStatus;
+import java.util.List;
+import net.minecraft.world.InteractionHand;
 import org.junit.jupiter.api.Test;
 
 final class ActivationFeedbackTest {
@@ -27,5 +32,42 @@ final class ActivationFeedbackTest {
                     "screen.witch_hat_magic.activation." + status.name().toLowerCase(),
                     ActivationFeedback.activationKey(status));
         }
+    }
+
+    @Test
+    void localizesSuccessfulSigilNamesWithoutAnOpenNotebookScreen() {
+        assertEquals(
+                "Water + Fire",
+                ActivationFeedback.localizedSigils(List.of("eau", "feu"), false));
+        assertEquals(
+                "Eau + Feu",
+                ActivationFeedback.localizedSigils(List.of("eau", "feu"), true));
+    }
+
+    @Test
+    void closesOnlyTheMatchingNotebookPageAfterSuccess() {
+        SpellActivationResultPayload success = new SpellActivationResultPayload(
+                InteractionHand.MAIN_HAND,
+                "page-1",
+                ActivationStatus.SUCCESS,
+                List.of("eau"),
+                List.of());
+        SpellActivationResultPayload failure = new SpellActivationResultPayload(
+                InteractionHand.MAIN_HAND,
+                "page-1",
+                ActivationStatus.MISSING_SIGIL,
+                List.of(),
+                List.of());
+
+        assertTrue(ActivationFeedback.shouldClose(
+                success, InteractionHand.MAIN_HAND, "page-1", "page-1"));
+        assertFalse(ActivationFeedback.shouldClose(
+                success, InteractionHand.OFF_HAND, "page-1", "page-1"));
+        assertFalse(ActivationFeedback.shouldClose(
+                success, InteractionHand.MAIN_HAND, null, "page-1"));
+        assertFalse(ActivationFeedback.shouldClose(
+                success, InteractionHand.MAIN_HAND, "page-1", "page-2"));
+        assertFalse(ActivationFeedback.shouldClose(
+                failure, InteractionHand.MAIN_HAND, "page-1", "page-1"));
     }
 }

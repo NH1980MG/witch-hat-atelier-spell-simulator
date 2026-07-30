@@ -60,6 +60,7 @@ public final class MagicNotebookScreen extends Screen {
     private NotebookData lastSent;
     private RecognizedSpell lastRecognition;
     private Component activationFeedback;
+    private String pendingActivationPageId;
 
     private Button penButton;
     private Button eraserButton;
@@ -98,7 +99,13 @@ public final class MagicNotebookScreen extends Screen {
 
     void acceptActivationResult(SpellActivationResultPayload payload) {
         if (payload.hand() != hand
-                || !payload.pageId().equals(session.snapshot().selectedPageId())) {
+                || !payload.pageId().equals(pendingActivationPageId)) {
+            return;
+        }
+        String pendingPageId = pendingActivationPageId;
+        pendingActivationPageId = null;
+        String selectedPageId = session.snapshot().selectedPageId();
+        if (!payload.pageId().equals(selectedPageId)) {
             return;
         }
         if (payload.status() == ActivationStatus.SUCCESS) {
@@ -108,10 +115,10 @@ public final class MagicNotebookScreen extends Screen {
                     .orElse("");
             activationFeedback = Component.translatable(
                     ActivationFeedback.activationKey(payload.status()), sigils);
-            if (minecraft != null && minecraft.player != null) {
-                minecraft.player.displayClientMessage(activationFeedback, true);
+            if (ActivationFeedback.shouldClose(
+                    payload, hand, pendingPageId, selectedPageId)) {
+                onClose();
             }
-            onClose();
         } else {
             activationFeedback = Component.translatable(
                     ActivationFeedback.activationKey(payload.status()));
@@ -1036,7 +1043,8 @@ public final class MagicNotebookScreen extends Screen {
                     < session.snapshot().pages().size();
         }
         if (activationButton != null) {
-            activationButton.active = lastRecognition.activatable()
+            activationButton.active = pendingActivationPageId == null
+                    && lastRecognition.activatable()
                     && ClientPlayNetworking.canSend(ActivateSpellPayload.TYPE);
         }
         penButton.active = tool != Tool.PEN;
@@ -1057,6 +1065,7 @@ public final class MagicNotebookScreen extends Screen {
             return;
         }
         String pageId = session.snapshot().selectedPageId();
+        pendingActivationPageId = pageId;
         activationFeedback = Component.translatable(
                 "screen.witch_hat_magic.activation.pending");
         ClientPlayNetworking.send(new ActivateSpellPayload(hand, pageId));

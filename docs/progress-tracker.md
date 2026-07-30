@@ -146,8 +146,9 @@ remaining large `app.js` sections.
 - Server-authoritative Minecraft manifestations project a bounded 104-particle
   seal 2.5 blocks in front of the player without modifying world state. Particle
   families follow the primary sigil, successful activations close the notebook,
-  and the spell name remains visible in the action bar. The complete magic
-  module has 66 passing unit tests.
+  and the spell name remains visible in the action bar even after a delayed
+  response. A one-second server cooldown bounds repeated particle traffic. The
+  complete magic module has 75 passing unit tests.
 
 ## In Progress
 

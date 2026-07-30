@@ -35,5 +35,6 @@
   "screen.witch_hat_magic.activation.page_not_found": "Page introuvable",
   "screen.witch_hat_magic.activation.empty_page": "La page est vide",
   "screen.witch_hat_magic.activation.missing_sigil": "L'activation exige un sigil",
-  "screen.witch_hat_magic.activation.success": "Activation acceptee : %s"
+  "screen.witch_hat_magic.activation.success": "Activation acceptee : %s",
+  "screen.witch_hat_magic.activation.cooldown": "Attends avant de reactiver"
 }

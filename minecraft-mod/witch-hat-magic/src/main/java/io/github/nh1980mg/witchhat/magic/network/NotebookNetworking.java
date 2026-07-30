@@ -5,6 +5,7 @@ import io.github.nh1980mg.witchhat.magic.notebook.NotebookLimits;
 import io.github.nh1980mg.witchhat.magic.registry.MagicComponents;
 import io.github.nh1980mg.witchhat.magic.registry.MagicItems;
 import io.github.nh1980mg.witchhat.magic.spell.ActivationResult;
+import io.github.nh1980mg.witchhat.magic.spell.ActivationStatus;
 import io.github.nh1980mg.witchhat.magic.spell.SpellActivationService;
 import io.github.nh1980mg.witchhat.magic.spell.SpellManifestationService;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
@@ -14,6 +15,9 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 
 public final class NotebookNetworking {
+    private static final ActivationRateLimiter<ServerPlayer> ACTIVATION_RATE_LIMITER =
+            new ActivationRateLimiter<>(20);
+
     private NotebookNetworking() {
     }
 
@@ -73,14 +77,20 @@ public final class NotebookNetworking {
         ItemStack heldStack = player.getItemInHand(payload.hand());
         NotebookData authoritative = heldStack.getOrDefault(
                 MagicComponents.NOTEBOOK_DATA, NotebookData.createDefault());
-        ActivationResult result = SpellActivationService.activate(
+        ActivationResult activation = SpellActivationService.activate(
                 heldStack,
                 MagicItems.MAGIC_CIRCLE_NOTEBOOK,
                 authoritative,
                 payload.pageId());
-        ServerPlayNetworking.send(
-                player,
-                SpellActivationResultPayload.from(payload.hand(), result));
-        SpellManifestationService.show(player, result);
+        boolean manifestationAllowed = activation.status() != ActivationStatus.SUCCESS
+                || ACTIVATION_RATE_LIMITER.tryAcquire(player, player.tickCount);
+        ActivationResult result = ActivationDispatch.applyRateLimit(
+                activation, manifestationAllowed);
+        ActivationDispatch.run(
+                result,
+                () -> ServerPlayNetworking.send(
+                        player,
+                        SpellActivationResultPayload.from(payload.hand(), result)),
+                () -> SpellManifestationService.show(player, result));
     }
 }
