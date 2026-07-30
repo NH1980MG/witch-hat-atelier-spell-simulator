@@ -32,6 +32,23 @@ public record ManifestationPlan(
             ActivationResult activation) {
         Objects.requireNonNull(eyePosition, "eyePosition");
         Objects.requireNonNull(lookDirection, "lookDirection");
+        if (!isFinite(eyePosition) || !isFinite(lookDirection)
+                || lookDirection.lengthSqr() < 1.0E-12) {
+            throw new IllegalArgumentException("Manifestation position and direction must be valid");
+        }
+        Vec3 normal = lookDirection.normalize();
+        return createAnchored(
+                eyePosition.add(normal.scale(DISTANCE_FROM_PLAYER)),
+                normal,
+                activation);
+    }
+
+    public static ManifestationPlan createAnchored(
+            Vec3 center,
+            Vec3 facingNormal,
+            ActivationResult activation) {
+        Objects.requireNonNull(center, "center");
+        Objects.requireNonNull(facingNormal, "facingNormal");
         Objects.requireNonNull(activation, "activation");
         if (activation.status() != ActivationStatus.SUCCESS) {
             throw new IllegalArgumentException("Only successful activations can manifest");
@@ -39,23 +56,25 @@ public record ManifestationPlan(
         if (activation.sigilIds().isEmpty()) {
             throw new IllegalArgumentException("A manifestation requires at least one sigil");
         }
-        if (!isFinite(eyePosition) || !isFinite(lookDirection)
-                || lookDirection.lengthSqr() < 1.0E-12) {
-            throw new IllegalArgumentException("Manifestation position and direction must be valid");
+        if (!isFinite(center) || !isFinite(facingNormal)
+                || facingNormal.lengthSqr() < 1.0E-12) {
+            throw new IllegalArgumentException("Manifestation center and normal must be valid");
         }
 
-        Vec3 normal = lookDirection.normalize();
-        Vec3 center = eyePosition.add(normal.scale(DISTANCE_FROM_PLAYER));
+        Vec3 normal = facingNormal.normalize();
+        double radiusScale = 0.6 + 0.4 * Math.max(0.0, activation.power());
+        double outerRadius = OUTER_RADIUS * radiusScale;
+        double innerRadius = INNER_RADIUS * radiusScale;
         List<Vec3> points = new ArrayList<>();
         points.addAll(ManifestationGeometry.circle(
-                center, normal, OUTER_RADIUS, OUTER_SAMPLES));
+                center, normal, outerRadius, OUTER_SAMPLES));
         points.addAll(ManifestationGeometry.circle(
-                center, normal, INNER_RADIUS, INNER_SAMPLES));
+                center, normal, innerRadius, INNER_SAMPLES));
 
         List<Vec3> outerAnchors = ManifestationGeometry.circle(
-                center, normal, OUTER_RADIUS, SPOKE_COUNT);
+                center, normal, outerRadius, SPOKE_COUNT);
         List<Vec3> innerAnchors = ManifestationGeometry.circle(
-                center, normal, INNER_RADIUS, SPOKE_COUNT);
+                center, normal, innerRadius, SPOKE_COUNT);
         for (int index = 0; index < SPOKE_COUNT; index++) {
             points.addAll(ManifestationGeometry.line(
                     innerAnchors.get(index), outerAnchors.get(index), SPOKE_SAMPLES));

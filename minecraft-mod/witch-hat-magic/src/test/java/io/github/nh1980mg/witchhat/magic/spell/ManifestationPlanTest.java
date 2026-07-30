@@ -70,6 +70,61 @@ final class ManifestationPlanTest {
                         ActivationStatus.SUCCESS, "page-1", List.of(), List.of())));
     }
 
+    @Test
+    void anchorsThePlanAtAnExplicitCenter() {
+        ActivationResult result = new ActivationResult(
+                ActivationStatus.SUCCESS,
+                "page-1",
+                List.of("feu"),
+                List.of(),
+                1.0,
+                0.9,
+                280);
+
+        ManifestationPlan plan = ManifestationPlan.createAnchored(
+                new Vec3(5.0, 65.0, 5.0),
+                new Vec3(0.0, 1.0, 0.0),
+                result);
+
+        assertEquals(new Vec3(5.0, 65.0, 5.0), plan.center());
+        assertSame(ManifestationParticleProfile.FIRE, plan.particleProfile());
+        assertEquals(104, plan.points().size());
+    }
+
+    @Test
+    void scalesRadiusWithPowerWithoutExceedingThePointCap() {
+        ManifestationPlan weak = ManifestationPlan.createAnchored(
+                Vec3.ZERO, new Vec3(0.0, 1.0, 0.0), successWithPower(0.5));
+        ManifestationPlan strong = ManifestationPlan.createAnchored(
+                Vec3.ZERO, new Vec3(0.0, 1.0, 0.0), successWithPower(3.0));
+
+        double weakReach = maxHorizontalDistance(weak);
+        double strongReach = maxHorizontalDistance(strong);
+        assertTrue(strongReach > weakReach * 2.0,
+                "power 3x should reach much further than 0.5x: " + weakReach + " vs " + strongReach);
+        assertTrue(strong.points().size() <= ManifestationGeometry.MAX_POINTS);
+        assertEquals(104, strong.points().size());
+    }
+
+    private static ActivationResult successWithPower(double power) {
+        return new ActivationResult(
+                ActivationStatus.SUCCESS,
+                "page-1",
+                List.of("eau"),
+                List.of(),
+                power,
+                0.9,
+                280);
+    }
+
+    private static double maxHorizontalDistance(ManifestationPlan plan) {
+        return plan.points().stream()
+                .mapToDouble(point -> Math.hypot(
+                        point.x - plan.center().x, point.z - plan.center().z))
+                .max()
+                .orElse(0.0);
+    }
+
     private static boolean isFinite(Vec3 point) {
         return Double.isFinite(point.x)
                 && Double.isFinite(point.y)
