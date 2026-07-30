@@ -344,7 +344,11 @@ directly.
 - `vent` returns the same two elements, confirming both name fields match.
 - `fumee` matches Fumee, and so does the same query typed with an acute accent
   on the second `e`, confirming the query-side diacritic fold.
-- `SV` ranks Sangsue-valance first, confirming rune matching outranks prefixes.
+- `SV` ranks Sangsue-valance first, confirming a rune match outranks a name
+  prefix. Note that `SV` does not identify one element: it is the rune of both
+  Sangsue-valance and Signe de vent, so the two tie at exact-rune and palette
+  order breaks the tie. Six of the 64 runes are shared between a sigil and a
+  sign, so a rune match narrows the field, it does not resolve it.
 - An empty query returns all 64 records in palette order.
 - A nonsense query returns nothing.
 
