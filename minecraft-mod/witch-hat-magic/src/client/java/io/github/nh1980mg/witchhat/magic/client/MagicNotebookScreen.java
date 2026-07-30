@@ -42,8 +42,11 @@ public final class MagicNotebookScreen extends Screen {
     private Tool tool = Tool.PEN;
     private boolean drawing;
     private boolean workshopShell;
+    private WorkshopTab workshopTab = WorkshopTab.SYMBOLS;
     private double viewZoom = 1.0;
     private int catalogScrollRow;
+    private double catalogScrollAccumulator;
+    private double pageScrollAccumulator;
     private String armedSymbolId;
     private boolean pageIndexOpen;
     private int pageIndexScroll;
@@ -360,6 +363,13 @@ public final class MagicNotebookScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (!pageIndexOpen
+                && button <= 1
+                && session.hasSelection()
+                && !isPointerInsidePage(mouseX, mouseY)
+                && !(workshopShell && isInsideCatalog(mouseX, mouseY))) {
+            session.clearSelection();
+        }
         if (pageIndexOpen) {
             int pageIndex = pageIndexAt(mouseX, mouseY);
             if (button == 0 && pageIndex >= 0) {
@@ -370,20 +380,27 @@ public final class MagicNotebookScreen extends Screen {
             return super.mouseClicked(mouseX, mouseY, button);
         }
         if (workshopShell && button == 0) {
+            WorkshopTab clickedTab = workshopTabAt(mouseX, mouseY);
+            if (clickedTab != null) {
+                workshopTab = clickedTab;
+                return true;
+            }
             if (handleGuideControl(mouseX, mouseY)) {
                 return true;
             }
-            MagicSymbolCatalog.Entry entry = catalogEntryAt(mouseX, mouseY);
-            if (entry != null) {
-                armedSymbolId = entry.id();
-                return true;
+            if (workshopTab == WorkshopTab.SYMBOLS) {
+                MagicSymbolCatalog.Entry entry = catalogEntryAt(mouseX, mouseY);
+                if (entry != null) {
+                    armedSymbolId = entry.id();
+                    return true;
+                }
             }
         }
         if (workshopShell && button == 1 && isPointerInsidePage(mouseX, mouseY)) {
             NormalizedPoint point = pagePoint(mouseX, mouseY);
             if (isOnSelectionResizeHandle(mouseX, mouseY)) {
                 rightGesture = RightGesture.RESIZE;
-                SymbolSelection.Bounds bounds = session.selectedSymbolBounds();
+                SymbolSelection.Bounds bounds = session.selectedBounds();
                 lastResizeDistance = bounds == null
                         ? 0.0
                         : distance(point.x(), point.y(), bounds.centerX(), bounds.centerY());
@@ -456,7 +473,7 @@ public final class MagicNotebookScreen extends Screen {
                     rightMoveAnchor = point;
                 }
             } else if (rightGesture == RightGesture.RESIZE) {
-                SymbolSelection.Bounds bounds = session.selectedSymbolBounds();
+                SymbolSelection.Bounds bounds = session.selectedBounds();
                 if (bounds != null && lastResizeDistance > 0.0) {
                     double currentDistance = distance(
                             point.x(), point.y(), bounds.centerX(), bounds.centerY());
@@ -498,24 +515,33 @@ public final class MagicNotebookScreen extends Screen {
             double verticalAmount) {
         if (pageIndexOpen && verticalAmount != 0.0) {
             int visibleRows = visiblePageRows();
-            pageIndexScroll = Math.clamp(
-                    pageIndexScroll - (int) Math.signum(verticalAmount),
-                    0,
-                    Math.max(0, session.snapshot().pages().size() - visibleRows));
+            pageScrollAccumulator += verticalAmount;
+            if (Math.abs(pageScrollAccumulator) >= 1.5) {
+                pageIndexScroll = Math.clamp(
+                        pageIndexScroll - (int) Math.signum(pageScrollAccumulator),
+                        0,
+                        Math.max(0, session.snapshot().pages().size() - visibleRows));
+                pageScrollAccumulator -= Math.signum(pageScrollAccumulator) * 1.5;
+            }
             return true;
         }
         if (isPointerInsidePage(mouseX, mouseY) && verticalAmount != 0.0) {
             viewZoom = Math.clamp(viewZoom + Math.signum(verticalAmount) * 0.1, 0.75, 1.75);
             return true;
         }
-        if (workshopShell && isInsideCatalog(mouseX, mouseY) && verticalAmount != 0.0) {
+        if (workshopShell && workshopTab == WorkshopTab.SYMBOLS
+                && isInsideCatalog(mouseX, mouseY) && verticalAmount != 0.0) {
             int visibleRows = visibleCatalogRows();
             int totalRows = (MagicSymbolCatalog.entries().size() + CATALOG_COLUMNS - 1)
                     / CATALOG_COLUMNS;
-            catalogScrollRow = Math.clamp(
-                    catalogScrollRow - (int) Math.signum(verticalAmount),
-                    0,
-                    Math.max(0, totalRows - visibleRows));
+            catalogScrollAccumulator += verticalAmount;
+            if (Math.abs(catalogScrollAccumulator) >= 1.5) {
+                catalogScrollRow = Math.clamp(
+                        catalogScrollRow - (int) Math.signum(catalogScrollAccumulator),
+                        0,
+                        Math.max(0, totalRows - visibleRows));
+                catalogScrollAccumulator -= Math.signum(catalogScrollAccumulator) * 1.5;
+            }
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
@@ -727,7 +753,7 @@ public final class MagicNotebookScreen extends Screen {
     }
 
     private void renderSelection(GuiGraphics graphics) {
-        SymbolSelection.Bounds bounds = session.selectedSymbolBounds();
+        SymbolSelection.Bounds bounds = session.selectedBounds();
         if (bounds != null) {
             int left = screenX(bounds.minX());
             int top = screenY(bounds.minY());
@@ -757,12 +783,13 @@ public final class MagicNotebookScreen extends Screen {
         graphics.fill(3, panelTop, CATALOG_WIDTH + 3, panelBottom, 0xF026344A);
         graphics.renderOutline(
                 3, panelTop, CATALOG_WIDTH, panelBottom - panelTop, 0xFFD9B875);
-        graphics.drawCenteredString(
-                font,
-                Component.translatable("screen.witch_hat_magic.catalog"),
-                CATALOG_WIDTH / 2 + 3,
-                panelTop + 6,
-                0xFFF6E8BF);
+        renderWorkshopTab(graphics, WorkshopTab.SYMBOLS, 4, panelTop + 2, mouseX, mouseY);
+        renderWorkshopTab(graphics, WorkshopTab.DETAILS,
+                6 + CATALOG_WIDTH / 2, panelTop + 2, mouseX, mouseY);
+        if (workshopTab == WorkshopTab.DETAILS) {
+            renderDetailsPanel(graphics, panelTop, panelBottom);
+            return;
+        }
 
         int start = catalogScrollRow * CATALOG_COLUMNS;
         int visible = visibleCatalogRows() * CATALOG_COLUMNS;
@@ -930,7 +957,7 @@ public final class MagicNotebookScreen extends Screen {
     }
 
     private boolean isOnSelectionResizeHandle(double mouseX, double mouseY) {
-        SymbolSelection.Bounds bounds = session.selectedSymbolBounds();
+        SymbolSelection.Bounds bounds = session.selectedBounds();
         if (bounds == null) {
             return false;
         }
@@ -1145,6 +1172,114 @@ public final class MagicNotebookScreen extends Screen {
                 .reduce((left, right) -> left + " + " + right)
                 .orElse("");
         return Component.translatable(key, sigils, recognized.signIds().size());
+    }
+
+    private void renderWorkshopTab(
+            GuiGraphics graphics,
+            WorkshopTab tab,
+            int left,
+            int top,
+            int mouseX,
+            int mouseY) {
+        int tabWidth = CATALOG_WIDTH / 2 - 4;
+        boolean selected = workshopTab == tab;
+        boolean hovered = mouseX >= left && mouseX < left + tabWidth
+                && mouseY >= top && mouseY < top + 15;
+        graphics.fill(left, top, left + tabWidth, top + 15,
+                selected ? 0xFF5B7691 : hovered ? 0xFF3A4A5E : 0xFF26344A);
+        graphics.renderOutline(left, top, tabWidth, 15,
+                selected ? 0xFFD9B875 : 0xFF9D7440);
+        graphics.drawCenteredString(
+                font,
+                Component.translatable("screen.witch_hat_magic.workshop.tab." + tab.key),
+                left + tabWidth / 2,
+                top + 4,
+                selected ? 0xFFF6E8BF : 0xFF9D8F70);
+    }
+
+    private WorkshopTab workshopTabAt(double mouseX, double mouseY) {
+        if (!workshopShell) {
+            return null;
+        }
+        int panelTop = 31;
+        if (mouseY < panelTop + 2 || mouseY >= panelTop + 17) {
+            return null;
+        }
+        int tabWidth = CATALOG_WIDTH / 2 - 4;
+        if (mouseX >= 4 && mouseX < 4 + tabWidth) {
+            return WorkshopTab.SYMBOLS;
+        }
+        if (mouseX >= 6 + CATALOG_WIDTH / 2 && mouseX < 6 + CATALOG_WIDTH / 2 + tabWidth) {
+            return WorkshopTab.DETAILS;
+        }
+        return null;
+    }
+
+    private void renderDetailsPanel(GuiGraphics graphics, int panelTop, int panelBottom) {
+        RecognizedSpell spell = lastRecognition;
+        int left = 10;
+        int y = panelTop + 24;
+        int lineHeight = 11;
+        graphics.drawString(font,
+                recognitionSummary(spell), left, y, 0xFFF6E8BF);
+        y += lineHeight + 4;
+
+        String sigils = spell.sigilIds().stream()
+                .map(this::localizedSymbolName)
+                .reduce((a, b) -> a + " + " + b)
+                .orElse("—");
+        String signs = spell.signIds().stream()
+                .map(this::localizedSymbolName)
+                .reduce((a, b) -> a + " + " + b)
+                .orElse("—");
+        graphics.drawString(font, Component.translatable(
+                "screen.witch_hat_magic.details.sigils", sigils), left, y, 0xFFD9B875);
+        y += lineHeight;
+        graphics.drawString(font, Component.translatable(
+                "screen.witch_hat_magic.details.signs", signs), left, y, 0xFFD9B875);
+        y += lineHeight + 4;
+
+        if (spell.activatable()) {
+            graphics.drawString(font, Component.translatable(
+                    "screen.witch_hat_magic.details.power",
+                    String.format(java.util.Locale.ROOT, "%.2f", spell.power())), left, y, 0xFFF6E8BF);
+            y += lineHeight;
+            graphics.drawString(font, Component.translatable(
+                    "screen.witch_hat_magic.details.precision",
+                    Math.round(spell.precision() * 100)), left, y, 0xFFF6E8BF);
+            y += lineHeight;
+            graphics.drawString(font, Component.translatable(
+                    "screen.witch_hat_magic.details.duration",
+                    String.format(java.util.Locale.ROOT, "%.1f", spell.durationTicks() / 20.0)),
+                    left, y, 0xFFF6E8BF);
+            y += lineHeight;
+            double tiltX = spell.directionX();
+            double tiltY = spell.directionY();
+            String tilt = Math.hypot(tiltX, tiltY) < 0.05
+                    ? "—"
+                    : String.format(java.util.Locale.ROOT, "%+.2f / %+.2f", tiltX, tiltY);
+            graphics.drawString(font, Component.translatable(
+                    "screen.witch_hat_magic.details.tilt", tilt), left, y, 0xFFF6E8BF);
+            y += lineHeight;
+            if (spell.lift() > 0.0) {
+                graphics.drawString(font, Component.translatable(
+                        "screen.witch_hat_magic.details.lift"), left, y, 0xFF8FD3FF);
+            }
+        } else {
+            graphics.drawString(font, Component.translatable(
+                    "screen.witch_hat_magic.details.hint"), left, y, 0xFF9D8F70);
+        }
+    }
+
+    private enum WorkshopTab {
+        SYMBOLS("symbols"),
+        DETAILS("details");
+
+        private final String key;
+
+        WorkshopTab(String key) {
+            this.key = key;
+        }
     }
 
     private enum Tool {

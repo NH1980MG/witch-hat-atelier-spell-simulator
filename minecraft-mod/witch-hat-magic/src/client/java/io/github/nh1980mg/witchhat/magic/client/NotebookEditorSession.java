@@ -22,6 +22,7 @@ public final class NotebookEditorSession {
     private NotebookData data;
     private List<NormalizedPoint> activeStroke;
     private SymbolSelection symbolSelection = SymbolSelection.empty();
+    private List<Integer> strokeSelection = List.of();
 
     public NotebookEditorSession(NotebookData initialData) {
         data = NotebookLimits.validate(Objects.requireNonNull(initialData, "initialData"));
@@ -110,7 +111,7 @@ public final class NotebookEditorSession {
         redoHistory.push(data);
         data = undoHistory.pop();
         activeStroke = null;
-        symbolSelection = SymbolSelection.empty();
+        clearSelection();
     }
 
     public void redo() {
@@ -120,7 +121,7 @@ public final class NotebookEditorSession {
         pushBounded(undoHistory, data);
         data = redoHistory.pop();
         activeStroke = null;
-        symbolSelection = SymbolSelection.empty();
+        clearSelection();
     }
 
     public void clear() {
@@ -138,7 +139,7 @@ public final class NotebookEditorSession {
         if (selected > 0) {
             data = data.selectPage(selected - 1);
             activeStroke = null;
-            symbolSelection = SymbolSelection.empty();
+            clearSelection();
         }
     }
 
@@ -147,14 +148,14 @@ public final class NotebookEditorSession {
         if (selected + 1 < data.pages().size()) {
             data = data.selectPage(selected + 1);
             activeStroke = null;
-            symbolSelection = SymbolSelection.empty();
+            clearSelection();
         }
     }
 
     public void addPage() {
         commit(data.addPage());
         activeStroke = null;
-        symbolSelection = SymbolSelection.empty();
+        clearSelection();
     }
 
     public void deletePage() {
@@ -163,30 +164,30 @@ public final class NotebookEditorSession {
             commit(changed);
         }
         activeStroke = null;
-        symbolSelection = SymbolSelection.empty();
+        clearSelection();
     }
 
     public void renamePage(String title) {
         commit(data.renameSelectedPage(title));
-        symbolSelection = SymbolSelection.empty();
+        clearSelection();
     }
 
     public void duplicatePage() {
         commit(data.duplicateSelectedPage());
         activeStroke = null;
-        symbolSelection = SymbolSelection.empty();
+        clearSelection();
     }
 
     public void movePage(int delta) {
         commit(data.moveSelectedPage(delta));
         activeStroke = null;
-        symbolSelection = SymbolSelection.empty();
+        clearSelection();
     }
 
     public void selectPage(int index) {
         data = data.selectPage(index);
         activeStroke = null;
-        symbolSelection = SymbolSelection.empty();
+        clearSelection();
     }
 
     public boolean setGuideSource(int pageIndex) {
@@ -291,20 +292,65 @@ public final class NotebookEditorSession {
                 if (!symbolSelection.indices().contains(index)) {
                     symbolSelection = SymbolSelection.single(index);
                 }
+                strokeSelection = List.of();
                 return true;
             }
         }
-        symbolSelection = SymbolSelection.empty();
+        clearSelection();
         return false;
     }
 
     public void selectSymbolsInBox(NormalizedPoint start, NormalizedPoint end) {
         symbolSelection = SymbolSelection.intersecting(
                 data.selectedPage().symbols(), start, end);
+        SymbolSelection.Bounds marquee = new SymbolSelection.Bounds(
+                Math.min(start.x(), end.x()),
+                Math.min(start.y(), end.y()),
+                Math.max(start.x(), end.x()),
+                Math.max(start.y(), end.y()));
+        List<Integer> strokes = new ArrayList<>();
+        List<NotebookStroke> pageStrokes = data.selectedPage().strokes();
+        for (int index = 0; index < pageStrokes.size(); index++) {
+            SymbolSelection.Bounds bounds = strokeBounds(pageStrokes.get(index));
+            if (bounds != null && marquee.intersects(bounds)) {
+                strokes.add(index);
+            }
+        }
+        strokeSelection = List.copyOf(strokes);
+    }
+
+    private static SymbolSelection.Bounds strokeBounds(NotebookStroke stroke) {
+        if (stroke.points().isEmpty()) {
+            return null;
+        }
+        float minX = Float.MAX_VALUE;
+        float minY = Float.MAX_VALUE;
+        float maxX = -Float.MAX_VALUE;
+        float maxY = -Float.MAX_VALUE;
+        for (NormalizedPoint point : stroke.points()) {
+            minX = Math.min(minX, point.x());
+            minY = Math.min(minY, point.y());
+            maxX = Math.max(maxX, point.x());
+            maxY = Math.max(maxY, point.y());
+        }
+        return new SymbolSelection.Bounds(minX, minY, maxX, maxY);
+    }
+
+    public void clearSelection() {
+        symbolSelection = SymbolSelection.empty();
+        strokeSelection = List.of();
+    }
+
+    public boolean hasSelection() {
+        return !symbolSelection.isEmpty() || !strokeSelection.isEmpty();
+    }
+
+    public List<Integer> selectedStrokeIndices() {
+        return strokeSelection;
     }
 
     public boolean moveSelection(float deltaX, float deltaY) {
-        if (symbolSelection.isEmpty()
+        if (!hasSelection()
                 || !Float.isFinite(deltaX)
                 || !Float.isFinite(deltaY)) {
             return false;
@@ -317,15 +363,37 @@ public final class NotebookEditorSession {
                     symbol.center().x() + deltaX,
                     symbol.center().y() + deltaY)));
         }
-        return commitSymbolsIfValid(selected, symbols);
+        List<NotebookStroke> strokes = new ArrayList<>(selected.strokes());
+        for (int index : strokeSelection) {
+            NotebookStroke stroke = strokes.get(index);
+            strokes.set(index, new NotebookStroke(stroke.points().stream()
+                    .map(point -> new NormalizedPoint(
+                            point.x() + deltaX, point.y() + deltaY))
+                    .toList()));
+        }
+        return commitPageIfValid(selected, strokes, symbols);
+    }
+
+    private boolean commitPageIfValid(
+            NotebookPage selected,
+            List<NotebookStroke> strokes,
+            List<PlacedSymbol> symbols) {
+        NotebookData changed = data.replaceSelectedPage(
+                new NotebookPage(
+                        selected.id(), selected.title(), strokes, symbols, selected.guide()));
+        if (!isValid(changed)) {
+            return false;
+        }
+        commit(changed);
+        return true;
     }
 
     public boolean resizeSelection(float scale) {
-        if (symbolSelection.isEmpty() || !Float.isFinite(scale) || scale <= 0.0F) {
+        if (!hasSelection() || !Float.isFinite(scale) || scale <= 0.0F) {
             return false;
         }
         NotebookPage selected = data.selectedPage();
-        SymbolSelection.Bounds bounds = symbolSelection.bounds(selected.symbols());
+        SymbolSelection.Bounds bounds = selectedBounds();
         if (bounds == null) {
             return false;
         }
@@ -341,11 +409,20 @@ public final class NotebookEditorSession {
                     symbol.size() * scale,
                     symbol.rotationDegrees()));
         }
-        return commitSymbolsIfValid(selected, symbols);
+        List<NotebookStroke> strokes = new ArrayList<>(selected.strokes());
+        for (int index : strokeSelection) {
+            NotebookStroke stroke = strokes.get(index);
+            strokes.set(index, new NotebookStroke(stroke.points().stream()
+                    .map(point -> new NormalizedPoint(
+                            bounds.centerX() + (point.x() - bounds.centerX()) * scale,
+                            bounds.centerY() + (point.y() - bounds.centerY()) * scale))
+                    .toList()));
+        }
+        return commitPageIfValid(selected, strokes, symbols);
     }
 
     public boolean deleteSelection() {
-        if (symbolSelection.isEmpty()) {
+        if (!hasSelection()) {
             return false;
         }
         NotebookPage selected = data.selectedPage();
@@ -353,11 +430,15 @@ public final class NotebookEditorSession {
         symbolSelection.indices().stream()
                 .sorted((left, right) -> Integer.compare(right, left))
                 .forEach(index -> symbols.remove((int) index));
+        List<NotebookStroke> strokes = new ArrayList<>(selected.strokes());
+        strokeSelection.stream()
+                .sorted((left, right) -> Integer.compare(right, left))
+                .forEach(index -> strokes.remove((int) index));
         NotebookData changed = data.replaceSelectedPage(
                 new NotebookPage(
-                        selected.id(), selected.title(), selected.strokes(), symbols, selected.guide()));
+                        selected.id(), selected.title(), strokes, symbols, selected.guide()));
         commit(changed);
-        symbolSelection = SymbolSelection.empty();
+        clearSelection();
         return true;
     }
 
@@ -367,6 +448,21 @@ public final class NotebookEditorSession {
 
     public SymbolSelection.Bounds selectedSymbolBounds() {
         return symbolSelection.bounds(data.selectedPage().symbols());
+    }
+
+    public SymbolSelection.Bounds selectedBounds() {
+        SymbolSelection.Bounds bounds = symbolSelection.bounds(data.selectedPage().symbols());
+        List<NotebookStroke> strokes = data.selectedPage().strokes();
+        for (int index : strokeSelection) {
+            if (index < 0 || index >= strokes.size()) {
+                continue;
+            }
+            SymbolSelection.Bounds strokeBounds = strokeBounds(strokes.get(index));
+            if (strokeBounds != null) {
+                bounds = bounds == null ? strokeBounds : bounds.union(strokeBounds);
+            }
+        }
+        return bounds;
     }
 
     public boolean canUndo() {
@@ -390,7 +486,7 @@ public final class NotebookEditorSession {
         undoHistory.clear();
         redoHistory.clear();
         activeStroke = null;
-        symbolSelection = SymbolSelection.empty();
+        clearSelection();
     }
 
     private void commit(NotebookData changed) {

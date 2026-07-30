@@ -46,5 +46,15 @@
   "screen.witch_hat_magic.activation.canvas_not_found": "Toile introuvable",
   "screen.witch_hat_magic.activation.canvas_depleted": "Cette toile est usee — repare-la avec un carre de toile",
   "block.witch_hat_magic.large_canvas": "Grande toile magique",
-  "item.witch_hat_magic.sylph_shoes": "Chaussures de sylphe"
+  "item.witch_hat_magic.sylph_shoes": "Chaussures de sylphe",
+  "screen.witch_hat_magic.workshop.tab.symbols": "Symboles",
+  "screen.witch_hat_magic.workshop.tab.details": "Details",
+  "screen.witch_hat_magic.details.sigils": "Sigiles : %s",
+  "screen.witch_hat_magic.details.signs": "Signes : %s",
+  "screen.witch_hat_magic.details.power": "Puissance : %sx",
+  "screen.witch_hat_magic.details.precision": "Precision : %s%%",
+  "screen.witch_hat_magic.details.duration": "Duree : %ss",
+  "screen.witch_hat_magic.details.tilt": "Inclinaison : %s",
+  "screen.witch_hat_magic.details.lift": "Manifestation en levitation",
+  "screen.witch_hat_magic.details.hint": "Trace un cercle ferme autour d'un sigile"
 }

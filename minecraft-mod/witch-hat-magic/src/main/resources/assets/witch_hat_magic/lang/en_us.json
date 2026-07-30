@@ -46,5 +46,15 @@
   "screen.witch_hat_magic.activation.canvas_not_found": "Canvas not found",
   "screen.witch_hat_magic.activation.canvas_depleted": "This canvas is worn out — repair it with a canvas square",
   "block.witch_hat_magic.large_canvas": "Large Magic Canvas",
-  "item.witch_hat_magic.sylph_shoes": "Sylph Shoes"
+  "item.witch_hat_magic.sylph_shoes": "Sylph Shoes",
+  "screen.witch_hat_magic.workshop.tab.symbols": "Symbols",
+  "screen.witch_hat_magic.workshop.tab.details": "Details",
+  "screen.witch_hat_magic.details.sigils": "Sigils: %s",
+  "screen.witch_hat_magic.details.signs": "Signs: %s",
+  "screen.witch_hat_magic.details.power": "Power: %sx",
+  "screen.witch_hat_magic.details.precision": "Precision: %s%%",
+  "screen.witch_hat_magic.details.duration": "Duration: %ss",
+  "screen.witch_hat_magic.details.tilt": "Tilt: %s",
+  "screen.witch_hat_magic.details.lift": "Levitating manifestation",
+  "screen.witch_hat_magic.details.hint": "Draw a closed circle around a sigil"
 }
