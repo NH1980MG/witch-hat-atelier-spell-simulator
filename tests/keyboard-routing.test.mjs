@@ -90,11 +90,60 @@ test("Echap desarme le pointeur avant de toucher au dessin", () => {
 });
 
 test("chaque etat d'Echap est bien relie", () => {
-  assert.equal(press("Escape", {}, { view3dOpen: true }).command, "close3d");
-  assert.equal(press("Escape", {}, { drawerOpen: true }).command, "closeDrawer");
-  assert.equal(press("Escape", {}, { hasSelection: true }).command, "clearSelection");
-  assert.equal(press("Escape", {}, { guideSelected: true }).command, "clearGuide");
-  assert.equal(press("Escape").command, "clearCanvas");
+  // deepEqual et non equal: close3d et closeDrawer neutralisent le navigateur,
+  // les trois branches basses non. Ne comparer que `command` laissait ces
+  // drapeaux libres de basculer sans qu'aucune assertion ne rougisse.
+  assert.deepEqual(press("Escape", {}, { view3dOpen: true }), { command: "close3d", preventDefault: true });
+  assert.deepEqual(press("Escape", {}, { drawerOpen: true }), { command: "closeDrawer", preventDefault: true });
+  assert.deepEqual(press("Escape", {}, { hasSelection: true }), { command: "clearSelection", preventDefault: false });
+  assert.deepEqual(press("Escape", {}, { guideSelected: true }), { command: "clearGuide", preventDefault: false });
+  assert.deepEqual(press("Escape"), { command: "clearCanvas", preventDefault: false });
+});
+
+test("la carte complete est verrouillee, drapeau preventDefault compris", () => {
+  // Mesure du 2026-07-30: supprimer les branches `l`, `-`, `=`, `+` laissait la
+  // suite verte, tout comme intervertir zoomIn/zoomOut ou retirer
+  // preventDefault de undo/redo/save/delete/close3d. Les raccourcis herites
+  // etaient assertes sur `.command` seul; un Cmd+S sans preventDefault ouvre le
+  // dialogue Enregistrer du navigateur au lieu d'exporter le PNG, sans signal.
+  // Ce tableau couvre les dix-neuf commandes ET leur drapeau.
+  const map = [
+    ["z", { metaKey: true }, {}, "undo", true],
+    ["z", { metaKey: true, shiftKey: true }, {}, "redo", true],
+    ["s", { metaKey: true }, {}, "save", true],
+    ["k", { metaKey: true }, {}, "openSearch", true],
+    ["d", { metaKey: true }, {}, "duplicate", true],
+    ["a", { metaKey: true }, {}, "selectAll", true],
+    ["c", { metaKey: true }, {}, "copySelection", true],
+    ["v", { metaKey: true }, {}, "pasteSelection", true],
+    ["Delete", {}, { hasSelection: true }, "delete", true],
+    ["Backspace", {}, { hasSelection: true }, "delete", true],
+    ["Escape", {}, { view3dOpen: true }, "close3d", true],
+    ["Escape", {}, { drawerOpen: true }, "closeDrawer", true],
+    ["Escape", {}, { armed: true }, "disarm", true],
+    ["Escape", {}, { hasSelection: true }, "clearSelection", false],
+    ["Escape", {}, { guideSelected: true }, "clearGuide", false],
+    ["Escape", {}, {}, "clearCanvas", false],
+    ["a", {}, {}, "activateCircle", false],
+    ["l", {}, {}, "analyzeSpell", false],
+    ["L", {}, {}, "analyzeSpell", false],
+    ["-", {}, {}, "zoomOut", true],
+    ["_", {}, {}, "zoomOut", true],
+    ["=", {}, {}, "zoomReset", true],
+    ["+", {}, {}, "zoomIn", true],
+    ["Add", {}, {}, "zoomIn", true],
+    ["q", {}, {}, "none", false],
+  ];
+  for (const [key, overrides, context, command, preventDefault] of map) {
+    assert.deepEqual(
+      press(key, overrides, context),
+      { command, preventDefault },
+      `${key} ${JSON.stringify(overrides)} ${JSON.stringify(context)}`,
+    );
+  }
+  // Vingt commandes reelles + "none" = vingt-et-une etiquettes distinctes.
+  // Le compte echoue si une branche est ajoutee sans ligne de tableau.
+  assert.equal(new Set(map.map(([, , , command]) => command)).size, 21);
 });
 
 test("l'ordre de repli d'Echap est preserve quand plusieurs etats sont vrais", () => {
