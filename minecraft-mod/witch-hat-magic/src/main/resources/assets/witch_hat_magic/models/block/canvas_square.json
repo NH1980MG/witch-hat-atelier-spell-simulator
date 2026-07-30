@@ -1,7 +1,21 @@
 {
-  "parent": "minecraft:block/cube_column",
   "textures": {
-    "end": "minecraft:block/white_wool",
-    "side": "minecraft:block/oak_planks"
-  }
+    "top": "witch_hat_magic:block/canvas_square_top",
+    "side": "witch_hat_magic:block/canvas_square_side",
+    "particle": "witch_hat_magic:block/canvas_square_side"
+  },
+  "elements": [
+    {
+      "from": [0, 0, 0],
+      "to": [16, 4, 16],
+      "faces": {
+        "up": { "texture": "#top" },
+        "down": { "texture": "#side" },
+        "north": { "texture": "#side" },
+        "south": { "texture": "#side" },
+        "west": { "texture": "#side" },
+        "east": { "texture": "#side" }
+      }
+    }
+  ]
 }

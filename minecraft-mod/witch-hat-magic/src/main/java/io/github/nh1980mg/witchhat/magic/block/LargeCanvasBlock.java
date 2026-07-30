@@ -33,6 +33,11 @@ public class LargeCanvasBlock extends AbstractCanvasBlock {
     }
 
     @Override
+    protected double shapeHeight() {
+        return 5.0;
+    }
+
+    @Override
     protected MapCodec<? extends BaseEntityBlock> codec() {
         return CODEC;
     }
