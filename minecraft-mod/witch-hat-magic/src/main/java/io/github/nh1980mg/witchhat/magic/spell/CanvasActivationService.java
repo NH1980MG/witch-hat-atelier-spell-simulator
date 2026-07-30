@@ -71,7 +71,10 @@ public final class CanvasActivationService {
                 spell.signIds(),
                 spell.power(),
                 spell.precision(),
-                spell.durationTicks());
+                spell.durationTicks(),
+                spell.directionX(),
+                spell.directionY(),
+                spell.lift());
         return new CanvasActivationOutcome(result, canvas.remainingActivations());
     }
 
@@ -96,6 +99,8 @@ public final class CanvasActivationService {
         }
         Vec3 normal = Vec3.atLowerCornerOf(facing.getNormal());
         ManifestationPlan plan = ManifestationPlan.createAnchored(anchor, normal, result);
-        SpellManifestationService.enqueue(plan, result.durationTicks(), level);
+        SpellManifestationService.enqueue(
+                plan, result.durationTicks(), level,
+                SpellManifestationService.levitationDrift(result));
     }
 }

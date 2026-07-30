@@ -39,14 +39,16 @@ public final class SpellRecognizer {
             return new RecognizedSpell(RecognitionStatus.MISSING_SIGIL, sigils, signs);
         }
         CircleEvaluation circle = CircleAnalyzer.evaluate(page, support);
+        ManifestationDirectivity directivity = ManifestationDirectivity.analyze(page);
         return switch (circle.verdict()) {
             case NO_CIRCLE -> new RecognizedSpell(RecognitionStatus.MISSING_CIRCLE, sigils, signs);
             case IRREGULAR -> new RecognizedSpell(
                     RecognitionStatus.IRREGULAR_CIRCLE, sigils, signs,
-                    0.0, circle.precision(), 0);
+                    0.0, circle.precision(), 0, 0.0, 0.0, 0.0);
             case VALID -> new RecognizedSpell(
                     RecognitionStatus.READY, sigils, signs,
-                    circle.power(), circle.precision(), circle.durationTicks());
+                    circle.power(), circle.precision(), circle.durationTicks(),
+                    directivity.directionX(), directivity.directionY(), directivity.lift());
         };
     }
 }

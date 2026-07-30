@@ -22,11 +22,19 @@ public final class SpellManifestationService {
                 player.getEyePosition(),
                 player.getLookAngle(),
                 activation);
-        enqueue(plan, activation.durationTicks(), player.serverLevel());
+        enqueue(plan, activation.durationTicks(), player.serverLevel(), levitationDrift(activation));
         return true;
     }
 
     public static void enqueue(ManifestationPlan plan, int durationTicks, ServerLevel level) {
+        enqueue(plan, durationTicks, level, net.minecraft.world.phys.Vec3.ZERO);
+    }
+
+    public static void enqueue(
+            ManifestationPlan plan,
+            int durationTicks,
+            ServerLevel level,
+            net.minecraft.world.phys.Vec3 perTickDrift) {
         SimpleParticleType particle = plan.particleProfile().particle();
         SCHEDULER.enqueue(plan, durationTicks, point -> level.sendParticles(
                 particle,
@@ -37,6 +45,13 @@ public final class SpellManifestationService {
                 0.0,
                 0.0,
                 0.0,
-                0.0));
+                0.0), perTickDrift);
+    }
+
+    /** Levitation sign: the manifestation floats upward over its duration. */
+    public static net.minecraft.world.phys.Vec3 levitationDrift(ActivationResult activation) {
+        return activation.lift() > 0.0
+                ? new net.minecraft.world.phys.Vec3(0.0, 0.03 * activation.lift(), 0.0)
+                : net.minecraft.world.phys.Vec3.ZERO;
     }
 }

@@ -53,6 +53,27 @@ final class ManifestationSchedulerTest {
         assertEquals(0, scheduler.pendingCount());
     }
 
+    @Test
+    void driftsEmittedPointsUpwardForLevitation() {
+        ManifestationScheduler scheduler = new ManifestationScheduler();
+        List<Vec3> emitted = new ArrayList<>();
+        scheduler.enqueue(plan(), 10, emitted::add, new Vec3(0.0, 0.1, 0.0));
+
+        scheduler.tick();
+        double firstTickMaxY = emitted.stream().mapToDouble(p -> p.y).max().orElse(0.0);
+        for (int tick = 0; tick < 9; tick++) {
+            scheduler.tick();
+        }
+        double lastTickMaxY = emitted.stream()
+                .skip(emitted.size() - 11L)
+                .mapToDouble(p -> p.y)
+                .max()
+                .orElse(0.0);
+
+        assertTrue(lastTickMaxY > firstTickMaxY + 0.5,
+                "late points should have risen: " + firstTickMaxY + " vs " + lastTickMaxY);
+    }
+
     private static ManifestationPlan plan() {
         return ManifestationPlan.createAnchored(
                 Vec3.ZERO,

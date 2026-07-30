@@ -20,18 +20,18 @@ public final class SignFormGeometry {
     public static List<Vec3> build(
             SignFormProfile form,
             Vec3 center,
-            Vec3 normal,
+            Vec3 axis,
             double radiusScale) {
         Objects.requireNonNull(form, "form");
         Objects.requireNonNull(center, "center");
-        Objects.requireNonNull(normal, "normal");
+        Objects.requireNonNull(axis, "axis");
         List<Vec3> points = switch (form) {
             case NONE -> List.of();
-            case COLUMN -> column(center, radiusScale, 0.0);
-            case DIFFUSE_COLUMN -> column(center, radiusScale, 0.35 * radiusScale);
+            case COLUMN -> column(center, axis, radiusScale, 0.0);
+            case DIFFUSE_COLUMN -> column(center, axis, radiusScale, 0.35 * radiusScale);
             case ORB -> orb(center, radiusScale);
-            case BOLT -> volley(center, normal, radiusScale, 2, 0.0);
-            case VOLLEY -> volley(center, normal, radiusScale, 4, 0.3);
+            case BOLT -> volley(center, axis, radiusScale, 2, 0.0);
+            case VOLLEY -> volley(center, axis, radiusScale, 4, 0.3);
             case RAIN -> rain(center, radiusScale);
             case DISPERSION -> dispersion(center, radiusScale);
         };
@@ -41,23 +41,23 @@ public final class SignFormGeometry {
         return points;
     }
 
-    /** Vertical shaft of stacked rings rising from the seal, optional radial jitter. */
-    private static List<Vec3> column(Vec3 center, double radiusScale, double jitter) {
+    /** Shaft of stacked rings projected along the (possibly tilted) axis. */
+    private static List<Vec3> column(Vec3 center, Vec3 axis, double radiusScale, double jitter) {
         double radius = 0.45 * radiusScale;
         double height = 1.6 * radiusScale;
         List<Vec3> points = new ArrayList<>();
         int ringCount = 4;
         int perRing = 10;
         for (int ring = 0; ring < ringCount; ring++) {
-            double y = height * ring / (ringCount - 1);
+            double distance = height * ring / (ringCount - 1);
             List<Vec3> ringPoints = ManifestationGeometry.circle(
-                    center.add(0.0, y, 0.0), UP, radius, perRing);
+                    center.add(axis.scale(distance)), axis, radius, perRing);
             for (int index = 0; index < perRing; index++) {
                 points.add(scatter(ringPoints.get(index), jitter, ring * perRing + index));
             }
         }
         points.addAll(ManifestationGeometry.line(
-                center, center.add(0.0, height, 0.0), MAX_FORM_POINTS - ringCount * perRing));
+                center, center.add(axis.scale(height)), MAX_FORM_POINTS - ringCount * perRing));
         return points;
     }
 

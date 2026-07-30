@@ -30,15 +30,24 @@ final class SignFormGeometryTest {
     }
 
     @Test
-    void columnRisesVerticallyFromTheSeal() {
+    void columnProjectsAlongTheGivenAxis() {
         List<Vec3> points = SignFormGeometry.build(
                 SignFormProfile.COLUMN, CENTER, NORMAL, 1.0);
 
         assertEquals(SignFormGeometry.MAX_FORM_POINTS, points.size());
+        double maxZ = points.stream().mapToDouble(p -> p.z - CENTER.z).max().orElse(0.0);
+        assertTrue(maxZ > 1.4, "column should project along +Z, reached " + maxZ);
+        assertTrue(points.stream().allMatch(p -> Math.abs(p.x - CENTER.x) < 0.6
+                && Math.abs(p.y - CENTER.y) < 0.6));
+    }
+
+    @Test
+    void columnRisesVerticallyForAnUpwardAxis() {
+        List<Vec3> points = SignFormGeometry.build(
+                SignFormProfile.COLUMN, CENTER, new Vec3(0.0, 1.0, 0.0), 1.0);
+
         double maxY = points.stream().mapToDouble(p -> p.y - CENTER.y).max().orElse(0.0);
         assertTrue(maxY > 1.4, "column should climb, reached " + maxY);
-        assertTrue(points.stream().allMatch(p -> Math.abs(p.x - CENTER.x) < 0.6
-                && Math.abs(p.z - CENTER.z) < 0.6));
     }
 
     @Test
@@ -111,10 +120,54 @@ final class SignFormGeometryTest {
         ManifestationPlan plan = ManifestationPlan.createAnchored(CENTER, NORMAL, withColumn);
 
         assertEquals(72 + SignFormGeometry.MAX_FORM_POINTS, plan.points().size());
-        double maxY = plan.points().stream()
-                .mapToDouble(p -> p.y - CENTER.y)
+        double maxZ = plan.points().stream()
+                .mapToDouble(p -> p.z - CENTER.z)
                 .max()
                 .orElse(0.0);
-        assertTrue(maxY > 1.4, "column geometry should be part of the plan");
+        assertTrue(maxZ > 1.4, "column geometry should be part of the plan");
+    }
+
+    @Test
+    void signImbalanceLeansTheManifestation() {
+        ActivationResult neutral = new ActivationResult(
+                ActivationStatus.SUCCESS,
+                "page-1",
+                List.of("eau"),
+                List.of("colonne"),
+                1.0,
+                0.9,
+                280);
+        ActivationResult tiltedRight = new ActivationResult(
+                ActivationStatus.SUCCESS,
+                "page-1",
+                List.of("eau"),
+                List.of("colonne"),
+                1.0,
+                0.9,
+                280,
+                1.0,
+                0.0,
+                0.0);
+
+        ManifestationPlan neutralPlan = ManifestationPlan.createAnchored(CENTER, NORMAL, neutral);
+        ManifestationPlan tiltedPlan = ManifestationPlan.createAnchored(CENTER, NORMAL, tiltedRight);
+
+        double neutralMinX = minX(neutralPlan);
+        double tiltedMinX = minX(tiltedPlan);
+        double neutralMaxZ = neutralPlan.points().stream()
+                .mapToDouble(p -> p.z - CENTER.z).max().orElse(0.0);
+        double tiltedMaxZ = tiltedPlan.points().stream()
+                .mapToDouble(p -> p.z - CENTER.z).max().orElse(0.0);
+
+        assertTrue(Math.abs(tiltedMinX - neutralMinX) > 0.2,
+                "the imbalance should shift the column sideways: "
+                        + neutralMinX + " vs " + tiltedMinX);
+        assertTrue(tiltedMaxZ < neutralMaxZ,
+                "the tilted column should trade reach for sideways lean: "
+                        + neutralMaxZ + " vs " + tiltedMaxZ);
+    }
+
+    private static double minX(ManifestationPlan plan) {
+        return plan.points().stream().mapToDouble(p -> p.x - CENTER.x).min().orElse(0.0);
     }
 }

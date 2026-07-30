@@ -10,7 +10,10 @@ public record ActivationResult(
         List<String> signIds,
         double power,
         double precision,
-        int durationTicks) {
+        int durationTicks,
+        double directionX,
+        double directionY,
+        double lift) {
     public ActivationResult {
         status = Objects.requireNonNull(status, "status");
         pageId = Objects.requireNonNull(pageId, "pageId");
@@ -23,10 +26,21 @@ public record ActivationResult(
             String pageId,
             List<String> sigilIds,
             List<String> signIds) {
-        this(status, pageId, sigilIds, signIds, 0.0, 0.0, 0);
+        this(status, pageId, sigilIds, signIds, 0.0, 0.0, 0, 0.0, 0.0, 0.0);
+    }
+
+    public ActivationResult(
+            ActivationStatus status,
+            String pageId,
+            List<String> sigilIds,
+            List<String> signIds,
+            double power,
+            double precision,
+            int durationTicks) {
+        this(status, pageId, sigilIds, signIds, power, precision, durationTicks, 0.0, 0.0, 0.0);
     }
 
     public static ActivationResult failure(ActivationStatus status, String pageId) {
-        return new ActivationResult(status, pageId, List.of(), List.of(), 0.0, 0.0, 0);
+        return new ActivationResult(status, pageId, List.of(), List.of(), 0.0, 0.0, 0, 0.0, 0.0, 0.0);
     }
 }

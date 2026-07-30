@@ -9,7 +9,10 @@ public record RecognizedSpell(
         List<String> signIds,
         double power,
         double precision,
-        int durationTicks) {
+        int durationTicks,
+        double directionX,
+        double directionY,
+        double lift) {
     public RecognizedSpell {
         status = Objects.requireNonNull(status, "status");
         sigilIds = List.copyOf(Objects.requireNonNull(sigilIds, "sigilIds"));
@@ -17,7 +20,7 @@ public record RecognizedSpell(
     }
 
     public RecognizedSpell(RecognitionStatus status, List<String> sigilIds, List<String> signIds) {
-        this(status, sigilIds, signIds, 0.0, 0.0, 0);
+        this(status, sigilIds, signIds, 0.0, 0.0, 0, 0.0, 0.0, 0.0);
     }
 
     public boolean activatable() {

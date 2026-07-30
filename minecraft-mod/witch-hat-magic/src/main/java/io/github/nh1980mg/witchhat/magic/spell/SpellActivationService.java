@@ -52,6 +52,9 @@ public final class SpellActivationService {
                 spell.signIds(),
                 spell.power(),
                 spell.precision(),
-                spell.durationTicks());
+                spell.durationTicks(),
+                spell.directionX(),
+                spell.directionY(),
+                spell.lift());
     }
 }

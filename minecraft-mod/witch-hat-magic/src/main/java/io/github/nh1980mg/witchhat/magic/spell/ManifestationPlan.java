@@ -82,13 +82,39 @@ public record ManifestationPlan(
                         innerAnchors.get(index), outerAnchors.get(index), SPOKE_SAMPLES));
             }
         } else {
-            points.addAll(SignFormGeometry.build(form, center, normal, radiusScale));
+            points.addAll(SignFormGeometry.build(
+                    form, center, tiltedDirection(normal, activation), radiusScale));
         }
 
         return new ManifestationPlan(
                 ManifestationParticleProfile.forSigils(activation.sigilIds()),
                 center,
                 points);
+    }
+
+    /**
+     * Manga rule: an imbalance between the signs leans the manifestation.
+     * The page-space directivity (x right, y down on the page) is mapped onto
+     * the seal plane and bends the projection axis, capped well under 45
+     * degrees so the seal never reverses.
+     */
+    private static final double TILT_STRENGTH = 0.75;
+
+    private static Vec3 tiltedDirection(Vec3 normal, ActivationResult activation) {
+        double directionX = activation.directionX();
+        double directionY = activation.directionY();
+        if (directionX == 0.0 && directionY == 0.0) {
+            return normal;
+        }
+        Vec3 reference = Math.abs(normal.y) > 0.9
+                ? new Vec3(1.0, 0.0, 0.0)
+                : new Vec3(0.0, 1.0, 0.0);
+        Vec3 right = normal.cross(reference).normalize();
+        Vec3 upInPlane = right.cross(normal).normalize();
+        Vec3 tilted = normal
+                .add(right.scale(directionX * TILT_STRENGTH))
+                .add(upInPlane.scale(-directionY * TILT_STRENGTH));
+        return tilted.normalize();
     }
 
     private static boolean isFinite(Vec3 vector) {
