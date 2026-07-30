@@ -15,6 +15,7 @@ import net.minecraft.server.level.ServerPlayer;
 public final class FlightService {
     private static final FlightService INSTANCE = new FlightService();
     private static final int LANDING_SLOW_FALL_TICKS = 100;
+    private static final int INSCRIBED_REFRESH_TICKS = 40;
 
     private final Map<ServerPlayer, Long> flightUntilTick = new WeakHashMap<>();
 
@@ -22,6 +23,16 @@ public final class FlightService {
 
     public static FlightService instance() {
         return INSTANCE;
+    }
+
+    /** Keeps inscribed sylph shoes aloft: a rolling two-second flight grant. */
+    public void maintain(net.minecraft.server.MinecraftServer server) {
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            if (io.github.nh1980mg.witchhat.magic.item.SylphShoesItem.isInscribed(
+                    player.getInventory().getArmor(0))) {
+                grant(player, INSCRIBED_REFRESH_TICKS);
+            }
+        }
     }
 
     public static int landingSlowFallTicks() {

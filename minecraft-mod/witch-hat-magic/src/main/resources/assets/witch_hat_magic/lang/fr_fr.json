@@ -56,5 +56,12 @@
   "screen.witch_hat_magic.details.duration": "Duree : %ss",
   "screen.witch_hat_magic.details.tilt": "Inclinaison : %s",
   "screen.witch_hat_magic.details.lift": "Manifestation en levitation",
-  "screen.witch_hat_magic.details.hint": "Trace un cercle ferme autour d'un sigile"
+  "screen.witch_hat_magic.details.hint": "Trace un cercle ferme autour d'un sigile",
+  "item.witch_hat_magic.magic_circle_page": "Page de cercle magique",
+  "item.witch_hat_magic.magic_circle_page.page": "Page : %s",
+  "item.witch_hat_magic.magic_circle_page.sigils": "Sigiles : %s",
+  "item.witch_hat_magic.magic_circle_page.signs": "Signes : %s",
+  "item.witch_hat_magic.magic_circle_page.ready": "Pret — puissance %sx, %s%% precis, %ss",
+  "item.witch_hat_magic.magic_circle_page.not_ready": "Cercle incomplet",
+  "screen.witch_hat_magic.extract_page": "Extraire"
 }

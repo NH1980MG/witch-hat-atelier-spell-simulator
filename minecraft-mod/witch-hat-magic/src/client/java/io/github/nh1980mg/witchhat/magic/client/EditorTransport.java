@@ -12,6 +12,9 @@ public interface EditorTransport {
 
     void sendActivation(String pageId);
 
+    /** Tears the page out of the notebook as an item (notebook only). */
+    default void sendExtract(String pageId) {}
+
     boolean canSend();
 
     /** Correlation key used to match authoritative packets: hand or BlockPos. */

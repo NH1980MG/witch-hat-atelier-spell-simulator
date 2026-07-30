@@ -2,6 +2,7 @@ package io.github.nh1980mg.witchhat.magic.network;
 
 import io.github.nh1980mg.witchhat.magic.notebook.NotebookData;
 import io.github.nh1980mg.witchhat.magic.notebook.NotebookLimits;
+import io.github.nh1980mg.witchhat.magic.notebook.NotebookPage;
 import io.github.nh1980mg.witchhat.magic.registry.MagicComponents;
 import io.github.nh1980mg.witchhat.magic.registry.MagicItems;
 import io.github.nh1980mg.witchhat.magic.spell.ActivationResult;
@@ -27,6 +28,8 @@ public final class NotebookNetworking {
         PayloadTypeRegistry.playC2S().register(SaveNotebookPayload.TYPE, SaveNotebookPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(
                 ActivateSpellPayload.TYPE, ActivateSpellPayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(
+                ExtractPagePayload.TYPE, ExtractPagePayload.CODEC);
     }
 
     public static void registerServerReceivers() {
@@ -36,6 +39,9 @@ public final class NotebookNetworking {
         ServerPlayNetworking.registerGlobalReceiver(
                 ActivateSpellPayload.TYPE,
                 NotebookNetworking::handleActivation);
+        ServerPlayNetworking.registerGlobalReceiver(
+                ExtractPagePayload.TYPE,
+                NotebookNetworking::handleExtractPage);
     }
 
     public static void open(ServerPlayer player, InteractionHand hand) {
@@ -66,6 +72,37 @@ public final class NotebookNetworking {
             ServerPlayNetworking.send(
                     player, new SyncNotebookPayload(payload.hand(), authoritative));
         }
+    }
+
+    private static void handleExtractPage(
+            ExtractPagePayload payload,
+            ServerPlayNetworking.Context context) {
+        ServerPlayer player = context.player();
+        ItemStack heldStack = player.getItemInHand(payload.hand());
+        if (heldStack.isEmpty() || !heldStack.is(MagicItems.MAGIC_CIRCLE_NOTEBOOK)) {
+            return;
+        }
+        NotebookData data = heldStack.getOrDefault(
+                MagicComponents.NOTEBOOK_DATA, NotebookData.createDefault());
+        if (data.pages().size() <= 1) {
+            return;
+        }
+        NotebookPage page = data.pages().stream()
+                .filter(candidate -> candidate.id().equals(payload.pageId()))
+                .findFirst()
+                .orElse(null);
+        if (page == null || !page.id().equals(data.selectedPageId())) {
+            return;
+        }
+        NotebookData changed = data.removeSelectedPage();
+        heldStack.set(MagicComponents.NOTEBOOK_DATA, changed);
+        ItemStack pageStack = new ItemStack(MagicItems.MAGIC_CIRCLE_PAGE);
+        pageStack.set(MagicComponents.PAGE_DATA, page);
+        if (!player.getInventory().add(pageStack)) {
+            player.drop(pageStack, false);
+        }
+        ServerPlayNetworking.send(
+                player, new SyncNotebookPayload(payload.hand(), changed));
     }
 
     private static void handleActivation(

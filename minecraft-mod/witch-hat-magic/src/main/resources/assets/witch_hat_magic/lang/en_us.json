@@ -56,5 +56,12 @@
   "screen.witch_hat_magic.details.duration": "Duration: %ss",
   "screen.witch_hat_magic.details.tilt": "Tilt: %s",
   "screen.witch_hat_magic.details.lift": "Levitating manifestation",
-  "screen.witch_hat_magic.details.hint": "Draw a closed circle around a sigil"
+  "screen.witch_hat_magic.details.hint": "Draw a closed circle around a sigil",
+  "item.witch_hat_magic.magic_circle_page": "Magic Circle Page",
+  "item.witch_hat_magic.magic_circle_page.page": "Page: %s",
+  "item.witch_hat_magic.magic_circle_page.sigils": "Sigils: %s",
+  "item.witch_hat_magic.magic_circle_page.signs": "Signs: %s",
+  "item.witch_hat_magic.magic_circle_page.ready": "Ready — power %sx, %s%% precise, %ss",
+  "item.witch_hat_magic.magic_circle_page.not_ready": "Incomplete circle",
+  "screen.witch_hat_magic.extract_page": "Extract"
 }

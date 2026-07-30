@@ -1,6 +1,7 @@
 package io.github.nh1980mg.witchhat.magic.client;
 
 import io.github.nh1980mg.witchhat.magic.network.ActivateSpellPayload;
+import io.github.nh1980mg.witchhat.magic.network.ExtractPagePayload;
 import io.github.nh1980mg.witchhat.magic.network.SaveNotebookPayload;
 import io.github.nh1980mg.witchhat.magic.notebook.NotebookData;
 import io.github.nh1980mg.witchhat.magic.spell.CircleSupport;
@@ -23,6 +24,11 @@ public final class NotebookTransport implements EditorTransport {
     @Override
     public void sendActivation(String pageId) {
         ClientPlayNetworking.send(new ActivateSpellPayload(hand, pageId));
+    }
+
+    @Override
+    public void sendExtract(String pageId) {
+        ClientPlayNetworking.send(new ExtractPagePayload(hand, pageId));
     }
 
     @Override

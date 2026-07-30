@@ -76,6 +76,7 @@ public final class MagicNotebookScreen extends Screen {
     private Button movePageLeftButton;
     private Button movePageRightButton;
     private Button closePagesButton;
+    private Button extractPageButton;
     private Button activationButton;
     private EditBox pageTitleBox;
 
@@ -310,6 +311,12 @@ public final class MagicNotebookScreen extends Screen {
                     overlayTop + 47,
                     40,
                     button -> setPageIndexOpen(false));
+            extractPageButton = addControl(
+                    "screen.witch_hat_magic.extract_page",
+                    overlayLeft + 10,
+                    overlayTop + 70,
+                    90,
+                    button -> transport.sendExtract(session.snapshot().selectedPageId()));
         }
         activationButton = addControl(
                 "screen.witch_hat_magic.activate",
@@ -1100,6 +1107,7 @@ public final class MagicNotebookScreen extends Screen {
             movePageLeftButton.visible = pageIndexOpen;
             movePageRightButton.visible = pageIndexOpen;
             closePagesButton.visible = pageIndexOpen;
+            extractPageButton.visible = pageIndexOpen;
         }
         if (activationButton != null) {
             activationButton.visible = workshopShell && !pageIndexOpen;
@@ -1123,6 +1131,7 @@ public final class MagicNotebookScreen extends Screen {
             movePageLeftButton.active = session.snapshot().selectedPageIndex() > 0;
             movePageRightButton.active = session.snapshot().selectedPageIndex() + 1
                     < session.snapshot().pages().size();
+            extractPageButton.active = session.snapshot().pages().size() > 1;
         }
         if (activationButton != null) {
             activationButton.active = pendingActivationPageId == null

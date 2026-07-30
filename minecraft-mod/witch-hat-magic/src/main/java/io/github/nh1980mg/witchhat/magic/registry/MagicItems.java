@@ -2,6 +2,7 @@ package io.github.nh1980mg.witchhat.magic.registry;
 
 import io.github.nh1980mg.witchhat.magic.WitchHatMagicMod;
 import io.github.nh1980mg.witchhat.magic.item.MagicCircleNotebookItem;
+import io.github.nh1980mg.witchhat.magic.item.MagicCirclePageItem;
 import io.github.nh1980mg.witchhat.magic.item.SylphShoesItem;
 import io.github.nh1980mg.witchhat.magic.notebook.NotebookData;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
@@ -44,6 +45,11 @@ public final class MagicItems {
                     .stacksTo(1)
                     .durability(65)));
 
+    public static final MagicCirclePageItem MAGIC_CIRCLE_PAGE = Registry.register(
+            BuiltInRegistries.ITEM,
+            ResourceLocation.fromNamespaceAndPath(WitchHatMagicMod.MOD_ID, "magic_circle_page"),
+            new MagicCirclePageItem(new Item.Properties().stacksTo(16)));
+
     private MagicItems() {
     }
 
@@ -54,6 +60,7 @@ public final class MagicItems {
                     entries.accept(CANVAS_SQUARE);
                     entries.accept(LARGE_CANVAS);
                     entries.accept(SYLPH_SHOES);
+                    entries.accept(MAGIC_CIRCLE_PAGE);
                 });
     }
 
