@@ -4,6 +4,8 @@ import io.github.nh1980mg.witchhat.magic.notebook.NotebookData;
 import io.github.nh1980mg.witchhat.magic.notebook.NotebookLimits;
 import io.github.nh1980mg.witchhat.magic.registry.MagicComponents;
 import io.github.nh1980mg.witchhat.magic.registry.MagicItems;
+import io.github.nh1980mg.witchhat.magic.spell.ActivationResult;
+import io.github.nh1980mg.witchhat.magic.spell.SpellActivationService;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.level.ServerPlayer;
@@ -17,13 +19,20 @@ public final class NotebookNetworking {
     public static void registerPayloads() {
         PayloadTypeRegistry.playS2C().register(OpenNotebookPayload.TYPE, OpenNotebookPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(SyncNotebookPayload.TYPE, SyncNotebookPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(
+                SpellActivationResultPayload.TYPE, SpellActivationResultPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(SaveNotebookPayload.TYPE, SaveNotebookPayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(
+                ActivateSpellPayload.TYPE, ActivateSpellPayload.CODEC);
     }
 
     public static void registerServerReceivers() {
         ServerPlayNetworking.registerGlobalReceiver(
                 SaveNotebookPayload.TYPE,
                 NotebookNetworking::handleSave);
+        ServerPlayNetworking.registerGlobalReceiver(
+                ActivateSpellPayload.TYPE,
+                NotebookNetworking::handleActivation);
     }
 
     public static void open(ServerPlayer player, InteractionHand hand) {
@@ -54,5 +63,22 @@ public final class NotebookNetworking {
             ServerPlayNetworking.send(
                     player, new SyncNotebookPayload(payload.hand(), authoritative));
         }
+    }
+
+    private static void handleActivation(
+            ActivateSpellPayload payload,
+            ServerPlayNetworking.Context context) {
+        ServerPlayer player = context.player();
+        ItemStack heldStack = player.getItemInHand(payload.hand());
+        NotebookData authoritative = heldStack.getOrDefault(
+                MagicComponents.NOTEBOOK_DATA, NotebookData.createDefault());
+        ActivationResult result = SpellActivationService.activate(
+                heldStack,
+                MagicItems.MAGIC_CIRCLE_NOTEBOOK,
+                authoritative,
+                payload.pageId());
+        ServerPlayNetworking.send(
+                player,
+                SpellActivationResultPayload.from(payload.hand(), result));
     }
 }
