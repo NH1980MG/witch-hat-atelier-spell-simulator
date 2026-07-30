@@ -343,7 +343,11 @@ const state = {
   previousTool: "select",
   ghostOwner: null,
   ghostOwnerBeforeDrag: null,
-  suppressNextDrawerClick: false,
+  // null, or { source, at }: the drawer button a completed drag started on and
+  // the timestamp it ended. A bare boolean could strand true on hardware that
+  // never emits the retargeted trailing click, silently swallowing an
+  // unrelated drawer tap minutes later; the record cannot.
+  suppressNextDrawerClick: null,
 };
 
 const guideImageCache = new Map();
@@ -7966,14 +7970,14 @@ function renderInkList() {
           <small>${confidence}</small>
         </span>
       `;
-      button.addEventListener("click", () => {
+      button.addEventListener("click", (event) => {
         // A mouse drag ends with a click on the origin button (pointer capture
         // retargets the trailing mouseup/click back here). Before arming
         // existed that click was harmless; now it would arm the pointer the
         // user never asked for, so a completed drag consumes the click that
-        // follows it instead of arming again.
-        if (state.suppressNextDrawerClick) {
-          state.suppressNextDrawerClick = false;
+        // follows it instead of arming again. Matched on origin button and
+        // recency, so only that click is consumed - never a later one.
+        if (consumeDrawerClickSuppression(event.currentTarget)) {
           return;
         }
         armSymbol(element);
@@ -8006,6 +8010,23 @@ function renderInkList() {
 // it here would let a real 6px drag-and-drop through unsuppressed and bring
 // back the spurious re-arm.
 const DRAWER_CLICK_DRAG_SLOP = 4;
+
+// A retargeted trailing click arrives in the same task turn as the pointerup,
+// so a second is generous. Past that window the record is stale by definition.
+const DRAWER_CLICK_SUPPRESSION_MS = 1000;
+
+// Always clears the record, matched or not: a record that failed to match was
+// stranded by hardware that never sent the trailing click, and keeping it
+// would be exactly the bug this shape removes.
+function consumeDrawerClickSuppression(target) {
+  const record = state.suppressNextDrawerClick;
+  state.suppressNextDrawerClick = null;
+  return (
+    record !== null &&
+    record.source === target &&
+    performance.now() - record.at < DRAWER_CLICK_SUPPRESSION_MS
+  );
+}
 
 function clientPointInsideRect(clientX, clientY, rect) {
   return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
@@ -8133,7 +8154,7 @@ function moveSymbolDrag(event) {
     event.type === "pointermove" &&
     Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) >= DRAWER_CLICK_DRAG_SLOP
   ) {
-    state.suppressNextDrawerClick = true;
+    state.suppressNextDrawerClick = { source: drag.source, at: performance.now() };
   }
   symbolDragGhost.style.left = event.clientX + "px";
   symbolDragGhost.style.top = event.clientY + "px";
@@ -8204,7 +8225,7 @@ function cancelSymbolDrag(event, options = {}) {
   // click is coming, so the flag must not survive to swallow some later,
   // unrelated click.
   if (!expectTrailingClick) {
-    state.suppressNextDrawerClick = false;
+    state.suppressNextDrawerClick = null;
   }
   releaseGhostDrag();
   render();
@@ -9162,17 +9183,31 @@ function openSymbolSearch() {
   if (!symbolSearchDialog || symbolSearchDialog.open) {
     return;
   }
-  // Defensive: cancelSymbolDrag/cancelSymbolDragIntent already clear this flag
-  // on every abort path that isn't immediately followed by a real click, but
-  // opening search is a natural "fresh start" point, so a stale true here
-  // (from some path not yet accounted for) can't swallow a later legitimate
-  // drawer click instead of arming it.
-  state.suppressNextDrawerClick = false;
+  // Defensive: cancelSymbolDrag/cancelSymbolDragIntent already clear this
+  // record on every abort path that isn't immediately followed by a real
+  // click, and the record's own origin+recency match makes a stale one inert
+  // anyway. Kept because opening search is a natural "fresh start" point.
+  state.suppressNextDrawerClick = null;
   symbolSearchInput.value = "";
   renderSymbolSearchResults();
   symbolSearchDialog.showModal();
   symbolSearchInput.focus();
 }
+
+// Spec: "Escape, the close button, or a click outside closes it without
+// changing anything." showModal() gives the first two for free but does not
+// light-dismiss, and `closedby="any"` is too new to rely on, so wire it here.
+// The backdrop reports the <dialog> itself as target - but so does the
+// dialog's own padding, hence the rect test rather than a bare target check.
+symbolSearchDialog?.addEventListener("click", (event) => {
+  if (event.target !== symbolSearchDialog) {
+    return;
+  }
+  const box = symbolSearchDialog.getBoundingClientRect();
+  if (!clientPointInsideRect(event.clientX, event.clientY, box)) {
+    symbolSearchDialog.close();
+  }
+});
 
 symbolSearchInput?.addEventListener("input", renderSymbolSearchResults);
 
