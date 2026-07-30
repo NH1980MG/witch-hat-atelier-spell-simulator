@@ -13,6 +13,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -40,6 +41,8 @@ public final class MagicNotebookScreen extends Screen {
     private double viewZoom = 1.0;
     private int catalogScrollRow;
     private String armedSymbolId;
+    private boolean pageIndexOpen;
+    private int pageIndexScroll;
     private RightGesture rightGesture = RightGesture.NONE;
     private NormalizedPoint rightStart;
     private NormalizedPoint rightCurrent;
@@ -57,6 +60,13 @@ public final class MagicNotebookScreen extends Screen {
     private Button previousButton;
     private Button nextButton;
     private Button deleteButton;
+    private Button pagesButton;
+    private Button renamePageButton;
+    private Button duplicatePageButton;
+    private Button movePageLeftButton;
+    private Button movePageRightButton;
+    private Button closePagesButton;
+    private EditBox pageTitleBox;
 
     public MagicNotebookScreen(InteractionHand hand, NotebookData data) {
         super(Component.translatable("screen.witch_hat_magic.notebook"));
@@ -121,7 +131,7 @@ public final class MagicNotebookScreen extends Screen {
                 buttonWidth,
                 button -> sendSave());
 
-        int secondRowWidth = buttonWidth * 5 + gap * 4;
+        int secondRowWidth = buttonWidth * 6 + gap * 5;
         int secondX = Math.max(4, (width - secondRowWidth) / 2);
         int secondY = height - 23;
         previousButton = addControl(
@@ -136,21 +146,27 @@ public final class MagicNotebookScreen extends Screen {
                 secondY,
                 buttonWidth,
                 button -> session.nextPage());
+        pagesButton = addControl(
+                "screen.witch_hat_magic.pages",
+                secondX + (buttonWidth + gap) * 2,
+                secondY,
+                buttonWidth,
+                button -> setPageIndexOpen(true));
         addControl(
                 "screen.witch_hat_magic.add_page",
-                secondX + (buttonWidth + gap) * 2,
+                secondX + (buttonWidth + gap) * 3,
                 secondY,
                 buttonWidth,
                 button -> session.addPage());
         deleteButton = addControl(
                 "screen.witch_hat_magic.delete_page",
-                secondX + (buttonWidth + gap) * 3,
+                secondX + (buttonWidth + gap) * 4,
                 secondY,
                 buttonWidth,
                 button -> session.deletePage());
         addControl(
                 "screen.witch_hat_magic.workshop",
-                secondX + (buttonWidth + gap) * 4,
+                secondX + (buttonWidth + gap) * 5,
                 secondY,
                 buttonWidth,
                 button -> {
@@ -159,7 +175,59 @@ public final class MagicNotebookScreen extends Screen {
                     clearRightGesture();
                 });
 
+        int overlayLeft = Math.max(8, width / 2 - 120);
+        int overlayTop = Math.max(38, height / 2 - 92);
+        pageTitleBox = addRenderableWidget(new EditBox(
+                font,
+                overlayLeft + 10,
+                overlayTop + 24,
+                220,
+                20,
+                Component.translatable("screen.witch_hat_magic.page_title")));
+        pageTitleBox.setMaxLength(64);
+        int pageActionWidth = 42;
+        renamePageButton = addControl(
+                "screen.witch_hat_magic.rename",
+                overlayLeft + 10,
+                overlayTop + 47,
+                pageActionWidth,
+                button -> applyPageRename());
+        duplicatePageButton = addControl(
+                "screen.witch_hat_magic.duplicate",
+                overlayLeft + 55,
+                overlayTop + 47,
+                pageActionWidth,
+                button -> {
+                    session.duplicatePage();
+                    syncPageIndexSelection();
+                });
+        movePageLeftButton = addControl(
+                "screen.witch_hat_magic.move_left",
+                overlayLeft + 100,
+                overlayTop + 47,
+                pageActionWidth,
+                button -> {
+                    session.movePage(-1);
+                    syncPageIndexSelection();
+                });
+        movePageRightButton = addControl(
+                "screen.witch_hat_magic.move_right",
+                overlayLeft + 145,
+                overlayTop + 47,
+                pageActionWidth,
+                button -> {
+                    session.movePage(1);
+                    syncPageIndexSelection();
+                });
+        closePagesButton = addControl(
+                "screen.witch_hat_magic.close",
+                overlayLeft + 190,
+                overlayTop + 47,
+                40,
+                button -> setPageIndexOpen(false));
+
         updateCanvasBounds();
+        updatePageWidgetVisibility();
         updateButtonStates();
     }
 
@@ -183,6 +251,9 @@ public final class MagicNotebookScreen extends Screen {
         if (workshopShell) {
             renderWorkshopPanel(graphics, mouseX, mouseY);
         }
+        if (pageIndexOpen) {
+            renderPageIndex(graphics, mouseX, mouseY);
+        }
 
         updateButtonStates();
         super.render(graphics, mouseX, mouseY, partialTick);
@@ -190,6 +261,15 @@ public final class MagicNotebookScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (pageIndexOpen) {
+            int pageIndex = pageIndexAt(mouseX, mouseY);
+            if (button == 0 && pageIndex >= 0) {
+                session.selectPage(pageIndex);
+                syncPageIndexSelection();
+                return true;
+            }
+            return super.mouseClicked(mouseX, mouseY, button);
+        }
         if (workshopShell && button == 0) {
             MagicSymbolCatalog.Entry entry = catalogEntryAt(mouseX, mouseY);
             if (entry != null) {
@@ -314,6 +394,14 @@ public final class MagicNotebookScreen extends Screen {
             double mouseY,
             double horizontalAmount,
             double verticalAmount) {
+        if (pageIndexOpen && verticalAmount != 0.0) {
+            int visibleRows = visiblePageRows();
+            pageIndexScroll = Math.clamp(
+                    pageIndexScroll - (int) Math.signum(verticalAmount),
+                    0,
+                    Math.max(0, session.snapshot().pages().size() - visibleRows));
+            return true;
+        }
         if (isPointerInsidePage(mouseX, mouseY) && verticalAmount != 0.0) {
             viewZoom = Math.clamp(viewZoom + Math.signum(verticalAmount) * 0.1, 0.75, 1.75);
             return true;
@@ -333,6 +421,14 @@ public final class MagicNotebookScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (pageIndexOpen && keyCode == GLFW.GLFW_KEY_ENTER) {
+            applyPageRename();
+            return true;
+        }
+        if (pageIndexOpen && keyCode == GLFW.GLFW_KEY_ESCAPE) {
+            setPageIndexOpen(false);
+            return true;
+        }
         if (workshopShell
                 && (keyCode == GLFW.GLFW_KEY_DELETE || keyCode == GLFW.GLFW_KEY_BACKSPACE)
                 && session.deleteSelection()) {
@@ -665,6 +761,113 @@ public final class MagicNotebookScreen extends Screen {
         return Math.hypot(x1 - x2, y1 - y2);
     }
 
+    private void renderPageIndex(GuiGraphics graphics, int mouseX, int mouseY) {
+        int left = Math.max(8, width / 2 - 120);
+        int top = Math.max(38, height / 2 - 92);
+        int panelHeight = Math.min(184, height - top - 52);
+        graphics.fill(left, top, left + 240, top + panelHeight, 0xFA26344A);
+        graphics.renderOutline(left, top, 240, panelHeight, 0xFFD9B875);
+        graphics.drawCenteredString(
+                font,
+                Component.translatable("screen.witch_hat_magic.page_index"),
+                left + 120,
+                top + 8,
+                0xFFF6E8BF);
+
+        int rows = visiblePageRows();
+        int end = Math.min(session.snapshot().pages().size(), pageIndexScroll + rows);
+        for (int index = pageIndexScroll; index < end; index++) {
+            int row = index - pageIndexScroll;
+            int y = top + 72 + row * 18;
+            boolean selected = index == session.snapshot().selectedPageIndex();
+            boolean hovered = mouseX >= left + 10
+                    && mouseX < left + 230
+                    && mouseY >= y
+                    && mouseY < y + 16;
+            graphics.fill(
+                    left + 10,
+                    y,
+                    left + 230,
+                    y + 16,
+                    selected ? 0xFF5B7691 : hovered ? 0xFF41556E : 0xFFEEE0B8);
+            graphics.drawString(
+                    font,
+                    (index + 1) + ". " + font.plainSubstrByWidth(
+                            session.snapshot().pages().get(index).title(), 190),
+                    left + 15,
+                    y + 4,
+                    selected ? 0xFFF6E8BF : INK,
+                    false);
+        }
+    }
+
+    private int pageIndexAt(double mouseX, double mouseY) {
+        int left = Math.max(8, width / 2 - 120);
+        int top = Math.max(38, height / 2 - 92);
+        if (mouseX < left + 10
+                || mouseX >= left + 230
+                || mouseY < top + 72
+                || mouseY >= top + 72 + visiblePageRows() * 18) {
+            return -1;
+        }
+        int index = pageIndexScroll + (int) (mouseY - top - 72) / 18;
+        return index < session.snapshot().pages().size() ? index : -1;
+    }
+
+    private int visiblePageRows() {
+        int top = Math.max(38, height / 2 - 92);
+        int panelHeight = Math.min(184, height - top - 52);
+        return Math.max(1, (panelHeight - 76) / 18);
+    }
+
+    private void setPageIndexOpen(boolean open) {
+        pageIndexOpen = open;
+        if (open) {
+            armedSymbolId = null;
+            clearRightGesture();
+            syncPageIndexSelection();
+        }
+        updatePageWidgetVisibility();
+    }
+
+    private void syncPageIndexSelection() {
+        if (pageTitleBox == null) {
+            return;
+        }
+        pageTitleBox.setValue(session.snapshot().selectedPage().title());
+        int visibleRows = visiblePageRows();
+        int selected = session.snapshot().selectedPageIndex();
+        if (selected < pageIndexScroll) {
+            pageIndexScroll = selected;
+        } else if (selected >= pageIndexScroll + visibleRows) {
+            pageIndexScroll = selected - visibleRows + 1;
+        }
+    }
+
+    private void applyPageRename() {
+        if (pageTitleBox == null) {
+            return;
+        }
+        try {
+            session.renamePage(pageTitleBox.getValue());
+            syncPageIndexSelection();
+        } catch (IllegalArgumentException exception) {
+            pageTitleBox.setValue(session.snapshot().selectedPage().title());
+        }
+    }
+
+    private void updatePageWidgetVisibility() {
+        if (pageTitleBox == null) {
+            return;
+        }
+        pageTitleBox.setVisible(pageIndexOpen);
+        renamePageButton.visible = pageIndexOpen;
+        duplicatePageButton.visible = pageIndexOpen;
+        movePageLeftButton.visible = pageIndexOpen;
+        movePageRightButton.visible = pageIndexOpen;
+        closePagesButton.visible = pageIndexOpen;
+    }
+
     private void updateButtonStates() {
         if (undoButton == null) {
             return;
@@ -674,6 +877,13 @@ public final class MagicNotebookScreen extends Screen {
         previousButton.active = session.snapshot().selectedPageIndex() > 0;
         nextButton.active = session.snapshot().selectedPageIndex() + 1 < session.snapshot().pages().size();
         deleteButton.active = session.snapshot().pages().size() > 1;
+        pagesButton.active = !pageIndexOpen;
+        if (renamePageButton != null) {
+            duplicatePageButton.active = session.snapshot().pages().size() < NotebookLimits.MAX_PAGES;
+            movePageLeftButton.active = session.snapshot().selectedPageIndex() > 0;
+            movePageRightButton.active = session.snapshot().selectedPageIndex() + 1
+                    < session.snapshot().pages().size();
+        }
         penButton.active = tool != Tool.PEN;
         eraserButton.active = tool != Tool.ERASER;
     }

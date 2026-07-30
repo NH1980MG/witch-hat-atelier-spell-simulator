@@ -15,5 +15,12 @@
   "screen.witch_hat_magic.workshop": "Workshop",
   "screen.witch_hat_magic.page_count": "Page %s / %s",
   "screen.witch_hat_magic.catalog": "Symbols",
-  "screen.witch_hat_magic.catalog_hint": "Choose, then click the page"
+  "screen.witch_hat_magic.catalog_hint": "Choose, then click the page",
+  "screen.witch_hat_magic.page_index": "Notebook pages",
+  "screen.witch_hat_magic.page_title": "Page title",
+  "screen.witch_hat_magic.rename": "Rename",
+  "screen.witch_hat_magic.duplicate": "Copy",
+  "screen.witch_hat_magic.move_left": "Left",
+  "screen.witch_hat_magic.move_right": "Right",
+  "screen.witch_hat_magic.close": "Close"
 }

@@ -15,5 +15,12 @@
   "screen.witch_hat_magic.workshop": "Atelier",
   "screen.witch_hat_magic.page_count": "Page %s / %s",
   "screen.witch_hat_magic.catalog": "Symboles",
-  "screen.witch_hat_magic.catalog_hint": "Choisis, puis clique sur la page"
+  "screen.witch_hat_magic.catalog_hint": "Choisis, puis clique sur la page",
+  "screen.witch_hat_magic.page_index": "Pages du carnet",
+  "screen.witch_hat_magic.page_title": "Titre de la page",
+  "screen.witch_hat_magic.rename": "Renommer",
+  "screen.witch_hat_magic.duplicate": "Copier",
+  "screen.witch_hat_magic.move_left": "Gauche",
+  "screen.witch_hat_magic.move_right": "Droite",
+  "screen.witch_hat_magic.close": "Fermer"
 }
