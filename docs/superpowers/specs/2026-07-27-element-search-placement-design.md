@@ -92,9 +92,10 @@ A duplicate button joins the existing shrink and grow buttons in the floating
 tool strip, disabled when nothing is selected, so touch users reach the same
 action.
 
-Only `glyph`, `circle`, and `ring` actions are selectable, so only those can be
-duplicated. Freehand strokes, rays, and spirals are unaffected. This matches the
-existing selection model rather than extending it.
+Glyph, circle, ring, freehand, ray and spiral actions are all selectable, so
+all six can be duplicated. `planDuplication` delegates to
+`translateSelectedActions`, which branches per type: points arrays for
+freehand, both endpoints for rays, radius for rings and spirals.
 
 ## Architecture
 
