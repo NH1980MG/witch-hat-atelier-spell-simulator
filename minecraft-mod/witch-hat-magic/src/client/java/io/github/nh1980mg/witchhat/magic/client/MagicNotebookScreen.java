@@ -1,13 +1,18 @@
 package io.github.nh1980mg.witchhat.magic.client;
 
 import com.mojang.math.Axis;
+import io.github.nh1980mg.witchhat.magic.network.ActivateSpellPayload;
 import io.github.nh1980mg.witchhat.magic.network.SaveNotebookPayload;
+import io.github.nh1980mg.witchhat.magic.network.SpellActivationResultPayload;
 import io.github.nh1980mg.witchhat.magic.notebook.NormalizedPoint;
 import io.github.nh1980mg.witchhat.magic.notebook.NotebookData;
 import io.github.nh1980mg.witchhat.magic.notebook.NotebookLimits;
 import io.github.nh1980mg.witchhat.magic.notebook.NotebookStroke;
 import io.github.nh1980mg.witchhat.magic.notebook.PlacedSymbol;
 import io.github.nh1980mg.witchhat.magic.notebook.TracingGuide;
+import io.github.nh1980mg.witchhat.magic.spell.ActivationStatus;
+import io.github.nh1980mg.witchhat.magic.spell.RecognizedSpell;
+import io.github.nh1980mg.witchhat.magic.spell.SpellRecognizer;
 import io.github.nh1980mg.witchhat.magic.symbol.MagicSymbolCatalog;
 import java.util.List;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -53,6 +58,8 @@ public final class MagicNotebookScreen extends Screen {
     private int canvasTop;
     private int canvasDiameter;
     private NotebookData lastSent;
+    private RecognizedSpell lastRecognition;
+    private Component activationFeedback;
 
     private Button penButton;
     private Button eraserButton;
@@ -67,6 +74,7 @@ public final class MagicNotebookScreen extends Screen {
     private Button movePageLeftButton;
     private Button movePageRightButton;
     private Button closePagesButton;
+    private Button activationButton;
     private EditBox pageTitleBox;
 
     public MagicNotebookScreen(InteractionHand hand, NotebookData data) {
@@ -74,6 +82,7 @@ public final class MagicNotebookScreen extends Screen {
         this.hand = hand;
         this.session = new NotebookEditorSession(data);
         this.lastSent = data;
+        this.lastRecognition = SpellRecognizer.recognize(data.selectedPage());
     }
 
     InteractionHand hand() {
@@ -83,7 +92,26 @@ public final class MagicNotebookScreen extends Screen {
     void acceptAuthoritative(NotebookData data) {
         session.acceptAuthoritative(data);
         lastSent = data;
+        refreshRecognition();
         updateButtonStates();
+    }
+
+    void acceptActivationResult(SpellActivationResultPayload payload) {
+        if (payload.hand() != hand
+                || !payload.pageId().equals(session.snapshot().selectedPageId())) {
+            return;
+        }
+        if (payload.status() == ActivationStatus.SUCCESS) {
+            String sigils = payload.sigilIds().stream()
+                    .map(this::localizedSymbolName)
+                    .reduce((left, right) -> left + " + " + right)
+                    .orElse("");
+            activationFeedback = Component.translatable(
+                    ActivationFeedback.activationKey(payload.status()), sigils);
+        } else {
+            activationFeedback = Component.translatable(
+                    ActivationFeedback.activationKey(payload.status()));
+        }
     }
 
     @Override
@@ -174,6 +202,7 @@ public final class MagicNotebookScreen extends Screen {
                     workshopShell = !workshopShell;
                     armedSymbolId = null;
                     clearRightGesture();
+                    updatePageWidgetVisibility();
                 });
 
         int overlayLeft = Math.max(8, width / 2 - 120);
@@ -226,6 +255,12 @@ public final class MagicNotebookScreen extends Screen {
                 overlayTop + 47,
                 40,
                 button -> setPageIndexOpen(false));
+        activationButton = addControl(
+                "screen.witch_hat_magic.activate",
+                7,
+                height - 130,
+                CATALOG_WIDTH - 8,
+                button -> sendActivation());
 
         updateCanvasBounds();
         updatePageWidgetVisibility();
@@ -242,6 +277,7 @@ public final class MagicNotebookScreen extends Screen {
         renderStrokes(graphics, session.snapshot().selectedPage().strokes(), INK);
         renderStroke(graphics, session.activeStroke(), ACTIVE_INK);
         renderSelection(graphics);
+        refreshRecognition();
 
         graphics.drawCenteredString(font, title, width / 2, 9, 0xFFF6E8BF);
         Component pageLabel = Component.translatable(
@@ -712,6 +748,16 @@ public final class MagicNotebookScreen extends Screen {
                 panelBottom - 46,
                 0xFFD9B875);
 
+        Component recognitionLabel = activationFeedback == null
+                ? recognitionSummary(lastRecognition)
+                : activationFeedback;
+        graphics.drawCenteredString(
+                font,
+                font.plainSubstrByWidth(recognitionLabel.getString(), CATALOG_WIDTH - 10),
+                CATALOG_WIDTH / 2 + 3,
+                panelBottom - 58,
+                lastRecognition.activatable() ? 0xFF9ED5A6 : 0xFFE6B47A);
+
         String guideLabel = session.guideSourcePage()
                 .map(source -> Component.translatable(
                                 session.snapshot().selectedPage().guide()
@@ -757,7 +803,7 @@ public final class MagicNotebookScreen extends Screen {
     }
 
     private int visibleCatalogRows() {
-        return Math.max(1, (height - 146) / CATALOG_ROW_HEIGHT);
+        return Math.max(1, (height - 182) / CATALOG_ROW_HEIGHT);
     }
 
     private boolean isInsideCatalog(double mouseX, double mouseY) {
@@ -964,6 +1010,9 @@ public final class MagicNotebookScreen extends Screen {
         movePageLeftButton.visible = pageIndexOpen;
         movePageRightButton.visible = pageIndexOpen;
         closePagesButton.visible = pageIndexOpen;
+        if (activationButton != null) {
+            activationButton.visible = workshopShell && !pageIndexOpen;
+        }
     }
 
     private void updateButtonStates() {
@@ -982,6 +1031,10 @@ public final class MagicNotebookScreen extends Screen {
             movePageRightButton.active = session.snapshot().selectedPageIndex() + 1
                     < session.snapshot().pages().size();
         }
+        if (activationButton != null) {
+            activationButton.active = lastRecognition.activatable()
+                    && ClientPlayNetworking.canSend(ActivateSpellPayload.TYPE);
+        }
         penButton.active = tool != Tool.PEN;
         eraserButton.active = tool != Tool.ERASER;
     }
@@ -992,6 +1045,38 @@ public final class MagicNotebookScreen extends Screen {
             ClientPlayNetworking.send(new SaveNotebookPayload(hand, snapshot));
             lastSent = snapshot;
         }
+    }
+
+    private void sendActivation() {
+        sendSave();
+        if (!ClientPlayNetworking.canSend(ActivateSpellPayload.TYPE)) {
+            return;
+        }
+        String pageId = session.snapshot().selectedPageId();
+        activationFeedback = Component.translatable(
+                "screen.witch_hat_magic.activation.pending");
+        ClientPlayNetworking.send(new ActivateSpellPayload(hand, pageId));
+    }
+
+    private void refreshRecognition() {
+        RecognizedSpell recognized = SpellRecognizer.recognize(
+                session.snapshot().selectedPage());
+        if (!recognized.equals(lastRecognition)) {
+            lastRecognition = recognized;
+            activationFeedback = null;
+        }
+    }
+
+    private Component recognitionSummary(RecognizedSpell recognized) {
+        String key = ActivationFeedback.recognitionKey(recognized.status());
+        if (!recognized.activatable()) {
+            return Component.translatable(key);
+        }
+        String sigils = recognized.sigilIds().stream()
+                .map(this::localizedSymbolName)
+                .reduce((left, right) -> left + " + " + right)
+                .orElse("");
+        return Component.translatable(key, sigils, recognized.signIds().size());
     }
 
     private enum Tool {

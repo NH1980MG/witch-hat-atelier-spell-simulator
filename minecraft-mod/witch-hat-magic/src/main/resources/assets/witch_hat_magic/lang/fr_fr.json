@@ -25,5 +25,15 @@
   "screen.witch_hat_magic.close": "Fermer",
   "screen.witch_hat_magic.guide": "Guide : %s",
   "screen.witch_hat_magic.guide_hidden": "Guide masque : %s",
-  "screen.witch_hat_magic.no_guide": "Aucun guide"
+  "screen.witch_hat_magic.no_guide": "Aucun guide",
+  "screen.witch_hat_magic.activate": "Activer",
+  "screen.witch_hat_magic.recognition.empty": "Place un sigil central",
+  "screen.witch_hat_magic.recognition.missing_sigil": "Un sigil central est requis",
+  "screen.witch_hat_magic.recognition.ready": "%s | %s signe(s)",
+  "screen.witch_hat_magic.activation.pending": "Validation du serveur...",
+  "screen.witch_hat_magic.activation.invalid_notebook": "Carnet refuse",
+  "screen.witch_hat_magic.activation.page_not_found": "Page introuvable",
+  "screen.witch_hat_magic.activation.empty_page": "La page est vide",
+  "screen.witch_hat_magic.activation.missing_sigil": "L'activation exige un sigil",
+  "screen.witch_hat_magic.activation.success": "Activation acceptee : %s"
 }
