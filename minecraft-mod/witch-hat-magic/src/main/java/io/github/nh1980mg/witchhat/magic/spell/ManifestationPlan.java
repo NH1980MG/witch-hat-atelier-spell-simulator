@@ -71,13 +71,18 @@ public record ManifestationPlan(
         points.addAll(ManifestationGeometry.circle(
                 center, normal, innerRadius, INNER_SAMPLES));
 
-        List<Vec3> outerAnchors = ManifestationGeometry.circle(
-                center, normal, outerRadius, SPOKE_COUNT);
-        List<Vec3> innerAnchors = ManifestationGeometry.circle(
-                center, normal, innerRadius, SPOKE_COUNT);
-        for (int index = 0; index < SPOKE_COUNT; index++) {
-            points.addAll(ManifestationGeometry.line(
-                    innerAnchors.get(index), outerAnchors.get(index), SPOKE_SAMPLES));
+        SignFormProfile form = SignFormProfile.forSigns(activation.signIds());
+        if (form == SignFormProfile.NONE) {
+            List<Vec3> outerAnchors = ManifestationGeometry.circle(
+                    center, normal, outerRadius, SPOKE_COUNT);
+            List<Vec3> innerAnchors = ManifestationGeometry.circle(
+                    center, normal, innerRadius, SPOKE_COUNT);
+            for (int index = 0; index < SPOKE_COUNT; index++) {
+                points.addAll(ManifestationGeometry.line(
+                        innerAnchors.get(index), outerAnchors.get(index), SPOKE_SAMPLES));
+            }
+        } else {
+            points.addAll(SignFormGeometry.build(form, center, normal, radiusScale));
         }
 
         return new ManifestationPlan(

@@ -46,7 +46,7 @@ final class ManifestationPlanTest {
                 ActivationStatus.SUCCESS,
                 "page-1",
                 List.of("eau"),
-                List.of("orbe"));
+                List.of("lien"));
 
         ManifestationPlan plan = ManifestationPlan.create(eye, look, result);
 
