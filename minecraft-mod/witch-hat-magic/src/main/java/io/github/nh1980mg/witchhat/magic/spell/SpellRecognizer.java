@@ -11,7 +11,12 @@ public final class SpellRecognizer {
     private SpellRecognizer() {}
 
     public static RecognizedSpell recognize(NotebookPage page) {
+        return recognize(page, CircleSupport.NOTEBOOK);
+    }
+
+    public static RecognizedSpell recognize(NotebookPage page, CircleSupport support) {
         Objects.requireNonNull(page, "page");
+        Objects.requireNonNull(support, "support");
         List<String> sigils = new ArrayList<>();
         List<String> signs = new ArrayList<>();
         for (PlacedSymbol symbol : page.symbols()) {
@@ -27,14 +32,21 @@ public final class SpellRecognizer {
             }
         }
 
-        RecognitionStatus status;
         if (sigils.isEmpty() && signs.isEmpty()) {
-            status = RecognitionStatus.EMPTY;
-        } else if (sigils.isEmpty()) {
-            status = RecognitionStatus.MISSING_SIGIL;
-        } else {
-            status = RecognitionStatus.READY;
+            return new RecognizedSpell(RecognitionStatus.EMPTY, sigils, signs);
         }
-        return new RecognizedSpell(status, sigils, signs);
+        if (sigils.isEmpty()) {
+            return new RecognizedSpell(RecognitionStatus.MISSING_SIGIL, sigils, signs);
+        }
+        CircleEvaluation circle = CircleAnalyzer.evaluate(page, support);
+        return switch (circle.verdict()) {
+            case NO_CIRCLE -> new RecognizedSpell(RecognitionStatus.MISSING_CIRCLE, sigils, signs);
+            case IRREGULAR -> new RecognizedSpell(
+                    RecognitionStatus.IRREGULAR_CIRCLE, sigils, signs,
+                    0.0, circle.precision(), 0);
+            case VALID -> new RecognizedSpell(
+                    RecognitionStatus.READY, sigils, signs,
+                    circle.power(), circle.precision(), circle.durationTicks());
+        };
     }
 }

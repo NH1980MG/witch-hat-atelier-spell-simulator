@@ -7,7 +7,10 @@ public record ActivationResult(
         ActivationStatus status,
         String pageId,
         List<String> sigilIds,
-        List<String> signIds) {
+        List<String> signIds,
+        double power,
+        double precision,
+        int durationTicks) {
     public ActivationResult {
         status = Objects.requireNonNull(status, "status");
         pageId = Objects.requireNonNull(pageId, "pageId");
@@ -15,7 +18,15 @@ public record ActivationResult(
         signIds = List.copyOf(Objects.requireNonNull(signIds, "signIds"));
     }
 
+    public ActivationResult(
+            ActivationStatus status,
+            String pageId,
+            List<String> sigilIds,
+            List<String> signIds) {
+        this(status, pageId, sigilIds, signIds, 0.0, 0.0, 0);
+    }
+
     public static ActivationResult failure(ActivationStatus status, String pageId) {
-        return new ActivationResult(status, pageId, List.of(), List.of());
+        return new ActivationResult(status, pageId, List.of(), List.of(), 0.0, 0.0, 0);
     }
 }

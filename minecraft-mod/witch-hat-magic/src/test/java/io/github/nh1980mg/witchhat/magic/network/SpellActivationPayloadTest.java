@@ -28,7 +28,10 @@ final class SpellActivationPayloadTest {
                 "page-2",
                 ActivationStatus.SUCCESS,
                 List.of("eau"),
-                List.of("orbe", "projectile"));
+                List.of("orbe", "projectile"),
+                1.25,
+                0.9,
+                276);
 
         assertEquals(payload, roundTrip(payload));
     }

@@ -51,13 +51,19 @@ final class ActivationFeedbackTest {
                 "page-1",
                 ActivationStatus.SUCCESS,
                 List.of("eau"),
-                List.of());
+                List.of(),
+                1.0,
+                0.95,
+                288);
         SpellActivationResultPayload failure = new SpellActivationResultPayload(
                 InteractionHand.MAIN_HAND,
                 "page-1",
                 ActivationStatus.MISSING_SIGIL,
                 List.of(),
-                List.of());
+                List.of(),
+                0.0,
+                0.0,
+                0);
 
         assertTrue(ActivationFeedback.shouldClose(
                 success, InteractionHand.MAIN_HAND, "page-1", "page-1"));

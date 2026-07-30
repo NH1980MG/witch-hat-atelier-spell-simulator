@@ -5,6 +5,8 @@ public enum ActivationStatus {
     PAGE_NOT_FOUND,
     EMPTY_PAGE,
     MISSING_SIGIL,
+    MISSING_CIRCLE,
+    IRREGULAR_CIRCLE,
     SUCCESS,
     COOLDOWN
 }

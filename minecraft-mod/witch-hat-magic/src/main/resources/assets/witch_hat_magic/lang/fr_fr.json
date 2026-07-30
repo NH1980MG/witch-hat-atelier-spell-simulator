@@ -29,12 +29,16 @@
   "screen.witch_hat_magic.activate": "Activer",
   "screen.witch_hat_magic.recognition.empty": "Place un sigil central",
   "screen.witch_hat_magic.recognition.missing_sigil": "Un sigil central est requis",
+  "screen.witch_hat_magic.recognition.missing_circle": "Trace un cercle ferme autour du sigil",
+  "screen.witch_hat_magic.recognition.irregular_circle": "Le cercle est trop irregulier pour s'activer",
   "screen.witch_hat_magic.recognition.ready": "%s | %s signe(s)",
   "screen.witch_hat_magic.activation.pending": "Validation du serveur...",
   "screen.witch_hat_magic.activation.invalid_notebook": "Carnet refuse",
   "screen.witch_hat_magic.activation.page_not_found": "Page introuvable",
   "screen.witch_hat_magic.activation.empty_page": "La page est vide",
   "screen.witch_hat_magic.activation.missing_sigil": "L'activation exige un sigil",
-  "screen.witch_hat_magic.activation.success": "Activation acceptee : %s",
+  "screen.witch_hat_magic.activation.missing_circle": "L'activation exige un cercle ferme",
+  "screen.witch_hat_magic.activation.irregular_circle": "Le cercle est trop irregulier",
+  "screen.witch_hat_magic.activation.success": "Activation acceptee : %s (puissance %sx, %ss)",
   "screen.witch_hat_magic.activation.cooldown": "Attends avant de reactiver"
 }

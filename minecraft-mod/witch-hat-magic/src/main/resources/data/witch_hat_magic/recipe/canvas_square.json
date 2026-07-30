@@ -2,20 +2,23 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    " C ",
-    "CPC",
-    " C "
+    "FPF",
+    "PCP",
+    "FPF"
   ],
   "key": {
-    "C": {
-      "item": "minecraft:leather"
+    "F": {
+      "item": "minecraft:string"
     },
     "P": {
       "item": "minecraft:paper"
+    },
+    "C": {
+      "item": "minecraft:leather"
     }
   },
   "result": {
-    "id": "witch_hat_magic:magic_circle_notebook",
+    "id": "witch_hat_magic:canvas_square",
     "count": 1
   }
 }

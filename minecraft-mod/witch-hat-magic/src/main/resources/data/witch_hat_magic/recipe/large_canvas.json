@@ -2,20 +2,23 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    " C ",
-    "CPC",
-    " C "
+    "TCT",
+    "CEC",
+    "TCT"
   ],
   "key": {
+    "T": {
+      "item": "witch_hat_magic:canvas_square"
+    },
     "C": {
       "item": "minecraft:leather"
     },
-    "P": {
-      "item": "minecraft:paper"
+    "E": {
+      "item": "minecraft:glow_ink_sac"
     }
   },
   "result": {
-    "id": "witch_hat_magic:magic_circle_notebook",
+    "id": "witch_hat_magic:large_canvas",
     "count": 1
   }
 }

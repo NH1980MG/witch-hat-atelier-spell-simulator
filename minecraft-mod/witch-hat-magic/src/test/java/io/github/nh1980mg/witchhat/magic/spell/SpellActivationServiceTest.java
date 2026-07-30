@@ -1,11 +1,14 @@
 package io.github.nh1980mg.witchhat.magic.spell;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.nh1980mg.witchhat.magic.notebook.NormalizedPoint;
 import io.github.nh1980mg.witchhat.magic.notebook.NotebookData;
 import io.github.nh1980mg.witchhat.magic.notebook.NotebookPage;
+import io.github.nh1980mg.witchhat.magic.notebook.NotebookStroke;
 import io.github.nh1980mg.witchhat.magic.notebook.PlacedSymbol;
+import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
@@ -56,22 +59,51 @@ final class SpellActivationServiceTest {
     }
 
     @Test
-    void returnsOnlyTheServerRecognizedSpellOnSuccess() {
+    void rejectsASigilWithoutAnEnclosingCircle() {
         ActivationResult result = SpellActivationService.activate(
                 new ItemStack(Items.WRITABLE_BOOK),
                 Items.WRITABLE_BOOK,
-                notebookWith(symbol("eau"), symbol("orbe"), symbol("orbe")),
+                notebookWith(List.of(), symbol("eau")),
+                "page-1");
+
+        assertEquals(ActivationStatus.MISSING_CIRCLE, result.status());
+    }
+
+    @Test
+    void returnsTheServerRecognizedSpellWithPowerAndDurationOnSuccess() {
+        ActivationResult result = SpellActivationService.activate(
+                new ItemStack(Items.WRITABLE_BOOK),
+                Items.WRITABLE_BOOK,
+                notebookWith(List.of(circleStroke(0.35, 40)), symbol("eau"), symbol("orbe"), symbol("orbe")),
                 "page-1");
 
         assertEquals(ActivationStatus.SUCCESS, result.status());
         assertEquals(List.of("eau"), result.sigilIds());
         assertEquals(List.of("orbe", "orbe"), result.signIds());
+        assertTrue(result.power() >= 0.5 && result.power() <= 1.0);
+        assertTrue(result.precision() > 0.8);
+        assertTrue(result.durationTicks() >= 60 && result.durationTicks() <= 300);
     }
 
     private static NotebookData notebookWith(PlacedSymbol... symbols) {
+        return notebookWith(List.of(), symbols);
+    }
+
+    private static NotebookData notebookWith(List<NotebookStroke> strokes, PlacedSymbol... symbols) {
         NotebookPage page = new NotebookPage(
-                "page-1", "Page 1", List.of(), List.of(symbols));
+                "page-1", "Page 1", strokes, List.of(symbols));
         return new NotebookData(NotebookData.CURRENT_FORMAT, page.id(), List.of(page));
+    }
+
+    private static NotebookStroke circleStroke(double radius, int samples) {
+        List<NormalizedPoint> points = new ArrayList<>();
+        for (int index = 0; index < samples; index++) {
+            double angle = 2.0 * Math.PI * index / samples;
+            points.add(new NormalizedPoint(
+                    (float) (0.5 + radius * Math.cos(angle)),
+                    (float) (0.5 + radius * Math.sin(angle))));
+        }
+        return new NotebookStroke(points);
     }
 
     private static PlacedSymbol symbol(String id) {

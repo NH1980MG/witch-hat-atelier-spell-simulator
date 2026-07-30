@@ -20,11 +20,14 @@ public record SpellActivationResultPayload(
         String pageId,
         ActivationStatus status,
         List<String> sigilIds,
-        List<String> signIds)
+        List<String> signIds,
+        double power,
+        double precision,
+        int durationTicks)
         implements CustomPacketPayload {
     public static final Type<SpellActivationResultPayload> TYPE = new Type<>(
             ResourceLocation.fromNamespaceAndPath(
-                    WitchHatMagicMod.MOD_ID, "spell_activation_result_v1"));
+                    WitchHatMagicMod.MOD_ID, "spell_activation_result_v2"));
     public static final StreamCodec<RegistryFriendlyByteBuf, SpellActivationResultPayload> CODEC =
             StreamCodec.ofMember(
                     SpellActivationResultPayload::write,
@@ -46,7 +49,10 @@ public record SpellActivationResultPayload(
                 result.pageId(),
                 result.status(),
                 result.sigilIds(),
-                result.signIds());
+                result.signIds(),
+                result.power(),
+                result.precision(),
+                result.durationTicks());
     }
 
     @Override
@@ -60,6 +66,9 @@ public record SpellActivationResultPayload(
         buffer.writeVarInt(status.ordinal());
         writeIds(buffer, sigilIds);
         writeIds(buffer, signIds);
+        buffer.writeDouble(power);
+        buffer.writeDouble(precision);
+        buffer.writeVarInt(durationTicks);
     }
 
     private static SpellActivationResultPayload read(RegistryFriendlyByteBuf buffer) {
@@ -71,12 +80,21 @@ public record SpellActivationResultPayload(
         if (statusOrdinal < 0 || statusOrdinal >= ActivationStatus.values().length) {
             throw new DecoderException("Invalid spell activation status");
         }
+        ActivationStatus status = ActivationStatus.values()[statusOrdinal];
+        List<String> sigilIds = readIds(buffer);
+        List<String> signIds = readIds(buffer);
+        double power = buffer.readDouble();
+        double precision = buffer.readDouble();
+        int durationTicks = buffer.readVarInt();
         return new SpellActivationResultPayload(
                 hand,
                 pageId,
-                ActivationStatus.values()[statusOrdinal],
-                readIds(buffer),
-                readIds(buffer));
+                status,
+                sigilIds,
+                signIds,
+                power,
+                precision,
+                durationTicks);
     }
 
     private static void writeIds(RegistryFriendlyByteBuf buffer, List<String> ids) {

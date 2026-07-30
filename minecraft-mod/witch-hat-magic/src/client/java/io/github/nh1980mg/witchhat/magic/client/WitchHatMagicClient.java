@@ -36,10 +36,14 @@ public final class WitchHatMagicClient implements ClientModInitializer {
                                 .equals("fr_fr");
                         String sigils = ActivationFeedback.localizedSigils(
                                 payload.sigilIds(), french);
+                        String power = String.format(java.util.Locale.ROOT, "%.1f", payload.power());
+                        int durationSeconds = payload.durationTicks() / 20;
                         context.client().player.displayClientMessage(
                                 Component.translatable(
                                         ActivationFeedback.activationKey(payload.status()),
-                                        sigils),
+                                        sigils,
+                                        power,
+                                        durationSeconds),
                                 true);
                     }
                     if (context.client().screen instanceof MagicNotebookScreen screen) {

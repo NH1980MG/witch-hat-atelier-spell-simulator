@@ -41,8 +41,17 @@ public final class SpellActivationService {
         ActivationStatus status = switch (spell.status()) {
             case EMPTY -> ActivationStatus.EMPTY_PAGE;
             case MISSING_SIGIL -> ActivationStatus.MISSING_SIGIL;
+            case MISSING_CIRCLE -> ActivationStatus.MISSING_CIRCLE;
+            case IRREGULAR_CIRCLE -> ActivationStatus.IRREGULAR_CIRCLE;
             case READY -> ActivationStatus.SUCCESS;
         };
-        return new ActivationResult(status, pageId, spell.sigilIds(), spell.signIds());
+        return new ActivationResult(
+                status,
+                pageId,
+                spell.sigilIds(),
+                spell.signIds(),
+                spell.power(),
+                spell.precision(),
+                spell.durationTicks());
     }
 }
