@@ -146,7 +146,10 @@ Persistent tracing guides can reuse another notebook page below the active
 drawing, then be hidden, switched, reduced, or enlarged. Workshop mode also
 recognizes exact placed sigils and signs, then sends activation requests to the
 server for authoritative notebook and page validation. Accepted activations do
-not yet create world effects.
+create a temporary, non-destructive particle seal 2.5 blocks in front of the
+player. The particle family follows the primary sigil, the accepted spell is
+shown in the action bar, and the notebook closes before the manifestation is
+revealed.
 
 Build the local JAR:
 
@@ -159,6 +162,6 @@ JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home \
 
 The playable JAR is written to
 `witch-hat-magic/build/libs/witch-hat-magic-0.1.0-local.jar`. Spell details,
-support selection, activation manifestations, and in-world spell interactions
-remain separate implementation phases. The magic mod does not depend on AI
-Builder.
+support selection, animated manifestation phases, and physical spell
+interactions remain separate implementation phases. The magic mod does not
+depend on AI Builder.

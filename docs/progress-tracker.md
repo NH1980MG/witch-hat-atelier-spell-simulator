@@ -142,14 +142,18 @@ remaining large `app.js` sections.
   and size controls.
 - Deterministic Minecraft recognition for exact placed sigils and signs,
   including repetitions and multiple sigils, plus bounded server-authoritative
-  activation requests and bilingual workshop feedback. The complete magic
-  module has 59 passing unit tests.
+  activation requests and bilingual workshop feedback.
+- Server-authoritative Minecraft manifestations project a bounded 104-particle
+  seal 2.5 blocks in front of the player without modifying world state. Particle
+  families follow the primary sigil, successful activations close the notebook,
+  and the spell name remains visible in the action bar. The complete magic
+  module has 66 passing unit tests.
 
 ## In Progress
 
 - Extracting effect layers from `app.js` without adding a build system.
-- Minecraft spell details, support selection, activation manifestations, world
-  interactions, and optional in-world spell preview.
+- Minecraft spell details, support selection, animated manifestation phases,
+  and physical world interactions.
 
 ## Next Milestones
 

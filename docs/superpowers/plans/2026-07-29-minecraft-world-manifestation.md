@@ -30,10 +30,10 @@
 - Produces: `ManifestationGeometry.circle(Vec3 center, Vec3 normal, double radius, int samples)`.
 - Produces: `ManifestationGeometry.line(Vec3 start, Vec3 end, int samples)`.
 
-- [ ] Write failing tests for sample count, radius, plane alignment, vertical look fallback, and bounded invalid inputs.
-- [ ] Run the focused test and confirm `ManifestationGeometry` is missing.
-- [ ] Implement orthonormal-basis circle projection and bounded line interpolation.
-- [ ] Re-run the focused tests and commit.
+- [x] Write failing tests for sample count, radius, plane alignment, vertical look fallback, and bounded invalid inputs.
+- [x] Run the focused test and confirm `ManifestationGeometry` is missing.
+- [x] Implement orthonormal-basis circle projection and bounded line interpolation.
+- [x] Re-run the focused tests and commit.
 
 ### Task 2: Sigil Particle Profiles and Seal Plan
 
@@ -46,10 +46,10 @@
 - Consumes: successful `ActivationResult`, eye position, and normalized look vector.
 - Produces: one `SimpleParticleType` and at most 128 world-space points.
 
-- [ ] Write failing tests for fire, water, earth, wind, light, smoke, crystal, decorative fallback, point count, and center distance.
-- [ ] Run the focused test and confirm profile and plan classes are missing.
-- [ ] Implement a 48-point outer ring, 24-point inner ring, and eight four-point radial links centered 2.5 blocks ahead.
-- [ ] Re-run focused tests and commit.
+- [x] Write failing tests for fire, water, earth, wind, light, smoke, crystal, decorative fallback, point count, and center distance.
+- [x] Run the focused test and confirm profile and plan classes are missing.
+- [x] Implement a 48-point outer ring, 24-point inner ring, and eight four-point radial links centered 2.5 blocks ahead.
+- [x] Re-run focused tests and commit.
 
 ### Task 3: Server Dispatch and Client Reveal
 
@@ -63,9 +63,9 @@
 - Emits: one server particle per planned point.
 - Client behavior: display the accepted spell name in the action bar and close the notebook only for `SUCCESS`.
 
-- [ ] Dispatch only successful results and preserve the result-before-particles packet order.
-- [ ] Close the native screen after success while keeping validation failures visible.
-- [ ] Compile client and common sources.
+- [x] Dispatch only successful results and preserve the result-before-particles packet order.
+- [x] Close the native screen after success while keeping validation failures visible.
+- [x] Compile client and common sources.
 
 ### Task 4: Verification and Documentation
 
@@ -74,8 +74,8 @@
 - Modify: `docs/progress-tracker.md`
 - Modify: this plan.
 
-- [ ] Run all magic and AI Builder tests, both clean builds, and symbol export tests.
-- [ ] Start the dedicated server and verify it reaches `Done`.
-- [ ] Start the client and inspect logs for mod errors and missing textures.
-- [ ] Confirm the JAR contains all 64 symbol textures.
-- [ ] Update documentation and commit locally without pushing.
+- [x] Run all magic and AI Builder tests, both clean builds, and symbol export tests.
+- [x] Start the dedicated server and verify it reaches `Done`.
+- [x] Start the client and inspect logs for mod errors and missing textures.
+- [x] Confirm the JAR contains all 64 symbol textures.
+- [x] Update documentation and commit locally without pushing.
