@@ -15,9 +15,6 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 
 public final class NotebookNetworking {
-    private static final ActivationRateLimiter<ServerPlayer> ACTIVATION_RATE_LIMITER =
-            new ActivationRateLimiter<>(20);
-
     private NotebookNetworking() {
     }
 
@@ -83,7 +80,7 @@ public final class NotebookNetworking {
                 authoritative,
                 payload.pageId());
         boolean manifestationAllowed = activation.status() != ActivationStatus.SUCCESS
-                || ACTIVATION_RATE_LIMITER.tryAcquire(player, player.tickCount);
+                || ActivationRateLimits.tryAcquire(player);
         ActivationResult result = ActivationDispatch.applyRateLimit(
                 activation, manifestationAllowed);
         ActivationDispatch.run(

@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "witch_hat_magic:block/canvas_square" },
+    "facing=south": { "model": "witch_hat_magic:block/canvas_square", "y": 180 },
+    "facing=west": { "model": "witch_hat_magic:block/canvas_square", "y": 270 },
+    "facing=east": { "model": "witch_hat_magic:block/canvas_square", "y": 90 }
+  }
+}

@@ -40,5 +40,9 @@
   "screen.witch_hat_magic.activation.missing_circle": "Activation requires a closed circle",
   "screen.witch_hat_magic.activation.irregular_circle": "The circle is too irregular",
   "screen.witch_hat_magic.activation.success": "Activation accepted: %s (power %sx, %ss)",
-  "screen.witch_hat_magic.activation.cooldown": "Wait before activating again"
+  "screen.witch_hat_magic.activation.cooldown": "Wait before activating again",
+  "block.witch_hat_magic.canvas_square": "Canvas Square",
+  "screen.witch_hat_magic.activation.canvas_success": "Activation accepted: %s (power %sx, %ss) — %s use(s) left",
+  "screen.witch_hat_magic.activation.canvas_not_found": "Canvas not found",
+  "screen.witch_hat_magic.activation.canvas_depleted": "This canvas is worn out — repair it with a canvas square"
 }

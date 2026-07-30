@@ -1,8 +1,7 @@
 package io.github.nh1980mg.witchhat.magic.client;
 
 import com.mojang.math.Axis;
-import io.github.nh1980mg.witchhat.magic.network.ActivateSpellPayload;
-import io.github.nh1980mg.witchhat.magic.network.SaveNotebookPayload;
+import io.github.nh1980mg.witchhat.magic.network.CanvasActivationResultPayload;
 import io.github.nh1980mg.witchhat.magic.network.SpellActivationResultPayload;
 import io.github.nh1980mg.witchhat.magic.notebook.NormalizedPoint;
 import io.github.nh1980mg.witchhat.magic.notebook.NotebookData;
@@ -15,7 +14,6 @@ import io.github.nh1980mg.witchhat.magic.spell.RecognizedSpell;
 import io.github.nh1980mg.witchhat.magic.spell.SpellRecognizer;
 import io.github.nh1980mg.witchhat.magic.symbol.MagicSymbolCatalog;
 import java.util.List;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -39,7 +37,7 @@ public final class MagicNotebookScreen extends Screen {
     private static final int CATALOG_ROW_HEIGHT = 38;
     private static final int DEFAULT_SYMBOL_SIZE = 48;
 
-    private final InteractionHand hand;
+    private final EditorTransport transport;
     private final NotebookEditorSession session;
     private Tool tool = Tool.PEN;
     private boolean drawing;
@@ -79,15 +77,19 @@ public final class MagicNotebookScreen extends Screen {
     private EditBox pageTitleBox;
 
     public MagicNotebookScreen(InteractionHand hand, NotebookData data) {
-        super(Component.translatable("screen.witch_hat_magic.notebook"));
-        this.hand = hand;
-        this.session = new NotebookEditorSession(data);
-        this.lastSent = data;
-        this.lastRecognition = SpellRecognizer.recognize(data.selectedPage());
+        this(new NotebookTransport(hand), data);
     }
 
-    InteractionHand hand() {
-        return hand;
+    public MagicNotebookScreen(EditorTransport transport, NotebookData data) {
+        super(Component.translatable("screen.witch_hat_magic.notebook"));
+        this.transport = transport;
+        this.session = new NotebookEditorSession(data);
+        this.lastSent = data;
+        this.lastRecognition = SpellRecognizer.recognize(data.selectedPage(), transport.support());
+    }
+
+    Object transportKey() {
+        return transport.key();
     }
 
     void acceptAuthoritative(NotebookData data) {
@@ -98,30 +100,66 @@ public final class MagicNotebookScreen extends Screen {
     }
 
     void acceptActivationResult(SpellActivationResultPayload payload) {
-        if (payload.hand() != hand
-                || !payload.pageId().equals(pendingActivationPageId)) {
+        handleActivationResult(
+                payload.hand(),
+                payload.pageId(),
+                payload.status(),
+                payload.sigilIds(),
+                payload.power(),
+                payload.durationTicks(),
+                null);
+    }
+
+    void acceptActivationResult(CanvasActivationResultPayload payload) {
+        handleActivationResult(
+                payload.pos(),
+                payload.pageId(),
+                payload.status(),
+                payload.sigilIds(),
+                payload.power(),
+                payload.durationTicks(),
+                payload.remainingActivations());
+    }
+
+    private void handleActivationResult(
+            Object key,
+            String pageId,
+            ActivationStatus status,
+            List<String> sigilIds,
+            double power,
+            int durationTicks,
+            Integer remainingActivations) {
+        if (!transport.key().equals(key)
+                || !pageId.equals(pendingActivationPageId)) {
             return;
         }
-        String pendingPageId = pendingActivationPageId;
         pendingActivationPageId = null;
         String selectedPageId = session.snapshot().selectedPageId();
-        if (!payload.pageId().equals(selectedPageId)) {
+        if (!pageId.equals(selectedPageId)) {
             return;
         }
-        if (payload.status() == ActivationStatus.SUCCESS) {
-            String sigils = payload.sigilIds().stream()
+        if (status == ActivationStatus.SUCCESS) {
+            String sigils = sigilIds.stream()
                     .map(this::localizedSymbolName)
                     .reduce((left, right) -> left + " + " + right)
                     .orElse("");
-            activationFeedback = Component.translatable(
-                    ActivationFeedback.activationKey(payload.status()), sigils);
-            if (ActivationFeedback.shouldClose(
-                    payload, hand, pendingPageId, selectedPageId)) {
-                onClose();
-            }
+            String powerText = String.format(java.util.Locale.ROOT, "%.1f", power);
+            activationFeedback = remainingActivations == null
+                    ? Component.translatable(
+                            ActivationFeedback.activationKey(status),
+                            sigils,
+                            powerText,
+                            durationTicks / 20)
+                    : Component.translatable(
+                            "screen.witch_hat_magic.activation.canvas_success",
+                            sigils,
+                            powerText,
+                            durationTicks / 20,
+                            remainingActivations);
+            onClose();
         } else {
             activationFeedback = Component.translatable(
-                    ActivationFeedback.activationKey(payload.status()));
+                    ActivationFeedback.activationKey(status));
         }
     }
 
@@ -174,36 +212,38 @@ public final class MagicNotebookScreen extends Screen {
         int secondRowWidth = buttonWidth * 6 + gap * 5;
         int secondX = Math.max(4, (width - secondRowWidth) / 2);
         int secondY = height - 23;
-        previousButton = addControl(
-                "screen.witch_hat_magic.previous",
-                secondX,
-                secondY,
-                buttonWidth,
-                button -> session.previousPage());
-        nextButton = addControl(
-                "screen.witch_hat_magic.next",
-                secondX + (buttonWidth + gap),
-                secondY,
-                buttonWidth,
-                button -> session.nextPage());
-        pagesButton = addControl(
-                "screen.witch_hat_magic.pages",
-                secondX + (buttonWidth + gap) * 2,
-                secondY,
-                buttonWidth,
-                button -> setPageIndexOpen(true));
-        addControl(
-                "screen.witch_hat_magic.add_page",
-                secondX + (buttonWidth + gap) * 3,
-                secondY,
-                buttonWidth,
-                button -> session.addPage());
-        deleteButton = addControl(
-                "screen.witch_hat_magic.delete_page",
-                secondX + (buttonWidth + gap) * 4,
-                secondY,
-                buttonWidth,
-                button -> session.deletePage());
+        if (transport.multiPage()) {
+            previousButton = addControl(
+                    "screen.witch_hat_magic.previous",
+                    secondX,
+                    secondY,
+                    buttonWidth,
+                    button -> session.previousPage());
+            nextButton = addControl(
+                    "screen.witch_hat_magic.next",
+                    secondX + (buttonWidth + gap),
+                    secondY,
+                    buttonWidth,
+                    button -> session.nextPage());
+            pagesButton = addControl(
+                    "screen.witch_hat_magic.pages",
+                    secondX + (buttonWidth + gap) * 2,
+                    secondY,
+                    buttonWidth,
+                    button -> setPageIndexOpen(true));
+            addControl(
+                    "screen.witch_hat_magic.add_page",
+                    secondX + (buttonWidth + gap) * 3,
+                    secondY,
+                    buttonWidth,
+                    button -> session.addPage());
+            deleteButton = addControl(
+                    "screen.witch_hat_magic.delete_page",
+                    secondX + (buttonWidth + gap) * 4,
+                    secondY,
+                    buttonWidth,
+                    button -> session.deletePage());
+        }
         addControl(
                 "screen.witch_hat_magic.workshop",
                 secondX + (buttonWidth + gap) * 5,
@@ -216,56 +256,58 @@ public final class MagicNotebookScreen extends Screen {
                     updatePageWidgetVisibility();
                 });
 
-        int overlayLeft = Math.max(8, width / 2 - 120);
-        int overlayTop = Math.max(38, height / 2 - 92);
-        pageTitleBox = addRenderableWidget(new EditBox(
-                font,
-                overlayLeft + 10,
-                overlayTop + 24,
-                220,
-                20,
-                Component.translatable("screen.witch_hat_magic.page_title")));
-        pageTitleBox.setMaxLength(64);
-        int pageActionWidth = 42;
-        renamePageButton = addControl(
-                "screen.witch_hat_magic.rename",
-                overlayLeft + 10,
-                overlayTop + 47,
-                pageActionWidth,
-                button -> applyPageRename());
-        duplicatePageButton = addControl(
-                "screen.witch_hat_magic.duplicate",
-                overlayLeft + 55,
-                overlayTop + 47,
-                pageActionWidth,
-                button -> {
-                    session.duplicatePage();
-                    syncPageIndexSelection();
-                });
-        movePageLeftButton = addControl(
-                "screen.witch_hat_magic.move_left",
-                overlayLeft + 100,
-                overlayTop + 47,
-                pageActionWidth,
-                button -> {
-                    session.movePage(-1);
-                    syncPageIndexSelection();
-                });
-        movePageRightButton = addControl(
-                "screen.witch_hat_magic.move_right",
-                overlayLeft + 145,
-                overlayTop + 47,
-                pageActionWidth,
-                button -> {
-                    session.movePage(1);
-                    syncPageIndexSelection();
-                });
-        closePagesButton = addControl(
-                "screen.witch_hat_magic.close",
-                overlayLeft + 190,
-                overlayTop + 47,
-                40,
-                button -> setPageIndexOpen(false));
+        if (transport.multiPage()) {
+            int overlayLeft = Math.max(8, width / 2 - 120);
+            int overlayTop = Math.max(38, height / 2 - 92);
+            pageTitleBox = addRenderableWidget(new EditBox(
+                    font,
+                    overlayLeft + 10,
+                    overlayTop + 24,
+                    220,
+                    20,
+                    Component.translatable("screen.witch_hat_magic.page_title")));
+            pageTitleBox.setMaxLength(64);
+            int pageActionWidth = 42;
+            renamePageButton = addControl(
+                    "screen.witch_hat_magic.rename",
+                    overlayLeft + 10,
+                    overlayTop + 47,
+                    pageActionWidth,
+                    button -> applyPageRename());
+            duplicatePageButton = addControl(
+                    "screen.witch_hat_magic.duplicate",
+                    overlayLeft + 55,
+                    overlayTop + 47,
+                    pageActionWidth,
+                    button -> {
+                        session.duplicatePage();
+                        syncPageIndexSelection();
+                    });
+            movePageLeftButton = addControl(
+                    "screen.witch_hat_magic.move_left",
+                    overlayLeft + 100,
+                    overlayTop + 47,
+                    pageActionWidth,
+                    button -> {
+                        session.movePage(-1);
+                        syncPageIndexSelection();
+                    });
+            movePageRightButton = addControl(
+                    "screen.witch_hat_magic.move_right",
+                    overlayLeft + 145,
+                    overlayTop + 47,
+                    pageActionWidth,
+                    button -> {
+                        session.movePage(1);
+                        syncPageIndexSelection();
+                    });
+            closePagesButton = addControl(
+                    "screen.witch_hat_magic.close",
+                    overlayLeft + 190,
+                    overlayTop + 47,
+                    40,
+                    button -> setPageIndexOpen(false));
+        }
         activationButton = addControl(
                 "screen.witch_hat_magic.activate",
                 7,
@@ -1012,15 +1054,16 @@ public final class MagicNotebookScreen extends Screen {
     }
 
     private void updatePageWidgetVisibility() {
-        if (pageTitleBox == null) {
-            return;
+        if (pageTitleBox != null) {
+            pageTitleBox.setVisible(pageIndexOpen);
         }
-        pageTitleBox.setVisible(pageIndexOpen);
-        renamePageButton.visible = pageIndexOpen;
-        duplicatePageButton.visible = pageIndexOpen;
-        movePageLeftButton.visible = pageIndexOpen;
-        movePageRightButton.visible = pageIndexOpen;
-        closePagesButton.visible = pageIndexOpen;
+        if (renamePageButton != null) {
+            renamePageButton.visible = pageIndexOpen;
+            duplicatePageButton.visible = pageIndexOpen;
+            movePageLeftButton.visible = pageIndexOpen;
+            movePageRightButton.visible = pageIndexOpen;
+            closePagesButton.visible = pageIndexOpen;
+        }
         if (activationButton != null) {
             activationButton.visible = workshopShell && !pageIndexOpen;
         }
@@ -1032,10 +1075,12 @@ public final class MagicNotebookScreen extends Screen {
         }
         undoButton.active = session.canUndo();
         redoButton.active = session.canRedo();
-        previousButton.active = session.snapshot().selectedPageIndex() > 0;
-        nextButton.active = session.snapshot().selectedPageIndex() + 1 < session.snapshot().pages().size();
-        deleteButton.active = session.snapshot().pages().size() > 1;
-        pagesButton.active = !pageIndexOpen;
+        if (previousButton != null) {
+            previousButton.active = session.snapshot().selectedPageIndex() > 0;
+            nextButton.active = session.snapshot().selectedPageIndex() + 1 < session.snapshot().pages().size();
+            deleteButton.active = session.snapshot().pages().size() > 1;
+            pagesButton.active = !pageIndexOpen;
+        }
         if (renamePageButton != null) {
             duplicatePageButton.active = session.snapshot().pages().size() < NotebookLimits.MAX_PAGES;
             movePageLeftButton.active = session.snapshot().selectedPageIndex() > 0;
@@ -1045,7 +1090,7 @@ public final class MagicNotebookScreen extends Screen {
         if (activationButton != null) {
             activationButton.active = pendingActivationPageId == null
                     && lastRecognition.activatable()
-                    && ClientPlayNetworking.canSend(ActivateSpellPayload.TYPE);
+                    && transport.canSend();
         }
         penButton.active = tool != Tool.PEN;
         eraserButton.active = tool != Tool.ERASER;
@@ -1053,27 +1098,27 @@ public final class MagicNotebookScreen extends Screen {
 
     private void sendSave() {
         NotebookData snapshot = session.snapshot();
-        if (ClientPlayNetworking.canSend(SaveNotebookPayload.TYPE)) {
-            ClientPlayNetworking.send(new SaveNotebookPayload(hand, snapshot));
+        if (transport.canSend()) {
+            transport.sendSave(snapshot);
             lastSent = snapshot;
         }
     }
 
     private void sendActivation() {
         sendSave();
-        if (!ClientPlayNetworking.canSend(ActivateSpellPayload.TYPE)) {
+        if (!transport.canSend()) {
             return;
         }
         String pageId = session.snapshot().selectedPageId();
         pendingActivationPageId = pageId;
         activationFeedback = Component.translatable(
                 "screen.witch_hat_magic.activation.pending");
-        ClientPlayNetworking.send(new ActivateSpellPayload(hand, pageId));
+        transport.sendActivation(pageId);
     }
 
     private void refreshRecognition() {
         RecognizedSpell recognized = SpellRecognizer.recognize(
-                session.snapshot().selectedPage());
+                session.snapshot().selectedPage(), transport.support());
         if (!recognized.equals(lastRecognition)) {
             lastRecognition = recognized;
             activationFeedback = null;

@@ -7,6 +7,8 @@ public enum ActivationStatus {
     MISSING_SIGIL,
     MISSING_CIRCLE,
     IRREGULAR_CIRCLE,
+    CANVAS_NOT_FOUND,
+    CANVAS_DEPLETED,
     SUCCESS,
     COOLDOWN
 }

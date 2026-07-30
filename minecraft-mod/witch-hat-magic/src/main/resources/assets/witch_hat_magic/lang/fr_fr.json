@@ -40,5 +40,9 @@
   "screen.witch_hat_magic.activation.missing_circle": "L'activation exige un cercle ferme",
   "screen.witch_hat_magic.activation.irregular_circle": "Le cercle est trop irregulier",
   "screen.witch_hat_magic.activation.success": "Activation acceptee : %s (puissance %sx, %ss)",
-  "screen.witch_hat_magic.activation.cooldown": "Attends avant de reactiver"
+  "screen.witch_hat_magic.activation.cooldown": "Attends avant de reactiver",
+  "block.witch_hat_magic.canvas_square": "Carre de toile",
+  "screen.witch_hat_magic.activation.canvas_success": "Activation acceptee : %s (puissance %sx, %ss) — %s utilisation(s) restante(s)",
+  "screen.witch_hat_magic.activation.canvas_not_found": "Toile introuvable",
+  "screen.witch_hat_magic.activation.canvas_depleted": "Cette toile est usee — repare-la avec un carre de toile"
 }

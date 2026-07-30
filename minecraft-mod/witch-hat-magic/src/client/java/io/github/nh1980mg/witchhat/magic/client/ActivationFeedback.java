@@ -1,12 +1,10 @@
 package io.github.nh1980mg.witchhat.magic.client;
 
-import io.github.nh1980mg.witchhat.magic.network.SpellActivationResultPayload;
 import io.github.nh1980mg.witchhat.magic.spell.ActivationStatus;
 import io.github.nh1980mg.witchhat.magic.spell.RecognitionStatus;
 import io.github.nh1980mg.witchhat.magic.symbol.MagicSymbolCatalog;
 import java.util.List;
 import java.util.Locale;
-import net.minecraft.world.InteractionHand;
 
 final class ActivationFeedback {
     private ActivationFeedback() {}
@@ -30,17 +28,5 @@ final class ActivationFeedback {
                         .orElse(id))
                 .reduce((left, right) -> left + " + " + right)
                 .orElse("");
-    }
-
-    static boolean shouldClose(
-            SpellActivationResultPayload payload,
-            InteractionHand screenHand,
-            String pendingPageId,
-            String selectedPageId) {
-        return payload.status() == ActivationStatus.SUCCESS
-                && payload.hand() == screenHand
-                && pendingPageId != null
-                && payload.pageId().equals(pendingPageId)
-                && payload.pageId().equals(selectedPageId);
     }
 }

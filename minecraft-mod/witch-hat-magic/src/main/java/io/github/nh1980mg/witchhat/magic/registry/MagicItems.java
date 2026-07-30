@@ -9,6 +9,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -25,12 +26,20 @@ public final class MagicItems {
                     .stacksTo(1)
                     .component(MagicComponents.NOTEBOOK_DATA, NotebookData.createDefault())));
 
+    public static final BlockItem CANVAS_SQUARE = Registry.register(
+            BuiltInRegistries.ITEM,
+            ResourceLocation.fromNamespaceAndPath(WitchHatMagicMod.MOD_ID, "canvas_square"),
+            new BlockItem(MagicBlocks.CANVAS_SQUARE, new Item.Properties().stacksTo(16)));
+
     private MagicItems() {
     }
 
     public static void register() {
         ItemGroupEvents.modifyEntriesEvent(FUNCTIONAL_BLOCKS)
-                .register(entries -> entries.accept(MAGIC_CIRCLE_NOTEBOOK));
+                .register(entries -> {
+                    entries.accept(MAGIC_CIRCLE_NOTEBOOK);
+                    entries.accept(CANVAS_SQUARE);
+                });
     }
 
     public static ItemStack createNotebookStack() {

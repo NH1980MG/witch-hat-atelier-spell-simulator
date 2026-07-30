@@ -1,6 +1,9 @@
 package io.github.nh1980mg.witchhat.magic;
 
+import io.github.nh1980mg.witchhat.magic.network.CanvasNetworking;
 import io.github.nh1980mg.witchhat.magic.network.NotebookNetworking;
+import io.github.nh1980mg.witchhat.magic.registry.MagicBlockEntities;
+import io.github.nh1980mg.witchhat.magic.registry.MagicBlocks;
 import io.github.nh1980mg.witchhat.magic.registry.MagicComponents;
 import io.github.nh1980mg.witchhat.magic.registry.MagicItems;
 import io.github.nh1980mg.witchhat.magic.spell.SpellManifestationService;
@@ -13,9 +16,13 @@ public final class WitchHatMagicMod implements ModInitializer {
     @Override
     public void onInitialize() {
         MagicComponents.register();
+        MagicBlocks.register();
+        MagicBlockEntities.register();
         MagicItems.register();
         NotebookNetworking.registerPayloads();
         NotebookNetworking.registerServerReceivers();
+        CanvasNetworking.registerPayloads();
+        CanvasNetworking.registerServerReceivers();
         ServerTickEvents.END_SERVER_TICK.register(
                 server -> SpellManifestationService.scheduler().tick());
     }
