@@ -713,7 +713,7 @@ public final class MagicNotebookScreen extends Screen {
         graphics.pose().pushPose();
         graphics.pose().translate(centerX, centerY, 0.0);
         graphics.pose().mulPose(Axis.ZP.rotationDegrees(symbol.rotationDegrees()));
-        graphics.blit(texture, -size / 2, -size / 2, 0.0F, 0.0F, size, size, 48, 48);
+        graphics.blit(texture, -size / 2, -size / 2, size, size, 0.0F, 0.0F, 192, 192, 192, 192);
         graphics.pose().popPose();
         graphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
@@ -777,12 +777,14 @@ public final class MagicNotebookScreen extends Screen {
                     symbolTexture(entry.id()),
                     x + 3,
                     y + 2,
-                    0.0F,
-                    0.0F,
                     24,
                     24,
-                    48,
-                    48);
+                    0.0F,
+                    0.0F,
+                    192,
+                    192,
+                    192,
+                    192);
             graphics.drawCenteredString(
                     font,
                     entry.id().substring(0, Math.min(3, entry.id().length())).toUpperCase(),

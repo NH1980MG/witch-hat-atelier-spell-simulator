@@ -95,8 +95,8 @@ function renderSymbolSvg(entry) {
   const paths = entry.paths
     .map((pathData) => `<path d="${pathData.replaceAll('"', "&quot;")}"/>`)
     .join("");
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
-  <g fill="none" stroke="#243044" stroke-width="2.35" stroke-linecap="round" stroke-linejoin="round">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 48 48">
+  <g fill="none" stroke="#243044" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
     ${paths}
   </g>
 </svg>`;
