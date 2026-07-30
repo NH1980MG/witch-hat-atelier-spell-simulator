@@ -233,6 +233,38 @@ class NotebookEditorSessionTest {
         assertEquals(1, session.snapshot().selectedPage().symbols().size());
     }
 
+    @Test
+    void advancedPageOperationsAreUndoable() {
+        NotebookEditorSession session = new NotebookEditorSession(NotebookData.createDefault());
+
+        session.renamePage("Practice");
+        assertEquals("Practice", session.snapshot().selectedPage().title());
+
+        session.duplicatePage();
+        assertEquals(2, session.snapshot().pages().size());
+        assertEquals("Practice copy", session.snapshot().selectedPage().title());
+
+        session.movePage(-1);
+        assertEquals(0, session.snapshot().selectedPageIndex());
+
+        session.undo();
+        assertEquals(1, session.snapshot().selectedPageIndex());
+        session.undo();
+        assertEquals(1, session.snapshot().pages().size());
+        session.undo();
+        assertEquals("Page 1", session.snapshot().selectedPage().title());
+    }
+
+    @Test
+    void pageIndexCanSelectAnyExistingPage() {
+        NotebookEditorSession session = new NotebookEditorSession(
+                NotebookData.createDefault().addPage().addPage());
+
+        session.selectPage(0);
+
+        assertEquals(0, session.snapshot().selectedPageIndex());
+    }
+
     private static NotebookEditorSession sessionWithOneStroke() {
         NotebookEditorSession session = new NotebookEditorSession(NotebookData.createDefault());
         session.beginStroke(200.0, 200.0, 100.0, 100.0, 200.0);

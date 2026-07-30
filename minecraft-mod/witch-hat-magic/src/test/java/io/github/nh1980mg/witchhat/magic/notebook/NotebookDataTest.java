@@ -164,6 +164,58 @@ class NotebookDataTest {
         assertTrue(NotebookData.createDefault().selectedPage().symbols().isEmpty());
     }
 
+    @Test
+    void renamesTheSelectedPageWithoutChangingItsStableId() {
+        NotebookData original = NotebookData.createDefault();
+
+        NotebookData renamed = original.renameSelectedPage("Fire practice");
+
+        assertEquals(original.selectedPageId(), renamed.selectedPageId());
+        assertEquals("Fire practice", renamed.selectedPage().title());
+        assertEquals("Page 1", original.selectedPage().title());
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> original.renameSelectedPage(" ".repeat(4)));
+    }
+
+    @Test
+    void duplicatesTheSelectedPageWithAUniqueIdAndCopiedContent() {
+        NotebookPage source = new NotebookPage(
+                "page-1",
+                "Fire",
+                List.of(new NotebookStroke(List.of(new NormalizedPoint(0.5F, 0.5F)))),
+                List.of(new PlacedSymbol(
+                        "feu",
+                        new NormalizedPoint(0.5F, 0.5F),
+                        0.2F,
+                        0.0F)));
+        NotebookData original = new NotebookData(
+                NotebookData.CURRENT_FORMAT, source.id(), List.of(source));
+
+        NotebookData duplicated = original.duplicateSelectedPage();
+
+        assertEquals(2, duplicated.pages().size());
+        assertEquals("page-2", duplicated.selectedPageId());
+        assertEquals("Fire copy", duplicated.selectedPage().title());
+        assertEquals(source.strokes(), duplicated.selectedPage().strokes());
+        assertEquals(source.symbols(), duplicated.selectedPage().symbols());
+        assertNotSame(source, duplicated.selectedPage());
+    }
+
+    @Test
+    void reordersTheSelectedPageAndKeepsItSelected() {
+        NotebookData data = NotebookData.createDefault().addPage().addPage();
+        String selectedId = data.selectedPageId();
+
+        NotebookData movedLeft = data.moveSelectedPage(-1);
+        NotebookData movedRight = movedLeft.moveSelectedPage(1);
+
+        assertEquals(selectedId, movedLeft.pages().get(1).id());
+        assertEquals(selectedId, movedLeft.selectedPageId());
+        assertEquals(selectedId, movedRight.pages().get(2).id());
+        assertEquals(movedRight, movedRight.moveSelectedPage(1));
+    }
+
     private static NotebookData dataWithPoint(NormalizedPoint point) {
         return dataWithStroke(new NotebookStroke(List.of(point)));
     }

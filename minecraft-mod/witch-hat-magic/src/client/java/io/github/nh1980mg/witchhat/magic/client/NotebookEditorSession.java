@@ -161,6 +161,29 @@ public final class NotebookEditorSession {
         symbolSelection = SymbolSelection.empty();
     }
 
+    public void renamePage(String title) {
+        commit(data.renameSelectedPage(title));
+        symbolSelection = SymbolSelection.empty();
+    }
+
+    public void duplicatePage() {
+        commit(data.duplicateSelectedPage());
+        activeStroke = null;
+        symbolSelection = SymbolSelection.empty();
+    }
+
+    public void movePage(int delta) {
+        commit(data.moveSelectedPage(delta));
+        activeStroke = null;
+        symbolSelection = SymbolSelection.empty();
+    }
+
+    public void selectPage(int index) {
+        data = data.selectPage(index);
+        activeStroke = null;
+        symbolSelection = SymbolSelection.empty();
+    }
+
     public boolean placeSymbol(String symbolId, NormalizedPoint center, float size) {
         NotebookPage selected = data.selectedPage();
         if (selected.symbols().size() >= NotebookLimits.MAX_SYMBOLS_PER_PAGE) {

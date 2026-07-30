@@ -54,16 +54,55 @@ public record NotebookData(int formatVersion, String selectedPageId, List<Notebo
             throw new IllegalStateException("Notebook already contains the maximum number of pages");
         }
 
-        int suffix = pages.size() + 1;
-        String id;
-        do {
-            id = "page-" + suffix++;
-        } while (containsPage(id));
-
-        NotebookPage page = NotebookPage.blank(id, "Page " + (suffix - 1));
+        String id = nextPageId();
+        int suffix = Integer.parseInt(id.substring("page-".length()));
+        NotebookPage page = NotebookPage.blank(id, "Page " + suffix);
         List<NotebookPage> changed = new ArrayList<>(pages);
         changed.add(page);
         return new NotebookData(formatVersion, page.id(), changed);
+    }
+
+    public NotebookData renameSelectedPage(String title) {
+        String normalized = Objects.requireNonNull(title, "title").trim();
+        if (normalized.isBlank() || normalized.length() > NotebookPage.MAX_TITLE_LENGTH) {
+            throw new IllegalArgumentException("Invalid notebook page title");
+        }
+        NotebookPage selected = selectedPage();
+        return replaceSelectedPage(new NotebookPage(
+                selected.id(), normalized, selected.strokes(), selected.symbols()));
+    }
+
+    public NotebookData duplicateSelectedPage() {
+        if (pages.size() >= NotebookLimits.MAX_PAGES) {
+            throw new IllegalStateException("Notebook already contains the maximum number of pages");
+        }
+        NotebookPage selected = selectedPage();
+        String id = nextPageId();
+        String suffix = " copy";
+        String title = selected.title();
+        if (title.length() + suffix.length() > NotebookPage.MAX_TITLE_LENGTH) {
+            title = title.substring(0, NotebookPage.MAX_TITLE_LENGTH - suffix.length());
+        }
+        NotebookPage duplicate = new NotebookPage(
+                id, title + suffix, selected.strokes(), selected.symbols());
+        List<NotebookPage> changed = new ArrayList<>(pages);
+        changed.add(indexOfSelectedPage() + 1, duplicate);
+        return new NotebookData(formatVersion, duplicate.id(), changed);
+    }
+
+    public NotebookData moveSelectedPage(int delta) {
+        if (delta != -1 && delta != 1) {
+            throw new IllegalArgumentException("Page movement must be -1 or 1");
+        }
+        int source = indexOfSelectedPage();
+        int target = source + delta;
+        if (target < 0 || target >= pages.size()) {
+            return this;
+        }
+        List<NotebookPage> changed = new ArrayList<>(pages);
+        NotebookPage selected = changed.remove(source);
+        changed.add(target, selected);
+        return new NotebookData(formatVersion, selectedPageId, changed);
     }
 
     public NotebookData selectPage(int index) {
@@ -100,6 +139,15 @@ public record NotebookData(int formatVersion, String selectedPageId, List<Notebo
 
     private boolean containsPage(String id) {
         return pages.stream().anyMatch(page -> page.id().equals(id));
+    }
+
+    private String nextPageId() {
+        int suffix = pages.size() + 1;
+        String id;
+        do {
+            id = "page-" + suffix++;
+        } while (containsPage(id));
+        return id;
     }
 
     private void write(RegistryFriendlyByteBuf buffer) {
