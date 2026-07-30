@@ -7,6 +7,7 @@ import io.github.nh1980mg.witchhat.magic.notebook.NotebookData;
 import io.github.nh1980mg.witchhat.magic.notebook.NotebookLimits;
 import io.github.nh1980mg.witchhat.magic.notebook.NotebookStroke;
 import io.github.nh1980mg.witchhat.magic.notebook.PlacedSymbol;
+import io.github.nh1980mg.witchhat.magic.notebook.TracingGuide;
 import io.github.nh1980mg.witchhat.magic.symbol.MagicSymbolCatalog;
 import java.util.List;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -236,6 +237,7 @@ public final class MagicNotebookScreen extends Screen {
         graphics.fill(0, 0, width, height, BACKGROUND);
         updateCanvasBounds();
         renderCircularPage(graphics);
+        renderTracingGuide(graphics);
         renderPlacedSymbols(graphics);
         renderStrokes(graphics, session.snapshot().selectedPage().strokes(), INK);
         renderStroke(graphics, session.activeStroke(), ACTIVE_INK);
@@ -271,6 +273,9 @@ public final class MagicNotebookScreen extends Screen {
             return super.mouseClicked(mouseX, mouseY, button);
         }
         if (workshopShell && button == 0) {
+            if (handleGuideControl(mouseX, mouseY)) {
+                return true;
+            }
             MagicSymbolCatalog.Entry entry = catalogEntryAt(mouseX, mouseY);
             if (entry != null) {
                 armedSymbolId = entry.id();
@@ -575,16 +580,53 @@ public final class MagicNotebookScreen extends Screen {
     private void renderPlacedSymbols(GuiGraphics graphics) {
         List<PlacedSymbol> symbols = session.snapshot().selectedPage().symbols();
         for (PlacedSymbol symbol : symbols) {
-            int size = Math.max(8, (int) Math.round(symbol.size() * canvasDiameter * viewZoom));
-            int centerX = screenX(symbol.center().x());
-            int centerY = screenY(symbol.center().y());
-            ResourceLocation texture = symbolTexture(symbol.symbolId());
-            graphics.pose().pushPose();
-            graphics.pose().translate(centerX, centerY, 0.0);
-            graphics.pose().mulPose(Axis.ZP.rotationDegrees(symbol.rotationDegrees()));
-            graphics.blit(texture, -size / 2, -size / 2, 0.0F, 0.0F, size, size, 48, 48);
-            graphics.pose().popPose();
+            renderPlacedSymbol(graphics, symbol, 1.0F);
         }
+    }
+
+    private void renderTracingGuide(GuiGraphics graphics) {
+        TracingGuide guide = session.snapshot().selectedPage().guide().orElse(null);
+        if (guide == null || !guide.visible()) {
+            return;
+        }
+        var source = session.guideSourcePage().orElse(null);
+        if (source == null) {
+            return;
+        }
+
+        int alpha = Math.clamp(Math.round(guide.opacity() * 255.0F), 0, 255);
+        int guideInk = alpha << 24 | 0x005B7691;
+        for (NotebookStroke stroke : source.strokes()) {
+            List<NormalizedPoint> projected = stroke.points().stream()
+                    .map(point -> GuideProjection.project(point, guide))
+                    .toList();
+            renderStroke(graphics, projected, guideInk);
+        }
+        for (PlacedSymbol symbol : source.symbols()) {
+            PlacedSymbol projected = new PlacedSymbol(
+                    symbol.symbolId(),
+                    GuideProjection.project(symbol.center(), guide),
+                    GuideProjection.projectSize(symbol.size(), guide),
+                    symbol.rotationDegrees());
+            renderPlacedSymbol(graphics, projected, guide.opacity());
+        }
+    }
+
+    private void renderPlacedSymbol(
+            GuiGraphics graphics,
+            PlacedSymbol symbol,
+            float opacity) {
+        int size = Math.max(8, (int) Math.round(symbol.size() * canvasDiameter * viewZoom));
+        int centerX = screenX(symbol.center().x());
+        int centerY = screenY(symbol.center().y());
+        ResourceLocation texture = symbolTexture(symbol.symbolId());
+        graphics.setColor(1.0F, 1.0F, 1.0F, opacity);
+        graphics.pose().pushPose();
+        graphics.pose().translate(centerX, centerY, 0.0);
+        graphics.pose().mulPose(Axis.ZP.rotationDegrees(symbol.rotationDegrees()));
+        graphics.blit(texture, -size / 2, -size / 2, 0.0F, 0.0F, size, size, 48, 48);
+        graphics.pose().popPose();
+        graphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
     private void renderSelection(GuiGraphics graphics) {
@@ -667,8 +709,30 @@ public final class MagicNotebookScreen extends Screen {
                 font,
                 font.plainSubstrByWidth(label, CATALOG_WIDTH - 10),
                 CATALOG_WIDTH / 2 + 3,
-                panelBottom - 12,
+                panelBottom - 46,
                 0xFFD9B875);
+
+        String guideLabel = session.guideSourcePage()
+                .map(source -> Component.translatable(
+                                session.snapshot().selectedPage().guide()
+                                                .map(TracingGuide::visible)
+                                                .orElse(false)
+                                        ? "screen.witch_hat_magic.guide"
+                                        : "screen.witch_hat_magic.guide_hidden",
+                                source.title())
+                        .getString())
+                .orElseGet(() -> Component.translatable("screen.witch_hat_magic.no_guide")
+                        .getString());
+        graphics.drawCenteredString(
+                font,
+                font.plainSubstrByWidth(guideLabel, CATALOG_WIDTH - 10),
+                CATALOG_WIDTH / 2 + 3,
+                panelBottom - 34,
+                0xFFF6E8BF);
+        renderGuideControl(graphics, 7, panelBottom - 20, "O");
+        renderGuideControl(graphics, 34, panelBottom - 20, "<");
+        renderGuideControl(graphics, 61, panelBottom - 20, "-");
+        renderGuideControl(graphics, 88, panelBottom - 20, "+");
     }
 
     private MagicSymbolCatalog.Entry catalogEntryAt(double mouseX, double mouseY) {
@@ -677,11 +741,14 @@ public final class MagicNotebookScreen extends Screen {
         if (mouseX < 9
                 || mouseX >= 9 + CATALOG_COLUMNS * CATALOG_CELL
                 || mouseY < rowAreaTop
-                || mouseY >= height - 66) {
+                || mouseY >= rowAreaTop + visibleCatalogRows() * CATALOG_ROW_HEIGHT) {
             return null;
         }
         int column = (int) (mouseX - 9) / CATALOG_CELL;
         int row = (int) (mouseY - rowAreaTop) / CATALOG_ROW_HEIGHT;
+        if (row >= visibleCatalogRows()) {
+            return null;
+        }
         int index = (catalogScrollRow + row) * CATALOG_COLUMNS + column;
         if (index < 0 || index >= MagicSymbolCatalog.entries().size()) {
             return null;
@@ -690,14 +757,45 @@ public final class MagicNotebookScreen extends Screen {
     }
 
     private int visibleCatalogRows() {
-        return Math.max(1, (height - 116) / CATALOG_ROW_HEIGHT);
+        return Math.max(1, (height - 146) / CATALOG_ROW_HEIGHT);
     }
 
     private boolean isInsideCatalog(double mouseX, double mouseY) {
+        int rowAreaTop = 50;
         return mouseX >= 3
                 && mouseX <= CATALOG_WIDTH + 3
-                && mouseY >= 31
-                && mouseY <= height - 50;
+                && mouseY >= rowAreaTop
+                && mouseY < rowAreaTop + visibleCatalogRows() * CATALOG_ROW_HEIGHT;
+    }
+
+    private void renderGuideControl(GuiGraphics graphics, int x, int y, String label) {
+        graphics.fill(x, y, x + 24, y + 16, 0xFFEEE0B8);
+        graphics.renderOutline(x, y, 24, 16, 0xFF9D7440);
+        graphics.drawCenteredString(font, label, x + 12, y + 4, INK);
+    }
+
+    private boolean handleGuideControl(double mouseX, double mouseY) {
+        int y = height - 70;
+        if (mouseY < y || mouseY >= y + 16) {
+            return false;
+        }
+        if (mouseX >= 7 && mouseX < 31) {
+            session.toggleGuide();
+            return true;
+        }
+        if (mouseX >= 34 && mouseX < 58) {
+            session.cycleGuideSource(-1);
+            return true;
+        }
+        if (mouseX >= 61 && mouseX < 85) {
+            session.resizeGuide(-0.1F);
+            return true;
+        }
+        if (mouseX >= 88 && mouseX < 112) {
+            session.resizeGuide(0.1F);
+            return true;
+        }
+        return false;
     }
 
     private String localizedSymbolName(String id) {

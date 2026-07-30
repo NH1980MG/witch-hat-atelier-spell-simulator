@@ -22,5 +22,8 @@
   "screen.witch_hat_magic.duplicate": "Copy",
   "screen.witch_hat_magic.move_left": "Left",
   "screen.witch_hat_magic.move_right": "Right",
-  "screen.witch_hat_magic.close": "Close"
+  "screen.witch_hat_magic.close": "Close",
+  "screen.witch_hat_magic.guide": "Guide: %s",
+  "screen.witch_hat_magic.guide_hidden": "Guide hidden: %s",
+  "screen.witch_hat_magic.no_guide": "No tracing guide"
 }

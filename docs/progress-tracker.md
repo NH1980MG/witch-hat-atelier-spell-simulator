@@ -136,13 +136,16 @@ remaining large `app.js` sections.
 - Minecraft workshop with all 64 web-catalogue glyphs exported as original
   transparent textures, bounded persistent placement, right-click topmost and
   rectangular group selection, grouped movement, proportional resizing,
-  deletion, undo, bilingual catalogue labels, and 35 passing unit tests.
+  deletion, undo, and bilingual catalogue labels.
+- Minecraft notebook page index with direct selection, renaming, duplication,
+  reordering, and persistent page-based tracing guides with visibility, source,
+  and size controls. The complete magic module has 46 passing unit tests.
 
 ## In Progress
 
 - Extracting effect layers from `app.js` without adding a build system.
-- Minecraft advanced pages, tracing guides, spell details, support selection,
-  activation controls, and optional in-world spell preview.
+- Minecraft spell details, support selection, activation controls, and optional
+  in-world spell preview.
 
 ## Next Milestones
 

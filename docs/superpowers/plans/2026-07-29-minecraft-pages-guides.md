@@ -27,10 +27,10 @@
 - Test: `minecraft-mod/witch-hat-magic/src/test/java/io/github/nh1980mg/witchhat/magic/notebook/NotebookDataTest.java`
 - Test: `minecraft-mod/witch-hat-magic/src/test/java/io/github/nh1980mg/witchhat/magic/client/NotebookEditorSessionTest.java`
 
-- [ ] Write failing tests for rename, duplicate, move left/right, stable IDs, deep page copies, and undo.
-- [ ] Run focused tests and confirm missing methods.
-- [ ] Implement immutable bounded operations and session wrappers.
-- [ ] Re-run focused tests and commit.
+- [x] Write failing tests for rename, duplicate, move left/right, stable IDs, deep page copies, and undo.
+- [x] Run focused tests and confirm missing methods.
+- [x] Implement immutable bounded operations and session wrappers.
+- [x] Re-run focused tests and commit.
 
 ### Task 2: Native Page Index
 
@@ -39,10 +39,10 @@
 - Modify: `minecraft-mod/witch-hat-magic/src/main/resources/assets/witch_hat_magic/lang/en_us.json`
 - Modify: `minecraft-mod/witch-hat-magic/src/main/resources/assets/witch_hat_magic/lang/fr_fr.json`
 
-- [ ] Add a scrollable overlay listing every page and selecting rows by click.
-- [ ] Add an `EditBox` plus apply, duplicate, move-left, move-right, and close controls.
-- [ ] Keep the full circular page visible when the overlay closes.
-- [ ] Compile the client and commit.
+- [x] Add a scrollable overlay listing every page and selecting rows by click.
+- [x] Add an `EditBox` plus apply, duplicate, move-left, move-right, and close controls.
+- [x] Keep the full circular page visible when the overlay closes.
+- [x] Compile the client and commit.
 
 ### Task 3: Persistent Page-Based Tracing Guides
 
@@ -54,10 +54,10 @@
 - Test: `minecraft-mod/witch-hat-magic/src/test/java/io/github/nh1980mg/witchhat/magic/notebook/NotebookDataTest.java`
 - Test: `minecraft-mod/witch-hat-magic/src/test/java/io/github/nh1980mg/witchhat/magic/client/NotebookEditorSessionTest.java`
 
-- [ ] Write failing tests for optional codec defaults, resolved references, self-reference rejection, bounds, visibility, source cycling, size adjustment, and undo.
-- [ ] Run focused tests and confirm the guide model is missing.
-- [ ] Implement `TracingGuide`, validation, stream serialization, and session operations.
-- [ ] Re-run focused tests and commit.
+- [x] Write failing tests for optional codec defaults, resolved references, self-reference rejection, bounds, visibility, source cycling, size adjustment, and undo.
+- [x] Run focused tests and confirm the guide model is missing.
+- [x] Implement `TracingGuide`, validation, stream serialization, and session operations.
+- [x] Re-run focused tests and commit.
 
 ### Task 4: Guide Controls and Rendering
 
@@ -65,7 +65,7 @@
 - Modify: `minecraft-mod/witch-hat-magic/src/client/java/io/github/nh1980mg/witchhat/magic/client/MagicNotebookScreen.java`
 - Modify: bilingual language files.
 
-- [ ] Render referenced strokes and symbols below current content with controlled alpha and transform.
-- [ ] Add workshop controls for toggle, previous source, smaller, and larger.
-- [ ] Run all magic tests, AI Builder tests, clean builds, server smoke, and client startup smoke.
-- [ ] Update progress documentation and commit locally without pushing.
+- [x] Render referenced strokes and symbols below current content with controlled alpha and transform.
+- [x] Add workshop controls for toggle, previous source, smaller, and larger.
+- [x] Run all magic tests, AI Builder tests, clean builds, server smoke, and client startup smoke.
+- [x] Update progress documentation and commit locally without pushing.
