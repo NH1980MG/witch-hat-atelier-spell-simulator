@@ -17,6 +17,9 @@ public final class MagicBlockEntities {
         CANVAS_BLOCK_ENTITY = Registry.register(
                 BuiltInRegistries.BLOCK_ENTITY_TYPE,
                 ResourceLocation.fromNamespaceAndPath(WitchHatMagicMod.MOD_ID, "canvas"),
-                BlockEntityType.Builder.of(CanvasBlockEntity::new, MagicBlocks.CANVAS_SQUARE).build());
+                BlockEntityType.Builder.of(
+                        CanvasBlockEntity::new,
+                        MagicBlocks.CANVAS_SQUARE,
+                        MagicBlocks.LARGE_CANVAS).build());
     }
 }

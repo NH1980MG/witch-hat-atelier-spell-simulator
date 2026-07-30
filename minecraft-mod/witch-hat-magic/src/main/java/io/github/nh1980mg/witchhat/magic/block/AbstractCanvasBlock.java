@@ -24,6 +24,7 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 
 public abstract class AbstractCanvasBlock extends BaseEntityBlock {
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
@@ -36,6 +37,13 @@ public abstract class AbstractCanvasBlock extends BaseEntityBlock {
     public abstract CircleSupport support();
 
     public abstract int maxActivations();
+
+    /** World position where manifestations of this canvas are anchored. */
+    public Vec3 manifestationAnchor(BlockPos pos, Direction facing) {
+        return Vec3.atCenterOf(pos)
+                .add(0.0, 0.9, 0.0)
+                .add(Vec3.atLowerCornerOf(facing.getNormal()).scale(1.2));
+    }
 
     @Override
     protected abstract MapCodec<? extends BaseEntityBlock> codec();

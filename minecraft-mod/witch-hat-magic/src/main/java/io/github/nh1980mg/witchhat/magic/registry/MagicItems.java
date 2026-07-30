@@ -31,6 +31,11 @@ public final class MagicItems {
             ResourceLocation.fromNamespaceAndPath(WitchHatMagicMod.MOD_ID, "canvas_square"),
             new BlockItem(MagicBlocks.CANVAS_SQUARE, new Item.Properties().stacksTo(16)));
 
+    public static final BlockItem LARGE_CANVAS = Registry.register(
+            BuiltInRegistries.ITEM,
+            ResourceLocation.fromNamespaceAndPath(WitchHatMagicMod.MOD_ID, "large_canvas"),
+            new BlockItem(MagicBlocks.LARGE_CANVAS, new Item.Properties().stacksTo(8)));
+
     private MagicItems() {
     }
 
@@ -39,6 +44,7 @@ public final class MagicItems {
                 .register(entries -> {
                     entries.accept(MAGIC_CIRCLE_NOTEBOOK);
                     entries.accept(CANVAS_SQUARE);
+                    entries.accept(LARGE_CANVAS);
                 });
     }
 

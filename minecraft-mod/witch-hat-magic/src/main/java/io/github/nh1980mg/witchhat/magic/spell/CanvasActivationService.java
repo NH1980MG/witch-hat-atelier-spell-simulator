@@ -88,13 +88,13 @@ public final class CanvasActivationService {
         }
         canvas.consumeActivations(CanvasBlockEntity.activationCost(result.power()));
         BlockState state = level.getBlockState(pos);
-        Direction facing = state.getBlock() instanceof AbstractCanvasBlock
-                ? state.getValue(AbstractCanvasBlock.FACING)
-                : Direction.NORTH;
+        Direction facing = Direction.NORTH;
+        Vec3 anchor = Vec3.atCenterOf(pos).add(0.0, 0.9, 0.0);
+        if (state.getBlock() instanceof AbstractCanvasBlock canvasBlock) {
+            facing = state.getValue(AbstractCanvasBlock.FACING);
+            anchor = canvasBlock.manifestationAnchor(pos, facing);
+        }
         Vec3 normal = Vec3.atLowerCornerOf(facing.getNormal());
-        Vec3 anchor = Vec3.atCenterOf(pos)
-                .add(0.0, 0.9, 0.0)
-                .add(normal.scale(1.2));
         ManifestationPlan plan = ManifestationPlan.createAnchored(anchor, normal, result);
         SpellManifestationService.enqueue(plan, result.durationTicks(), level);
     }
