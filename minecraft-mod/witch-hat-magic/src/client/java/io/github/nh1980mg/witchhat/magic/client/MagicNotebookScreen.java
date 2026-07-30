@@ -108,6 +108,10 @@ public final class MagicNotebookScreen extends Screen {
                     .orElse("");
             activationFeedback = Component.translatable(
                     ActivationFeedback.activationKey(payload.status()), sigils);
+            if (minecraft != null && minecraft.player != null) {
+                minecraft.player.displayClientMessage(activationFeedback, true);
+            }
+            onClose();
         } else {
             activationFeedback = Component.translatable(
                     ActivationFeedback.activationKey(payload.status()));
