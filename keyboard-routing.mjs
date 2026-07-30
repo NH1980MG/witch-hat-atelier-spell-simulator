@@ -34,6 +34,20 @@ export function resolveKeyCommand(key, context) {
     return NONE;
   }
 
+  // Select-all/copy/paste sit AFTER the typing gate, unlike the four above:
+  // inside a text field the browser's own Cmd+A/C/V must win, or the player
+  // cannot select the text they just typed. Cmd+A also has to be resolved
+  // before the bare "a" rule below, which means activateCircle.
+  if (modifier && lower === "a") {
+    return act("selectAll", true);
+  }
+  if (modifier && lower === "c") {
+    return act("copySelection", true);
+  }
+  if (modifier && lower === "v") {
+    return act("pasteSelection", true);
+  }
+
   if ((key.key === "Delete" || key.key === "Backspace") && context.hasSelection) {
     return act("delete", true);
   }

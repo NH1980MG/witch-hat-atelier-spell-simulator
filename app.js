@@ -8,7 +8,7 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260727-mixture-runtime-v3";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260727-mixture-runtime-v3";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260727-marquee-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260729-search-rotate-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260716-shoe-camera-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -24,8 +24,10 @@ import {
   clampGlyphCenter,
   cloneActions,
   guideResizeHandleAtPoint,
+  isSelectableAction,
   planDuplication,
   resizeGuideScaleFromCorner,
+  rotateSelectedActions,
   scaleSelectedActions,
   scaledGuideBounds,
   selectableIndicesInRect,
@@ -33,10 +35,10 @@ import {
   shouldDeferTouchTool,
   topmostSelectableIndexAtPoint,
   translateSelectedActions,
-} from "./symbol-interactions.mjs?v=20260729-element-search-v1";
-import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260729-element-search-v1";
-import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260729-element-search-v1";
-import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260729-element-search-v1";
+} from "./symbol-interactions.mjs?v=20260729-search-rotate-v1";
+import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260729-search-rotate-v1";
+import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260729-search-rotate-v1";
+import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260729-search-rotate-v1";
 
 export const CENTRAL_SIGIL_STROKE_WIDTH = 6.4365;
 
@@ -279,6 +281,8 @@ const closeSupportButton = document.querySelector("#closeSupportButton");
 const shrinkSelectionButton = document.querySelector("#shrinkSelectionButton");
 const growSelectionButton = document.querySelector("#growSelectionButton");
 const duplicateSelectionButton = document.querySelector("#duplicateSelectionButton");
+const rotateSelectionLeftButton = document.querySelector("#rotateSelectionLeftButton");
+const rotateSelectionRightButton = document.querySelector("#rotateSelectionRightButton");
 const guideToggleButton = document.querySelector("#guideToggleButton");
 const guideDrawer = document.querySelector("#guideDrawer");
 const closeGuidesButton = document.querySelector("#closeGuidesButton");
@@ -6444,7 +6448,7 @@ function normalizeSelection() {
   state.selectedActionIndices = [...new Set(state.selectedActionIndices)]
     .filter((index) => {
       const action = state.actions[index];
-      return action && ["glyph", "circle", "ring"].includes(action.type);
+      return action && isSelectableAction(action);
     })
     .sort((a, b) => a - b);
   return state.selectedActionIndices;
@@ -6484,11 +6488,28 @@ function updateSelectionControls() {
   if (duplicateSelectionButton) {
     duplicateSelectionButton.disabled = !hasSelection;
   }
+  if (rotateSelectionLeftButton) {
+    rotateSelectionLeftButton.disabled = !hasSelection;
+  }
+  if (rotateSelectionRightButton) {
+    rotateSelectionRightButton.disabled = !hasSelection;
+  }
+}
+
+function selectionRotateHandle(bounds) {
+  return {
+    x: bounds.left + bounds.width / 2,
+    y: bounds.top - 24 / Math.max(0.1, viewScale()),
+  };
 }
 
 function selectionHandleAtPoint(bounds, point, tolerance = 10) {
   if (!bounds) {
     return null;
+  }
+  const rotateHandle = selectionRotateHandle(bounds);
+  if (Math.hypot(point.x - rotateHandle.x, point.y - rotateHandle.y) <= tolerance) {
+    return "rotate";
   }
   const handles = [
     ["nw", bounds.left, bounds.top],
@@ -6515,6 +6536,15 @@ function drawSelection() {
   ctx.setLineDash([visibleLineWidth(7), visibleLineWidth(5)]);
   ctx.strokeRect(bounds.left, bounds.top, bounds.width, bounds.height);
   ctx.setLineDash([]);
+  const rotateHandle = selectionRotateHandle(bounds);
+  ctx.beginPath();
+  ctx.moveTo(rotateHandle.x, bounds.top);
+  ctx.lineTo(rotateHandle.x, rotateHandle.y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(rotateHandle.x, rotateHandle.y, visibleLineWidth(6), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
   for (const [x, y] of [
     [bounds.left, bounds.top],
     [bounds.right, bounds.top],
@@ -7187,6 +7217,25 @@ function beginRightSelection(event, point) {
   const handle = selectionHandleAtPoint(bounds, point, 12 / Math.max(0.1, viewScale()));
   const snapshot = cloneActions(state.actions);
   if (handle && bounds) {
+    if (handle === "rotate") {
+      const center = {
+        x: bounds.left + bounds.width / 2,
+        y: bounds.top + bounds.height / 2,
+      };
+      state.rightSelection = {
+        mode: "rotate",
+        pointerId: event.pointerId,
+        start: point,
+        current: point,
+        snapshot,
+        bounds,
+        center,
+        startAngle: Math.atan2(point.y - center.y, point.x - center.x),
+        moved: false,
+      };
+      canvas.style.cursor = "grab";
+      return;
+    }
     state.rightSelection = {
       mode: "resize",
       pointerId: event.pointerId,
@@ -7295,6 +7344,15 @@ function moveRightSelection(event) {
       scale,
     );
     drag.moved = Math.abs(scale - 1) > 0.01;
+  } else if (drag.mode === "rotate") {
+    const angle = Math.atan2(point.y - drag.center.y, point.x - drag.center.x) - drag.startAngle;
+    state.actions = rotateSelectedActions(
+      drag.snapshot,
+      state.selectedActionIndices,
+      drag.center,
+      angle,
+    );
+    drag.moved = Math.abs(angle) > 0.01;
   }
   state.activeSpell = null;
   updateSelectionControls();
@@ -7326,7 +7384,11 @@ function finishRightSelection(event) {
     updateUsedList();
     updateSpellState();
     setStatus(t(
-      drag.mode === "resize" ? "status.selectionGroupResized" : "status.selectionGroupMoved",
+      drag.mode === "resize"
+        ? "status.selectionGroupResized"
+        : drag.mode === "rotate"
+          ? "status.selectionGroupRotated"
+          : "status.selectionGroupMoved",
       { count: state.selectedActionIndices.length },
     ));
   }
@@ -7380,6 +7442,58 @@ function deleteSelectedActions() {
   return true;
 }
 
+let actionClipboard = [];
+let pasteCascade = 0;
+
+function selectAllActions() {
+  state.selectedActionIndices = state.actions
+    .map((action, index) => (isSelectableAction(action) ? index : -1))
+    .filter((index) => index >= 0);
+  // Routed through setTool, never a raw assignment: leaving "glyph" by hand
+  // strands state.ghostOwner === "armed" and the ghost outlives the tool.
+  setTool("select");
+  updateSelectionControls();
+  setSelectionStatus();
+  render();
+}
+
+function copySelection() {
+  const indices = normalizeSelection();
+  if (indices.length === 0) {
+    setStatus(t("status.copyEmpty"));
+    return;
+  }
+  actionClipboard = cloneActions(indices.map((index) => state.actions[index]));
+  pasteCascade = 0;
+  setStatus(t("status.selectionCopied", { count: indices.length }));
+}
+
+function pasteSelection() {
+  if (actionClipboard.length === 0) {
+    setStatus(t("status.pasteEmpty"));
+    return;
+  }
+  pasteCascade += 1;
+  const offset = 16 * pasteCascade;
+  recordHistory();
+  const pasted = translateSelectedActions(
+    cloneActions(actionClipboard),
+    actionClipboard.map((_, index) => index),
+    offset,
+    offset,
+  );
+  const firstNewIndex = state.actions.length;
+  state.actions = [...state.actions, ...pasted];
+  state.selectedActionIndices = pasted.map((_, index) => firstNewIndex + index);
+  state.activeSpell = null;
+  setTool("select");
+  updateSelectionControls();
+  updateUsedList();
+  updateSpellState();
+  setStatus(t("status.selectionPasted", { count: pasted.length }));
+  render();
+}
+
 function resizeSelectedGlyph(direction) {
   const indices = normalizeSelection();
   const bounds = selectionBounds();
@@ -7400,6 +7514,30 @@ function resizeSelectedGlyph(direction) {
   updateUsedList();
   updateSpellState();
   setStatus(t("status.selectionGroupResized", { count: indices.length }));
+  render();
+}
+
+const SELECTION_ROTATE_STEP = Math.PI / 12; // 15 degres
+
+function rotateSelection(angleDelta) {
+  const indices = normalizeSelection();
+  const bounds = selectionBounds();
+  if (!bounds || indices.length === 0) {
+    setStatus(t("status.selectBeforeResize"));
+    return;
+  }
+  recordHistory();
+  state.actions = rotateSelectedActions(
+    state.actions,
+    indices,
+    { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 },
+    angleDelta,
+  );
+  state.activeSpell = null;
+  updateSelectionControls();
+  updateUsedList();
+  updateSpellState();
+  setStatus(t("status.selectionGroupRotated", { count: indices.length }));
   render();
 }
 
@@ -7589,11 +7727,13 @@ function onPointerMove(event) {
         hoverPoint,
         12 / Math.max(0.1, viewScale()),
       );
-      canvas.style.cursor = ["nw", "se"].includes(handle)
-        ? "nwse-resize"
-        : ["ne", "sw"].includes(handle)
-          ? "nesw-resize"
-          : "default";
+      canvas.style.cursor = handle === "rotate"
+        ? "grab"
+        : ["nw", "se"].includes(handle)
+          ? "nwse-resize"
+          : ["ne", "sw"].includes(handle)
+            ? "nesw-resize"
+            : "default";
     }
     return;
   }
@@ -7716,8 +7856,42 @@ function onCanvasWheel(event) {
     return;
   }
   event.preventDefault();
+  if (normalizeSelection().length > 0) {
+    // Avec une selection active, la molette (ou le pinch) redimensionne la selection
+    const bounds = selectionBounds();
+    if (!bounds) {
+      return;
+    }
+    if (!wheelScaleGestureActive) {
+      recordHistory();
+      wheelScaleGestureActive = true;
+    }
+    window.clearTimeout(wheelScaleIdleTimer);
+    wheelScaleIdleTimer = window.setTimeout(() => {
+      wheelScaleGestureActive = false;
+      refreshCircleCenter();
+      updateUsedList();
+      updateSpellState();
+      setStatus(t("status.selectionGroupResized", { count: state.selectedActionIndices.length }));
+    }, 300);
+    const unit = event.deltaMode === 1 ? 16 : 1; // Firefox rapporte parfois en lignes
+    const scale = Math.exp(-event.deltaY * unit * WHEEL_SCALE_SENSITIVITY);
+    state.actions = scaleSelectedActions(
+      state.actions,
+      state.selectedActionIndices,
+      { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 },
+      scale,
+    );
+    state.activeSpell = null;
+    render();
+    return;
+  }
   setCanvasPan(state.panX - event.deltaX, state.panY - event.deltaY);
 }
+
+const WHEEL_SCALE_SENSITIVITY = 0.0015;
+let wheelScaleGestureActive = false;
+let wheelScaleIdleTimer = null;
 
 function updateToolButtons() {
   for (const button of toolButtons) {
@@ -8917,6 +9091,8 @@ clearGuideButton?.addEventListener("click", () => {
 shrinkSelectionButton?.addEventListener("click", () => resizeSelectedGlyph("shrink"));
 growSelectionButton?.addEventListener("click", () => resizeSelectedGlyph("grow"));
 duplicateSelectionButton?.addEventListener("click", () => duplicateSelectedActions());
+rotateSelectionLeftButton?.addEventListener("click", () => rotateSelection(-SELECTION_ROTATE_STEP));
+rotateSelectionRightButton?.addEventListener("click", () => rotateSelection(SELECTION_ROTATE_STEP));
 
 // Derived, never mirrored. A boolean field would have to be synchronized on
 // every close path, and a stale true suppresses Escape permanently and
@@ -9083,6 +9259,9 @@ document.addEventListener("keydown", (event) => {
     case "closeDrawer": setOpenDrawer(null); setStatus(t("status.drawerClosed")); break;
     case "openSearch": openSymbolSearch(); break;
     case "duplicate": duplicateSelectedActions(); break;
+    case "selectAll": selectAllActions(); break;
+    case "copySelection": copySelection(); break;
+    case "pasteSelection": pasteSelection(); break;
     case "disarm": disarmSymbol(); break;
     case "activateCircle": activateCircle(); break;
     case "analyzeSpell": analyzeSpell(); break;

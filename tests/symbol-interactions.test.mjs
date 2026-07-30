@@ -14,6 +14,7 @@ import {
   scaledGuideBounds,
   resizeGlyphFromCorner,
   resizeGlyphSize,
+  rotateSelectedActions,
   scaleSelectedActions,
   selectableActionBounds,
   selectableIndicesInRect,
@@ -108,13 +109,13 @@ test("les outils tactiles irreversibles attendent la fin du clic long", () => {
   assert.equal(shouldDeferTouchTool("pen", "glyph"), false);
 });
 
-test("la selection de groupe accepte glyphes et cercles mais exclut guides et traces", () => {
+test("la selection de groupe accepte tous les types de traces mais exclut les guides", () => {
   assert.equal(isSelectableAction({ type: "glyph" }), true);
   assert.equal(isSelectableAction({ type: "circle" }), true);
   assert.equal(isSelectableAction({ type: "ring" }), true);
-  assert.equal(isSelectableAction({ type: "free" }), false);
-  assert.equal(isSelectableAction({ type: "ray" }), false);
-  assert.equal(isSelectableAction({ type: "spiral" }), false);
+  assert.equal(isSelectableAction({ type: "free" }), true);
+  assert.equal(isSelectableAction({ type: "ray" }), true);
+  assert.equal(isSelectableAction({ type: "spiral" }), true);
   assert.equal(isSelectableAction({ type: "guide" }), false);
 });
 
@@ -148,7 +149,7 @@ test("le rectangle selectionne les elements touches quelle que soit sa direction
 
   assert.deepEqual(
     selectableIndicesInRect(actions, { left: 75, right: 10, top: 70, bottom: 10 }),
-    [0, 2],
+    [0, 1, 2],
   );
   assert.deepEqual(
     selectableIndicesInRect(actions, { left: 200, right: 150, top: 200, bottom: 150 }),
@@ -163,7 +164,7 @@ test("le clic choisit le dernier element selectionnable sous la souris", () => {
     { type: "free", points: [{ x: 70, y: 50 }] },
   ];
 
-  assert.equal(topmostSelectableIndexAtPoint(actions, { x: 70, y: 50 }, 2), 1);
+  assert.equal(topmostSelectableIndexAtPoint(actions, { x: 70, y: 50 }, 2), 2);
   assert.equal(topmostSelectableIndexAtPoint(actions, { x: 50, y: 30 }, 2), 0);
   assert.equal(topmostSelectableIndexAtPoint(actions, { x: 140, y: 140 }, 2), -1);
 });
@@ -284,4 +285,167 @@ test("les originaux non selectionnes sont laisses intacts", () => {
 
   assert.deepEqual(result.actions[2], actions[2], "le trait a main levee n'est pas touche");
   assert.equal(result.actions.length, 4);
+});
+
+test("selectableActionBounds encadre les traces libres, rayons et spirales", () => {
+  assert.deepEqual(
+    selectableActionBounds({ type: "free", points: [{ x: 10, y: 20 }, { x: 30, y: 5 }, { x: 15, y: 40 }] }),
+    { left: 10, right: 30, top: 5, bottom: 40, width: 20, height: 35 },
+  );
+  assert.deepEqual(
+    selectableActionBounds({ type: "ray", cx: 50, cy: 60, x: 20, y: 80 }),
+    { left: 20, right: 50, top: 60, bottom: 80, width: 30, height: 20 },
+  );
+  assert.deepEqual(
+    selectableActionBounds({ type: "spiral", cx: 30, cy: 40, radius: 20, turns: 2 }),
+    { left: 10, right: 50, top: 20, bottom: 60, width: 40, height: 40 },
+  );
+});
+
+test("le clic detecte les traces libres, rayons et spirales", () => {
+  const free = { type: "free", points: [{ x: 0, y: 0 }, { x: 40, y: 0 }, { x: 40, y: 40 }] };
+  const ray = { type: "ray", cx: 100, cy: 100, x: 160, y: 100 };
+  const spiral = { type: "spiral", cx: 200, cy: 200, radius: 30, turns: 2 };
+
+  assert.equal(topmostSelectableIndexAtPoint([free], { x: 20, y: 3 }, 5), 0);
+  assert.equal(topmostSelectableIndexAtPoint([free], { x: 20, y: 20 }, 5), -1);
+  assert.equal(topmostSelectableIndexAtPoint([ray], { x: 130, y: 102 }, 5), 0);
+  assert.equal(topmostSelectableIndexAtPoint([ray], { x: 170, y: 100 }, 5), -1);
+  assert.equal(topmostSelectableIndexAtPoint([spiral], { x: 230, y: 200 }, 5), 0);
+  assert.equal(topmostSelectableIndexAtPoint([spiral], { x: 200, y: 200 }, 5), -1);
+});
+
+test("le rectangle selectionne aussi les traces libres, rayons et spirales partiellement touches", () => {
+  const actions = [
+    { type: "free", points: [{ x: 5, y: 5 }, { x: 50, y: 50 }] },
+    { type: "ray", cx: 90, cy: 90, x: 120, y: 90 },
+    { type: "spiral", cx: 300, cy: 300, radius: 20, turns: 2 },
+  ];
+
+  assert.deepEqual(
+    selectableIndicesInRect(actions, { left: 0, right: 100, top: 0, bottom: 100 }),
+    [0, 1],
+  );
+  assert.deepEqual(
+    selectableIndicesInRect(actions, { left: 280, right: 320, top: 280, bottom: 320 }),
+    [2],
+  );
+});
+
+test("translateSelectedActions deplace les traces libres, rayons et spirales", () => {
+  const source = [
+    { type: "free", points: [{ x: 0, y: 0 }, { x: 10, y: 10 }] },
+    { type: "ray", cx: 20, cy: 20, x: 40, y: 30 },
+    { type: "spiral", cx: 50, cy: 50, radius: 15, turns: 2 },
+  ];
+  const moved = translateSelectedActions(source, [0, 1, 2], 5, -5);
+
+  assert.deepEqual(moved[0], { type: "free", points: [{ x: 5, y: -5 }, { x: 15, y: 5 }] });
+  assert.deepEqual(moved[1], { type: "ray", cx: 25, cy: 15, x: 45, y: 25 });
+  assert.deepEqual(moved[2], { type: "spiral", cx: 55, cy: 45, radius: 15, turns: 2 });
+});
+
+test("scaleSelectedActions met a l'echelle les traces libres, rayons et spirales", () => {
+  const source = [
+    { type: "free", points: [{ x: 10, y: 10 }, { x: 20, y: 30 }] },
+    { type: "ray", cx: 20, cy: 20, x: 40, y: 30 },
+    { type: "spiral", cx: 50, cy: 50, radius: 15, turns: 2 },
+  ];
+  const scaled = scaleSelectedActions(source, [0, 1, 2], { x: 0, y: 0 }, 2);
+
+  assert.deepEqual(scaled[0], { type: "free", points: [{ x: 20, y: 20 }, { x: 40, y: 60 }] });
+  assert.deepEqual(scaled[1], { type: "ray", cx: 40, cy: 40, x: 80, y: 60 });
+  assert.deepEqual(scaled[2], { type: "spiral", cx: 100, cy: 100, radius: 30, turns: 2 });
+});
+
+test("scaleSelectedActions borne les glyphes dans une selection mixte", () => {
+  const source = [
+    { type: "glyph", x: 10, y: 10, size: 100 },
+    { type: "free", points: [{ x: 10, y: 10 }] },
+  ];
+  const scaled = scaleSelectedActions(source, [0, 1], { x: 0, y: 0 }, 2);
+
+  assert.equal(scaled[0].size, 120);
+  assert.deepEqual(scaled[1].points, [{ x: 20, y: 20 }]);
+});
+
+test("rotateSelectedActions pivote un glyphe et sa rotation propre", () => {
+  const source = [{ type: "glyph", x: 10, y: 0, size: 10, rotation: 0.5 }];
+  const rotated = rotateSelectedActions(source, [0], { x: 0, y: 0 }, Math.PI / 2);
+
+  assert.ok(Math.abs(rotated[0].x - 0) < 1e-9);
+  assert.ok(Math.abs(rotated[0].y - 10) < 1e-9);
+  assert.ok(Math.abs(rotated[0].rotation - (0.5 + Math.PI / 2)) < 1e-9);
+  assert.equal(rotated[0].userAdjusted, true);
+  assert.notEqual(rotated, source);
+  assert.equal(source[0].x, 10);
+});
+
+test("rotateSelectedActions attribue un angle aux glyphes sans rotation", () => {
+  const source = [{ type: "glyph", x: 0, y: 10, size: 10 }];
+  const rotated = rotateSelectedActions(source, [0], { x: 0, y: 0 }, 0.25);
+
+  assert.equal(rotated[0].rotation, 0.25);
+});
+
+test("rotateSelectedActions pivote les traces libres et les deux bouts des rayons", () => {
+  const source = [
+    { type: "free", points: [{ x: 10, y: 0 }, { x: 20, y: 0 }] },
+    { type: "ray", cx: 10, cy: 0, x: 20, y: 0 },
+  ];
+  const rotated = rotateSelectedActions(source, [0, 1], { x: 0, y: 0 }, Math.PI / 2);
+
+  assert.ok(Math.abs(rotated[0].points[0].x) < 1e-9 && Math.abs(rotated[0].points[0].y - 10) < 1e-9);
+  assert.ok(Math.abs(rotated[0].points[1].x) < 1e-9 && Math.abs(rotated[0].points[1].y - 20) < 1e-9);
+  assert.ok(Math.abs(rotated[1].cx) < 1e-9 && Math.abs(rotated[1].cy - 10) < 1e-9);
+  assert.ok(Math.abs(rotated[1].x) < 1e-9 && Math.abs(rotated[1].y - 20) < 1e-9);
+});
+
+test("rotateSelectedActions ne pivote que le centre des cercles et spirales", () => {
+  const source = [
+    { type: "circle", cx: 10, cy: 0, radius: 5 },
+    { type: "ring", cx: 10, cy: 0, radius: 8 },
+    { type: "spiral", cx: 10, cy: 0, radius: 15, turns: 2 },
+  ];
+  const rotated = rotateSelectedActions(source, [0, 1, 2], { x: 0, y: 0 }, Math.PI / 2);
+
+  for (const action of rotated) {
+    assert.ok(Math.abs(action.cx) < 1e-9);
+    assert.ok(Math.abs(action.cy - 10) < 1e-9);
+  }
+  assert.equal(rotated[0].radius, 5);
+  assert.equal(rotated[1].radius, 8);
+  assert.equal(rotated[2].radius, 15);
+  assert.equal(rotated[2].turns, 2);
+});
+
+test("rotateSelectedActions ignore les non selectionnes et refuse un angle invalide", () => {
+  const source = [
+    { type: "glyph", x: 10, y: 0, size: 10 },
+    { type: "glyph", x: 20, y: 0, size: 10 },
+  ];
+  const rotated = rotateSelectedActions(source, [0], { x: 0, y: 0 }, Math.PI / 2);
+
+  assert.deepEqual(rotated[1], source[1]);
+  assert.throws(
+    () => rotateSelectedActions(source, [0], { x: 0, y: 0 }, Number.NaN),
+    TypeError,
+  );
+});
+
+test("combinedSelectionBounds reunit glyphes, traces libres et rayons", () => {
+  const actions = [
+    { type: "glyph", x: 20, y: 20, size: 10 },
+    { type: "free", points: [{ x: 50, y: 10 }, { x: 70, y: 30 }] },
+    { type: "ray", cx: 0, cy: 0, x: 10, y: 5 },
+  ];
+
+  assert.deepEqual(combinedSelectionBounds(actions, [0, 1, 2]), {
+    left: 0,
+    right: 70,
+    top: 0,
+    bottom: 31.8,
+    width: 70,
+    height: 31.8,
+  });
 });

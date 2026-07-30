@@ -100,7 +100,7 @@ export function topmostGlyphIndexAtPoint(actions, point, padding = 10) {
 }
 
 export function isSelectableAction(action) {
-  return ["glyph", "circle", "ring"].includes(action?.type);
+  return ["glyph", "circle", "ring", "free", "ray", "spiral"].includes(action?.type);
 }
 
 function stableCoordinate(value) {
@@ -120,6 +120,39 @@ export function selectableActionBounds(action) {
       bottom: stableCoordinate(action.y + half),
       width: stableCoordinate(half * 2),
       height: stableCoordinate(half * 2),
+    };
+  }
+  if (action.type === "free") {
+    if (!Array.isArray(action.points) || action.points.length === 0) {
+      return null;
+    }
+    const xs = action.points.map((point) => point.x);
+    const ys = action.points.map((point) => point.y);
+    const left = Math.min(...xs);
+    const right = Math.max(...xs);
+    const top = Math.min(...ys);
+    const bottom = Math.max(...ys);
+    return {
+      left: stableCoordinate(left),
+      right: stableCoordinate(right),
+      top: stableCoordinate(top),
+      bottom: stableCoordinate(bottom),
+      width: stableCoordinate(right - left),
+      height: stableCoordinate(bottom - top),
+    };
+  }
+  if (action.type === "ray") {
+    const left = Math.min(action.cx, action.x);
+    const right = Math.max(action.cx, action.x);
+    const top = Math.min(action.cy, action.y);
+    const bottom = Math.max(action.cy, action.y);
+    return {
+      left: stableCoordinate(left),
+      right: stableCoordinate(right),
+      top: stableCoordinate(top),
+      bottom: stableCoordinate(bottom),
+      width: stableCoordinate(right - left),
+      height: stableCoordinate(bottom - top),
     };
   }
   return {
@@ -167,6 +200,16 @@ export function combinedSelectionBounds(actions, indices) {
   };
 }
 
+function distanceToSegment(point, start, end) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const lengthSq = dx * dx + dy * dy;
+  const t = lengthSq === 0
+    ? 0
+    : Math.max(0, Math.min(1, ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSq));
+  return Math.hypot(point.x - (start.x + t * dx), point.y - (start.y + t * dy));
+}
+
 export function topmostSelectableIndexAtPoint(actions, point, padding = 10) {
   for (let index = actions.length - 1; index >= 0; index -= 1) {
     const action = actions[index];
@@ -181,6 +224,27 @@ export function topmostSelectableIndexAtPoint(actions, point, padding = 10) {
       }
       continue;
     }
+    if (action.type === "free") {
+      const points = Array.isArray(action.points) ? action.points : [];
+      if (points.length === 1 && Math.hypot(point.x - points[0].x, point.y - points[0].y) <= padding) {
+        return index;
+      }
+      const hit = points.some((start, pointIndex) => {
+        if (pointIndex === points.length - 1) return false;
+        return distanceToSegment(point, start, points[pointIndex + 1]) <= padding;
+      });
+      if (hit) {
+        return index;
+      }
+      continue;
+    }
+    if (action.type === "ray") {
+      if (distanceToSegment(point, { x: action.cx, y: action.cy }, { x: action.x, y: action.y }) <= padding) {
+        return index;
+      }
+      continue;
+    }
+    // circle, ring, spiral — le clic ne touche que le bord extérieur
     const ringDistance = Math.abs(Math.hypot(point.x - action.cx, point.y - action.cy) - action.radius);
     if (ringDistance <= padding) {
       return index;
@@ -204,6 +268,13 @@ export function translateSelectedActions(actions, indices, dx, dy) {
       return action;
     }
     if (action.type === "glyph") {
+      action.x += dx;
+      action.y += dy;
+    } else if (action.type === "free") {
+      action.points = action.points.map((point) => ({ x: point.x + dx, y: point.y + dy }));
+    } else if (action.type === "ray") {
+      action.cx += dx;
+      action.cy += dy;
       action.x += dx;
       action.y += dy;
     } else {
@@ -242,10 +313,60 @@ export function scaleSelectedActions(actions, indices, origin, scale) {
       action.y = origin.y + (action.y - origin.y) * scale;
       action.size = Math.max(MIN_GLYPH_SIZE, Math.min(MAX_GLYPH_SIZE, action.size * scale));
       action.userAdjusted = true;
+    } else if (action.type === "free") {
+      action.points = action.points.map((point) => ({
+        x: origin.x + (point.x - origin.x) * scale,
+        y: origin.y + (point.y - origin.y) * scale,
+      }));
+    } else if (action.type === "ray") {
+      action.cx = origin.x + (action.cx - origin.x) * scale;
+      action.cy = origin.y + (action.cy - origin.y) * scale;
+      action.x = origin.x + (action.x - origin.x) * scale;
+      action.y = origin.y + (action.y - origin.y) * scale;
     } else {
       action.cx = origin.x + (action.cx - origin.x) * scale;
       action.cy = origin.y + (action.cy - origin.y) * scale;
       action.radius = Math.max(1, action.radius * scale);
+    }
+    return action;
+  });
+}
+
+export function rotateSelectedActions(actions, indices, origin, angleDelta) {
+  if (!Number.isFinite(angleDelta)) {
+    throw new TypeError("A finite rotation angle is required");
+  }
+  const selected = new Set(indices);
+  const cosine = Math.cos(angleDelta);
+  const sine = Math.sin(angleDelta);
+  const rotate = (x, y) => ({
+    x: origin.x + (x - origin.x) * cosine - (y - origin.y) * sine,
+    y: origin.y + (x - origin.x) * sine + (y - origin.y) * cosine,
+  });
+  return cloneActions(actions).map((action, index) => {
+    if (!selected.has(index) || !isSelectableAction(action)) {
+      return action;
+    }
+    if (action.type === "glyph") {
+      const position = rotate(action.x, action.y);
+      action.x = position.x;
+      action.y = position.y;
+      action.rotation = (Number(action.rotation) || 0) + angleDelta;
+      action.userAdjusted = true;
+    } else if (action.type === "free") {
+      action.points = action.points.map((point) => rotate(point.x, point.y));
+    } else if (action.type === "ray") {
+      const center = rotate(action.cx, action.cy);
+      const tip = rotate(action.x, action.y);
+      action.cx = center.x;
+      action.cy = center.y;
+      action.x = tip.x;
+      action.y = tip.y;
+    } else {
+      // circle, ring, spiral — seul le centre tourne (groupe rigide)
+      const center = rotate(action.cx, action.cy);
+      action.cx = center.x;
+      action.cy = center.y;
     }
     return action;
   });

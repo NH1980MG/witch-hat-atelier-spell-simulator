@@ -25,6 +25,9 @@ test("la superposition ouverte neutralise toute la carte des raccourcis", () => 
     ["z", { metaKey: true }],
     ["s", { metaKey: true }],
     ["d", { metaKey: true }],
+    ["a", { metaKey: true }],
+    ["c", { metaKey: true }],
+    ["v", { metaKey: true }],
     ["a", {}],
     ["l", {}],
     ["Delete", {}],
@@ -48,6 +51,32 @@ test("les nouveaux raccourcis sont relies et neutralisent le navigateur", () => 
   assert.deepEqual(press("k", { metaKey: true }), { command: "openSearch", preventDefault: true });
   assert.deepEqual(press("k", { ctrlKey: true }), { command: "openSearch", preventDefault: true });
   assert.deepEqual(press("D", { metaKey: true }), { command: "duplicate", preventDefault: true });
+});
+
+test("les raccourcis presse-papiers amont passent par le repartiteur", () => {
+  // Amont les avait relies en ligne dans app.js; le repartiteur les avalait
+  // en silence. Aucun test de suite ne voit un raccourci perdu, d'ou ceux-ci.
+  assert.deepEqual(press("a", { metaKey: true }), { command: "selectAll", preventDefault: true });
+  assert.deepEqual(press("c", { metaKey: true }), { command: "copySelection", preventDefault: true });
+  assert.deepEqual(press("v", { metaKey: true }), { command: "pasteSelection", preventDefault: true });
+  assert.equal(press("A", { ctrlKey: true }).command, "selectAll");
+  assert.equal(press("V", { ctrlKey: true }).command, "pasteSelection");
+});
+
+test("Cmd+A prime sur le 'a' nu qui active le cercle", () => {
+  // Deplacer la regle selectAll sous `lower === "a"` la rendrait inatteignable
+  // sans faire echouer aucune autre assertion. Ce couple fixe l'ordre.
+  assert.equal(press("a", { metaKey: true }).command, "selectAll");
+  assert.equal(press("a").command, "activateCircle");
+});
+
+test("Cmd+A/C/V rendent la main au navigateur pendant la saisie", () => {
+  // Contrairement a z/s/k/d, ceux-ci sont SOUS le garde isTyping: dans un
+  // champ texte, selectionner et coller du texte doit rester possible.
+  const typing = { isTyping: true };
+  assert.equal(press("a", { metaKey: true }, typing).command, "none");
+  assert.equal(press("c", { metaKey: true }, typing).command, "none");
+  assert.equal(press("v", { metaKey: true }, typing).command, "none");
 });
 
 test("Cmd+Z et Maj+Cmd+Z restent distincts", () => {
