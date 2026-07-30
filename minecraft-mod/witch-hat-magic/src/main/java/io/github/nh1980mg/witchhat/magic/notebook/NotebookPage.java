@@ -5,6 +5,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 
@@ -12,7 +13,8 @@ public record NotebookPage(
         String id,
         String title,
         List<NotebookStroke> strokes,
-        List<PlacedSymbol> symbols) {
+        List<PlacedSymbol> symbols,
+        Optional<TracingGuide> guide) {
     public static final int MAX_ID_LENGTH = 64;
     public static final int MAX_TITLE_LENGTH = 64;
 
@@ -20,7 +22,8 @@ public record NotebookPage(
             Codec.STRING.fieldOf("id").forGetter(NotebookPage::id),
             Codec.STRING.fieldOf("title").forGetter(NotebookPage::title),
             NotebookStroke.CODEC.listOf().fieldOf("strokes").forGetter(NotebookPage::strokes),
-            PlacedSymbol.CODEC.listOf().optionalFieldOf("symbols", List.of()).forGetter(NotebookPage::symbols))
+            PlacedSymbol.CODEC.listOf().optionalFieldOf("symbols", List.of()).forGetter(NotebookPage::symbols),
+            TracingGuide.CODEC.optionalFieldOf("guide").forGetter(NotebookPage::guide))
             .apply(instance, NotebookPage::new));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, NotebookPage> STREAM_CODEC =
@@ -31,14 +34,27 @@ public record NotebookPage(
         title = Objects.requireNonNull(title, "title");
         strokes = List.copyOf(Objects.requireNonNull(strokes, "strokes"));
         symbols = List.copyOf(Objects.requireNonNull(symbols, "symbols"));
+        guide = Objects.requireNonNull(guide, "guide");
+    }
+
+    public NotebookPage(
+            String id,
+            String title,
+            List<NotebookStroke> strokes,
+            List<PlacedSymbol> symbols) {
+        this(id, title, strokes, symbols, Optional.empty());
     }
 
     public NotebookPage(String id, String title, List<NotebookStroke> strokes) {
-        this(id, title, strokes, List.of());
+        this(id, title, strokes, List.of(), Optional.empty());
     }
 
     public static NotebookPage blank(String id, String title) {
-        return new NotebookPage(id, title, List.of(), List.of());
+        return new NotebookPage(id, title, List.of(), List.of(), Optional.empty());
+    }
+
+    public NotebookPage withGuide(Optional<TracingGuide> replacement) {
+        return new NotebookPage(id, title, strokes, symbols, replacement);
     }
 
     private void write(RegistryFriendlyByteBuf buffer) {
@@ -48,6 +64,8 @@ public record NotebookPage(
         strokes.forEach(stroke -> NotebookStroke.STREAM_CODEC.encode(buffer, stroke));
         buffer.writeVarInt(symbols.size());
         symbols.forEach(symbol -> PlacedSymbol.STREAM_CODEC.encode(buffer, symbol));
+        buffer.writeBoolean(guide.isPresent());
+        guide.ifPresent(value -> TracingGuide.STREAM_CODEC.encode(buffer, value));
     }
 
     private static NotebookPage read(RegistryFriendlyByteBuf buffer) {
@@ -65,6 +83,9 @@ public record NotebookPage(
         for (int index = 0; index < symbolCount; index++) {
             symbols.add(PlacedSymbol.STREAM_CODEC.decode(buffer));
         }
-        return new NotebookPage(id, title, strokes, symbols);
+        Optional<TracingGuide> guide = buffer.readBoolean()
+                ? Optional.of(TracingGuide.STREAM_CODEC.decode(buffer))
+                : Optional.empty();
+        return new NotebookPage(id, title, strokes, symbols, guide);
     }
 }

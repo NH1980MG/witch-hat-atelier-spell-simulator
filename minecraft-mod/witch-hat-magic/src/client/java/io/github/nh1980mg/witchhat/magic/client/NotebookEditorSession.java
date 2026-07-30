@@ -6,11 +6,13 @@ import io.github.nh1980mg.witchhat.magic.notebook.NotebookLimits;
 import io.github.nh1980mg.witchhat.magic.notebook.NotebookPage;
 import io.github.nh1980mg.witchhat.magic.notebook.NotebookStroke;
 import io.github.nh1980mg.witchhat.magic.notebook.PlacedSymbol;
+import io.github.nh1980mg.witchhat.magic.notebook.TracingGuide;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public final class NotebookEditorSession {
     private static final int MAX_HISTORY = 64;
@@ -67,7 +69,8 @@ public final class NotebookEditorSession {
         strokes.add(new NotebookStroke(activeStroke));
         NotebookPage selected = data.selectedPage();
         commit(data.replaceSelectedPage(
-                new NotebookPage(selected.id(), selected.title(), strokes, selected.symbols())));
+                new NotebookPage(
+                        selected.id(), selected.title(), strokes, selected.symbols(), selected.guide())));
         activeStroke = null;
     }
 
@@ -92,7 +95,8 @@ public final class NotebookEditorSession {
                 strokes.remove(index);
                 NotebookPage selected = data.selectedPage();
                 commit(data.replaceSelectedPage(
-                        new NotebookPage(selected.id(), selected.title(), strokes, selected.symbols())));
+                        new NotebookPage(
+                                selected.id(), selected.title(), strokes, selected.symbols(), selected.guide())));
                 return true;
             }
         }
@@ -125,7 +129,8 @@ public final class NotebookEditorSession {
             return;
         }
         commit(data.replaceSelectedPage(
-                new NotebookPage(selected.id(), selected.title(), List.of(), selected.symbols())));
+                new NotebookPage(
+                        selected.id(), selected.title(), List.of(), selected.symbols(), selected.guide())));
     }
 
     public void previousPage() {
@@ -184,6 +189,83 @@ public final class NotebookEditorSession {
         symbolSelection = SymbolSelection.empty();
     }
 
+    public boolean setGuideSource(int pageIndex) {
+        if (pageIndex < 0 || pageIndex >= data.pages().size()) {
+            return false;
+        }
+        NotebookPage selected = data.selectedPage();
+        NotebookPage source = data.pages().get(pageIndex);
+        if (source.id().equals(selected.id())) {
+            return false;
+        }
+        TracingGuide guide = selected.guide()
+                .map(existing -> existing.withSource(source.id()).withVisible(true))
+                .orElseGet(() -> TracingGuide.createDefault(source.id()));
+        commit(data.replaceSelectedPage(selected.withGuide(Optional.of(guide))));
+        return true;
+    }
+
+    public boolean cycleGuideSource(int delta) {
+        if (delta != -1 && delta != 1) {
+            return false;
+        }
+        List<NotebookPage> candidates = data.pages().stream()
+                .filter(page -> !page.id().equals(data.selectedPageId()))
+                .toList();
+        if (candidates.isEmpty()) {
+            return false;
+        }
+        String currentId = data.selectedPage().guide()
+                .map(TracingGuide::sourcePageId)
+                .orElse(candidates.getFirst().id());
+        int current = 0;
+        for (int index = 0; index < candidates.size(); index++) {
+            if (candidates.get(index).id().equals(currentId)) {
+                current = index;
+                break;
+            }
+        }
+        NotebookPage next = candidates.get(Math.floorMod(current + delta, candidates.size()));
+        return setGuideSource(data.pages().indexOf(next));
+    }
+
+    public boolean toggleGuide() {
+        NotebookPage selected = data.selectedPage();
+        if (selected.guide().isEmpty()) {
+            for (int index = 0; index < data.pages().size(); index++) {
+                if (!data.pages().get(index).id().equals(selected.id())) {
+                    return setGuideSource(index);
+                }
+            }
+            return false;
+        }
+        TracingGuide guide = selected.guide().orElseThrow();
+        commit(data.replaceSelectedPage(selected.withGuide(
+                Optional.of(guide.withVisible(!guide.visible())))));
+        return true;
+    }
+
+    public boolean resizeGuide(float delta) {
+        NotebookPage selected = data.selectedPage();
+        if (selected.guide().isEmpty() || !Float.isFinite(delta)) {
+            return false;
+        }
+        TracingGuide guide = selected.guide().orElseThrow();
+        NotebookData changed = data.replaceSelectedPage(selected.withGuide(
+                Optional.of(guide.withSize(guide.size() + delta))));
+        if (!isValid(changed)) {
+            return false;
+        }
+        commit(changed);
+        return true;
+    }
+
+    public Optional<NotebookPage> guideSourcePage() {
+        return data.selectedPage().guide().flatMap(guide -> data.pages().stream()
+                .filter(page -> page.id().equals(guide.sourcePageId()))
+                .findFirst());
+    }
+
     public boolean placeSymbol(String symbolId, NormalizedPoint center, float size) {
         NotebookPage selected = data.selectedPage();
         if (selected.symbols().size() >= NotebookLimits.MAX_SYMBOLS_PER_PAGE) {
@@ -192,7 +274,8 @@ public final class NotebookEditorSession {
         List<PlacedSymbol> symbols = new ArrayList<>(selected.symbols());
         symbols.add(new PlacedSymbol(symbolId, center, size, 0.0F));
         NotebookData changed = data.replaceSelectedPage(
-                new NotebookPage(selected.id(), selected.title(), selected.strokes(), symbols));
+                new NotebookPage(
+                        selected.id(), selected.title(), selected.strokes(), symbols, selected.guide()));
         if (!isValid(changed)) {
             return false;
         }
@@ -271,7 +354,8 @@ public final class NotebookEditorSession {
                 .sorted((left, right) -> Integer.compare(right, left))
                 .forEach(index -> symbols.remove((int) index));
         NotebookData changed = data.replaceSelectedPage(
-                new NotebookPage(selected.id(), selected.title(), selected.strokes(), symbols));
+                new NotebookPage(
+                        selected.id(), selected.title(), selected.strokes(), symbols, selected.guide()));
         commit(changed);
         symbolSelection = SymbolSelection.empty();
         return true;
@@ -323,7 +407,8 @@ public final class NotebookEditorSession {
             NotebookPage selected,
             List<PlacedSymbol> symbols) {
         NotebookData changed = data.replaceSelectedPage(
-                new NotebookPage(selected.id(), selected.title(), selected.strokes(), symbols));
+                new NotebookPage(
+                        selected.id(), selected.title(), selected.strokes(), symbols, selected.guide()));
         if (!isValid(changed)) {
             return false;
         }

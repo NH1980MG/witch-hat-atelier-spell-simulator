@@ -265,6 +265,44 @@ class NotebookEditorSessionTest {
         assertEquals(0, session.snapshot().selectedPageIndex());
     }
 
+    @Test
+    void tracingGuideCanBeSelectedResizedHiddenAndUndone() {
+        NotebookEditorSession session = new NotebookEditorSession(
+                NotebookData.createDefault().addPage());
+
+        assertTrue(session.setGuideSource(0));
+        assertEquals(
+                "page-1",
+                session.snapshot().selectedPage().guide().orElseThrow().sourcePageId());
+
+        assertTrue(session.resizeGuide(-0.1F));
+        assertEquals(
+                0.7F,
+                session.snapshot().selectedPage().guide().orElseThrow().size(),
+                0.0001F);
+
+        assertTrue(session.toggleGuide());
+        assertFalse(session.snapshot().selectedPage().guide().orElseThrow().visible());
+
+        session.undo();
+        assertTrue(session.snapshot().selectedPage().guide().orElseThrow().visible());
+    }
+
+    @Test
+    void tracingGuideCyclesOnlyThroughOtherPages() {
+        NotebookEditorSession session = new NotebookEditorSession(
+                NotebookData.createDefault().addPage().addPage());
+
+        assertTrue(session.setGuideSource(0));
+        assertTrue(session.cycleGuideSource(1));
+
+        assertEquals(
+                "page-2",
+                session.snapshot().selectedPage().guide().orElseThrow().sourcePageId());
+        assertFalse(session.snapshot().selectedPage().guide().orElseThrow().sourcePageId()
+                .equals(session.snapshot().selectedPageId()));
+    }
+
     private static NotebookEditorSession sessionWithOneStroke() {
         NotebookEditorSession session = new NotebookEditorSession(NotebookData.createDefault());
         session.beginStroke(200.0, 200.0, 100.0, 100.0, 200.0);

@@ -69,7 +69,7 @@ public record NotebookData(int formatVersion, String selectedPageId, List<Notebo
         }
         NotebookPage selected = selectedPage();
         return replaceSelectedPage(new NotebookPage(
-                selected.id(), normalized, selected.strokes(), selected.symbols()));
+                selected.id(), normalized, selected.strokes(), selected.symbols(), selected.guide()));
     }
 
     public NotebookData duplicateSelectedPage() {
@@ -84,7 +84,7 @@ public record NotebookData(int formatVersion, String selectedPageId, List<Notebo
             title = title.substring(0, NotebookPage.MAX_TITLE_LENGTH - suffix.length());
         }
         NotebookPage duplicate = new NotebookPage(
-                id, title + suffix, selected.strokes(), selected.symbols());
+                id, title + suffix, selected.strokes(), selected.symbols(), selected.guide());
         List<NotebookPage> changed = new ArrayList<>(pages);
         changed.add(indexOfSelectedPage() + 1, duplicate);
         return new NotebookData(formatVersion, duplicate.id(), changed);
@@ -119,7 +119,11 @@ public record NotebookData(int formatVersion, String selectedPageId, List<Notebo
 
         int selectedIndex = indexOfSelectedPage();
         List<NotebookPage> changed = new ArrayList<>(pages);
-        changed.remove(selectedIndex);
+        String removedId = changed.remove(selectedIndex).id();
+        changed.replaceAll(page -> page.guide()
+                .filter(guide -> guide.sourcePageId().equals(removedId))
+                .map(guide -> page.withGuide(java.util.Optional.empty()))
+                .orElse(page));
         int nextIndex = Math.min(selectedIndex, changed.size() - 1);
         return new NotebookData(formatVersion, changed.get(nextIndex).id(), changed);
     }

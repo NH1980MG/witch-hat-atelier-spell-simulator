@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
@@ -216,6 +217,38 @@ class NotebookDataTest {
         assertEquals(movedRight, movedRight.moveSelectedPage(1));
     }
 
+    @Test
+    void storesAnOptionalTracingGuideThatReferencesAnotherPage() {
+        NotebookPage source = NotebookPage.blank("page-1", "Source");
+        TracingGuide guide = new TracingGuide(
+                source.id(),
+                new NormalizedPoint(0.5F, 0.5F),
+                0.8F,
+                0.35F,
+                true);
+        NotebookPage target = new NotebookPage(
+                "page-2", "Target", List.of(), List.of(), Optional.of(guide));
+        NotebookData data = new NotebookData(
+                NotebookData.CURRENT_FORMAT, target.id(), List.of(source, target));
+
+        NotebookLimits.validate(data);
+
+        assertEquals(guide, data.selectedPage().guide().orElseThrow());
+        assertTrue(NotebookPage.blank("blank", "Blank").guide().isEmpty());
+    }
+
+    @Test
+    void rejectsMissingSelfReferencingAndInvalidTracingGuides() {
+        assertInvalidGuide(new TracingGuide(
+                "page-2", new NormalizedPoint(0.5F, 0.5F), 0.8F, 0.35F, true));
+        assertInvalidGuide(new TracingGuide(
+                "missing", new NormalizedPoint(0.5F, 0.5F), 0.8F, 0.35F, true));
+        assertInvalidGuide(new TracingGuide(
+                "page-1", new NormalizedPoint(0.5F, 0.5F), 0.1F, 0.35F, true));
+        assertInvalidGuide(new TracingGuide(
+                "page-1", new NormalizedPoint(0.5F, 0.5F), 0.8F, 1.1F, true));
+    }
+
     private static NotebookData dataWithPoint(NormalizedPoint point) {
         return dataWithStroke(new NotebookStroke(List.of(point)));
     }
@@ -230,6 +263,15 @@ class NotebookDataTest {
                 "page-1", "Page 1", List.of(), List.of(symbol));
         NotebookData invalid = new NotebookData(
                 NotebookData.CURRENT_FORMAT, page.id(), List.of(page));
+        assertThrows(IllegalArgumentException.class, () -> NotebookLimits.validate(invalid));
+    }
+
+    private static void assertInvalidGuide(TracingGuide guide) {
+        NotebookPage source = NotebookPage.blank("page-1", "Source");
+        NotebookPage target = new NotebookPage(
+                "page-2", "Target", List.of(), List.of(), Optional.of(guide));
+        NotebookData invalid = new NotebookData(
+                NotebookData.CURRENT_FORMAT, target.id(), List.of(source, target));
         assertThrows(IllegalArgumentException.class, () -> NotebookLimits.validate(invalid));
     }
 }
