@@ -5,6 +5,7 @@ import {
   composeSpellRecipe,
 } from "./spell-grammar.mjs";
 import { INDEXED_ELEMENTAL_MIXTURES } from "./elemental-mixtures.mjs";
+import { isVariantVisibleAtChapter } from "./symbol-chapters.mjs";
 
 export const VARIANT_PAGE_SIZE = 50;
 
@@ -46,6 +47,7 @@ export const DEFAULT_EXPLORER_STATE = Object.freeze({
   warnings: "all",
   effect: "all",
   sort: "relevance",
+  chapter: "all",
   page: 1,
 });
 
@@ -297,8 +299,10 @@ export function serializeExplorerState(state) {
 
 export function queryVariants(records, state = DEFAULT_EXPLORER_STATE) {
   const requested = { ...DEFAULT_EXPLORER_STATE, ...state };
+  const chapterLimit = requested.chapter === "all" ? null : Number(requested.chapter);
   const ranked = [];
   for (const record of records) {
+    if (chapterLimit !== null && !isVariantVisibleAtChapter(record, chapterLimit)) continue;
     if (requested.sigil !== "all" && !record.sigils.includes(requested.sigil)) continue;
     if (requested.sign !== "all" && !record.signs.includes(requested.sign)) continue;
     if (requested.role !== "all" && !record.roles.includes(requested.role)) continue;

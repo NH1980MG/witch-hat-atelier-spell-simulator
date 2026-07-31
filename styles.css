@@ -2392,3 +2392,47 @@ input:focus-visible {
 .symbol-drag-ghost.is-armed {
   opacity: 0.55;
 }
+
+.spoiler-control {
+  margin: 0 0 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--paper) 70%, transparent);
+  display: grid;
+  gap: 0.45rem;
+}
+
+.spoiler-toggle {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.spoiler-range-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.spoiler-range-row input[type="range"] {
+  flex: 1;
+}
+
+.spoiler-range-row output {
+  min-width: 2ch;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.spoiler-note {
+  margin: 0;
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+.spoiler-filter input {
+  width: 5.5rem;
+}
