@@ -186,7 +186,7 @@ test("les signes corriges gardent la topologie des captures", () => {
     "Signe de vent": ["M30 8 C20 6", "M20 14 C18 24"],
     Rassemblement: ["M24 42 V11", "M24 28 L14 42"],
     Dissimulation: ["M24 8 V40", "circle"],
-    Fenetre: ["M17 8 H31", "M8 17 H40"],
+    Selection: ["M17 8 H31", "M8 17 H40"],
     Purification: ["M16 8 C26 12", "C7 32 10 26"],
     Immobilite: ["M24 17 V31", "M14 19 H34"],
   };

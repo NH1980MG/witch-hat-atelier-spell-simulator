@@ -33,7 +33,7 @@ export const SIGIL_PROFILES = Object.freeze({
   Cheval: profile({ family: "horse", noun: "cheval", phase: "form", defaultLabel: "forme de cheval", mechanic: "manifeste un cheval magique capable de tirer une charge" }),
   "Oiseau A": profile({ family: "bird-a", noun: "oiseau", phase: "form", defaultLabel: "projection d'oiseau", mechanic: "cree une projection d'oiseau qui vole temporairement" }),
   "Oiseau B": profile({ family: "bird-b", noun: "oiseau", phase: "form", defaultLabel: "forme d'oiseau", mechanic: "manifeste un oiseau plus proche d'un canard que la variante A", fidelity: "inferred" }),
-  "Arret temporel": profile({ family: "time-stop", noun: "temps", phase: "meta", defaultLabel: "stase temporelle", mechanic: "arrete le temps pour les objets affectes" }),
+  "Arret temporel": profile({ family: "time-stop", noun: "temps", phase: "meta", defaultLabel: "stase temporelle", mechanic: "arrete le temps pour les objets affectes; documente comme un agencement de signes autour d'un point central plutot qu'un sigil canon" }),
   "Vent tourbillonnant": profile({ family: "whorling-wind", noun: "vent rotatif", phase: "gas", defaultLabel: "tourbillon d'air", mechanic: "manipule l'air par rotation; le fonctionnement exact reste incertain", fidelity: "experimental" }),
   "Flammes sans chaleur": profile({ family: "unburning-fire", noun: "flamme sans chaleur", phase: "energy", defaultLabel: "flammes sans chaleur", mechanic: "participe a la production de flammes sans chaleur; des signes supplementaires peuvent etre requis", fidelity: "experimental" }),
 });
@@ -48,7 +48,7 @@ export const RAW_ENERGY_PROFILE = profile({
 export const SIGN_PROFILES = Object.freeze({
   // `radial` controls how the drawing faces around the seal. `directional`
   // only means that the sign contributes to the spell's spatial vector.
-  Colonne: profile({ role: "form", operation: "column", effect: "colonne/projection", radial: true, directional: true, invertible: false, confidence: "high", mechanic: "canalise la matiere dans une colonne; un desequilibre entre les signes incline la manifestation" }),
+  Colonne: profile({ role: "form", operation: "column", inverseOperation: "dispersion", effect: "colonne/projection", radial: true, directional: true, invertible: true, confidence: "high", mechanic: "canalise la matiere dans une colonne; un desequilibre entre les signes incline la manifestation; inverse, l'emission se fait dans toutes les directions, comme une dispersion" }),
   Dispersion: profile({ role: "form", operation: "dispersion", effect: "dispersion", radial: true, directional: false, invertible: false, confidence: "high", mechanic: "laisse la matiere s'ecouler et s'etaler au lieu de la projeter en faisceau" }),
   Levitation: profile({ role: "motion", operation: "lift", effect: "levitation", radial: true, directional: true, invertible: false, confidence: "high", mechanic: "souleve l'effet ou deplace le support selon l'orientation des pointes" }),
   Traction: profile({ role: "motion", operation: "pull", inverseOperation: "push", effect: "traction", radial: true, directional: true, invertible: true, confidence: "high", mechanic: "attire la matiere correspondante vers le sceau; inverse, il est probable qu'elle soit repoussee" }),
@@ -58,7 +58,7 @@ export const SIGN_PROFILES = Object.freeze({
   Nuage: profile({ role: "form", operation: "cloud", effect: "nuage", directional: false, invertible: false, confidence: "medium", mechanic: "donne une forme nuageuse a une matiere compatible" }),
   Crush: profile({ role: "state", operation: "crush", inverseOperation: "restore", effect: "ecrasement", radial: true, directional: false, invertible: true, confidence: "high", families: ["earth"], mechanic: "desagrege la terre; inverse, la reforme temporairement" }),
   Pantin: profile({ role: "motion", operation: "puppet", effect: "controle", directional: false, invertible: false, confidence: "medium", mechanic: "impose un mouvement commande a l'objet touche" }),
-  Flottement: profile({ role: "motion", operation: "float", effect: "flottement", directional: false, invertible: false, confidence: "high", mechanic: "maintient l'objet ou la matiere en flottement" }),
+  Flottement: profile({ role: "motion", operation: "float", effect: "flottement", directional: false, invertible: false, confidence: "high", mechanic: "stabilise l'objet sur un plan horizontal dans l'air; il peut pivoter mais conserve son niveau" }),
   Etirement: profile({ role: "form", operation: "ribbon", effect: "tissage", directional: false, invertible: false, confidence: "high", phases: ["solid"], mechanic: "transforme une matiere solide en ruban flexible" }),
   "Spire physique": profile({ role: "form", operation: "coil", effect: "spire physique", directional: false, invertible: false, confidence: "high", phases: ["solid"], mechanic: "enroule une matiere physique solide en spire" }),
   Refroidissement: profile({ role: "state", operation: "cool", effect: "refroidissement", directional: false, invertible: false, confidence: "high", mechanic: "retire de la chaleur et peut condenser une matiere" }),
@@ -66,9 +66,9 @@ export const SIGN_PROFILES = Object.freeze({
   Cible: profile({ role: "target", operation: "aim", effect: "ciblage", radial: true, directional: true, invertible: false, confidence: "high", mechanic: "verrouille un point ou une cible precise" }),
   Enlacement: profile({ role: "relation", operation: "entwine", effect: "enlacement", radial: true, directional: false, invertible: false, confidence: "medium", phases: ["solid"], mechanic: "enroule une forme solide autour d'un autre objet" }),
   "Signe de vent": profile({ role: "state", operation: "wind-modifier", effect: "signe de vent", directional: false, invertible: false, confidence: "low", families: ["wind", "air", "underfoot-wind"], mechanic: "modifie un aeriforme; le comportement general reste incompletement documente" }),
-  "Aeriforme defini": profile({ role: "state", operation: "define-air", effect: "aeriforme defini", radial: true, directional: false, invertible: false, confidence: "medium", families: ["wind", "air", "underfoot-wind"], mechanic: "definit plus strictement la forme et la presence de l'air" }),
-  Rassemblement: profile({ role: "supply", operation: "gather", effect: "rassemblement", radial: true, directional: true, invertible: false, confidence: "medium", mechanic: "amene activement la matiere proche vers la zone du sceau" }),
-  Glaives: profile({ role: "scope", operation: "depth", effect: "glaives", radial: true, directional: false, invertible: false, confidence: "low", restricted: true, mechanic: "regle une profondeur d'action; usage garde experimental dans le simulateur" }),
+  "Aeriforme defini": profile({ role: "state", operation: "define-air", effect: "aeriforme defini", radial: true, directional: false, invertible: false, confidence: "medium", families: ["wind", "air", "underfoot-wind"], mechanic: "modifieur probable de l'aeriforme; sa fonction exacte reste indeterminee" }),
+  Rassemblement: profile({ role: "supply", operation: "gather", effect: "rassemblement", radial: true, directional: true, invertible: false, confidence: "medium", mechanic: "semble attirer activement la matiere proche vers la zone du sceau; effet non confirme" }),
+  Glaives: profile({ role: "scope", operation: "depth", effect: "glaives", radial: true, directional: false, invertible: false, confidence: "low", restricted: true, mechanic: "regle la profondeur d'enfoncement dans la chair; documente uniquement dans des sorts interdits" }),
   Solidification: profile({ role: "state", operation: "solidify", effect: "solidification", radial: true, directional: false, invertible: false, confidence: "medium", mechanic: "fait passer la manifestation connectee vers un etat plus solide" }),
   Lien: profile({ role: "relation", operation: "link", effect: "lien", radial: true, directional: false, invertible: false, confidence: "medium", mechanic: "synchronise des objets provenant d'une meme origine" }),
   Arret: profile({ role: "relation", operation: "bind", effect: "immobilite", radial: true, directional: false, invertible: false, confidence: "medium", mechanic: "attache les parties de la matiere en une forme liee" }),
@@ -76,7 +76,7 @@ export const SIGN_PROFILES = Object.freeze({
   Dissimulation: profile({ role: "state", operation: "conceal", effect: "dissimulation", directional: false, invertible: false, confidence: "medium", families: ["light"], mechanic: "deforme la lumiere et les ombres pour masquer la cible" }),
   Reflection: profile({ role: "target", operation: "reflection", effect: "reflection", directional: false, invertible: false, confidence: "low", families: ["light"], mechanic: "utilise une image reflechie comme cible de la formule" }),
   Diamant: profile({ role: "target", operation: "nearby", effect: "cible proche", directional: false, invertible: false, confidence: "low", mechanic: "semble viser un objet proche plutot que le support du sceau" }),
-  Fenetre: profile({ role: "target", operation: "carrier", effect: "cible support", directional: false, invertible: false, confidence: "low", mechanic: "semble limiter la transformation a l'objet qui porte le sceau" }),
+  Selection: profile({ role: "target", operation: "carrier", effect: "cible support", directional: false, invertible: false, confidence: "low", mechanic: "semble limiter la transformation a l'objet qui porte le sceau" }),
   Agrandissement: profile({ role: "state", operation: "resize", inverseOperation: "shrink", effect: "agrandissement", radial: true, directional: false, invertible: true, confidence: "high", mechanic: "agrandit la cible; avec les pointes inversees, la reduit" }),
   Viseur: profile({ role: "target", operation: "crosshair", effect: "viseur", directional: false, invertible: false, confidence: "low", mechanic: "associe la manifestation a une zone ou a un objet correspondant" }),
   Radial: profile({ role: "power", operation: "temper", effect: "radial", directional: false, invertible: false, confidence: "medium", mechanic: "tempere la puissance pour conserver l'effet sans sa forme la plus violente" }),
@@ -419,7 +419,7 @@ export function composeSpellRecipe({
     warnings.push("Dissimulation sans lumiere est conservee comme hypothese, pas comme effet confirme.");
   }
   if (has("nearby") && has("carrier")) {
-    warnings.push("Diamant et Fenetre designent deux cibles opposees; le simulateur montre les deux zones sans en inventer une priorite canonique.");
+    warnings.push("Diamant et Selection designent deux cibles opposees; le simulateur montre les deux zones sans en inventer une priorite canonique.");
   }
   if (has("still") && axes.motion.length > 0) {
     warnings.push("Immobilite s'applique apres le mouvement: la manifestation se forme, puis reste statique.");

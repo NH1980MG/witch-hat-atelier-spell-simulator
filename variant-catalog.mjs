@@ -28,7 +28,7 @@ export const ENGLISH_ELEMENT_NAMES = Object.freeze({
   "Aeriforme defini": "Defined aeriform", Rassemblement: "Gathering",
   Glaives: "Depth", Solidification: "Solidification", Lien: "Link",
   Arret: "Bind", Enveloppe: "Wrap", Dissimulation: "Concealment",
-  Reflection: "Reflection", Diamant: "Diamond", Fenetre: "Window",
+  Reflection: "Reflection", Diamant: "Diamond", Selection: "Selection",
   Agrandissement: "Expansion", Viseur: "Crosshair", Radial: "Radial",
   Projectile: "Bolt", Pluie: "Rain", Orbe: "Orb",
   Purification: "Purification", Immobilite: "Stillness", Projection: "Projection",
