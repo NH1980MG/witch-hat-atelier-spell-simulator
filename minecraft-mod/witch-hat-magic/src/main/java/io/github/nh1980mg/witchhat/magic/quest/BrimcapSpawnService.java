@@ -153,8 +153,13 @@ public final class BrimcapSpawnService {
 
     private static void spawnBoss(ServerPlayer player, QuestWorldState state, BlockPos lair) {
         ServerLevel level = player.serverLevel();
-        int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, lair.getX(), lair.getZ());
-        BlockPos pos = new BlockPos(lair.getX(), y, lair.getZ());
+        // She steps out to meet the intruder: surface, 20 blocks ahead of the player.
+        double angle = Math.atan2(
+                lair.getZ() + 0.5 - player.getZ(), lair.getX() + 0.5 - player.getX());
+        int x = (int) (player.getX() + Math.cos(angle) * 20.0);
+        int z = (int) (player.getZ() + Math.sin(angle) * 20.0);
+        int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+        BlockPos pos = new BlockPos(x, y, z);
         BrimcapBossEntity boss = MagicEntities.BRIMCAP_BOSS.create(level);
         if (boss == null) {
             return;
