@@ -18,6 +18,7 @@ export const ENGLISH_ELEMENT_NAMES = Object.freeze({
   Cheval: "Horse", "Oiseau A": "Bird A", "Oiseau B": "Bird B",
   "Arret temporel": "Stop", "Vent tourbillonnant": "Whorling Wind",
   "Flammes sans chaleur": "Unburning Flames",
+  Guidage: "Guidance", Appel: "Calling", "Lumiere vacillante": "Flickering Light",
   Colonne: "Column", Dispersion: "Dispersion",
   Levitation: "Levitation", Traction: "Pull", Region: "Region",
   Convergence: "Convergence", Collection: "Collection", Nuage: "Billow",
@@ -32,6 +33,7 @@ export const ENGLISH_ELEMENT_NAMES = Object.freeze({
   Agrandissement: "Expansion", Viseur: "Crosshair", Radial: "Radial",
   Projectile: "Bolt", Pluie: "Rain", Orbe: "Orb",
   Purification: "Purification", Immobilite: "Stillness", Projection: "Projection",
+  Lancement: "Launch", Fenetres: "Windows",
 });
 
 export const DEFAULT_EXPLORER_STATE = Object.freeze({

@@ -77,6 +77,9 @@ const elements = [
   { name: "Arret temporel", color: "#5f536d", rune: "AT", charge: 2, kind: "sigil", category: "Sigil", meaning: "Agencement de signes autour d'un point central remplacable par un sigil pour figer un aspect precis; sort \"Time Stop\" au nom non officiel, pas un sigil canon documente." },
   { name: "Vent tourbillonnant", color: "#568276", rune: "VT", charge: 1, kind: "sigil", category: "Sigil", meaning: "Manipule l'air par rotation; son fonctionnement exact reste incertain." },
   { name: "Flammes sans chaleur", color: "#a84f42", rune: "FC", charge: 1, kind: "sigil", category: "Sigil", meaning: "Participe a la production de flammes sans chaleur; des signes supplementaires peuvent etre requis." },
+  { name: "Guidage", color: "#5d7a68", rune: "GU", charge: 1, kind: "sigil", category: "Sigil", meaning: "Attire vers le sceau les objets correspondant aux parametres definis par les autres signes du sort." },
+  { name: "Appel", color: "#7a6a5d", rune: "AP", charge: 1, kind: "sigil", category: "Sigil", meaning: "Repete en echo une phrase enregistree; documente uniquement dans la Pouch of Calling." },
+  { name: "Lumiere vacillante", color: "#8a7a3f", rune: "VA", charge: 2, kind: "sigil", category: "Sigil", meaning: "Fonction exacte inconnue; probablement des lumieres scintillantes stables et puissantes (speculation du wiki)." },
   { name: "Colonne", color: "#8b1f1f", rune: "CO", charge: 1, kind: "sign", category: "Directionnel", meaning: "Signe directionnel: manifeste le sort en colonne ou faisceau." },
   { name: "Dispersion", color: "#8b1f1f", rune: "DI", charge: 0, kind: "sign", category: "Directionnel", meaning: "Signe proche de colonne: laisse l'energie sortir vers l'exterieur." },
   { name: "Levitation", color: "#8b1f1f", rune: "LV", charge: 1, kind: "sign", category: "Directionnel", meaning: "Signe directionnel: fait leviter l'effet (eau, feu, lumiere) ou deplace l'objet support dans la direction des pointes (vent, air)." },
@@ -115,6 +118,8 @@ const elements = [
   { name: "Purification", color: "#8b1f1f", rune: "PF", charge: 0, kind: "sign", category: "Asymetrique", meaning: "Separe les impuretes de l'effet ou de la matiere." },
   { name: "Immobilite", color: "#8b1f1f", rune: "IM", charge: 0, kind: "sign", category: "Non-directionnel", meaning: "Maintient la magie en place." },
   { name: "Projection", color: "#8b1f1f", rune: "PR", charge: 1, kind: "sign", category: "Asymetrique", meaning: "Projette l'effet ou une image vers l'exterieur." },
+  { name: "Lancement", color: "#8b1f1f", rune: "LN", charge: 1, kind: "sign", category: "Asymetrique", meaning: "Propulse probablement l'effet dans la direction pointee en une rafale puissante mais de courte duree." },
+  { name: "Fenetres", color: "#8b1f1f", rune: "FN", charge: 0, kind: "sign", category: "Non-directionnel", meaning: "Connecterait deux espaces distants; borde le sort comme un anneau de marques repetees." },
 ];
 
 const RAW_ENERGY_ELEMENT = Object.freeze({
@@ -177,6 +182,9 @@ const englishElementNames = Object.freeze({
   "Arret temporel": "Stop",
   "Vent tourbillonnant": "Whorling Wind",
   "Flammes sans chaleur": "Unburning Flames",
+  "Guidage": "Guidance",
+  "Appel": "Calling",
+  "Lumiere vacillante": "Flickering Light",
   "Colonne": "Column",
   "Dispersion": "Dispersion",
   "Levitation": "Levitation",
@@ -215,6 +223,8 @@ const englishElementNames = Object.freeze({
   "Purification": "Purification",
   "Immobilite": "Stillness",
   "Projection": "Projection",
+  "Lancement": "Launch",
+  "Fenetres": "Windows",
   "Energie brute": "Raw energy",
   "Aucun": "None",
 });
@@ -246,6 +256,9 @@ const englishSigilMeanings = Object.freeze({
   "Arret temporel": "Stop sigil: halts time for affected objects and can isolate an aspect when paired with another sigil.",
   "Vent tourbillonnant": "Whorling Wind sigil: manipulates air through rotation; its exact mechanism remains uncertain.",
   "Flammes sans chaleur": "Unburning Flames sigil: contributes to heatless flames and may require additional signs.",
+  "Guidage": "Guidance sigil: attracts to the seal the objects matching the parameters set by the other signs.",
+  "Appel": "Calling sigil: echoes back a recorded phrase; documented only in the Pouch of Calling.",
+  "Lumiere vacillante": "Flickering Light sigil: exact function unknown; probably stable, powerful flickering lights (wiki speculation).",
 });
 
 const englishSignRoles = Object.freeze({

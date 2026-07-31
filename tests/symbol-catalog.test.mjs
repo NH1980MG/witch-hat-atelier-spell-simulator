@@ -99,7 +99,7 @@ test("toutes les planches de sigils et signes alimentent le catalogue runtime", 
     .sort();
   const runtimeBoards = [...new Set(Object.values(SYMBOL_BOARD_TRACE).map(({ board }) => board).filter(Boolean))].sort();
 
-  assert.equal(symbolBoards.length, 18);
+  assert.equal(symbolBoards.length, 20);
   assert.deepEqual(runtimeBoards, symbolBoards);
 });
 
@@ -152,12 +152,12 @@ test("le navigateur charge la nouvelle version du catalogue partage", async () =
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 
   assert.match(app, /symbol-catalog\.mjs\?v=20260723-board-assets-v1/);
-  assert.match(html, /app\.js\?v=20260730-recipe-load-v1/);
-  assert.match(html, /styles\.css\?v=20260730-recipe-load-v1/);
+  assert.match(html, /app\.js\?v=20260731-wiki-symbols-v1/);
+  assert.match(html, /styles\.css\?v=20260731-wiki-symbols-v1/);
 });
 
 test("chaque glyphe partage possede une planche d'audit generee", () => {
-  assert.equal(Object.keys(SYMBOL_PATHS).length, 64);
+  assert.equal(Object.keys(SYMBOL_PATHS).length, 69);
   assert.deepEqual(Object.keys(SYMBOL_GENERATED_BOARD), Object.keys(SYMBOL_PATHS));
 
   for (const [name, board] of Object.entries(SYMBOL_GENERATED_BOARD)) {
@@ -169,7 +169,7 @@ test("chaque glyphe partage possede une planche d'audit generee", () => {
   }
 });
 
-test("les 64 glyphes restent visuellement distincts", () => {
+test("les 69 glyphes restent visuellement distincts", () => {
   const drawings = Object.entries(SYMBOL_PATHS).map(([name, paths]) => [name, paths.join(" ")]);
   const unique = new Map();
 

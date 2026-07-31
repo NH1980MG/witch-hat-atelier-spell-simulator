@@ -149,6 +149,25 @@ const BOARD_TRACED_PATHS = Object.freeze({
     "M24 9 L13 34 H35 Z M17 25 L8 18 M31 25 L40 18 M24 34 V43",
     "M5 15 H11 V21 H5 Z M37 15 H43 V21 H37 Z M21 40 H27 V46 H21 Z",
   ),
+  // Original designs for symbols documented on the Telepedia wiki without an
+  // archived capture: drawn from the wiki descriptions, not from an image.
+  Guidage: paths(
+    circle(24, 24, 3.5),
+    "M24 7 L21 15 L27 15 Z",
+    "M8 38 L17 33 L14 26 Z",
+    "M40 38 L31 33 L34 26 Z",
+  ),
+  Appel: paths(
+    "M10 20 H16 L24 12 V36 L16 28 H10 Z",
+    "M29 18 Q35 24 29 30",
+    "M33 14 Q41 24 33 34",
+  ),
+  "Lumiere vacillante": paths(
+    "M24 10 L27 21 L38 24 L27 27 L24 38 L21 27 L10 24 L21 21 Z",
+    "M24 4 V7 M24 41 V44 M4 24 H7 M41 24 H44",
+    circle(11, 37, 1.5),
+    circle(37, 11, 1.5),
+  ),
 
   // Directional and semi-directional signs are drawn facing upward. The app
   // rotates them radially when they are placed around a seal.
@@ -266,6 +285,17 @@ const BOARD_TRACED_PATHS = Object.freeze({
     "M14 19 H34 M14 25 H34 M14 31 H34",
   ),
   Projection: paths("M8 34 V15 H40 V34"),
+  Lancement: paths(
+    "M8 42 H40",
+    "M24 42 V12 M19 18 L24 12 L29 18",
+    "M15 42 V28 M33 42 V28",
+  ),
+  Fenetres: paths(
+    "M7 33 A19 19 0 0 1 41 33",
+    "M12 25 H16 V29 H12 Z",
+    "M22 17 H26 V21 H22 Z",
+    "M32 25 H36 V29 H32 Z",
+  ),
 });
 
 // Generated audit sheet selected for each runtime vector. Vent deliberately
@@ -297,6 +327,9 @@ export const SYMBOL_GENERATED_BOARD = Object.freeze({
   "Arret temporel": "audited-sigils-state-v2.png",
   "Vent tourbillonnant": "wind-water-symbol-reference.png",
   "Flammes sans chaleur": "earth-fire-light-symbol-reference.png",
+  Guidage: "original-sigils-wiki-v1.png",
+  Appel: "original-sigils-wiki-v1.png",
+  "Lumiere vacillante": "original-sigils-wiki-v1.png",
   Colonne: "signs-directional-i-dalle-v1.png",
   Dispersion: "signs-directional-i-dalle-v1.png",
   Levitation: "signs-directional-i-dalle-v1.png",
@@ -335,6 +368,8 @@ export const SYMBOL_GENERATED_BOARD = Object.freeze({
   Purification: "signs-weather-purify-dalle-v1.png",
   Immobilite: "signs-weather-purify-dalle-v1.png",
   Projection: "signs-link-project-flower-dalle-v1.png",
+  Lancement: "original-signes-wiki-v1.png",
+  Fenetres: "original-signes-wiki-v1.png",
 });
 
 const SYMBOL_BOARD_CELL = Object.freeze({
@@ -364,6 +399,9 @@ const SYMBOL_BOARD_CELL = Object.freeze({
   "Arret temporel": "bottom-left",
   "Vent tourbillonnant": "bottom-left",
   "Flammes sans chaleur": "bottom-right",
+  Guidage: "top-left",
+  Appel: "top-right",
+  "Lumiere vacillante": "bottom-left",
   Colonne: "top-left",
   Dispersion: "top-right",
   Levitation: "bottom-left",
@@ -402,6 +440,8 @@ const SYMBOL_BOARD_CELL = Object.freeze({
   Purification: "bottom-left",
   Immobilite: "bottom-right",
   Projection: "top-right",
+  Lancement: "top-left",
+  Fenetres: "top-right",
 });
 
 function symbolBoardAssetPath(name, board) {
@@ -476,6 +516,9 @@ export const SYMBOL_REFERENCE_SUFFIX = Object.freeze({
   "Arret temporel": "20260716-audit-v2-state",
   "Vent tourbillonnant": "20260716-generated-02",
   "Flammes sans chaleur": "20260716-generated-05",
+  Guidage: "original-20260731-wiki-guidance",
+  Appel: "original-20260731-wiki-calling",
+  "Lumiere vacillante": "original-20260731-wiki-flickering-light",
   Colonne: "131258",
   Dispersion: "131324",
   Levitation: "131350",
@@ -514,6 +557,8 @@ export const SYMBOL_REFERENCE_SUFFIX = Object.freeze({
   Purification: "132128",
   Immobilite: "132156",
   Projection: "132216",
+  Lancement: "original-20260731-wiki-launch",
+  Fenetres: "original-20260731-wiki-windows",
 });
 
 export const SYMBOL_AUDIT = Object.freeze({
@@ -526,7 +571,7 @@ export const SYMBOL_AUDIT = Object.freeze({
     "Agrandissement", "Viseur", "Radial", "Projectile", "Pluie", "Orbe",
     "Purification", "Immobilite", "Projection",
   ]),
-  interpreted: Object.freeze(["Pantin"]),
+  interpreted: Object.freeze(["Pantin", "Guidage", "Appel", "Lumiere vacillante", "Lancement", "Fenetres"]),
 });
 
 export function hasSymbolDrawing(name) {

@@ -49,8 +49,8 @@ Current automatic coverage:
 
 ```text
 26 single sigils + 11 balanced Feu/Eau/Terre/Vent mixtures = 37 material signatures
-37 material signatures x 741 unordered two-sign pairs (repetition allowed)
-= 27,417 deterministic recipes per support x 2 supports = 54,834 variants
+40 material signatures x 820 unordered two-sign pairs (repetition allowed)
+= 32,800 deterministic recipes per support x 2 supports = 65,600 variants
 ```
 
 Compatibility uses every phase exposed by a composite material: a solid-only
