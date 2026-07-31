@@ -77,5 +77,8 @@
   "quest.witch_hat_magic.stage.4": "[Master] Well cast! For grander works, craft a canvas square from string, paper, and leather.",
   "quest.witch_hat_magic.stage.5": "[Master] Tear a spell page from your notebook and craft sylph shoes with it — a valid underfoot-wind circle will lift you.",
   "quest.witch_hat_magic.stage.6": "[Master] You fly like a true witch now. Follow your compass — something stirs where it points.",
-  "quest.witch_hat_magic.stage.7": "[Master] You have arrived. Steel yourself, apprentice: a Brimmed Cap witch awaits."
+  "quest.witch_hat_magic.stage.7": "[Master] You have arrived. Steel yourself, apprentice: a Brimmed Cap witch awaits.",
+  "entity.witch_hat_magic.brimcap_witch": "Brimmed Cap Witch",
+  "entity.witch_hat_magic.brimcap_boss": "Brimmed Cap Matriarch",
+  "quest.witch_hat_magic.boss_arrival": "[???] A witch dares enter MY territory... Show me your circles, apprentice."
 }

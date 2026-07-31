@@ -17,6 +17,13 @@ import net.minecraft.network.chat.Component;
 public final class WitchHatMagicClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
+                io.github.nh1980mg.witchhat.magic.registry.MagicEntities.BRIMCAP_WITCH,
+                BrimcapWitchRenderer::new);
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
+                io.github.nh1980mg.witchhat.magic.registry.MagicEntities.BRIMCAP_BOSS,
+                BrimcapBossRenderer::new);
+
         ClientPlayNetworking.registerGlobalReceiver(
                 OpenNotebookPayload.TYPE,
                 (payload, context) -> context.client().setScreen(

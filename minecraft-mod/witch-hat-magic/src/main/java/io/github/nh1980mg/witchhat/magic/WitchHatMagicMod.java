@@ -5,6 +5,7 @@ import io.github.nh1980mg.witchhat.magic.network.NotebookNetworking;
 import io.github.nh1980mg.witchhat.magic.registry.MagicBlockEntities;
 import io.github.nh1980mg.witchhat.magic.registry.MagicBlocks;
 import io.github.nh1980mg.witchhat.magic.registry.MagicComponents;
+import io.github.nh1980mg.witchhat.magic.registry.MagicEntities;
 import io.github.nh1980mg.witchhat.magic.registry.MagicItems;
 import io.github.nh1980mg.witchhat.magic.registry.MagicRecipes;
 import io.github.nh1980mg.witchhat.magic.spell.SpellManifestationService;
@@ -29,6 +30,7 @@ public final class WitchHatMagicMod implements ModInitializer {
         MagicBlockEntities.register();
         MagicItems.register();
         MagicRecipes.register();
+        MagicEntities.register();
         NotebookNetworking.registerPayloads();
         NotebookNetworking.registerServerReceivers();
         CanvasNetworking.registerPayloads();
@@ -38,6 +40,7 @@ public final class WitchHatMagicMod implements ModInitializer {
             SpellManifestationService.scheduler().tick();
             io.github.nh1980mg.witchhat.magic.spell.FlightService.instance().tick();
             io.github.nh1980mg.witchhat.magic.quest.QuestService.tick(server);
+            io.github.nh1980mg.witchhat.magic.quest.BrimcapSpawnService.tick(server);
         });
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
                 io.github.nh1980mg.witchhat.magic.quest.QuestService.onPlayerJoin(handler.player));

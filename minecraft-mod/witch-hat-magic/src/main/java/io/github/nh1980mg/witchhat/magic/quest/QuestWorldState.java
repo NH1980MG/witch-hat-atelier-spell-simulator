@@ -16,6 +16,7 @@ public class QuestWorldState extends SavedData {
 
     private final Map<UUID, Integer> stages = new HashMap<>();
     private BlockPos lairPos;
+    private boolean bossSpawned;
 
     public static QuestWorldState get(MinecraftServer server) {
         return server.overworld().getDataStorage().computeIfAbsent(
@@ -35,6 +36,7 @@ public class QuestWorldState extends SavedData {
         if (tag.contains("lair")) {
             state.lairPos = BlockPos.of(tag.getLong("lair"));
         }
+        state.bossSpawned = tag.getBoolean("boss_spawned");
         return state;
     }
 
@@ -46,11 +48,21 @@ public class QuestWorldState extends SavedData {
         if (lairPos != null) {
             tag.putLong("lair", lairPos.asLong());
         }
+        tag.putBoolean("boss_spawned", bossSpawned);
         return tag;
     }
 
     public int stage(UUID playerId) {
         return stages.getOrDefault(playerId, 0);
+    }
+
+    public boolean bossSpawned() {
+        return bossSpawned;
+    }
+
+    public void setBossSpawned(boolean spawned) {
+        bossSpawned = spawned;
+        setDirty();
     }
 
     public void setStage(UUID playerId, int stage) {

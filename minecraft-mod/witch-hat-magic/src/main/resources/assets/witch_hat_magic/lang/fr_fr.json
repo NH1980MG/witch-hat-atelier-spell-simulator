@@ -77,5 +77,8 @@
   "quest.witch_hat_magic.stage.4": "[Maitre] Bien lance ! Pour de plus grandes oeuvres, crafte un carre de toile avec ficelle, papier et cuir.",
   "quest.witch_hat_magic.stage.5": "[Maitre] Extrais une page de ton carnet et crafte des chaussures de sylphe avec — un vent sous pied valide te portera.",
   "quest.witch_hat_magic.stage.6": "[Maitre] Tu voles comme une vraie sorciere. Suis ta boussole — quelque chose remue la ou elle pointe.",
-  "quest.witch_hat_magic.stage.7": "[Maitre] Tu es arrive. Tiens-toi pret, apprenti : une sorciere des Chapeaux a large bord t'attend."
+  "quest.witch_hat_magic.stage.7": "[Maitre] Tu es arrive. Tiens-toi pret, apprenti : une sorciere des Chapeaux a large bord t'attend.",
+  "entity.witch_hat_magic.brimcap_witch": "Sorciere des Chapeaux a large bord",
+  "entity.witch_hat_magic.brimcap_boss": "Matriarche des Chapeaux a large bord",
+  "quest.witch_hat_magic.boss_arrival": "[???] Une sorciere ose entrer dans MON territoire... Montre-moi tes cercles, apprenti."
 }
