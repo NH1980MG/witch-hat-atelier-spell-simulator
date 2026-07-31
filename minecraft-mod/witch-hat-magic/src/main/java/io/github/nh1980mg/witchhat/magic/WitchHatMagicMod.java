@@ -1,5 +1,6 @@
 package io.github.nh1980mg.witchhat.magic;
 
+import io.github.nh1980mg.witchhat.magic.network.BodyNetworking;
 import io.github.nh1980mg.witchhat.magic.network.CanvasNetworking;
 import io.github.nh1980mg.witchhat.magic.network.NotebookNetworking;
 import io.github.nh1980mg.witchhat.magic.registry.MagicBlockEntities;
@@ -36,6 +37,8 @@ public final class WitchHatMagicMod implements ModInitializer {
         NotebookNetworking.registerServerReceivers();
         CanvasNetworking.registerPayloads();
         CanvasNetworking.registerServerReceivers();
+        BodyNetworking.registerPayloads();
+        BodyNetworking.registerServerReceivers();
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             io.github.nh1980mg.witchhat.magic.spell.FlightService.instance().maintain(server);
             SpellManifestationService.scheduler().tick();
