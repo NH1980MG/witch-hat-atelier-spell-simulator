@@ -69,5 +69,13 @@
   "block.witch_hat_magic.inkwood_sapling": "Inkwood Sapling",
   "block.witch_hat_magic.ink_cauldron": "Ink Cauldron",
   "item.witch_hat_magic.ink_pod": "Ink Pod",
-  "item.witch_hat_magic.magic_ink": "Magic Ink"
+  "item.witch_hat_magic.magic_ink": "Magic Ink",
+  "item.witch_hat_magic.quest_compass": "Quest Compass",
+  "quest.witch_hat_magic.stage.1": "[Master] Welcome, apprentice. Every witch begins with ink — find an inkwood tree in a forest and brew its pods in a cauldron over fire.",
+  "quest.witch_hat_magic.stage.2": "[Master] Fine ink! Now craft your Magic Circle Notebook: paper ringed by leather, with your ink.",
+  "quest.witch_hat_magic.stage.3": "[Master] Open your notebook, place a sigil, draw a closed circle around it, and activate your first spell.",
+  "quest.witch_hat_magic.stage.4": "[Master] Well cast! For grander works, craft a canvas square from string, paper, and leather.",
+  "quest.witch_hat_magic.stage.5": "[Master] Tear a spell page from your notebook and craft sylph shoes with it — a valid underfoot-wind circle will lift you.",
+  "quest.witch_hat_magic.stage.6": "[Master] You fly like a true witch now. Follow your compass — something stirs where it points.",
+  "quest.witch_hat_magic.stage.7": "[Master] You have arrived. Steel yourself, apprentice: a Brimmed Cap witch awaits."
 }

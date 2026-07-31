@@ -12,6 +12,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
 import net.fabricmc.fabric.api.biome.v1.BiomeSelectors;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -36,7 +37,10 @@ public final class WitchHatMagicMod implements ModInitializer {
             io.github.nh1980mg.witchhat.magic.spell.FlightService.instance().maintain(server);
             SpellManifestationService.scheduler().tick();
             io.github.nh1980mg.witchhat.magic.spell.FlightService.instance().tick();
+            io.github.nh1980mg.witchhat.magic.quest.QuestService.tick(server);
         });
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
+                io.github.nh1980mg.witchhat.magic.quest.QuestService.onPlayerJoin(handler.player));
         BiomeModifications.addFeature(
                 BiomeSelectors.tag(BiomeTags.IS_FOREST),
                 GenerationStep.Decoration.VEGETAL_DECORATION,

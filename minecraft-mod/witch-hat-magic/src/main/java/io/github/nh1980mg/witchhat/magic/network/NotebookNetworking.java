@@ -129,6 +129,7 @@ public final class NotebookNetworking {
                 () -> {
                     SpellManifestationService.show(player, result);
                     GameplayEffectService.apply(player, result);
+                    io.github.nh1980mg.witchhat.magic.quest.QuestService.notifySpellActivated(player);
                 });
     }
 }

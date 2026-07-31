@@ -104,5 +104,6 @@ public final class CanvasActivationService {
                 plan, result.durationTicks(), level,
                 SpellManifestationService.levitationDrift(result));
         GameplayEffectService.apply(player, result);
+        io.github.nh1980mg.witchhat.magic.quest.QuestService.notifySpellActivated(player);
     }
 }

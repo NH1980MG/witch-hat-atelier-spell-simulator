@@ -69,5 +69,13 @@
   "block.witch_hat_magic.inkwood_sapling": "Pousse d'encrier",
   "block.witch_hat_magic.ink_cauldron": "Chaudron a encre",
   "item.witch_hat_magic.ink_pod": "Gousse d'encre",
-  "item.witch_hat_magic.magic_ink": "Encre magique"
+  "item.witch_hat_magic.magic_ink": "Encre magique",
+  "item.witch_hat_magic.quest_compass": "Boussole de quete",
+  "quest.witch_hat_magic.stage.1": "[Maitre] Bienvenue, apprenti. Toute sorciere commence par l'encre — trouve un encrier en foret et fais bouillir ses gousses dans un chaudron sur le feu.",
+  "quest.witch_hat_magic.stage.2": "[Maitre] Belle encre ! Crafte ton carnet de cercles magiques : du papier entoure de cuir, avec ton encre.",
+  "quest.witch_hat_magic.stage.3": "[Maitre] Ouvre ton carnet, place un sigile, trace un cercle ferme autour, et active ton premier sort.",
+  "quest.witch_hat_magic.stage.4": "[Maitre] Bien lance ! Pour de plus grandes oeuvres, crafte un carre de toile avec ficelle, papier et cuir.",
+  "quest.witch_hat_magic.stage.5": "[Maitre] Extrais une page de ton carnet et crafte des chaussures de sylphe avec — un vent sous pied valide te portera.",
+  "quest.witch_hat_magic.stage.6": "[Maitre] Tu voles comme une vraie sorciere. Suis ta boussole — quelque chose remue la ou elle pointe.",
+  "quest.witch_hat_magic.stage.7": "[Maitre] Tu es arrive. Tiens-toi pret, apprenti : une sorciere des Chapeaux a large bord t'attend."
 }
