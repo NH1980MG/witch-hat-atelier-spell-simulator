@@ -10,6 +10,8 @@ import io.github.nh1980mg.witchhat.magic.spell.ActivationStatus;
 import io.github.nh1980mg.witchhat.magic.spell.GameplayEffectService;
 import io.github.nh1980mg.witchhat.magic.spell.SpellActivationService;
 import io.github.nh1980mg.witchhat.magic.spell.SpellManifestationService;
+import java.util.ArrayList;
+import java.util.List;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.level.ServerPlayer;
@@ -48,7 +50,10 @@ public final class NotebookNetworking {
         ItemStack stack = player.getItemInHand(hand);
         NotebookData data = stack.getOrDefault(
                 MagicComponents.NOTEBOOK_DATA, NotebookData.createDefault());
-        ServerPlayNetworking.send(player, new OpenNotebookPayload(hand, NotebookLimits.validate(data)));
+        ServerPlayNetworking.send(player, new OpenNotebookPayload(
+                hand,
+                NotebookLimits.validate(data),
+                io.github.nh1980mg.witchhat.magic.quest.BrotherhoodService.isMember(player)));
     }
 
     private static void handleSave(
@@ -63,6 +68,14 @@ public final class NotebookNetworking {
         try {
             NotebookData validated = NotebookSaveValidator.validate(
                     heldStack, MagicItems.MAGIC_CIRCLE_NOTEBOOK, payload.data());
+            if (io.github.nh1980mg.witchhat.magic.spell.ForbiddenSymbols.anyForbidden(
+                    validated.pages().stream()
+                            .flatMap(page -> page.symbols().stream())
+                            .map(io.github.nh1980mg.witchhat.magic.notebook.PlacedSymbol::symbolId)
+                            .toList())
+                    && !io.github.nh1980mg.witchhat.magic.quest.BrotherhoodService.isMember(player)) {
+                throw new IllegalArgumentException("Forbidden sigils require the brotherhood");
+            }
             heldStack.set(MagicComponents.NOTEBOOK_DATA, validated);
             ServerPlayNetworking.send(
                     player, new SyncNotebookPayload(payload.hand(), validated));
@@ -105,6 +118,32 @@ public final class NotebookNetworking {
                 player, new SyncNotebookPayload(payload.hand(), changed));
     }
 
+    /** Forbidden sigils cast only for brothers, and always burn blood ink. */
+    private static ActivationResult gateForbidden(
+            ServerPlayer player,
+            ItemStack heldStack,
+            ActivationResult activation) {
+        if (activation.status() != ActivationStatus.SUCCESS) {
+            return activation;
+        }
+        List<String> ids = new ArrayList<>(activation.sigilIds());
+        ids.addAll(activation.signIds());
+        if (!io.github.nh1980mg.witchhat.magic.spell.ForbiddenSymbols.anyForbidden(ids)) {
+            return activation;
+        }
+        if (!io.github.nh1980mg.witchhat.magic.quest.BrotherhoodService.isMember(player)) {
+            return ActivationResult.failure(ActivationStatus.FORBIDDEN, activation.pageId());
+        }
+        for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+            ItemStack stack = player.getInventory().getItem(slot);
+            if (stack.is(MagicItems.BLOOD_INK)) {
+                stack.shrink(1);
+                return activation;
+            }
+        }
+        return ActivationResult.failure(ActivationStatus.FORBIDDEN, activation.pageId());
+    }
+
     private static void handleActivation(
             ActivateSpellPayload payload,
             ServerPlayNetworking.Context context) {
@@ -117,6 +156,7 @@ public final class NotebookNetworking {
                 MagicItems.MAGIC_CIRCLE_NOTEBOOK,
                 authoritative,
                 payload.pageId());
+        activation = gateForbidden(player, heldStack, activation);
         boolean manifestationAllowed = activation.status() != ActivationStatus.SUCCESS
                 || ActivationRateLimits.tryAcquire(player);
         ActivationResult result = ActivationDispatch.applyRateLimit(

@@ -43,6 +43,7 @@ public final class MagicNotebookScreen extends Screen {
     private boolean drawing;
     private boolean workshopShell;
     private WorkshopTab workshopTab = WorkshopTab.SYMBOLS;
+    private final boolean brotherhoodMember;
     private double viewZoom = 1.0;
     private int catalogScrollRow;
     private double catalogScrollAccumulator;
@@ -81,12 +82,21 @@ public final class MagicNotebookScreen extends Screen {
     private EditBox pageTitleBox;
 
     public MagicNotebookScreen(InteractionHand hand, NotebookData data) {
-        this(new NotebookTransport(hand), data);
+        this(hand, data, false);
+    }
+
+    public MagicNotebookScreen(InteractionHand hand, NotebookData data, boolean brotherhoodMember) {
+        this(new NotebookTransport(hand), data, brotherhoodMember);
     }
 
     public MagicNotebookScreen(EditorTransport transport, NotebookData data) {
+        this(transport, data, false);
+    }
+
+    public MagicNotebookScreen(EditorTransport transport, NotebookData data, boolean brotherhoodMember) {
         super(Component.translatable("screen.witch_hat_magic.notebook"));
         this.transport = transport;
+        this.brotherhoodMember = brotherhoodMember;
         this.session = new NotebookEditorSession(data);
         this.lastSent = data;
         this.lastRecognition = SpellRecognizer.recognize(data.selectedPage(), transport.support());
@@ -539,7 +549,7 @@ public final class MagicNotebookScreen extends Screen {
         if (workshopShell && workshopTab == WorkshopTab.SYMBOLS
                 && isInsideCatalog(mouseX, mouseY) && verticalAmount != 0.0) {
             int visibleRows = visibleCatalogRows();
-            int totalRows = (MagicSymbolCatalog.entries().size() + CATALOG_COLUMNS - 1)
+            int totalRows = (visibleCatalogEntries().size() + CATALOG_COLUMNS - 1)
                     / CATALOG_COLUMNS;
             catalogScrollAccumulator += verticalAmount;
             if (Math.abs(catalogScrollAccumulator) >= 1.5) {
@@ -790,24 +800,28 @@ public final class MagicNotebookScreen extends Screen {
         graphics.fill(3, panelTop, CATALOG_WIDTH + 3, panelBottom, 0xF026344A);
         graphics.renderOutline(
                 3, panelTop, CATALOG_WIDTH, panelBottom - panelTop, 0xFFD9B875);
-        renderWorkshopTab(graphics, WorkshopTab.SYMBOLS, 4, panelTop + 2, mouseX, mouseY);
-        renderWorkshopTab(graphics, WorkshopTab.DETAILS,
-                6 + CATALOG_WIDTH / 2, panelTop + 2, mouseX, mouseY);
+        java.util.List<WorkshopTab> tabs = visibleTabs();
+        for (int tab = 0; tab < tabs.size(); tab++) {
+            int tabWidth = (CATALOG_WIDTH - 4) / tabs.size();
+            renderWorkshopTab(graphics, tabs.get(tab),
+                    4 + tab * (tabWidth + 2), panelTop + 2, tabWidth, mouseX, mouseY);
+        }
         if (workshopTab == WorkshopTab.DETAILS) {
             renderDetailsPanel(graphics, panelTop, panelBottom);
             return;
         }
 
+        java.util.List<MagicSymbolCatalog.Entry> catalog = visibleCatalogEntries();
         int start = catalogScrollRow * CATALOG_COLUMNS;
         int visible = visibleCatalogRows() * CATALOG_COLUMNS;
-        int end = Math.min(MagicSymbolCatalog.entries().size(), start + visible);
+        int end = Math.min(catalog.size(), start + visible);
         for (int index = start; index < end; index++) {
             int local = index - start;
             int column = local % CATALOG_COLUMNS;
             int row = local / CATALOG_COLUMNS;
             int x = 9 + column * CATALOG_CELL;
             int y = panelTop + 19 + row * CATALOG_ROW_HEIGHT;
-            MagicSymbolCatalog.Entry entry = MagicSymbolCatalog.entries().get(index);
+            MagicSymbolCatalog.Entry entry = catalog.get(index);
             boolean active = entry.id().equals(armedSymbolId);
             boolean hovered = mouseX >= x
                     && mouseX < x + 30
@@ -893,10 +907,11 @@ public final class MagicNotebookScreen extends Screen {
             return null;
         }
         int index = (catalogScrollRow + row) * CATALOG_COLUMNS + column;
-        if (index < 0 || index >= MagicSymbolCatalog.entries().size()) {
+        java.util.List<MagicSymbolCatalog.Entry> catalog = visibleCatalogEntries();
+        if (index < 0 || index >= catalog.size()) {
             return null;
         }
-        return MagicSymbolCatalog.entries().get(index);
+        return catalog.get(index);
     }
 
     private int visibleCatalogRows() {
@@ -1183,14 +1198,20 @@ public final class MagicNotebookScreen extends Screen {
         return Component.translatable(key, sigils, recognized.signIds().size());
     }
 
+    private java.util.List<WorkshopTab> visibleTabs() {
+        return brotherhoodMember
+                ? java.util.List.of(WorkshopTab.SYMBOLS, WorkshopTab.CONFRERIE, WorkshopTab.DETAILS)
+                : java.util.List.of(WorkshopTab.SYMBOLS, WorkshopTab.DETAILS);
+    }
+
     private void renderWorkshopTab(
             GuiGraphics graphics,
             WorkshopTab tab,
             int left,
             int top,
+            int tabWidth,
             int mouseX,
             int mouseY) {
-        int tabWidth = CATALOG_WIDTH / 2 - 4;
         boolean selected = workshopTab == tab;
         boolean hovered = mouseX >= left && mouseX < left + tabWidth
                 && mouseY >= top && mouseY < top + 15;
@@ -1214,14 +1235,21 @@ public final class MagicNotebookScreen extends Screen {
         if (mouseY < panelTop + 2 || mouseY >= panelTop + 17) {
             return null;
         }
-        int tabWidth = CATALOG_WIDTH / 2 - 4;
-        if (mouseX >= 4 && mouseX < 4 + tabWidth) {
-            return WorkshopTab.SYMBOLS;
-        }
-        if (mouseX >= 6 + CATALOG_WIDTH / 2 && mouseX < 6 + CATALOG_WIDTH / 2 + tabWidth) {
-            return WorkshopTab.DETAILS;
+        java.util.List<WorkshopTab> tabs = visibleTabs();
+        int tabWidth = (CATALOG_WIDTH - 4) / tabs.size();
+        for (int index = 0; index < tabs.size(); index++) {
+            int left = 4 + index * (tabWidth + 2);
+            if (mouseX >= left && mouseX < left + tabWidth) {
+                return tabs.get(index);
+            }
         }
         return null;
+    }
+
+    private java.util.List<MagicSymbolCatalog.Entry> visibleCatalogEntries() {
+        return workshopTab == WorkshopTab.CONFRERIE
+                ? io.github.nh1980mg.witchhat.magic.spell.ForbiddenSymbols.forbiddenEntries()
+                : io.github.nh1980mg.witchhat.magic.spell.ForbiddenSymbols.regularEntries();
     }
 
     private void renderDetailsPanel(GuiGraphics graphics, int panelTop, int panelBottom) {
@@ -1282,6 +1310,7 @@ public final class MagicNotebookScreen extends Screen {
 
     private enum WorkshopTab {
         SYMBOLS("symbols"),
+        CONFRERIE("brotherhood"),
         DETAILS("details");
 
         private final String key;

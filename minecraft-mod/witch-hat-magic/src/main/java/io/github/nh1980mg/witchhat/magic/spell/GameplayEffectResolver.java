@@ -45,7 +45,12 @@ public final class GameplayEffectResolver {
             }
         }
 
-        boolean disguise = sigils.contains("loup-ecaille") && signs.contains("dissimulation");
+        boolean disguise = sigils.contains("loup_ecaille") && signs.contains("dissimulation");
+        if (sigils.contains("loup_ecaille") && !disguise) {
+            // Forbidden transformation: the scaled-wolf form runs and strikes.
+            effects.add(GameplayEffect.apply("minecraft:speed", duration, amplifier));
+            effects.add(GameplayEffect.apply("minecraft:strength", duration, amplifier));
+        }
         if (disguise) {
             // The season-finale cloak: wolf scales woven with concealment.
             effects.add(GameplayEffect.apply(

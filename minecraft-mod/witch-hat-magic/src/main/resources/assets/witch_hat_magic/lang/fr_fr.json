@@ -89,5 +89,7 @@
   "quest.witch_hat_magic.blood_vial_not_hurt": "La fiole exige une douleur fraiche — utilise-la pendant que tu saignes.",
   "quest.witch_hat_magic.blood_vial_filled": "La fiole se remplit de ton sang...",
   "quest.witch_hat_magic.brotherhood_welcome": "[Chapeaux a large bord] Ton sang et ton encre ne font qu'un. Bienvenue, frere.",
-  "quest.witch_hat_magic.brotherhood_warning": "[Chapeaux a large bord] Nos soeurs combattront a tes cotes. Mais mefie-toi — les Chevaliers du Sceau chassent ce que nous sommes."
+  "quest.witch_hat_magic.brotherhood_warning": "[Chapeaux a large bord] Nos soeurs combattront a tes cotes. Mais mefie-toi — les Chevaliers du Sceau chassent ce que nous sommes.",
+  "screen.witch_hat_magic.workshop.tab.brotherhood": "Confrerie",
+  "screen.witch_hat_magic.activation.forbidden": "La magie interdite exige la confrerie et de l'encre de sang"
 }

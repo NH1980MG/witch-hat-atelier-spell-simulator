@@ -26,7 +26,7 @@ final class GameplayEffectResolverTest {
     @Test
     void theScaledWolfCapeGrantsFullInvisibility() {
         List<GameplayEffect> effects = GameplayEffectResolver.resolve(
-                success(List.of("loup-ecaille"), List.of("dissimulation"), 1.0, 200));
+                success(List.of("loup_ecaille"), List.of("dissimulation"), 1.0, 200));
 
         GameplayEffect cape = effects.stream()
                 .filter(effect -> effect.effectId() != null

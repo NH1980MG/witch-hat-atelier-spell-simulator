@@ -89,5 +89,7 @@
   "quest.witch_hat_magic.blood_vial_not_hurt": "The vial needs fresh pain — use it while you bleed.",
   "quest.witch_hat_magic.blood_vial_filled": "The vial fills with your blood...",
   "quest.witch_hat_magic.brotherhood_welcome": "[Brimmed Caps] Your blood and ink are one. Welcome, brother.",
-  "quest.witch_hat_magic.brotherhood_warning": "[Brimmed Caps] Our sisters will fight beside you now. But beware — the Knights of the Seal hunt what we are."
+  "quest.witch_hat_magic.brotherhood_warning": "[Brimmed Caps] Our sisters will fight beside you now. But beware — the Knights of the Seal hunt what we are.",
+  "screen.witch_hat_magic.workshop.tab.brotherhood": "Brotherhood",
+  "screen.witch_hat_magic.activation.forbidden": "Forbidden magic requires the brotherhood and blood ink"
 }

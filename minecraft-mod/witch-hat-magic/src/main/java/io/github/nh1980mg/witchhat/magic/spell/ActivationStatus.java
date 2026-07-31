@@ -9,6 +9,7 @@ public enum ActivationStatus {
     IRREGULAR_CIRCLE,
     CANVAS_NOT_FOUND,
     CANVAS_DEPLETED,
+    FORBIDDEN,
     SUCCESS,
     COOLDOWN
 }

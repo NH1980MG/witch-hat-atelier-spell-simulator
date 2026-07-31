@@ -33,7 +33,8 @@ public final class WitchHatMagicClient implements ClientModInitializer {
         ClientPlayNetworking.registerGlobalReceiver(
                 OpenNotebookPayload.TYPE,
                 (payload, context) -> context.client().setScreen(
-                        new MagicNotebookScreen(payload.hand(), payload.data())));
+                        new MagicNotebookScreen(
+                                payload.hand(), payload.data(), payload.brotherhood())));
 
         ClientPlayNetworking.registerGlobalReceiver(
                 SyncNotebookPayload.TYPE,

@@ -8,10 +8,10 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 
-public record OpenNotebookPayload(InteractionHand hand, NotebookData data)
+public record OpenNotebookPayload(InteractionHand hand, NotebookData data, boolean brotherhood)
         implements CustomPacketPayload {
     public static final Type<OpenNotebookPayload> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath(WitchHatMagicMod.MOD_ID, "open_notebook_v1"));
+            ResourceLocation.fromNamespaceAndPath(WitchHatMagicMod.MOD_ID, "open_notebook_v2"));
     public static final StreamCodec<RegistryFriendlyByteBuf, OpenNotebookPayload> CODEC =
             StreamCodec.ofMember(OpenNotebookPayload::write, OpenNotebookPayload::read);
 
@@ -23,12 +23,16 @@ public record OpenNotebookPayload(InteractionHand hand, NotebookData data)
     private void write(RegistryFriendlyByteBuf buffer) {
         buffer.writeBoolean(hand == InteractionHand.MAIN_HAND);
         NotebookData.STREAM_CODEC.encode(buffer, data);
+        buffer.writeBoolean(brotherhood);
     }
 
     private static OpenNotebookPayload read(RegistryFriendlyByteBuf buffer) {
         InteractionHand hand = buffer.readBoolean()
                 ? InteractionHand.MAIN_HAND
                 : InteractionHand.OFF_HAND;
-        return new OpenNotebookPayload(hand, NotebookData.STREAM_CODEC.decode(buffer));
+        return new OpenNotebookPayload(
+                hand,
+                NotebookData.STREAM_CODEC.decode(buffer),
+                buffer.readBoolean());
     }
 }
