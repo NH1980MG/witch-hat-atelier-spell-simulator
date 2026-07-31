@@ -30,9 +30,9 @@
         window.location.replace("http://127.0.0.1:8000/bibliotheque.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260731-wiki-symbols-v1">
+    <link rel="stylesheet" href="styles.css?v=20260731-spoiler-filter-v1">
     <script type="module" src="site-i18n.mjs?v=20260718-onion-guides-v2"></script>
-    <script type="module" src="library-explorer.mjs?v=20260731-wiki-symbols-v1"></script>
+    <script type="module" src="library-explorer.mjs?v=20260731-spoiler-filter-v1"></script>
   </head>
   <body>
     <main class="app-shell settings-page">
@@ -101,6 +101,7 @@
             <label for="warningFilter"><span data-i18n="explorer.warnings">Warnings</span><select id="warningFilter" name="warnings"></select></label>
             <label for="effectFilter"><span data-i18n="explorer.effect">Effect category</span><select id="effectFilter" name="effect"></select></label>
             <label for="sortFilter"><span data-i18n="explorer.sort">Sort</span><select id="sortFilter" name="sort"></select></label>
+            <label class="spoiler-filter" for="spoilerChapterInput"><span data-i18n="explorer.chapter">Read chapter</span><input id="spoilerChapterInput" name="chapter" type="number" min="1" max="94" autocomplete="off" data-i18n-placeholder="explorer.chapterPlaceholder" data-i18n-title="explorer.chapterHint" placeholder="off" title="Empty = show all"></label>
             <button id="clearVariantFilters" type="reset" data-i18n="explorer.clear">Clear all</button>
           </form>
           <p id="variantNotice" class="variant-notice" role="status"></p>

@@ -31,7 +31,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260731-wiki-symbols-v1">
+    <link rel="stylesheet" href="styles.css?v=20260731-spoiler-filter-v1">
     <script type="importmap">
       {
         "imports": {
@@ -40,8 +40,8 @@
         }
       }
     </script>
-    <script type="module" src="site-i18n.mjs?v=20260731-wiki-symbols-v1"></script>
-    <script type="module" src="app.js?v=20260731-wiki-symbols-v1"></script>
+    <script type="module" src="site-i18n.mjs?v=20260731-spoiler-filter-v1"></script>
+    <script type="module" src="app.js?v=20260731-spoiler-filter-v1"></script>
   </head>
   <body class="simulator-page">
     <main class="app-shell">
@@ -157,6 +157,18 @@
               <p data-i18n="drawer.symbolsDescription">Choose a symbol, then drag it like a Scratch block onto the parchment.</p>
             </div>
             <button class="drawer-close" id="closeSymbolsButton" type="button" data-i18n-aria-label="drawer.closeSymbols" aria-label="Close sigils and signs">&times;</button>
+          </div>
+
+          <div class="spoiler-control" id="spoilerControl">
+            <label class="spoiler-toggle" for="spoilerToggle">
+              <input id="spoilerToggle" type="checkbox">
+              <span data-i18n="spoiler.toggle">Hide symbols past my chapter</span>
+            </label>
+            <div class="spoiler-range-row">
+              <input id="spoilerChapterRange" type="range" min="1" max="94" value="94" disabled data-i18n-aria-label="spoiler.rangeLabel" aria-label="Current chapter">
+              <output id="spoilerChapterValue" for="spoilerChapterRange">94</output>
+            </div>
+            <p class="spoiler-note" data-i18n="spoiler.note">Symbols first seen after this chapter stay hidden here, in search, and in the library.</p>
           </div>
 
           <div class="ink-list" id="inkList"></div>

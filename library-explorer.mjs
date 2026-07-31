@@ -2,6 +2,12 @@ import { getLocale, t } from "./site-i18n.mjs";
 import { buildRecipeHref } from "./recipe-link.mjs";
 import { MATRIX_SIGIL_NAMES, MATRIX_SIGN_NAMES, SIGN_PROFILES, SIGIL_PROFILES } from "./spell-grammar.mjs";
 import {
+  SPOILER_MAX_CHAPTER,
+  clampSpoilerChapter,
+  readSpoilerChapter,
+  writeSpoilerChapter,
+} from "./symbol-chapters.mjs";
+import {
   DEFAULT_EXPLORER_STATE,
   ENGLISH_ELEMENT_NAMES,
   buildVariantIndex,
@@ -32,11 +38,15 @@ if (!form) {
   const pageLabel = document.querySelector("#variantPageLabel");
   const previousButton = document.querySelector("#previousVariantPage");
   const nextButton = document.querySelector("#nextVariantPage");
+  const spoilerInput = document.querySelector("#spoilerChapterInput");
   const dialog = document.querySelector("#variantDialog");
   const dialogTitle = document.querySelector("#variantDialogTitle");
   const dialogBody = document.querySelector("#variantDialogBody");
 
   let state = parseExplorerState(window.location.search);
+  // Reglage anti-spoiler partage avec l'atelier (localStorage, pas d'URL) :
+  // les liens partages restent neutres pour les autres lecteurs.
+  state.chapter = readSpoilerChapter(localStorage) ?? "all";
   let lastPayload = null;
   let fallbackRecords = null;
   let worker = null;
@@ -208,6 +218,24 @@ if (!form) {
     requestQuery();
   }
 
+  function syncSpoilerInput() {
+    if (spoilerInput) spoilerInput.value = state.chapter === "all" ? "" : String(state.chapter);
+  }
+
+  spoilerInput?.addEventListener("change", () => {
+    const raw = spoilerInput.value.trim();
+    if (raw === "") {
+      writeSpoilerChapter(localStorage, false, SPOILER_MAX_CHAPTER);
+      state.chapter = "all";
+    } else {
+      const chapter = clampSpoilerChapter(raw);
+      writeSpoilerChapter(localStorage, true, chapter);
+      state.chapter = chapter;
+    }
+    state.page = 1;
+    requestQuery();
+  });
+
   form.addEventListener("input", ({ target }) => {
     if (target !== controls.search) return;
     clearTimeout(searchTimer);
@@ -218,7 +246,8 @@ if (!form) {
   });
   form.addEventListener("reset", () => {
     state = { ...DEFAULT_EXPLORER_STATE };
-    window.setTimeout(() => { syncControls(); requestQuery(); }, 0);
+    writeSpoilerChapter(localStorage, false, SPOILER_MAX_CHAPTER);
+    window.setTimeout(() => { syncControls(); syncSpoilerInput(); requestQuery(); }, 0);
   });
   previousButton.addEventListener("click", () => { state.page -= 1; requestQuery(); });
   nextButton.addEventListener("click", () => { state.page += 1; requestQuery(); });
@@ -248,5 +277,6 @@ if (!form) {
     fillOptions();
     if (lastPayload) renderResults(lastPayload);
   });
+  syncSpoilerInput();
   fillOptions();
 }

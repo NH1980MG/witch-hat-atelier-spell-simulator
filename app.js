@@ -8,7 +8,7 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260727-mixture-runtime-v3";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260727-mixture-runtime-v3";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260731-wiki-symbols-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260731-spoiler-filter-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260716-shoe-camera-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -36,10 +36,17 @@ import {
   shouldDeferTouchTool,
   topmostSelectableIndexAtPoint,
   translateSelectedActions,
-} from "./symbol-interactions.mjs?v=20260731-wiki-symbols-v1";
-import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260731-wiki-symbols-v1";
-import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260731-wiki-symbols-v1";
-import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260731-wiki-symbols-v1";
+} from "./symbol-interactions.mjs?v=20260731-spoiler-filter-v1";
+import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260731-spoiler-filter-v1";
+import {
+  SPOILER_MAX_CHAPTER,
+  clampSpoilerChapter,
+  isSymbolVisibleAtChapter,
+  readSpoilerChapter,
+  writeSpoilerChapter,
+} from "./symbol-chapters.mjs?v=20260731-spoiler-filter-v1";
+import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260731-spoiler-filter-v1";
+import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260731-spoiler-filter-v1";
 
 export const CENTRAL_SIGIL_STROKE_WIDTH = 6.4365;
 
@@ -274,6 +281,9 @@ const view3dPanel = document.querySelector("#view3dPanel");
 const close3dButton = document.querySelector("#close3dButton");
 const symbolToggleButton = document.querySelector("#symbolToggleButton");
 const symbolDrawer = document.querySelector("#symbolDrawer");
+const spoilerToggle = document.querySelector("#spoilerToggle");
+const spoilerChapterRange = document.querySelector("#spoilerChapterRange");
+const spoilerChapterValue = document.querySelector("#spoilerChapterValue");
 const closeSymbolsButton = document.querySelector("#closeSymbolsButton");
 const symbolDragGhost = document.querySelector("#symbolDragGhost");
 const detailsToggleButton = document.querySelector("#detailsToggleButton");
@@ -310,6 +320,7 @@ const state = {
   intensity: 3,
   strokeSize: 3,
   canvasScale: Number(localStorage.getItem("whaCanvasScale") || 100),
+  spoilerChapter: readSpoilerChapter(localStorage),
   panX: 0,
   panY: 0,
   showMeasure: localStorage.getItem("whaShowMeasure") !== "false",
@@ -7929,15 +7940,16 @@ function elementIconMarkup(element) {
 }
 
 function symbolGroups() {
+  const visible = (element) => isSymbolVisibleAtChapter(element.name, state.spoilerChapter);
   const signsByRole = (roles) => elements.filter((element) => {
-    return element.kind === "sign" && roles.includes(SIGN_PROFILES[element.name]?.role);
+    return element.kind === "sign" && roles.includes(SIGN_PROFILES[element.name]?.role) && visible(element);
   });
   return [
-    [t("symbols.group.central"), elements.filter((element) => element.kind === "sigil")],
+    [t("symbols.group.central"), elements.filter((element) => element.kind === "sigil" && visible(element))],
     [t("symbols.group.form"), signsByRole(["form", "scope", "supply"])],
     [t("symbols.group.motion"), signsByRole(["motion", "target"])],
     [t("symbols.group.state"), signsByRole(["state", "relation", "power"])],
-  ];
+  ].filter(([, groupElements]) => groupElements.length > 0);
 }
 
 function renderInkList() {
@@ -9140,7 +9152,8 @@ let symbolSearchMatches = [];
 let symbolSearchActiveIndex = 0;
 
 function renderSymbolSearchResults() {
-  symbolSearchMatches = searchSymbols(symbolSearchIndex, symbolSearchInput.value);
+  symbolSearchMatches = searchSymbols(symbolSearchIndex, symbolSearchInput.value)
+    .filter((element) => isSymbolVisibleAtChapter(element.name, state.spoilerChapter));
   // Every query change resets the active index. The list rebuilds on each
   // keystroke, so an index held across a rebuild can point at a detached node:
   // nothing is announced and Enter confirms a stale record.
@@ -9224,6 +9237,43 @@ symbolSearchDialog?.addEventListener("click", (event) => {
 });
 
 symbolSearchInput?.addEventListener("input", renderSymbolSearchResults);
+
+function syncSpoilerControls() {
+  const active = state.spoilerChapter !== null && state.spoilerChapter !== undefined;
+  const stored = clampSpoilerChapter(localStorage.getItem("whaSpoilerChapter") || SPOILER_MAX_CHAPTER);
+  if (spoilerToggle) {
+    spoilerToggle.checked = active;
+  }
+  if (spoilerChapterRange) {
+    spoilerChapterRange.disabled = !active;
+    spoilerChapterRange.max = String(SPOILER_MAX_CHAPTER);
+    spoilerChapterRange.value = String(state.spoilerChapter ?? stored);
+  }
+  if (spoilerChapterValue && spoilerChapterRange) {
+    spoilerChapterValue.value = spoilerChapterRange.value;
+  }
+}
+
+function applySpoilerSetting(enabled, chapter) {
+  writeSpoilerChapter(localStorage, enabled, chapter);
+  state.spoilerChapter = readSpoilerChapter(localStorage);
+  syncSpoilerControls();
+  renderInkList();
+  renderSymbolSearchResults();
+}
+
+spoilerToggle?.addEventListener("change", () => {
+  applySpoilerSetting(spoilerToggle.checked, Number(spoilerChapterRange?.value || SPOILER_MAX_CHAPTER));
+});
+spoilerChapterRange?.addEventListener("input", () => {
+  if (spoilerChapterValue) {
+    spoilerChapterValue.value = spoilerChapterRange.value;
+  }
+  if (state.spoilerChapter !== null && state.spoilerChapter !== undefined) {
+    applySpoilerSetting(true, Number(spoilerChapterRange.value));
+  }
+});
+syncSpoilerControls();
 
 symbolSearchInput?.addEventListener("keydown", (event) => {
   if (event.key === "ArrowDown") {
