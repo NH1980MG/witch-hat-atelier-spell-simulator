@@ -91,5 +91,14 @@
   "quest.witch_hat_magic.brotherhood_welcome": "[Chapeaux a large bord] Ton sang et ton encre ne font qu'un. Bienvenue, frere.",
   "quest.witch_hat_magic.brotherhood_warning": "[Chapeaux a large bord] Nos soeurs combattront a tes cotes. Mais mefie-toi — les Chevaliers du Sceau chassent ce que nous sommes.",
   "screen.witch_hat_magic.workshop.tab.brotherhood": "Confrerie",
-  "screen.witch_hat_magic.activation.forbidden": "La magie interdite exige la confrerie et de l'encre de sang"
+  "screen.witch_hat_magic.activation.forbidden": "La magie interdite exige la confrerie et de l'encre de sang",
+  "screen.witch_hat_magic.body": "Encre corporelle",
+  "screen.witch_hat_magic.body.hint": "Clique une partie du corps pour y peindre l'encre interdite",
+  "body.witch_hat_magic.head": "Tete",
+  "body.witch_hat_magic.torso": "Torse",
+  "body.witch_hat_magic.left_arm": "Bras gauche",
+  "body.witch_hat_magic.right_arm": "Bras droit",
+  "body.witch_hat_magic.left_leg": "Jambe gauche",
+  "body.witch_hat_magic.right_leg": "Jambe droite",
+  "quest.witch_hat_magic.tattoo_activated": "Ton %s devient %s !"
 }

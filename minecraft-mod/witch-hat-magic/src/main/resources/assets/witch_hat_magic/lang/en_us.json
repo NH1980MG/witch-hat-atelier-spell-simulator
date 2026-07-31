@@ -91,5 +91,14 @@
   "quest.witch_hat_magic.brotherhood_welcome": "[Brimmed Caps] Your blood and ink are one. Welcome, brother.",
   "quest.witch_hat_magic.brotherhood_warning": "[Brimmed Caps] Our sisters will fight beside you now. But beware — the Knights of the Seal hunt what we are.",
   "screen.witch_hat_magic.workshop.tab.brotherhood": "Brotherhood",
-  "screen.witch_hat_magic.activation.forbidden": "Forbidden magic requires the brotherhood and blood ink"
+  "screen.witch_hat_magic.activation.forbidden": "Forbidden magic requires the brotherhood and blood ink",
+  "screen.witch_hat_magic.body": "Body Ink",
+  "screen.witch_hat_magic.body.hint": "Click a body part to paint forbidden ink on it",
+  "body.witch_hat_magic.head": "Head",
+  "body.witch_hat_magic.torso": "Torso",
+  "body.witch_hat_magic.left_arm": "Left arm",
+  "body.witch_hat_magic.right_arm": "Right arm",
+  "body.witch_hat_magic.left_leg": "Left leg",
+  "body.witch_hat_magic.right_leg": "Right leg",
+  "quest.witch_hat_magic.tattoo_activated": "Your %s becomes %s!"
 }

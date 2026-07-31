@@ -16,6 +16,7 @@ public class QuestWorldState extends SavedData {
 
     private final Map<UUID, Integer> stages = new HashMap<>();
     private final java.util.Set<UUID> brotherhoodMembers = new java.util.HashSet<>();
+    private final Map<UUID, Map<io.github.nh1980mg.witchhat.magic.body.BodyPart, io.github.nh1980mg.witchhat.magic.notebook.NotebookPage>> tattoos = new HashMap<>();
     private BlockPos lairPos;
     private boolean bossSpawned;
 
@@ -42,6 +43,19 @@ public class QuestWorldState extends SavedData {
         for (String key : members.getAllKeys()) {
             state.brotherhoodMembers.add(UUID.fromString(key));
         }
+        CompoundTag tattooTag = tag.getCompound("tattoos");
+        for (String playerKey : tattooTag.getAllKeys()) {
+            CompoundTag parts = tattooTag.getCompound(playerKey);
+            for (String partKey : parts.getAllKeys()) {
+                io.github.nh1980mg.witchhat.magic.notebook.NotebookPage.CODEC
+                        .parse(net.minecraft.nbt.NbtOps.INSTANCE, parts.getCompound(partKey))
+                        .result()
+                        .ifPresent(page -> state.setTattoo(
+                                UUID.fromString(playerKey),
+                                io.github.nh1980mg.witchhat.magic.body.BodyPart.valueOf(partKey),
+                                page));
+            }
+        }
         return state;
     }
 
@@ -57,6 +71,16 @@ public class QuestWorldState extends SavedData {
         CompoundTag members = new CompoundTag();
         brotherhoodMembers.forEach(uuid -> members.putBoolean(uuid.toString(), true));
         tag.put("brotherhood", members);
+        CompoundTag tattooTag = new CompoundTag();
+        tattoos.forEach((uuid, parts) -> {
+            CompoundTag partTag = new CompoundTag();
+            parts.forEach((part, page) -> io.github.nh1980mg.witchhat.magic.notebook.NotebookPage.CODEC
+                    .encodeStart(net.minecraft.nbt.NbtOps.INSTANCE, page)
+                    .result()
+                    .ifPresent(encoded -> partTag.put(part.name(), encoded)));
+            tattooTag.put(uuid.toString(), partTag);
+        });
+        tag.put("tattoos", tattooTag);
         return tag;
     }
 
@@ -74,6 +98,25 @@ public class QuestWorldState extends SavedData {
 
     public void addBrotherhoodMember(UUID playerId) {
         brotherhoodMembers.add(playerId);
+        setDirty();
+    }
+
+    public io.github.nh1980mg.witchhat.magic.notebook.NotebookPage tattoo(
+            UUID playerId,
+            io.github.nh1980mg.witchhat.magic.body.BodyPart part) {
+        return tattoos.getOrDefault(playerId, Map.of()).get(part);
+    }
+
+    public Map<io.github.nh1980mg.witchhat.magic.body.BodyPart, io.github.nh1980mg.witchhat.magic.notebook.NotebookPage> tattoos(UUID playerId) {
+        return Map.copyOf(tattoos.getOrDefault(playerId, Map.of()));
+    }
+
+    public void setTattoo(
+            UUID playerId,
+            io.github.nh1980mg.witchhat.magic.body.BodyPart part,
+            io.github.nh1980mg.witchhat.magic.notebook.NotebookPage page) {
+        tattoos.computeIfAbsent(playerId, id -> new java.util.EnumMap<>(
+                io.github.nh1980mg.witchhat.magic.body.BodyPart.class)).put(part, page);
         setDirty();
     }
 

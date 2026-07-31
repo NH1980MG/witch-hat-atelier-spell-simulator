@@ -20,6 +20,11 @@ public interface EditorTransport {
     /** Correlation key used to match authoritative packets: hand or BlockPos. */
     Object key();
 
+    /** Whether a result payload carrying this key belongs to this editor. */
+    default boolean matchesResult(Object payloadKey) {
+        return key().equals(payloadKey);
+    }
+
     CircleSupport support();
 
     default boolean multiPage() {

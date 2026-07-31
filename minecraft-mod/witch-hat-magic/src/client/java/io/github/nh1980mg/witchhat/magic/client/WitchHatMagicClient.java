@@ -78,6 +78,11 @@ public final class WitchHatMagicClient implements ClientModInitializer {
                 });
 
         ClientPlayNetworking.registerGlobalReceiver(
+                io.github.nh1980mg.witchhat.magic.network.OpenBodyPayload.TYPE,
+                (payload, context) -> context.client().setScreen(
+                        new BodyPaintScreen(payload.tattoos())));
+
+        ClientPlayNetworking.registerGlobalReceiver(
                 CanvasActivationResultPayload.TYPE,
                 (payload, context) -> {
                     if (payload.status() == ActivationStatus.SUCCESS

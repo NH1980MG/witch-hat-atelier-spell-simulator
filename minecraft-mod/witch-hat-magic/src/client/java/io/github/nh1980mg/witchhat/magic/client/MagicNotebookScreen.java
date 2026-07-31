@@ -143,7 +143,7 @@ public final class MagicNotebookScreen extends Screen {
             double power,
             int durationTicks,
             Integer remainingActivations) {
-        if (!transport.key().equals(key)
+        if (!transport.matchesResult(key)
                 || !pageId.equals(pendingActivationPageId)) {
             return;
         }
@@ -269,6 +269,15 @@ public final class MagicNotebookScreen extends Screen {
                     clearRightGesture();
                     updatePageWidgetVisibility();
                 });
+        if (brotherhoodMember) {
+            addControl(
+                    "screen.witch_hat_magic.body",
+                    secondX + (buttonWidth + gap) * 6,
+                    secondY,
+                    buttonWidth,
+                    button -> net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(
+                            new io.github.nh1980mg.witchhat.magic.network.OpenBodyRequestPayload()));
+        }
 
         if (transport.multiPage()) {
             int overlayLeft = Math.max(8, width / 2 - 120);
