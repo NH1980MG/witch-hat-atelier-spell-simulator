@@ -84,7 +84,7 @@ test("every matrix name exists in the atelier element list with the same kind", 
   // robuste au passage: un changement de mise en forme ne peut plus vider
   // silencieusement la Map et faire passer la boucle a vide.
   const kinds = new Map(PALETTE_ELEMENTS.map((element) => [element.name, element.kind]));
-  assert.equal(kinds.size, 64);
+  assert.equal(kinds.size, 69);
   for (const sigil of MATRIX_SIGIL_NAMES) {
     assert.equal(kinds.get(sigil), "sigil", `sigil ${sigil} missing from the atelier`);
   }

@@ -36,9 +36,9 @@ The matrix check must report:
 - 26 indexed single sigils plus 11 balanced Feu/Eau/Terre/Vent mixtures, for
   37 finite material signatures;
 - 38 modifier signs;
-- exactly 54,834 tested, unique and deterministic variants;
-- exactly 27,417 recipes for `none` and 27,417 for `shoe`;
-- 50,634 structured executable plans (plans may be fewer than identities when
+- exactly 65,600 tested, unique and deterministic variants;
+- exactly 32,800 recipes for `none` and 32,800 for `shoe`;
+- 60,702 structured executable plans (plans may be fewer than identities when
   incompatible signs are ignored);
 - no missing drawing, duplicate drawing, unknown drawing, nondeterministic
   result or non-finite simulation parameter.

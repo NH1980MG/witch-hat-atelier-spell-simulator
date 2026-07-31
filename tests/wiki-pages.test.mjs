@@ -16,7 +16,7 @@ test("each wiki page has one h1 and stable chapter anchors", () => {
 
 test("the tutorial links directly to the complete variant explorer", () => {
   assert.match(tutorial, /bibliotheque\.html#variants/);
-  assert.match(tutorial, /54,834 tested variants/);
+  assert.match(tutorial, /65,600 tested variants/);
   assert.match(tutorial, /tutorial\.matrix\.elements/);
   assert.match(tutorial, /tutorial\.matrix\.dominance/);
 });

@@ -9,8 +9,8 @@ Use this before pushing to GitHub or publishing a static site.
   `variant-index-worker.mjs`, and `scripts/validate-spell-matrix.mjs`.
 - Run `node --check elemental-mixtures.mjs`.
 - Run `node scripts/validate-spell-matrix.mjs`; require 64 drawings, 26 single
-  sigils, 11 balanced base-element mixtures, 37 material signatures, 54,834
-  tested/unique/deterministic variants, a 27,417/27,417 support split, 50,634
+  sigils, 11 balanced base-element mixtures, 37 material signatures, 65,600
+  tested/unique/deterministic variants, a 32,800/32,800 support split, 60,702
   executable plans, and 19 semantic checks.
 - Run `node --test tests/*.test.mjs`; require all tests to pass.
 - After staging the Pages `public/` artifact, run
@@ -58,7 +58,7 @@ Use this before pushing to GitHub or publishing a static site.
 - Test `Bibliotheque`, `Tutoriel`, and `Parametres`, then return to the main
   menu from each page title.
 - In the library, search `mud`, `boue`, `steam`, and `vapeur`; filter a mixture
-  by either base component and confirm the 54,834-record index remains usable.
+  by either base component and confirm the 65,600-record index remains usable.
 
 ## Public Asset Check
 

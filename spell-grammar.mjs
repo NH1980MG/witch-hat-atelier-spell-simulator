@@ -36,6 +36,10 @@ export const SIGIL_PROFILES = Object.freeze({
   "Arret temporel": profile({ family: "time-stop", noun: "temps", phase: "meta", defaultLabel: "stase temporelle", mechanic: "arrete le temps pour les objets affectes; documente comme un agencement de signes autour d'un point central plutot qu'un sigil canon" }),
   "Vent tourbillonnant": profile({ family: "whorling-wind", noun: "vent rotatif", phase: "gas", defaultLabel: "tourbillon d'air", mechanic: "manipule l'air par rotation; le fonctionnement exact reste incertain", fidelity: "experimental" }),
   "Flammes sans chaleur": profile({ family: "unburning-fire", noun: "flamme sans chaleur", phase: "energy", defaultLabel: "flammes sans chaleur", mechanic: "participe a la production de flammes sans chaleur; des signes supplementaires peuvent etre requis", fidelity: "experimental" }),
+  // Sigils documented on the Telepedia wiki after the reference catalog freeze.
+  Guidage: profile({ family: "guidance", noun: "guidage", phase: "meta", defaultLabel: "attraction guidee", mechanic: "attire vers le sceau les objets correspondant aux parametres definis par les autres signes du sort" }),
+  Appel: profile({ family: "calling", noun: "echo", phase: "energy", defaultLabel: "echo d'appel", mechanic: "repete en echo une phrase enregistree; documente uniquement dans la Pouch of Calling" }),
+  "Lumiere vacillante": profile({ family: "flickering-light", noun: "lumiere vacillante", phase: "energy", defaultLabel: "lueur vacillante", mechanic: "fonction exacte inconnue; l'echec de Coco suggere des lumieres scintillantes stables et plus puissantes", fidelity: "experimental" }),
 });
 
 export const RAW_ENERGY_PROFILE = profile({
@@ -86,6 +90,9 @@ export const SIGN_PROFILES = Object.freeze({
   Purification: profile({ role: "state", operation: "purify", effect: "purification", directional: false, invertible: false, confidence: "medium", mechanic: "separe les impuretes de la matiere manipulee" }),
   Immobilite: profile({ role: "state", operation: "still", effect: "stase", directional: false, invertible: false, confidence: "medium", mechanic: "maintient la manifestation immobile sans la solidifier" }),
   Projection: profile({ role: "form", operation: "project", effect: "projection", radial: true, directional: true, invertible: false, confidence: "medium", mechanic: "projette la forme ou l'image vers l'exterieur" }),
+  // Signs documented on the Telepedia wiki after the reference catalog freeze.
+  Lancement: profile({ role: "motion", operation: "burst", effect: "lancement", radial: true, directional: true, invertible: false, confidence: "medium", mechanic: "propulse probablement la manifestation dans la direction pointee en une rafale puissante mais de courte duree" }),
+  Fenetres: profile({ role: "relation", operation: "portal", effect: "portail", directional: false, invertible: false, confidence: "low", mechanic: "connecterait deux espaces non physiquement lies; borde le sort comme un anneau de marques repetees" }),
 });
 
 // Every profiled sigil participates in the public recipe matrix. Deriving this

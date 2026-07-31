@@ -2,8 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "../symbol-palette-data.mjs";
 
-test("la palette expose exactement 64 elements figes", () => {
-  assert.equal(PALETTE_ELEMENTS.length, 64);
+test("la palette expose exactement 69 elements figes", () => {
+  assert.equal(PALETTE_ELEMENTS.length, 69);
   assert.ok(Object.isFrozen(PALETTE_ELEMENTS));
   for (const element of PALETTE_ELEMENTS) {
     assert.equal(typeof element.name, "string");
@@ -34,5 +34,5 @@ test("les runes sont uniques a l'interieur de chaque famille", () => {
   // CV). La recherche les departage par ordre de palette, donc ce n'est pas un
   // defaut - mais une collision a l'interieur d'une meme famille en serait un.
   const all = PALETTE_ELEMENTS.map((element) => element.rune);
-  assert.equal(new Set(all).size, 58);
+  assert.equal(new Set(all).size, 63);
 });

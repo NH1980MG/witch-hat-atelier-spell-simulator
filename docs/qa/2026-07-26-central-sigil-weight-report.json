@@ -49,12 +49,14 @@
     "Orbe": "ac71eb02a1dec54173e7d244c3de1752baa1820fac88f830b32179fa604d6789",
     "Purification": "6a3fbf977ea2ee76ca6f8ee9abff6bf1dad567ed10cd237d0cb91c91bcfb82f4",
     "Immobilite": "bbe41afa9cc35f91922e5d039607f3e1fb65b088be9066955b408ac80d3d9573",
-    "Projection": "6a2ed71eddd1368bdcde22d2607c628d8e23907d76c5e18af9221ae088866353"
+    "Projection": "6a2ed71eddd1368bdcde22d2607c628d8e23907d76c5e18af9221ae088866353",
+    "Lancement": "e11434300f0d3ea592c14229fa7be9a97e54fae8b0f83baf7c97f3dd013851dd",
+    "Fenetres": "6ab71ff7be8c756f7e0a9594c81757f65d0a17a80513cd81c15bffa7e353a6f1"
   },
   "outputStrokeWidth": {
-    "minimum": 6.4207,
+    "minimum": 6.3148,
     "maximum": 6.4498,
-    "mean": 6.4355
+    "mean": 6.4265
   },
   "entries": [
     {
@@ -454,6 +456,54 @@
       "outputSha256": "6abee838b026495c82c2f6f91a69d5bbffb76f146b71fee783faf1e930800adf",
       "sourceBoard": "docs/generated/earth-fire-light-symbol-reference.png",
       "sourceBoardSha256": "b76179d6ad872864bbc86e0601c2b76646138c50e578babcaf0a5531b52b651c",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "name": "Guidage",
+      "asset": "assets/symbol-glyphs/guidage.png",
+      "sourceStrokeWidth": 4.6813,
+      "outputStrokeWidth": 6.4086,
+      "dilationRadius": 0.8637,
+      "sourceOpenings": 4,
+      "outputOpenings": 4,
+      "preservedOpenings": true,
+      "sourceSha256": "4a8da6f3d6c60668f3676373bbfa9410f51d598efa698ad87679e40bbed5c1de",
+      "outputSha256": "eadb7f4bcac3eda3fa272219aabb6005191cdc07aaef663e2e2a0b8a928bde0b",
+      "sourceBoard": "docs/generated/original-sigils-wiki-v1.png",
+      "sourceBoardSha256": "42847129253ae10d36c1b40e9372408adf2ab91f64523d52b7a099f6658f851f",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "name": "Appel",
+      "asset": "assets/symbol-glyphs/appel.png",
+      "sourceStrokeWidth": 4.8546,
+      "outputStrokeWidth": 6.3307,
+      "dilationRadius": 0.7381,
+      "sourceOpenings": 1,
+      "outputOpenings": 1,
+      "preservedOpenings": true,
+      "sourceSha256": "f1cf1fd207c85dfbe00a50e9ae93717dcb618c66a4aebaf873ae33d569cb5308",
+      "outputSha256": "a2d71b33ec57f7a7378b008afec43875cd90793e97953140187a17f95c6aedba",
+      "sourceBoard": "docs/generated/original-sigils-wiki-v1.png",
+      "sourceBoardSha256": "42847129253ae10d36c1b40e9372408adf2ab91f64523d52b7a099f6658f851f",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "name": "Lumiere vacillante",
+      "asset": "assets/symbol-glyphs/lumiere-vacillante.png",
+      "sourceStrokeWidth": 4.7401,
+      "outputStrokeWidth": 6.3148,
+      "dilationRadius": 0.7874,
+      "sourceOpenings": 3,
+      "outputOpenings": 3,
+      "preservedOpenings": true,
+      "sourceSha256": "b9068bac731561643fc1d0b7aa44041c9da23a42f2a4e160189678889f04e63f",
+      "outputSha256": "7ff75254cee65f9e7387aebeb175697cd8210c557eb51f41cca4cd84b9971bdf",
+      "sourceBoard": "docs/generated/original-sigils-wiki-v1.png",
+      "sourceBoardSha256": "42847129253ae10d36c1b40e9372408adf2ab91f64523d52b7a099f6658f851f",
       "width": 192,
       "height": 192
     }

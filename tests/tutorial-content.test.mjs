@@ -31,8 +31,8 @@ test("tutorial covers the final matrix and fidelity model", () => {
     assert.notEqual(translate("en", key), key);
     assert.notEqual(translate("fr", key), key);
   }
-  assert.equal(translate("en", "tutorial.matrix.total"), "54,834 tested variants");
-  assert.equal(translate("fr", "tutorial.matrix.total"), "54 834 variantes testees");
+  assert.equal(translate("en", "tutorial.matrix.total"), "65,600 tested variants");
+  assert.equal(translate("fr", "tutorial.matrix.total"), "65 600 variantes testees");
   assert.match(translate("en", "tutorial.matrix.elements"), /Fire, Water, Earth, and Wind/);
   assert.match(translate("fr", "tutorial.matrix.elements"), /Feu, Eau, Terre et Vent/);
   assert.match(translate("en", "tutorial.matrix.dominance"), /repeated base sigil/i);

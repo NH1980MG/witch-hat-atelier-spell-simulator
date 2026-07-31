@@ -6,17 +6,17 @@ sigil and modifier signs, read the result, then activate a live Three.js scene.
 
 The public site is designed as both a workshop and a small wiki. Its library
 contains 33 tightly cropped reference circles and a searchable catalog of exactly
-54,834 deterministic, support-aware recipes:
+65,600 deterministic, support-aware recipes:
 
 ```text
-38 * 39 / 2 = 741 unordered sign pairs with repetition
-26 single sigils + 11 balanced base-element mixtures = 37 material signatures
-37 material signatures * 741 pairs = 27,417 recipes
-27,417 recipes * 2 support modes = 54,834 variants
+40 * 41 / 2 = 820 unordered sign pairs with repetition
+29 single sigils + 11 balanced base-element mixtures = 40 material signatures
+40 material signatures * 820 pairs = 32,800 recipes
+32,800 recipes * 2 support modes = 65,600 variants
 ```
 
 The two support modes are paper only and a small paper fixed under a shoe. This
-count is a simulator validation matrix, not a claim that the manga names 54,834
+count is a simulator validation matrix, not a claim that the manga names 65,600
 spells. The 11 indexed mixtures use only Feu, Eau, Terre and Vent; their pair
 and triple interpretations are inferred, and the four-element mixture is
 experimental, not manga-confirmed. Arbitrary repeated base sigils are evaluated
@@ -28,7 +28,7 @@ in this public contract.
 ## Features
 
 - Freehand drawing, geometric tools, undo/redo, PNG export and movable grid.
-- Scratch-like placement and selection of 64 shared vector symbols.
+- Scratch-like placement and selection of 69 shared vector symbols.
 - Separate recognition of central sigils and modifier signs.
 - Geometry-aware balance, direction, tilt, rotation and ring connectivity.
 - Physical diameter from 5 cm to 5 m; one grid cell represents 5 cm.
@@ -66,9 +66,9 @@ node scripts/validate-spell-matrix.mjs
 node scripts/security-audit.mjs
 ```
 
-The matrix validator must report 64 drawings, 26 single sigils, 11 balanced
-base-element mixtures, 37 material signatures, 38 signs, 54,834
-tested/unique/deterministic variants, a 27,417/27,417 support split and all
+The matrix validator must report 69 drawings, 29 single sigils, 11 balanced
+base-element mixtures, 40 material signatures, 40 signs, 65,600
+tested/unique/deterministic variants, a 32,800/32,800 support split and all
 semantic checks passing.
 
 ## Project Map
@@ -79,7 +79,7 @@ semantic checks passing.
 - `symbol-catalog.mjs`: shared vector drawings for the editor and renderer.
 - `spell-grammar.mjs`, `spell-model.mjs`: deterministic mechanics and snapshots.
 - `elemental-mixtures.mjs`: finite base-element profiles and runtime dominance.
-- `variant-catalog.mjs`, `variant-index-worker.mjs`: 54,834-recipe index.
+- `variant-catalog.mjs`, `variant-index-worker.mjs`: 65,600-recipe index.
 - `support-policy.mjs`, `support-geometry.mjs`: support limits and 3D placement.
 - `assets/library-schematics/`: 33 local PNG crops containing only the named reference circles.
 - `docs/`: architecture, fidelity, QA, release and research provenance notes.
@@ -94,3 +94,78 @@ runtime CDN dependency.
 
 This is an unofficial fan project. *Witch Hat Atelier* and related names belong
 to their respective rights holders.
+<<<<<<< Updated upstream
+=======
+
+## Local Minecraft AI Builder
+
+The unpublished `minecraft-mod/ai-builder` subproject is a Fabric 1.21.1,
+Java 21 development tool for constructing deterministic test scenery from
+local JSON plans. It does not use an API key, a remote service, or natural
+language.
+
+Run the development client:
+
+```bash
+cd minecraft-mod
+GRADLE_USER_HOME=$PWD/.gradle-user-home \
+JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home \
+./gradlew :ai-builder:runClient
+```
+
+The example is installed automatically at
+`run/config/witchhat-ai-builder/plans/test_platform.json`. In a creative local
+world with operator permission, use:
+
+```text
+/whabuilder list
+/whabuilder preview test_platform
+/whabuilder build test_platform
+/whabuilder pause
+/whabuilder resume
+/whabuilder cancel
+/whabuilder undo
+/whabuilder status
+```
+
+Ghost outlines are green for replaceable blocks, amber for occupied blocks,
+and red for protected blocks. Builds are progressive and save
+`run/config/witchhat-ai-builder/history/latest.json` before changing the world.
+Existing block entities such as chests and signs are treated as protected so
+their inventories and NBT data cannot be lost by a build or undo.
+
+## Local Minecraft Magic Mod
+
+The unpublished `minecraft-mod/witch-hat-magic` subproject is a separate Fabric
+1.21.1 mod. Its first playable milestone provides a persistent magic-circle
+notebook with bounded pages, native circular drawing, pen and eraser tools,
+undo/redo, zoom, bilingual labels, server-authoritative saves, and the complete
+69-entry symbol catalogue generated from the web simulator. Workshop mode
+supports placement, right-click selection, selection rectangles, grouped
+movement, proportional corner resizing, deletion, and undo. The native page
+index supports direct selection, renaming, duplication, and reordering.
+Persistent tracing guides can reuse another notebook page below the active
+drawing, then be hidden, switched, reduced, or enlarged. Workshop mode also
+recognizes exact placed sigils and signs, then sends activation requests to the
+server for authoritative notebook and page validation. Accepted activations do
+create a temporary, non-destructive particle seal 2.5 blocks in front of the
+player. The particle family follows the primary sigil, the accepted spell is
+shown in the action bar, and the notebook closes before the manifestation is
+revealed. Server-side manifestations are limited to one per player per second
+to prevent repeated activation packets from amplifying particle traffic.
+
+Build the local JAR:
+
+```bash
+cd minecraft-mod
+GRADLE_USER_HOME=$PWD/.gradle-user-home \
+JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home \
+./gradlew :witch-hat-magic:test :witch-hat-magic:build
+```
+
+The playable JAR is written to
+`witch-hat-magic/build/libs/witch-hat-magic-0.1.0-local.jar`. Spell details,
+support selection, animated manifestation phases, and physical spell
+interactions remain separate implementation phases. The magic mod does not
+depend on AI Builder.
+>>>>>>> Stashed changes

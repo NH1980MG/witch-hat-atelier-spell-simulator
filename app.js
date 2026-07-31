@@ -8,7 +8,7 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260727-mixture-runtime-v3";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260727-mixture-runtime-v3";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260731-recipe-review-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260731-wiki-symbols-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260716-shoe-camera-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -36,10 +36,10 @@ import {
   shouldDeferTouchTool,
   topmostSelectableIndexAtPoint,
   translateSelectedActions,
-} from "./symbol-interactions.mjs?v=20260731-recipe-review-v1";
-import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260731-recipe-review-v1";
-import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260731-recipe-review-v1";
-import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260731-recipe-review-v1";
+} from "./symbol-interactions.mjs?v=20260731-wiki-symbols-v1";
+import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260731-wiki-symbols-v1";
+import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260731-wiki-symbols-v1";
+import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260731-wiki-symbols-v1";
 
 export const CENTRAL_SIGIL_STROKE_WIDTH = 6.4365;
 
@@ -120,6 +120,9 @@ const englishSigilMeanings = Object.freeze({
   "Arret temporel": "Stop sigil: halts time for affected objects and can isolate an aspect when paired with another sigil.",
   "Vent tourbillonnant": "Whorling Wind sigil: manipulates air through rotation; its exact mechanism remains uncertain.",
   "Flammes sans chaleur": "Unburning Flames sigil: contributes to heatless flames and may require additional signs.",
+  "Guidage": "Guidance sigil: attracts to the seal the objects matching the parameters set by the other signs of the spell.",
+  "Appel": "Calling sigil: echoes a recorded phrase; documented only in the Pouch of Calling.",
+  "Lumiere vacillante": "Flickering Light sigil: exact function unknown; Coco's failure suggests stable, powerful flickering lights (wiki speculation).",
 });
 
 const englishSignRoles = Object.freeze({

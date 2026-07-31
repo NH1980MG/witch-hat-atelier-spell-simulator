@@ -34,7 +34,7 @@ function scoreRecord(record, query) {
   return 0;
 }
 
-export function searchSymbols(index, query, limit = 64) {
+export function searchSymbols(index, query, limit = 69) {
   const normalized = normalizeSearchText(query);
   if (!normalized) {
     return index.slice(0, limit).map((record) => record.element);
