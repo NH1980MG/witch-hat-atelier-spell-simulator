@@ -285,6 +285,20 @@ export function translateSelectedActions(actions, indices, dx, dy) {
   });
 }
 
+export function planDuplication(actions, indices, dx, dy) {
+  const ordered = [...indices].sort((a, b) => a - b);
+  if (ordered.length === 0 || (dx === 0 && dy === 0)) {
+    return { actions, indices: [] };
+  }
+  const copies = cloneActions(ordered.map((index) => actions[index]));
+  const appended = [...actions, ...copies];
+  const appendedIndices = copies.map((_, offset) => actions.length + offset);
+  return {
+    actions: translateSelectedActions(appended, appendedIndices, dx, dy),
+    indices: appendedIndices,
+  };
+}
+
 export function scaleSelectedActions(actions, indices, origin, scale) {
   if (!Number.isFinite(scale) || scale <= 0) {
     throw new TypeError("A finite positive selection scale is required");

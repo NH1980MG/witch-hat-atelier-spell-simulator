@@ -8,7 +8,7 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260727-mixture-runtime-v3";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260727-mixture-runtime-v3";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260729-select-all-rotate-v2";
+import { getLocale, t } from "./site-i18n.mjs?v=20260731-wiki-symbols-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260716-shoe-camera-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -26,6 +26,7 @@ import {
   cloneActions,
   guideResizeHandleAtPoint,
   isSelectableAction,
+  planDuplication,
   resizeGuideScaleFromCorner,
   rotateSelectedActions,
   scaleSelectedActions,
@@ -35,7 +36,10 @@ import {
   shouldDeferTouchTool,
   topmostSelectableIndexAtPoint,
   translateSelectedActions,
-} from "./symbol-interactions.mjs?v=20260729-select-all-rotate-v2";
+} from "./symbol-interactions.mjs?v=20260731-wiki-symbols-v1";
+import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260731-wiki-symbols-v1";
+import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260731-wiki-symbols-v1";
+import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260731-wiki-symbols-v1";
 
 export const CENTRAL_SIGIL_STROKE_WIDTH = 6.4365;
 
@@ -50,77 +54,7 @@ const colors = {
   normalInk: "#201a16",
 };
 
-const elements = [
-  { name: "Feu", color: "#a94a38", rune: "FE", charge: 2, kind: "sigil", category: "Sigil", meaning: "Cree et manipule les flammes ou la chaleur." },
-  { name: "Eau", color: "#377da4", rune: "EA", charge: 0, kind: "sigil", category: "Sigil", meaning: "Collecte, cree et manipule l'eau; la collecte semble moins couteuse que la creation." },
-  { name: "Terre", color: "#7b6043", rune: "TE", charge: 1, kind: "sigil", category: "Sigil", meaning: "Manipule le bois, la pierre, le sable et le sol sans creer ces matieres." },
-  { name: "Vent", color: "#5c8b62", rune: "VE", charge: 0, kind: "sigil", category: "Sigil", meaning: "Deplace et manipule l'air, mais ne le cree pas." },
-  { name: "Lumiere", color: "#d7a63e", rune: "LU", charge: 1, kind: "sigil", category: "Sigil", meaning: "Variante du feu qui produit une manifestation lumineuse." },
-  { name: "Cristal", color: "#7366a6", rune: "CR", charge: 1, kind: "sigil", category: "Sigil", meaning: "Cristallise la matiere cible; glace ou cristal selon l'intention probable." },
-  { name: "Aeriforme", color: "#6c8f8f", rune: "AI", charge: 0, kind: "sigil", category: "Sigil", meaning: "Cree et manipule l'air, mais ne le met pas en mouvement." },
-  { name: "Vent sous pied", color: "#5c8b62", rune: "VP", charge: 1, kind: "sigil", category: "Sigil", meaning: "Soutient des objets solides suspendus dans l'air; les limites exactes restent incertaines." },
-  { name: "Repetition", color: "#b86b84", rune: "RE", charge: 1, kind: "sigil", category: "Sigil", meaning: "Restaure continuellement l'etat initial d'une cible modifiee." },
-  { name: "Fumee", color: "#7d7770", rune: "FU", charge: 0, kind: "sigil", category: "Sigil", meaning: "Cree et genere de la fumee; sa manipulation n'est pas encore confirmee." },
-  { name: "Sangsue-valance", color: "#80584b", rune: "SV", charge: 1, kind: "sigil", category: "Sigil decoratif", meaning: "Manifeste la magie sous la forme d'une sangsue-valance." },
-  { name: "Frillram", color: "#826148", rune: "FR", charge: 1, kind: "sigil", category: "Sigil decoratif", meaning: "Manifeste la magie sous la forme d'un frillram." },
-  { name: "Epee", color: "#5d6d7a", rune: "EP", charge: 1, kind: "sigil", category: "Sigil decoratif", meaning: "Manifeste une epee ou cible une ou plusieurs epees." },
-  { name: "Loup-ecaille", color: "#6a655a", rune: "LE", charge: 1, kind: "sigil", category: "Sigil decoratif", meaning: "Manifeste la magie sous la forme d'un loup-ecaille." },
-  { name: "Cerf-torche", color: "#9a6445", rune: "CT", charge: 1, kind: "sigil", category: "Sigil decoratif", meaning: "Manifeste la magie sous la forme d'un cerf-torche." },
-  { name: "Chevre-lion", color: "#8b7044", rune: "CL", charge: 1, kind: "sigil", category: "Sigil decoratif", meaning: "Manifeste la magie sous la forme d'une chevre-lion." },
-  { name: "Chat-hibou", color: "#6f6078", rune: "CH", charge: 1, kind: "sigil", category: "Sigil decoratif", meaning: "Semble manifester un chat-hibou entier, mais cet effet reste a confirmer." },
-  { name: "Tete de chat-hibou", color: "#756581", rune: "TH", charge: 1, kind: "sigil", category: "Sigil decoratif", meaning: "Manifeste la tete d'un chat-hibou au plumage d'hiver." },
-  { name: "Dragon", color: "#8b443e", rune: "DR", charge: 2, kind: "sigil", category: "Sigil decoratif", meaning: "Manifeste un dragon; l'espece exacte representee reste inconnue." },
-  { name: "Fleur", color: "#a05f78", rune: "FL", charge: 1, kind: "sigil", category: "Sigil decoratif", meaning: "Manifeste diverses fleurs; les petits signes voisins precisent probablement leur type." },
-  { name: "Cheval", color: "#755d46", rune: "CV", charge: 1, kind: "sigil", category: "Sigil decoratif", meaning: "Manifeste un cheval magique capable de tirer une charge." },
-  { name: "Oiseau A", color: "#4f7180", rune: "OA", charge: 1, kind: "sigil", category: "Sigil decoratif", meaning: "Cree une projection d'oiseau qui vole pendant un moment." },
-  { name: "Oiseau B", color: "#577988", rune: "OB", charge: 1, kind: "sigil", category: "Sigil decoratif", meaning: "Manifeste un oiseau plus proche d'un canard que la variante A." },
-  { name: "Arret temporel", color: "#5f536d", rune: "AT", charge: 2, kind: "sigil", category: "Sigil", meaning: "Agencement de signes autour d'un point central remplacable par un sigil pour figer un aspect precis; sort \"Time Stop\" au nom non officiel, pas un sigil canon documente." },
-  { name: "Vent tourbillonnant", color: "#568276", rune: "VT", charge: 1, kind: "sigil", category: "Sigil", meaning: "Manipule l'air par rotation; son fonctionnement exact reste incertain." },
-  { name: "Flammes sans chaleur", color: "#a84f42", rune: "FC", charge: 1, kind: "sigil", category: "Sigil", meaning: "Participe a la production de flammes sans chaleur; des signes supplementaires peuvent etre requis." },
-  { name: "Guidage", color: "#5d7a68", rune: "GU", charge: 1, kind: "sigil", category: "Sigil", meaning: "Attire vers le sceau les objets correspondant aux parametres definis par les autres signes du sort." },
-  { name: "Appel", color: "#7a6a5d", rune: "AP", charge: 1, kind: "sigil", category: "Sigil", meaning: "Repete en echo une phrase enregistree; documente uniquement dans la Pouch of Calling." },
-  { name: "Lumiere vacillante", color: "#8a7a3f", rune: "VA", charge: 2, kind: "sigil", category: "Sigil", meaning: "Fonction exacte inconnue; probablement des lumieres scintillantes stables et puissantes (speculation du wiki)." },
-  { name: "Colonne", color: "#8b1f1f", rune: "CO", charge: 1, kind: "sign", category: "Directionnel", meaning: "Signe directionnel: manifeste le sort en colonne ou faisceau." },
-  { name: "Dispersion", color: "#8b1f1f", rune: "DI", charge: 0, kind: "sign", category: "Directionnel", meaning: "Signe proche de colonne: laisse l'energie sortir vers l'exterieur." },
-  { name: "Levitation", color: "#8b1f1f", rune: "LV", charge: 1, kind: "sign", category: "Directionnel", meaning: "Signe directionnel: fait leviter l'effet (eau, feu, lumiere) ou deplace l'objet support dans la direction des pointes (vent, air)." },
-  { name: "Traction", color: "#8b1f1f", rune: "PU", charge: 1, kind: "sign", category: "Directionnel", meaning: "Pull: tire vers le sceau; inverse, il pousse." },
-  { name: "Region", color: "#8b1f1f", rune: "RG", charge: 0, kind: "sign", category: "Directionnel", meaning: "Definit ou deplace la zone ou le sort se manifeste." },
-  { name: "Convergence", color: "#8b1f1f", rune: "CV", charge: 1, kind: "sign", category: "Semi-directionnel", meaning: "Centre l'energie vers un point ou une zone compacte." },
-  { name: "Collection", color: "#8b1f1f", rune: "CL", charge: 0, kind: "sign", category: "Semi-directionnel", meaning: "Collecte la matiere autour du sceau pour alimenter le sort." },
-  { name: "Nuage", color: "#8b1f1f", rune: "BI", charge: 0, kind: "sign", category: "Non-directionnel", meaning: "Billow: produit une forme douce ou nuageuse." },
-  { name: "Crush", color: "#8b1f1f", rune: "CH", charge: 2, kind: "sign", category: "Semi-directionnel", meaning: "Brise ou reduit la matiere en fragments; inverse, reforme." },
-  { name: "Pantin", color: "#8b1f1f", rune: "PA", charge: 1, kind: "sign", category: "Asymetrique", meaning: "Puppet: permet un controle mental ou direct du mouvement." },
-  { name: "Flottement", color: "#8b1f1f", rune: "FL", charge: 1, kind: "sign", category: "Non-directionnel", meaning: "Float: stabilise l'objet sur un plan horizontal dans l'air; il peut pivoter mais garde son niveau." },
-  { name: "Etirement", color: "#8b1f1f", rune: "ST", charge: 0, kind: "sign", category: "Non-directionnel", meaning: "Stretch/Weave: etire une matiere en ruban flexible." },
-  { name: "Spire physique", color: "#8b1f1f", rune: "SP", charge: 0, kind: "sign", category: "Non-directionnel", meaning: "Coil: donne a la matiere une forme de ressort ou de spire." },
-  { name: "Refroidissement", color: "#8b1f1f", rune: "FR", charge: -1, kind: "sign", category: "Non-directionnel", meaning: "Cool: refroidit ou condense l'effet." },
-  { name: "Renforcement", color: "#8b1f1f", rune: "RN", charge: 1, kind: "sign", category: "Semi-directionnel", meaning: "Strengthen: rend l'objet ou le sort plus durable." },
-  { name: "Cible", color: "#8b1f1f", rune: "FO", charge: 1, kind: "sign", category: "Directionnel", meaning: "Sights set: vise un point ou une cible precise." },
-  { name: "Enlacement", color: "#8b1f1f", rune: "EN", charge: 0, kind: "sign", category: "Semi-directionnel", meaning: "Entwine: fait s'enrouler un objet autour d'un autre." },
-  { name: "Signe de vent", color: "#8b1f1f", rune: "SV", charge: 0, kind: "sign", category: "Asymetrique", meaning: "Signe ancien lie au vent; son effet exact reste incertain." },
-  { name: "Aeriforme defini", color: "#8b1f1f", rune: "AD", charge: 0, kind: "sign", category: "Semi-directionnel", meaning: "Modifieur de l'aeriforme; sa fonction exacte reste indeterminee (nom et dessin contradictoires)." },
-  { name: "Rassemblement", color: "#8b1f1f", rune: "GA", charge: 0, kind: "sign", category: "Directionnel", meaning: "Gather: semble attirer activement la matiere proche (effet non confirme)." },
-  { name: "Glaives", color: "#8b1f1f", rune: "GL", charge: 1, kind: "sign", category: "Semi-directionnel", meaning: "Determine la profondeur d'enfoncement dans la chair; vu uniquement dans des sorts interdits, statut de signe incertain." },
-  { name: "Solidification", color: "#8b1f1f", rune: "SO", charge: 1, kind: "sign", category: "Semi-directionnel", meaning: "Rend plus solide la magie connectee au signe." },
-  { name: "Lien", color: "#8b1f1f", rune: "LI", charge: 0, kind: "sign", category: "Semi-directionnel", meaning: "Lie la magie entre objets issus d'une meme origine." },
-  { name: "Arret", color: "#8b1f1f", rune: "AR", charge: 0, kind: "sign", category: "Semi-directionnel", meaning: "Bind: immobilise ou unit une matiere en une seule piece." },
-  { name: "Enveloppe", color: "#8b1f1f", rune: "EV", charge: 0, kind: "sign", category: "Semi-directionnel", meaning: "Entoure ou enveloppe la cible du sort." },
-  { name: "Dissimulation", color: "#8b1f1f", rune: "DS", charge: 0, kind: "sign", category: "Asymetrique", meaning: "Conceal: cache, ombre ou prepare une illusion." },
-  { name: "Reflection", color: "#8b1f1f", rune: "RF", charge: 0, kind: "sign", category: "Non-directionnel", meaning: "Cible une image reflechie pour les sorts d'illusion." },
-  { name: "Diamant", color: "#8b1f1f", rune: "DM", charge: 0, kind: "sign", category: "Non-directionnel", meaning: "Cible les objets proches plutot que l'objet porteur." },
-  { name: "Selection", color: "#8b1f1f", rune: "SE", charge: 0, kind: "sign", category: "Non-directionnel", meaning: "Selection: limite l'effet a l'objet qui porte le sceau." },
-  { name: "Agrandissement", color: "#8b1f1f", rune: "AG", charge: 1, kind: "sign", category: "Semi-directionnel", meaning: "Fait grandir, ou reduit si le signe est inverse." },
-  { name: "Viseur", color: "#8b1f1f", rune: "VI", charge: 0, kind: "sign", category: "Non-directionnel", meaning: "Crosshair: associe un effet a une cible correspondante." },
-  { name: "Radial", color: "#8b1f1f", rune: "RA", charge: -1, kind: "sign", category: "Non-directionnel", meaning: "Reduit ou tempere la puissance d'un effet." },
-  { name: "Projectile", color: "#8b1f1f", rune: "BT", charge: 2, kind: "sign", category: "Non-directionnel", meaning: "Bolt: transforme l'effet en projectiles rapides." },
-  { name: "Pluie", color: "#8b1f1f", rune: "PL", charge: 1, kind: "sign", category: "Semi-directionnel", meaning: "Rain: fait tomber l'effet dans la zone immediate." },
-  { name: "Orbe", color: "#8b1f1f", rune: "OR", charge: 1, kind: "sign", category: "Non-directionnel", meaning: "Cree un espace spherique qui collecte la matiere." },
-  { name: "Purification", color: "#8b1f1f", rune: "PF", charge: 0, kind: "sign", category: "Asymetrique", meaning: "Separe les impuretes de l'effet ou de la matiere." },
-  { name: "Immobilite", color: "#8b1f1f", rune: "IM", charge: 0, kind: "sign", category: "Non-directionnel", meaning: "Maintient la magie en place." },
-  { name: "Projection", color: "#8b1f1f", rune: "PR", charge: 1, kind: "sign", category: "Asymetrique", meaning: "Projette l'effet ou une image vers l'exterieur." },
-  { name: "Lancement", color: "#8b1f1f", rune: "LN", charge: 1, kind: "sign", category: "Asymetrique", meaning: "Propulse probablement l'effet dans la direction pointee en une rafale puissante mais de courte duree." },
-  { name: "Fenetres", color: "#8b1f1f", rune: "FN", charge: 0, kind: "sign", category: "Non-directionnel", meaning: "Connecterait deux espaces distants; borde le sort comme un anneau de marques repetees." },
-];
+const elements = PALETTE_ELEMENTS;
 
 const RAW_ENERGY_ELEMENT = Object.freeze({
   name: "Energie brute",
@@ -155,79 +89,9 @@ const supportOptions = [
   },
 ];
 
-const englishElementNames = Object.freeze({
-  "Feu": "Fire",
-  "Eau": "Water",
-  "Terre": "Earth",
-  "Vent": "Wind",
-  "Lumiere": "Light",
-  "Cristal": "Crystal",
-  "Aeriforme": "Aeriform",
-  "Vent sous pied": "Wind underfoot",
-  "Repetition": "Repetition",
-  "Fumee": "Smoke",
-  "Sangsue-valance": "Valance Leech",
-  "Frillram": "Frillram",
-  "Epee": "Sword",
-  "Loup-ecaille": "Scalewolf",
-  "Cerf-torche": "Torchstag",
-  "Chevre-lion": "Liongoat",
-  "Chat-hibou": "Owlcat",
-  "Tete de chat-hibou": "Owlcat Head",
-  "Dragon": "Dragon",
-  "Fleur": "Flower",
-  "Cheval": "Horse",
-  "Oiseau A": "Bird A",
-  "Oiseau B": "Bird B",
-  "Arret temporel": "Stop",
-  "Vent tourbillonnant": "Whorling Wind",
-  "Flammes sans chaleur": "Unburning Flames",
-  "Guidage": "Guidance",
-  "Appel": "Calling",
-  "Lumiere vacillante": "Flickering Light",
-  "Colonne": "Column",
-  "Dispersion": "Dispersion",
-  "Levitation": "Levitation",
-  "Traction": "Pull",
-  "Region": "Region",
-  "Convergence": "Convergence",
-  "Collection": "Collection",
-  "Nuage": "Billow",
-  "Crush": "Crush",
-  "Pantin": "Puppet",
-  "Flottement": "Float",
-  "Etirement": "Stretch / Weave",
-  "Spire physique": "Physical coil",
-  "Refroidissement": "Cooling",
-  "Renforcement": "Strengthen",
-  "Cible": "Sights",
-  "Enlacement": "Entwine",
-  "Signe de vent": "Wind sign",
-  "Aeriforme defini": "Defined aeriform",
-  "Rassemblement": "Gathering",
-  "Glaives": "Depth",
-  "Solidification": "Solidification",
-  "Lien": "Link",
-  "Arret": "Bind",
-  "Enveloppe": "Wrap",
-  "Dissimulation": "Concealment",
-  "Reflection": "Reflection",
-  "Diamant": "Diamond",
-  "Selection": "Selection",
-  "Agrandissement": "Expansion",
-  "Viseur": "Crosshair",
-  "Radial": "Radial",
-  "Projectile": "Bolt",
-  "Pluie": "Rain",
-  "Orbe": "Orb",
-  "Purification": "Purification",
-  "Immobilite": "Stillness",
-  "Projection": "Projection",
-  "Lancement": "Launch",
-  "Fenetres": "Windows",
-  "Energie brute": "Raw energy",
-  "Aucun": "None",
-});
+const englishElementNames = ENGLISH_DISPLAY_NAMES;
+
+const symbolSearchIndex = buildSymbolSearchIndex(PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES);
 
 const englishSigilMeanings = Object.freeze({
   "Feu": "Fire sigil: creates and manipulates flames or heat.",
@@ -256,9 +120,9 @@ const englishSigilMeanings = Object.freeze({
   "Arret temporel": "Stop sigil: halts time for affected objects and can isolate an aspect when paired with another sigil.",
   "Vent tourbillonnant": "Whorling Wind sigil: manipulates air through rotation; its exact mechanism remains uncertain.",
   "Flammes sans chaleur": "Unburning Flames sigil: contributes to heatless flames and may require additional signs.",
-  "Guidage": "Guidance sigil: attracts to the seal the objects matching the parameters set by the other signs.",
-  "Appel": "Calling sigil: echoes back a recorded phrase; documented only in the Pouch of Calling.",
-  "Lumiere vacillante": "Flickering Light sigil: exact function unknown; probably stable, powerful flickering lights (wiki speculation).",
+  "Guidage": "Guidance sigil: attracts to the seal the objects matching the parameters set by the other signs of the spell.",
+  "Appel": "Calling sigil: echoes a recorded phrase; documented only in the Pouch of Calling.",
+  "Lumiere vacillante": "Flickering Light sigil: exact function unknown; Coco's failure suggests stable, powerful flickering lights (wiki speculation).",
 });
 
 const englishSignRoles = Object.freeze({
@@ -420,6 +284,7 @@ const supportDrawer = document.querySelector("#supportDrawer");
 const closeSupportButton = document.querySelector("#closeSupportButton");
 const shrinkSelectionButton = document.querySelector("#shrinkSelectionButton");
 const growSelectionButton = document.querySelector("#growSelectionButton");
+const duplicateSelectionButton = document.querySelector("#duplicateSelectionButton");
 const rotateSelectionLeftButton = document.querySelector("#rotateSelectionLeftButton");
 const rotateSelectionRightButton = document.querySelector("#rotateSelectionRightButton");
 const guideToggleButton = document.querySelector("#guideToggleButton");
@@ -433,6 +298,10 @@ const guideVisibleInput = document.querySelector("#guideVisibleInput");
 const guideOpacityInput = document.querySelector("#guideOpacityInput");
 const clearGuideButton = document.querySelector("#clearGuideButton");
 const saveExampleButton = document.querySelector("#saveExampleButton");
+const symbolSearchDialog = document.getElementById("symbolSearchDialog");
+const symbolSearchInput = document.getElementById("symbolSearchInput");
+const symbolSearchResults = document.getElementById("symbolSearchResults");
+const symbolSearchStatus = document.getElementById("symbolSearchStatus");
 
 const state = {
   tool: "free",
@@ -475,6 +344,14 @@ const state = {
   guideScale: 1,
   guideSelected: false,
   guideResize: null,
+  previousTool: "select",
+  ghostOwner: null,
+  ghostOwnerBeforeDrag: null,
+  // null, or { source, at }: the drawer button a completed drag started on and
+  // the timestamp it ended. A bare boolean could strand true on hardware that
+  // never emits the retargeted trailing click, silently swallowing an
+  // unrelated drawer tap minutes later; the record cannot.
+  suppressNextDrawerClick: null,
 };
 
 const guideImageCache = new Map();
@@ -6616,6 +6493,9 @@ function updateSelectionControls() {
   if (growSelectionButton) {
     growSelectionButton.disabled = !hasSelection;
   }
+  if (duplicateSelectionButton) {
+    duplicateSelectionButton.disabled = !hasSelection;
+  }
   if (rotateSelectionLeftButton) {
     rotateSelectionLeftButton.disabled = !hasSelection;
   }
@@ -7271,8 +7151,73 @@ function draggedCorner(bounds, handle) {
   return corners[handle];
 }
 
+function setTool(nextTool, options = {}) {
+  const previous = state.tool;
+  const nextElement = options.element;
+  const elementChanged = Boolean(nextElement) && nextElement !== state.element;
+  if (elementChanged) {
+    state.element = nextElement;
+  }
+  // Edge-triggered: only a transition INTO glyph from something else records the
+  // return tool. Arming while already armed must not overwrite it, or Escape
+  // restores glyph and can never disarm.
+  if (nextTool === "glyph" && previous !== "glyph") {
+    state.previousTool = previous;
+  }
+  state.tool = nextTool;
+  if (previous === "glyph" && nextTool !== "glyph" && state.ghostOwner === "armed") {
+    state.ghostOwner = null;
+  }
+  updateToolButtons();
+  // Only when the element actually changed. updateInkSelection queries the whole
+  // drawer, reads SIGN_PROFILES/SIGIL_PROFILES and calls t() several times;
+  // beginRightSelection routes through setTool on every marquee drag start, so
+  // calling it unconditionally would put that work on a pointer-move path.
+  if (elementChanged) {
+    updateInkSelection();
+  }
+  renderGhost();
+}
+
+function armSymbol(element) {
+  setTool("glyph", { element });
+  // A live drag keeps the ghost element until it tears down; arming during one
+  // records the intent and Task 9's teardown restores "armed" afterwards.
+  if (state.ghostOwner !== "drag") {
+    state.ghostOwner = "armed";
+  } else {
+    state.ghostOwnerBeforeDrag = "armed";
+  }
+  setOpenDrawer(null);
+  renderGhost();
+  setStatus(t("status.symbolArmed", { name: elementDisplayName(element) }));
+}
+
+function disarmSymbol() {
+  const returnTool = state.previousTool || "select";
+  state.ghostOwner = null;
+  setTool(returnTool);
+  setStatus(t("status.symbolDisarmed"));
+}
+
+function renderGhost() {
+  if (!symbolDragGhost) {
+    return;
+  }
+  if (state.ghostOwner === "drag") {
+    return; // the drag path owns the element while a drag is in flight
+  }
+  if (state.ghostOwner === "armed" && state.element) {
+    symbolDragGhost.innerHTML = `<span class="symbol-icon" style="--symbol-color:${state.element.color}">${elementIconMarkup(state.element)}</span>`;
+    symbolDragGhost.classList.add("is-armed");
+    return;
+  }
+  symbolDragGhost.innerHTML = "";
+  symbolDragGhost.classList.remove("is-armed");
+}
+
 function beginRightSelection(event, point) {
-  state.tool = "select";
+  setTool("select");
   state.guideSelected = false;
   updateToolButtons();
   normalizeSelection();
@@ -7512,8 +7457,9 @@ function selectAllActions() {
   state.selectedActionIndices = state.actions
     .map((action, index) => (isSelectableAction(action) ? index : -1))
     .filter((index) => index >= 0);
-  state.tool = "select";
-  updateToolButtons();
+  // Routed through setTool, never a raw assignment: leaving "glyph" by hand
+  // strands state.ghostOwner === "armed" and the ghost outlives the tool.
+  setTool("select");
   updateSelectionControls();
   setSelectionStatus();
   render();
@@ -7548,8 +7494,7 @@ function pasteSelection() {
   state.actions = [...state.actions, ...pasted];
   state.selectedActionIndices = pasted.map((_, index) => firstNewIndex + index);
   state.activeSpell = null;
-  state.tool = "select";
-  updateToolButtons();
+  setTool("select");
   updateSelectionControls();
   updateUsedList();
   updateSpellState();
@@ -8029,10 +7974,17 @@ function renderInkList() {
           <small>${confidence}</small>
         </span>
       `;
-      button.addEventListener("click", () => {
-        state.element = element;
-        updateInkSelection();
-        setStatus(t("status.symbolPrepared", { name: elementDisplayName(element) }));
+      button.addEventListener("click", (event) => {
+        // A mouse drag ends with a click on the origin button (pointer capture
+        // retargets the trailing mouseup/click back here). Before arming
+        // existed that click was harmless; now it would arm the pointer the
+        // user never asked for, so a completed drag consumes the click that
+        // follows it instead of arming again. Matched on origin button and
+        // recency, so only that click is consumed - never a later one.
+        if (consumeDrawerClickSuppression(event.currentTarget)) {
+          return;
+        }
+        armSymbol(element);
       });
       button.addEventListener("pointerdown", (event) => startSymbolDrag(event, element));
       button.addEventListener("dragstart", (event) => event.preventDefault());
@@ -8041,11 +7993,7 @@ function renderInkList() {
           return;
         }
         event.preventDefault();
-        state.element = element;
-        state.tool = "glyph";
-        updateInkSelection();
-        updateToolButtons();
-        setSymbolDrawer(false);
+        armSymbol(element);
         setStatus(t("status.symbolClickToPlace", { name: elementDisplayName(element) }));
       });
       section.append(button);
@@ -8053,6 +8001,35 @@ function renderInkList() {
     inkList.append(section);
   }
   updateInkSelection();
+}
+
+// How far the pointer must travel during a drawer-button press before the
+// trailing click is treated as drag debris rather than a click-to-arm. Real
+// pointing hardware doesn't produce perfectly stationary clicks - trackpads
+// and high-poll-rate mice emit sub-pixel pointermove events even while the
+// user experiences the press as still. Deliberately smaller than
+// symbol-drag-gesture.mjs's TOUCH_DRAG_THRESHOLD (10px): that threshold
+// answers "is this a scroll or a drag" for touch, a different question from
+// "did the pointer move enough that a trailing click is drag debris" - reusing
+// it here would let a real 6px drag-and-drop through unsuppressed and bring
+// back the spurious re-arm.
+const DRAWER_CLICK_DRAG_SLOP = 4;
+
+// A retargeted trailing click arrives in the same task turn as the pointerup,
+// so a second is generous. Past that window the record is stale by definition.
+const DRAWER_CLICK_SUPPRESSION_MS = 1000;
+
+// Always clears the record, matched or not: a record that failed to match was
+// stranded by hardware that never sent the trailing click, and keeping it
+// would be exactly the bug this shape removes.
+function consumeDrawerClickSuppression(target) {
+  const record = state.suppressNextDrawerClick;
+  state.suppressNextDrawerClick = null;
+  return (
+    record !== null &&
+    record.source === target &&
+    performance.now() - record.at < DRAWER_CLICK_SUPPRESSION_MS
+  );
 }
 
 function clientPointInsideRect(clientX, clientY, rect) {
@@ -8063,6 +8040,9 @@ function startSymbolDrag(event, element) {
   if (event.button !== 0 || state.symbolDrag || state.symbolDragIntent) {
     return;
   }
+
+  state.ghostOwnerBeforeDrag = state.ghostOwner;
+  state.ghostOwner = "drag";
 
   const source = event.currentTarget;
   if (classifySymbolDragGesture(event.pointerType, 0, 0) === "pending") {
@@ -8104,11 +8084,15 @@ function resolveSymbolDragIntent(event) {
 
   event.preventDefault();
   const { element, source } = intent;
-  cancelSymbolDragIntent(event);
+  // The intent is resolving into a real drag, not being abandoned - ownership
+  // stays "drag" (already grabbed by startSymbolDrag) and beginSymbolDrag
+  // continues it, so this call must not restore ownership out from under it.
+  cancelSymbolDragIntent(event, { restoreOwnership: false });
   beginSymbolDrag(event, element, source);
 }
 
-function cancelSymbolDragIntent(event) {
+function cancelSymbolDragIntent(event, options = {}) {
+  const { restoreOwnership = true } = options;
   const intent = state.symbolDragIntent;
   if (!intent || (event?.pointerId !== undefined && event.pointerId !== intent.pointerId)) {
     return;
@@ -8117,6 +8101,14 @@ function cancelSymbolDragIntent(event) {
   window.removeEventListener("pointerup", cancelSymbolDragIntent);
   window.removeEventListener("pointercancel", cancelSymbolDragIntent);
   state.symbolDragIntent = null;
+  // A touch tap that never became a real drag still grabbed ownership in
+  // startSymbolDrag ("drag", to keep the armed listener from fighting a drag
+  // that might start) - if it never does, that ownership must come back, or
+  // ghostOwner is stuck at "drag" forever and the armed preview never renders
+  // again for the rest of the session.
+  if (restoreOwnership) {
+    releaseGhostDrag();
+  }
 }
 
 function beginSymbolDrag(event, element, source) {
@@ -8130,6 +8122,8 @@ function beginSymbolDrag(event, element, source) {
     element,
     source,
     size: 16 + state.intensity * 3,
+    startX: event.clientX,
+    startY: event.clientY,
   };
   symbolDragGhost.innerHTML =
     '<span class="symbol-icon" style="--symbol-color:' + element.color + '">' +
@@ -8149,6 +8143,23 @@ function moveSymbolDrag(event) {
     return;
   }
   event.preventDefault();
+  // beginSymbolDrag seeds the ghost's position by calling this once with the
+  // originating pointerdown (or, for a touch drag already past the intent
+  // threshold, the resolving pointermove) event - only a *subsequent*
+  // "pointermove" here means the pointer actually moved, i.e. this is a real
+  // drag rather than a stationary click. A mouse click is a zero-distance
+  // pointerdown+pointerup on this same button (classifySymbolDragGesture
+  // always answers "drag" for a mouse, so it takes this exact path too), and
+  // must still arm via its trailing click. But the event *type* alone isn't
+  // enough either: trackpads and high-poll-rate mice emit sub-pixel
+  // pointermove events during a click the user experiences as stationary, so
+  // gate on distance travelled, not merely on a pointermove having occurred.
+  if (
+    event.type === "pointermove" &&
+    Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) >= DRAWER_CLICK_DRAG_SLOP
+  ) {
+    state.suppressNextDrawerClick = { source: drag.source, at: performance.now() };
+  }
   symbolDragGhost.style.left = event.clientX + "px";
   symbolDragGhost.style.top = event.clientY + "px";
 
@@ -8175,7 +8186,10 @@ function finishSymbolDrag(event) {
   moveSymbolDrag(event);
   const action = state.preview ? cloneActions([state.preview])[0] : null;
   const elementName = state.symbolDrag.element.name;
-  cancelSymbolDrag();
+  // This pointerup's mouseup is about to be retargeted (by pointer capture)
+  // into a trailing click on the origin drawer button, so tell cancelSymbolDrag
+  // to leave the suppression flag alone for that click to consume.
+  cancelSymbolDrag(event, { expectTrailingClick: true });
   if (action) {
     commitAction(action);
     setStatus(t("status.symbolDropped", { name: elementDisplayName(elementName) }));
@@ -8184,7 +8198,18 @@ function finishSymbolDrag(event) {
   }
 }
 
-function cancelSymbolDrag(event) {
+// Shared by both drag-teardown paths (cancelSymbolDrag) and the touch-intent
+// abort path (cancelSymbolDragIntent) so ownership is restored identically
+// everywhere a drag or a mere drag intent ends without becoming - or after
+// having been - a live drag.
+function releaseGhostDrag() {
+  state.ghostOwner = state.ghostOwnerBeforeDrag ?? null;
+  state.ghostOwnerBeforeDrag = null;
+  renderGhost();
+}
+
+function cancelSymbolDrag(event, options = {}) {
+  const { expectTrailingClick = false } = options;
   const drag = state.symbolDrag;
   if (!drag || (event?.pointerId !== undefined && event.pointerId !== drag.pointerId)) {
     return;
@@ -8197,8 +8222,16 @@ function cancelSymbolDrag(event) {
   window.removeEventListener("pointercancel", cancelSymbolDrag);
   state.symbolDrag = null;
   state.preview = null;
-  symbolDragGhost.innerHTML = "";
   document.body.classList.remove("is-dragging-symbol", "is-valid-drop");
+  // Only finishSymbolDrag's real pointerup is followed by a retargeted click
+  // on the origin button; every other caller (pointercancel, or a
+  // programmatic cancel such as Escape closing the drawer mid-drag) means no
+  // click is coming, so the flag must not survive to swallow some later,
+  // unrelated click.
+  if (!expectTrailingClick) {
+    state.suppressNextDrawerClick = null;
+  }
+  releaseGhostDrag();
   render();
 }
 
@@ -8266,7 +8299,7 @@ function selectGuide(source, id) {
   state.guideScale = 1;
   state.guideSelected = true;
   state.selectedActionIndices = [];
-  state.tool = "select";
+  setTool("select");
   state.guideVisible = true;
   localStorage.setItem("whaGuideVisible", "true");
   if (guideVisibleInput) {
@@ -8361,7 +8394,7 @@ function saveCurrentCircleAsGuide() {
     state.guideScale = 1;
     state.guideSelected = true;
     state.selectedActionIndices = [];
-    state.tool = "select";
+    setTool("select");
     state.guideVisible = true;
     setGuideTab("personal");
     renderGuideLists();
@@ -8983,8 +9016,18 @@ function saveCanvas() {
 
 for (const button of toolButtons) {
   button.addEventListener("click", () => {
-    state.tool = button.dataset.tool;
-    updateToolButtons();
+    // The glyph button arms rather than merely selecting. A bare
+    // setTool("glyph") leaves ghostOwner null, which renderGhost reads as "no
+    // preview" and the Escape chain reads as "not armed" - so the tool would
+    // be active with nothing on screen and no way out but clearing the canvas.
+    // armSymbol sets its own status and closes the drawer, so return early
+    // rather than overwriting it with the generic tool-selected line.
+    if (button.dataset.tool === "glyph") {
+      armSymbol(state.element);
+      return;
+    }
+    // setTool already calls updateToolButtons; no second call here.
+    setTool(button.dataset.tool);
     setStatus(t("status.toolSelected", { name: t(`tool.${state.tool}`) }));
   });
 }
@@ -9082,97 +9125,211 @@ clearGuideButton?.addEventListener("click", () => {
 });
 shrinkSelectionButton?.addEventListener("click", () => resizeSelectedGlyph("shrink"));
 growSelectionButton?.addEventListener("click", () => resizeSelectedGlyph("grow"));
+duplicateSelectionButton?.addEventListener("click", () => duplicateSelectedActions());
 rotateSelectionLeftButton?.addEventListener("click", () => rotateSelection(-SELECTION_ROTATE_STEP));
 rotateSelectionRightButton?.addEventListener("click", () => rotateSelection(SELECTION_ROTATE_STEP));
 
+// Derived, never mirrored. A boolean field would have to be synchronized on
+// every close path, and a stale true suppresses Escape permanently and
+// silently. dialog.open is the browser's own state and cannot drift.
+function searchOpen() {
+  return symbolSearchDialog?.open === true;
+}
+
+let symbolSearchMatches = [];
+let symbolSearchActiveIndex = 0;
+
+function renderSymbolSearchResults() {
+  symbolSearchMatches = searchSymbols(symbolSearchIndex, symbolSearchInput.value);
+  // Every query change resets the active index. The list rebuilds on each
+  // keystroke, so an index held across a rebuild can point at a detached node:
+  // nothing is announced and Enter confirms a stale record.
+  symbolSearchActiveIndex = 0;
+  symbolSearchResults.innerHTML = "";
+
+  symbolSearchMatches.forEach((element, position) => {
+    const item = document.createElement("li");
+    item.className = "symbol-search-result";
+    item.id = `symbolSearchResult-${position}`;
+    item.setAttribute("role", "option");
+    item.setAttribute("aria-selected", position === 0 ? "true" : "false");
+    item.innerHTML = `
+      <span class="symbol-icon" style="--symbol-color:${element.color}">${elementIconMarkup(element)}</span>
+      <span class="symbol-search-name">${elementDisplayName(element)}</span>
+      <span class="symbol-search-rune">${element.rune}</span>
+    `;
+    item.addEventListener("click", () => confirmSymbolSearch(position));
+    symbolSearchResults.append(item);
+  });
+
+  if (symbolSearchMatches.length === 0) {
+    symbolSearchInput.removeAttribute("aria-activedescendant");
+    symbolSearchStatus.textContent = t("search.empty");
+    return;
+  }
+  symbolSearchInput.setAttribute("aria-activedescendant", "symbolSearchResult-0");
+  symbolSearchStatus.textContent = t("search.results", { count: symbolSearchMatches.length });
+}
+
+function setSymbolSearchActive(nextIndex) {
+  if (symbolSearchMatches.length === 0) {
+    return;
+  }
+  const count = symbolSearchMatches.length;
+  symbolSearchActiveIndex = ((nextIndex % count) + count) % count;
+  for (const [position, item] of [...symbolSearchResults.children].entries()) {
+    item.setAttribute("aria-selected", position === symbolSearchActiveIndex ? "true" : "false");
+  }
+  symbolSearchInput.setAttribute("aria-activedescendant", `symbolSearchResult-${symbolSearchActiveIndex}`);
+  symbolSearchResults.children[symbolSearchActiveIndex]?.scrollIntoView({ block: "nearest" });
+}
+
+function confirmSymbolSearch(position = symbolSearchActiveIndex) {
+  const element = symbolSearchMatches[position];
+  if (!element) {
+    return;
+  }
+  symbolSearchDialog.close();
+  armSymbol(element);
+}
+
+function openSymbolSearch() {
+  if (!symbolSearchDialog || symbolSearchDialog.open) {
+    return;
+  }
+  // Defensive: cancelSymbolDrag/cancelSymbolDragIntent already clear this
+  // record on every abort path that isn't immediately followed by a real
+  // click, and the record's own origin+recency match makes a stale one inert
+  // anyway. Kept because opening search is a natural "fresh start" point.
+  state.suppressNextDrawerClick = null;
+  symbolSearchInput.value = "";
+  renderSymbolSearchResults();
+  symbolSearchDialog.showModal();
+  symbolSearchInput.focus();
+}
+
+// Spec: "Escape, the close button, or a click outside closes it without
+// changing anything." showModal() gives the first two for free but does not
+// light-dismiss, and `closedby="any"` is too new to rely on, so wire it here.
+// The backdrop reports the <dialog> itself as target - but so does the
+// dialog's own padding, hence the rect test rather than a bare target check.
+symbolSearchDialog?.addEventListener("click", (event) => {
+  if (event.target !== symbolSearchDialog) {
+    return;
+  }
+  const box = symbolSearchDialog.getBoundingClientRect();
+  if (!clientPointInsideRect(event.clientX, event.clientY, box)) {
+    symbolSearchDialog.close();
+  }
+});
+
+symbolSearchInput?.addEventListener("input", renderSymbolSearchResults);
+
+symbolSearchInput?.addEventListener("keydown", (event) => {
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+    setSymbolSearchActive(symbolSearchActiveIndex + 1);
+  } else if (event.key === "ArrowUp") {
+    event.preventDefault();
+    setSymbolSearchActive(symbolSearchActiveIndex - 1);
+  } else if (event.key === "Enter") {
+    event.preventDefault();
+    confirmSymbolSearch();
+  }
+  // Escape is deliberately not handled here. The dialog closes itself, and the
+  // document dispatcher sees searchOpen() === true on the same keydown and
+  // suppresses the canvas command - which is the whole point of the gate.
+});
+
+const DUPLICATE_OFFSET = 16;
+
+function duplicateSelectedActions() {
+  const indices = normalizeSelection();
+  if (indices.length === 0) {
+    setStatus(t("status.duplicateNoSelection"));
+    return false;
+  }
+  const bounds = combinedSelectionBounds(state.actions, indices);
+  if (!bounds) {
+    setStatus(t("status.duplicateNoSelection"));
+    return false;
+  }
+  // One shared clamped delta, never a clamp per action: a mixed
+  // glyph/circle/ring selection would otherwise have its relative spacing
+  // distorted by copies that each hit the limit at a different offset.
+  const { dx, dy } = clampSelectionDelta(bounds, DUPLICATE_OFFSET, DUPLICATE_OFFSET);
+  if (dx === 0 && dy === 0) {
+    setStatus(t("status.duplicateBlocked"));
+    return false;
+  }
+  recordHistory();
+  const result = planDuplication(state.actions, indices, dx, dy);
+  state.actions = result.actions;
+  state.selectedActionIndices = result.indices;
+  state.activeSpell = null;
+  refreshCircleCenter();
+  updateSelectionControls();
+  updateUsedList();
+  updateSpellState();
+  setStatus(t("status.duplicated", { count: result.indices.length }));
+  render();
+  return true;
+}
+
 document.addEventListener("keydown", (event) => {
   const target = event.target;
-  const isTyping = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement;
-  const modifier = event.metaKey || event.ctrlKey;
+  const { command, preventDefault } = resolveKeyCommand(event, {
+    isTyping: target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement,
+    searchOpen: searchOpen(),
+    view3dOpen: !view3dPanel.hidden,
+    drawerOpen:
+      document.body.classList.contains("symbols-open") ||
+      document.body.classList.contains("details-open") ||
+      document.body.classList.contains("support-open") ||
+      document.body.classList.contains("guides-open"),
+    hasSelection: state.selectedActionIndices.length > 0,
+    guideSelected: state.guideSelected,
+    armed: state.tool === "glyph" && state.ghostOwner === "armed",
+  });
 
-  if (modifier && event.key.toLowerCase() === "z") {
-    event.preventDefault();
-    if (event.shiftKey) {
-      redo();
-    } else {
-      undo();
-    }
+  if (command === "none") {
     return;
   }
-
-  if (modifier && event.key.toLowerCase() === "s") {
+  if (preventDefault) {
     event.preventDefault();
-    saveCanvas();
-    return;
   }
 
-  if (modifier && !isTyping && event.key.toLowerCase() === "a") {
-    event.preventDefault();
-    selectAllActions();
-    return;
-  }
-
-  if (modifier && !isTyping && event.key.toLowerCase() === "c") {
-    event.preventDefault();
-    copySelection();
-    return;
-  }
-
-  if (modifier && !isTyping && event.key.toLowerCase() === "v") {
-    event.preventDefault();
-    pasteSelection();
-    return;
-  }
-
-  if (isTyping) {
-    return;
-  }
-
-  if ((event.key === "Delete" || event.key === "Backspace") && state.selectedActionIndices.length > 0) {
-    event.preventDefault();
-    deleteSelectedActions();
-    return;
-  }
-
-  if (event.key === "Escape" && !view3dPanel.hidden) {
-    event.preventDefault();
-    close3dView();
-    setStatus(t("status.view3dClosed"));
-    return;
-  }
-
-  if (event.key === "Escape" && (document.body.classList.contains("symbols-open") || document.body.classList.contains("details-open") || document.body.classList.contains("support-open") || document.body.classList.contains("guides-open"))) {
-    event.preventDefault();
-    setOpenDrawer(null);
-    setStatus(t("status.drawerClosed"));
-    return;
-  }
-
-  if (event.key.toLowerCase() === "a") {
-    activateCircle();
-  } else if (event.key.toLowerCase() === "l") {
-    analyzeSpell();
-  } else if (event.key === "-" || event.key === "_") {
-    event.preventDefault();
-    setCanvasScale(state.canvasScale - 10);
-  } else if (event.key === "=") {
-    event.preventDefault();
-    setCanvasScale(100);
-  } else if (event.key === "+" || event.key === "Add") {
-    event.preventDefault();
-    setCanvasScale(state.canvasScale + 10);
-  } else if (event.key === "Escape" && state.selectedActionIndices.length > 0) {
-    state.selectedActionIndices = [];
-    updateSelectionControls();
-    setStatus(t("status.selectionCleared"));
-    render();
-  } else if (event.key === "Escape" && state.guideSelected) {
-    state.guideSelected = false;
-    state.guideResize = null;
-    setStatus(t("status.selectionCleared"));
-    render();
-  } else if (event.key === "Escape") {
-    clearCanvas();
+  switch (command) {
+    case "undo": undo(); break;
+    case "redo": redo(); break;
+    case "save": saveCanvas(); break;
+    case "delete": deleteSelectedActions(); break;
+    case "close3d": close3dView(); setStatus(t("status.view3dClosed")); break;
+    case "closeDrawer": setOpenDrawer(null); setStatus(t("status.drawerClosed")); break;
+    case "openSearch": openSymbolSearch(); break;
+    case "duplicate": duplicateSelectedActions(); break;
+    case "selectAll": selectAllActions(); break;
+    case "copySelection": copySelection(); break;
+    case "pasteSelection": pasteSelection(); break;
+    case "disarm": disarmSymbol(); break;
+    case "activateCircle": activateCircle(); break;
+    case "analyzeSpell": analyzeSpell(); break;
+    case "zoomOut": setCanvasScale(state.canvasScale - 10); break;
+    case "zoomReset": setCanvasScale(100); break;
+    case "zoomIn": setCanvasScale(state.canvasScale + 10); break;
+    case "clearSelection":
+      state.selectedActionIndices = [];
+      updateSelectionControls();
+      setStatus(t("status.selectionCleared"));
+      render();
+      break;
+    case "clearGuide":
+      state.guideSelected = false;
+      state.guideResize = null;
+      setStatus(t("status.selectionCleared"));
+      render();
+      break;
+    case "clearCanvas": clearCanvas(); break;
   }
 });
 
@@ -9182,6 +9339,13 @@ canvas.addEventListener("contextmenu", (event) => {
 canvas.addEventListener("pointerdown", onPointerDown);
 canvas.addEventListener("pointermove", onPointerMove);
 canvas.addEventListener("pointerup", onPointerUp);
+window.addEventListener("pointermove", (event) => {
+  if (state.ghostOwner !== "armed") {
+    return; // a live drag owns positioning through moveSymbolDrag
+  }
+  symbolDragGhost.style.left = event.clientX + "px";
+  symbolDragGhost.style.top = event.clientY + "px";
+});
 canvas.addEventListener("pointercancel", onPointerCancel);
 canvas.addEventListener("wheel", onCanvasWheel, { passive: false });
 window.addEventListener("resize", resizeCanvas);

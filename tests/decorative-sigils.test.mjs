@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 
 import { MATRIX_SIGIL_NAMES, SIGIL_PROFILES, validateSpellMatrix } from "../spell-grammar.mjs";
 import { SYMBOL_PATHS } from "../symbol-catalog.mjs";
+import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "../symbol-palette-data.mjs";
 
 const expectedSigils = [
   "Feu", "Eau", "Terre", "Vent", "Lumiere", "Cristal", "Aeriforme",
@@ -50,11 +51,13 @@ test("the ten audited sigils keep the topology visible in the references", () =>
   }
 });
 
-test("every new sigil has French content and an English catalogue entry", async () => {
-  const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
+test("every new sigil has French content and an English catalogue entry", () => {
+  const byName = new Map(PALETTE_ELEMENTS.map((element) => [element.name, element]));
   for (const name of expectedSigils) {
-    assert.match(app, new RegExp(`name: ["']${name}["']`), `${name} needs French catalogue content`);
-    assert.match(app, new RegExp(`["']${name}["']:\\s*["']`), `${name} needs an English entry`);
+    const element = byName.get(name);
+    assert.ok(element, `${name} needs French catalogue content`);
+    assert.ok(element.meaning, `${name} needs a French meaning`);
+    assert.ok(ENGLISH_DISPLAY_NAMES[name], `${name} needs an English entry`);
   }
 });
 

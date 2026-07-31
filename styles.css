@@ -2302,3 +2302,93 @@ input:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+.symbol-search-dialog {
+  width: min(520px, 92vw);
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.symbol-search-dialog::backdrop {
+  background: rgba(32, 26, 22, 0.45);
+}
+
+.symbol-search-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0 0 12px;
+}
+
+.symbol-search-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.symbol-search-results {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.symbol-search-result {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.symbol-search-result[aria-selected="true"] {
+  background: rgba(159, 133, 88, 0.28);
+}
+
+.symbol-search-result .symbol-search-rune {
+  margin-left: auto;
+  opacity: 0.65;
+  font-variant: small-caps;
+}
+
+.symbol-search-status {
+  margin: 10px 0 0;
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+/* The hint must stay a SIBLING of the heading: site-i18n assigns textContent to
+   every [data-i18n] node, which would delete a nested child on locale switch.
+   Making the heading inline-block lets the two share a line while the following
+   paragraph still starts its own. */
+.symbol-drawer .panel-heading h2 {
+  display: inline-block;
+}
+
+.symbol-drawer-hint {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--ink);
+  opacity: 0.7;
+  font-size: 0.72rem;
+  font-variant: small-caps;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+}
+
+.symbol-drag-ghost.is-armed {
+  opacity: 0.55;
+}

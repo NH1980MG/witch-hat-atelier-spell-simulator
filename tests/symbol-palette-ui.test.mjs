@@ -18,7 +18,7 @@ test("la page expose un seul tiroir de symboles et les outils de taille", async 
   }
   assert.doesNotMatch(html, /id=["']placement(?:ToggleButton|Drawer|List)["']/);
   assert.doesNotMatch(html, /id=["']closePlacementButton["']/);
-  assert.match(html, /styles\.css\?v=20260731-wiki-symbols-v1/);
+  assert.match(html, /styles\.css\?v=20260731-recipe-review-v1/);
   assert.match(html, /app\.js\?v=\d{8}-[^"']+/);
 });
 
@@ -93,4 +93,62 @@ test("le defilement tactile vertical ne demarre pas le transport d'un symbole", 
   assert.match(app, /function resolveSymbolDragIntent\(/);
   assert.match(inkButtonRule, /touch-action:\s*pan-y/);
   assert.doesNotMatch(inkButtonRule, /touch-action:\s*none/);
+});
+
+test("une seule affectation de state.tool subsiste, dans setTool", async () => {
+  const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
+  const assignments = app.match(/state\.tool = /g) || [];
+
+  assert.equal(
+    assignments.length,
+    1,
+    "toute transition d'outil doit passer par setTool, sinon l'apercu arme survit a un changement d'outil",
+  );
+  assert.match(app, /function setTool\(/);
+  assert.match(app, /function armSymbol\(/);
+  assert.match(app, /function disarmSymbol\(/);
+});
+
+test("le bouton glyphe de la barre d'outils arme, il ne selectionne pas seulement", async () => {
+  const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
+  // Deux boucles iterent toolButtons: celle d'updateToolButtons et celle qui
+  // relie les clics. Seule la seconde nous interesse, d'ou l'ancrage sur
+  // addEventListener.
+  const loop =
+    app.match(/for \(const button of toolButtons\) \{\s*\n\s*button\.addEventListener\("click"[\s\S]*?\n\}/)?.[0] ?? "";
+
+  assert.notEqual(loop, "", "la boucle de clic des boutons d'outils doit rester reperable");
+  // Revue Important #2: un setTool("glyph") nu laisse ghostOwner a null, donc
+  // renderGhost n'affiche aucun apercu et la chaine Echap ne desarme pas -
+  // l'outil est actif, invisible, sans autre sortie que l'effacement du
+  // dessin. Le bouton doit passer par armSymbol, qui pose la propriete.
+  assert.match(loop, /button\.dataset\.tool === "glyph"/);
+  assert.match(loop, /armSymbol\(state\.element\)/);
+});
+
+test("la superposition de recherche et le bouton dupliquer sont dans la page", async () => {
+  const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  for (const id of [
+    "symbolSearchDialog",
+    "symbolSearchInput",
+    "symbolSearchResults",
+    "symbolSearchStatus",
+    "closeSymbolSearchButton",
+    "duplicateSelectionButton",
+  ]) {
+    assert.match(html, new RegExp("id=[\\\"']" + id + "[\\\"']"));
+  }
+  assert.match(html, /id=["']symbolSearchResults["'][^>]*role=["']listbox["']/);
+  assert.match(html, /id=["']symbolSearchStatus["'][^>]*aria-live=["']polite["']/);
+  assert.match(html, /data-i18n-placeholder=["']search\.placeholder["']/);
+});
+
+test("la superposition de recherche est stylee", async () => {
+  const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
+
+  assert.match(css, /\.symbol-search-dialog/);
+  assert.match(css, /\.symbol-search-result/);
+  assert.match(css, /\.symbol-search-result\[aria-selected="true"\]/);
+  assert.match(css, /\.symbol-drag-ghost\.is-armed/);
+  assert.match(css, /\.symbol-drawer-hint/);
 });
