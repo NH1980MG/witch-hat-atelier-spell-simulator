@@ -8,7 +8,7 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260727-mixture-runtime-v3";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260727-mixture-runtime-v3";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260731-spoiler-filter-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260731-practice-mode-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260716-shoe-camera-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -36,17 +36,18 @@ import {
   shouldDeferTouchTool,
   topmostSelectableIndexAtPoint,
   translateSelectedActions,
-} from "./symbol-interactions.mjs?v=20260731-spoiler-filter-v1";
-import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260731-spoiler-filter-v1";
+} from "./symbol-interactions.mjs?v=20260731-practice-mode-v1";
+import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260731-practice-mode-v1";
 import {
   SPOILER_MAX_CHAPTER,
   clampSpoilerChapter,
   isSymbolVisibleAtChapter,
   readSpoilerChapter,
   writeSpoilerChapter,
-} from "./symbol-chapters.mjs?v=20260731-spoiler-filter-v1";
-import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260731-spoiler-filter-v1";
-import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260731-spoiler-filter-v1";
+} from "./symbol-chapters.mjs?v=20260731-practice-mode-v1";
+import { scoreStrokeMatch } from "./stroke-matcher.mjs?v=20260731-practice-mode-v1";
+import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260731-practice-mode-v1";
+import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260731-practice-mode-v1";
 
 export const CENTRAL_SIGIL_STROKE_WIDTH = 6.4365;
 
@@ -284,6 +285,13 @@ const symbolDrawer = document.querySelector("#symbolDrawer");
 const spoilerToggle = document.querySelector("#spoilerToggle");
 const spoilerChapterRange = document.querySelector("#spoilerChapterRange");
 const spoilerChapterValue = document.querySelector("#spoilerChapterValue");
+const practiceToggleButton = document.querySelector("#practiceToggleButton");
+const practiceBar = document.querySelector("#practiceBar");
+const practicePreview = document.querySelector("#practicePreview");
+const practiceTargetSelect = document.querySelector("#practiceTargetSelect");
+const practiceVerifyButton = document.querySelector("#practiceVerifyButton");
+const practiceScore = document.querySelector("#practiceScore");
+const practiceCloseButton = document.querySelector("#practiceCloseButton");
 const closeSymbolsButton = document.querySelector("#closeSymbolsButton");
 const symbolDragGhost = document.querySelector("#symbolDragGhost");
 const detailsToggleButton = document.querySelector("#detailsToggleButton");
@@ -321,6 +329,9 @@ const state = {
   strokeSize: 3,
   canvasScale: Number(localStorage.getItem("whaCanvasScale") || 100),
   spoilerChapter: readSpoilerChapter(localStorage),
+  practiceOpen: false,
+  practiceTarget: null,
+  practiceStartIndex: 0,
   panX: 0,
   panY: 0,
   showMeasure: localStorage.getItem("whaShowMeasure") !== "false",
@@ -9274,6 +9285,96 @@ spoilerChapterRange?.addEventListener("input", () => {
   }
 });
 syncSpoilerControls();
+
+function practiceVisibleElements() {
+  return elements.filter((element) => isSymbolVisibleAtChapter(element.name, state.spoilerChapter));
+}
+
+function fillPracticeTargets() {
+  if (!practiceTargetSelect) {
+    return;
+  }
+  practiceTargetSelect.replaceChildren();
+  for (const element of practiceVisibleElements()) {
+    const option = document.createElement("option");
+    option.value = element.name;
+    option.textContent = elementDisplayName(element);
+    practiceTargetSelect.append(option);
+  }
+  const kept = [...practiceTargetSelect.options].some((option) => option.value === state.practiceTarget);
+  if (!kept) {
+    state.practiceTarget = practiceTargetSelect.value || null;
+  } else {
+    practiceTargetSelect.value = state.practiceTarget;
+  }
+}
+
+function renderPracticePreview() {
+  if (!practicePreview) {
+    return;
+  }
+  const element = elements.find((item) => item.name === state.practiceTarget);
+  practicePreview.innerHTML = element ? elementIconMarkup(element) : "";
+}
+
+function setPracticeOpen(open) {
+  if (!practiceBar || !practiceToggleButton) {
+    return;
+  }
+  state.practiceOpen = open;
+  practiceBar.hidden = !open;
+  practiceToggleButton.setAttribute("aria-expanded", String(open));
+  practiceToggleButton.classList.toggle("is-active", open);
+  if (open) {
+    fillPracticeTargets();
+    renderPracticePreview();
+    state.practiceStartIndex = state.actions.length;
+    if (practiceScore) {
+      practiceScore.value = "";
+    }
+  }
+}
+
+function verifyPracticeStroke() {
+  const target = state.practiceTarget;
+  if (!target || !SYMBOL_PATHS[target]) {
+    return;
+  }
+  const attempts = state.actions
+    .slice(state.practiceStartIndex)
+    .filter((action) => action.type === "free" && action.points.length >= 4)
+    .map((action) => action.points.map((point) => [point.x, point.y]));
+  if (!attempts.length) {
+    if (practiceScore) {
+      practiceScore.value = "-";
+    }
+    setStatus(t("practice.status.empty"));
+    return;
+  }
+  const score = scoreStrokeMatch(attempts, SYMBOL_PATHS[target]);
+  const tier = score >= 80 ? "excellent" : score >= 60 ? "good" : "retry";
+  const element = elements.find((item) => item.name === target);
+  const name = element ? elementDisplayName(element) : target;
+  if (practiceScore) {
+    practiceScore.value = `${score}%`;
+  }
+  setStatus(t(`practice.status.${tier}`, { score, name }));
+  // La prochaine verification part d'une page blanche logique : les traits de
+  // l'essai note ne comptent plus dans l'essai suivant.
+  state.practiceStartIndex = state.actions.length;
+}
+
+practiceToggleButton?.addEventListener("click", () => setPracticeOpen(!state.practiceOpen));
+practiceCloseButton?.addEventListener("click", () => setPracticeOpen(false));
+practiceTargetSelect?.addEventListener("change", () => {
+  state.practiceTarget = practiceTargetSelect.value;
+  renderPracticePreview();
+  state.practiceStartIndex = state.actions.length;
+  if (practiceScore) {
+    practiceScore.value = "";
+  }
+});
+practiceVerifyButton?.addEventListener("click", verifyPracticeStroke);
 
 symbolSearchInput?.addEventListener("keydown", (event) => {
   if (event.key === "ArrowDown") {
