@@ -191,7 +191,7 @@ function flattenPath(d) {
 
 // --- rasterization --------------------------------------------------------
 
-function rasterize(pathsData, size, scale, strokeWidth) {
+export function rasterize(pathsData, size, scale, strokeWidth) {
   const radius = strokeWidth / 2;
   const alpha = new Float32Array(size * size);
   for (const d of pathsData) {
@@ -226,7 +226,7 @@ function rasterize(pathsData, size, scale, strokeWidth) {
   return alpha;
 }
 
-function downsample(high, highSize, factor) {
+export function downsample(high, highSize, factor) {
   const size = highSize / factor;
   const out = new Uint8Array(size * size);
   const area = factor * factor;
@@ -275,7 +275,7 @@ function chunk(type, data) {
   return out;
 }
 
-function encodePng(width, height, alpha) {
+export function encodePng(width, height, alpha) {
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(width, 0);
   ihdr.writeUInt32BE(height, 4);
