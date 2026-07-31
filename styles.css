@@ -2491,3 +2491,49 @@ input:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
+
+.photo-dialog {
+  max-width: 30rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+  color: var(--ink);
+  padding: 1rem 1.25rem;
+}
+
+.photo-dialog::backdrop {
+  background: rgba(36, 48, 68, 0.45);
+}
+
+.photo-preview-frame {
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  margin: 0.5rem 0;
+  background: color-mix(in srgb, var(--paper-dark) 40%, transparent);
+}
+
+.photo-preview-frame img {
+  max-width: 100%;
+  max-height: 40vh;
+  border-radius: 8px;
+}
+
+.photo-import-results {
+  margin: 0.5rem 0;
+  padding-left: 1.2rem;
+  font-size: 0.9rem;
+}
+
+.photo-import-ignored {
+  opacity: 0.65;
+  font-style: italic;
+}
+
+.photo-dialog-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+  margin-top: 0.75rem;
+}

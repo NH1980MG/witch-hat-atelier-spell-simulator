@@ -8,7 +8,7 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260727-mixture-runtime-v3";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260727-mixture-runtime-v3";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260731-practice-mode-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260731-photo-import-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260716-shoe-camera-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -36,18 +36,19 @@ import {
   shouldDeferTouchTool,
   topmostSelectableIndexAtPoint,
   translateSelectedActions,
-} from "./symbol-interactions.mjs?v=20260731-practice-mode-v1";
-import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260731-practice-mode-v1";
+} from "./symbol-interactions.mjs?v=20260731-photo-import-v1";
+import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260731-photo-import-v1";
 import {
   SPOILER_MAX_CHAPTER,
   clampSpoilerChapter,
   isSymbolVisibleAtChapter,
   readSpoilerChapter,
   writeSpoilerChapter,
-} from "./symbol-chapters.mjs?v=20260731-practice-mode-v1";
-import { scoreStrokeMatch } from "./stroke-matcher.mjs?v=20260731-practice-mode-v1";
-import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260731-practice-mode-v1";
-import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260731-practice-mode-v1";
+} from "./symbol-chapters.mjs?v=20260731-photo-import-v1";
+import { scoreStrokeMatch } from "./stroke-matcher.mjs?v=20260731-photo-import-v1";
+import { analyzePhoto } from "./photo-import.mjs?v=20260731-photo-import-v1";
+import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260731-photo-import-v1";
+import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260731-photo-import-v1";
 
 export const CENTRAL_SIGIL_STROKE_WIDTH = 6.4365;
 
@@ -292,6 +293,12 @@ const practiceTargetSelect = document.querySelector("#practiceTargetSelect");
 const practiceVerifyButton = document.querySelector("#practiceVerifyButton");
 const practiceScore = document.querySelector("#practiceScore");
 const practiceCloseButton = document.querySelector("#practiceCloseButton");
+const photoImportButton = document.querySelector("#photoImportButton");
+const photoFileInput = document.querySelector("#photoFileInput");
+const photoImportDialog = document.querySelector("#photoImportDialog");
+const photoPreviewImage = document.querySelector("#photoPreviewImage");
+const photoImportResults = document.querySelector("#photoImportResults");
+const photoImportConfirm = document.querySelector("#photoImportConfirm");
 const closeSymbolsButton = document.querySelector("#closeSymbolsButton");
 const symbolDragGhost = document.querySelector("#symbolDragGhost");
 const detailsToggleButton = document.querySelector("#detailsToggleButton");
@@ -9375,6 +9382,142 @@ practiceTargetSelect?.addEventListener("change", () => {
   }
 });
 practiceVerifyButton?.addEventListener("click", verifyPracticeStroke);
+
+let pendingPhotoImport = null;
+
+function describePhotoAnalysis(analysis) {
+  if (!photoImportResults) {
+    return;
+  }
+  photoImportResults.replaceChildren();
+  if (analysis.ring) {
+    const item = document.createElement("li");
+    item.textContent = t("photo.result.ring");
+    photoImportResults.append(item);
+  }
+  for (const symbol of analysis.symbols) {
+    const item = document.createElement("li");
+    const element = elements.find((entry) => entry.name === symbol.name);
+    item.textContent = t("photo.result.symbol", {
+      name: element ? elementDisplayName(element) : symbol.name,
+      score: symbol.score,
+    });
+    photoImportResults.append(item);
+  }
+  if (analysis.ignored > 0) {
+    const item = document.createElement("li");
+    item.className = "photo-import-ignored";
+    item.textContent = t("photo.result.ignored", { count: analysis.ignored });
+    photoImportResults.append(item);
+  }
+}
+
+async function handlePhotoFile(file) {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const maxSide = 768;
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const offscreen = document.createElement("canvas");
+    offscreen.width = width;
+    offscreen.height = height;
+    const context = offscreen.getContext("2d", { willReadFrequently: true });
+    context.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close?.();
+    const imageData = context.getImageData(0, 0, width, height);
+    const analysis = analyzePhoto(imageData, SYMBOL_PATHS);
+    if (!analysis.ring && analysis.symbols.length === 0) {
+      setStatus(t("photo.status.nothing"));
+      return;
+    }
+    pendingPhotoImport = analysis;
+    if (photoPreviewImage) {
+      photoPreviewImage.src = offscreen.toDataURL("image/png");
+    }
+    describePhotoAnalysis(analysis);
+    if (photoImportConfirm) {
+      photoImportConfirm.disabled = false;
+    }
+    photoImportDialog?.showModal();
+  } catch (error) {
+    console.warn("photo import failed", error);
+    setStatus(t("photo.status.error"));
+  }
+}
+
+function confirmPhotoImport() {
+  const analysis = pendingPhotoImport;
+  pendingPhotoImport = null;
+  if (!analysis) {
+    return;
+  }
+  // Cadre du contenu detecte, ramene au centre du parchemin a 55 % de sa taille.
+  const points = analysis.symbols.map((symbol) => ({ x: symbol.cx, y: symbol.cy }));
+  if (analysis.ring) {
+    points.push({ x: analysis.ring.cx, y: analysis.ring.cy });
+  }
+  const minX = Math.min(...points.map(({ x }) => x));
+  const maxX = Math.max(...points.map(({ x }) => x));
+  const minY = Math.min(...points.map(({ y }) => y));
+  const maxY = Math.max(...points.map(({ y }) => y));
+  const contentCx = (minX + maxX) / 2;
+  const contentCy = (minY + maxY) / 2;
+  const contentSpan = Math.max(24, maxX - minX, maxY - minY);
+  const { width, height } = canvasSize();
+  const targetSpan = Math.min(width, height) * 0.55;
+  const scale = targetSpan / contentSpan;
+  const center = { x: width / 2, y: height / 2 };
+  const mapPoint = (x, y) => clampPointToDrawingLimit({
+    x: center.x + (x - contentCx) * scale,
+    y: center.y + (y - contentCy) * scale,
+  });
+
+  recordHistory();
+  if (analysis.ring) {
+    const ringCenter = mapPoint(analysis.ring.cx, analysis.ring.cy);
+    const radius = Math.min(analysis.ring.radius * scale, maxRadiusInsideDrawingLimit(ringCenter));
+    state.actions.push({
+      type: "ring",
+      label: labels.ring,
+      element: "Structure",
+      charge: 0,
+      color: colors.normalInk,
+      width: lineWidth(),
+      cx: ringCenter.x,
+      cy: ringCenter.y,
+      radius,
+    });
+    state.circleCenter = { x: ringCenter.x, y: ringCenter.y };
+  }
+  for (const symbol of analysis.symbols) {
+    const element = elements.find((entry) => entry.name === symbol.name);
+    if (!element) {
+      continue;
+    }
+    const point = mapPoint(symbol.cx, symbol.cy);
+    const size = Math.max(14, Math.min(64, symbol.size * scale));
+    state.actions.push(createGlyphAction(element, point, size));
+  }
+  render();
+  setStatus(t("photo.status.imported", {
+    count: analysis.symbols.length,
+    ring: analysis.ring ? 1 : 0,
+  }));
+}
+
+photoImportButton?.addEventListener("click", () => photoFileInput?.click());
+photoFileInput?.addEventListener("change", () => {
+  const file = photoFileInput.files?.[0];
+  if (file) {
+    handlePhotoFile(file);
+  }
+  photoFileInput.value = "";
+});
+photoImportConfirm?.addEventListener("click", () => {
+  confirmPhotoImport();
+  photoImportDialog?.close();
+});
 
 symbolSearchInput?.addEventListener("keydown", (event) => {
   if (event.key === "ArrowDown") {
