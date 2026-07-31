@@ -74,13 +74,24 @@ test("documented inverse-capable signs apply their inverse operation", () => {
 test("unsupported inversion stays explicit instead of inventing an opposite", () => {
   const recipe = composeSpellRecipe({
     sigils: ["Eau"],
+    signs: ["Levitation"],
+    invertedSigns: ["Levitation"],
+  });
+
+  assert.ok(recipe.operations.motion.includes("lift"));
+  assert.ok(recipe.warnings.some((warning) => warning.toLowerCase().includes("inversion")));
+  assert.notEqual(recipe.fidelity, "documented");
+});
+
+test("column inversion is documented as an omnidirectional dispersion", () => {
+  const recipe = composeSpellRecipe({
+    sigils: ["Eau"],
     signs: ["Colonne"],
     invertedSigns: ["Colonne"],
   });
 
-  assert.ok(recipe.operations.form.includes("column"));
-  assert.ok(recipe.warnings.some((warning) => warning.toLowerCase().includes("inversion")));
-  assert.notEqual(recipe.fidelity, "documented");
+  assert.ok(recipe.operations.form.includes("dispersion"));
+  assert.ok(!recipe.warnings.some((warning) => warning.toLowerCase().includes("inversion")));
 });
 
 test("incompatible signs are ignored and lower fidelity", () => {
