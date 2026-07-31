@@ -1,10 +1,12 @@
 import { createRequire } from "node:module";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, access } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 import { SYMBOL_PATHS } from "../symbol-catalog.mjs";
 import { ENGLISH_ELEMENT_NAMES } from "../variant-catalog.mjs";
+import { MATRIX_SIGIL_NAMES } from "../spell-grammar.mjs";
+import { downsample, encodePng, rasterize } from "./render-original-symbol-assets.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const GENERATED_ROOT = path.join(
@@ -36,7 +38,7 @@ export function buildMinecraftSymbolManifest() {
       id,
       frenchName,
       englishName: ENGLISH_ELEMENT_NAMES[frenchName],
-      category: index < 26 ? "sigil" : "sign",
+      category: index < MATRIX_SIGIL_NAMES.length ? "sigil" : "sign",
       paths: Object.freeze([...symbolPaths]),
       texture: `textures/symbol/${id}.png`,
     });
@@ -112,13 +114,36 @@ export async function exportMinecraftSymbols() {
   await mkdir(TEXTURE_DIR, { recursive: true });
   await writeFile(JAVA_FILE, renderJavaCatalog(manifest), "utf8");
 
-  const require = createRequire(import.meta.url);
-  const sharp = require("sharp");
-  await Promise.all(manifest.map((entry) =>
-    sharp(Buffer.from(renderSymbolSvg(entry)))
-      .png()
-      .toFile(path.join(TEXTURE_DIR, `${entry.id}.png`)),
-  ));
+  let sharp = null;
+  try {
+    const require = createRequire(import.meta.url);
+    sharp = require("sharp");
+  } catch {
+    sharp = null;
+  }
+
+  if (sharp) {
+    await Promise.all(manifest.map((entry) =>
+      sharp(Buffer.from(renderSymbolSvg(entry)))
+        .png()
+        .toFile(path.join(TEXTURE_DIR, `${entry.id}.png`)),
+    ));
+    return;
+  }
+
+  // Pure-JS fallback (no native dependency): renders only the textures that do
+  // not exist yet, so sharp-generated files keep their exact pixels. Matches
+  // the SVG contract: 256x256, stroke width 1.5 viewBox units, #243044 ink.
+  const size = 256;
+  const supersample = 2;
+  for (const entry of manifest) {
+    const file = path.join(TEXTURE_DIR, `${entry.id}.png`);
+    const exists = await access(file).then(() => true, () => false);
+    if (exists) continue;
+    const high = rasterize(entry.paths, size * supersample, (size * supersample) / 48, 1.5 * supersample * (size / 48));
+    const alpha = downsample(high, size * supersample, supersample);
+    await writeFile(file, encodePng(size, size, alpha));
+  }
 }
 
 if (process.argv[1]

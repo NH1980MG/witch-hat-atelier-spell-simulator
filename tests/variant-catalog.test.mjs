@@ -22,18 +22,18 @@ test("every indexed sigil has an English library label", () => {
   }
 });
 
-test("the explorer indexes 54,834 unique deterministic variants", () => {
-  assert.equal(records.length, 54_834);
-  assert.equal(new Set(records.map(({ id }) => id)).size, 54_834);
-  assert.equal(records.filter(({ supportId }) => supportId === "none").length, 27_417);
-  assert.equal(records.filter(({ supportId }) => supportId === "shoe").length, 27_417);
+test("the explorer indexes 65,600 unique deterministic variants", () => {
+  assert.equal(records.length, 65_600);
+  assert.equal(new Set(records.map(({ id }) => id)).size, 65_600);
+  assert.equal(records.filter(({ supportId }) => supportId === "none").length, 32_800);
+  assert.equal(records.filter(({ supportId }) => supportId === "shoe").length, 32_800);
   assert.ok(records.every(({ sigils, sigil }) => Object.isFrozen(sigils) && sigils.includes(sigil)));
 });
 
 test("the index shares descriptors and derives plan keys for one result page", () => {
   assert.ok(records.every((record) => !Object.hasOwn(record, "searchText") && !Object.hasOwn(record, "planKey")));
-  assert.equal(new Set(records.map(({ material }) => material)).size, 37);
-  assert.equal(new Set(records.map(({ signPair }) => signPair)).size, 741);
+  assert.equal(new Set(records.map(({ material }) => material)).size, 40);
+  assert.equal(new Set(records.map(({ signPair }) => signPair)).size, 820);
 
   const result = queryVariants(records, { ...DEFAULT_EXPLORER_STATE, search: "mud" });
   assert.ok(result.records.length <= VARIANT_PAGE_SIZE);
@@ -98,7 +98,7 @@ test("filters sorting and pagination cover stable non-overlapping pages", () => 
   assert.equal(first.records.length, VARIANT_PAGE_SIZE);
   assert.ok(first.records.every((record) => record.signs.includes("Levitation") && record.supportId === "shoe"));
   assert.equal(new Set([...first.records, ...second.records].map(({ id }) => id)).size, first.records.length + second.records.length);
-  assert.equal(first.total, 54_834);
+  assert.equal(first.total, 65_600);
 });
 
 test("URL state round-trips and sanitizes invalid values", () => {

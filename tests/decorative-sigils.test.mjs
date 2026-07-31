@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 
 import { MATRIX_SIGIL_NAMES, SIGIL_PROFILES, validateSpellMatrix } from "../spell-grammar.mjs";
 import { SYMBOL_PATHS } from "../symbol-catalog.mjs";
+import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "../symbol-palette-data.mjs";
 
 const expectedSigils = [
   "Feu", "Eau", "Terre", "Vent", "Lumiere", "Cristal", "Aeriforme",
@@ -11,10 +12,10 @@ const expectedSigils = [
   "Epee", "Loup-ecaille", "Cerf-torche", "Chevre-lion", "Chat-hibou",
   "Tete de chat-hibou", "Dragon", "Fleur", "Cheval", "Oiseau A",
   "Oiseau B", "Arret temporel", "Vent tourbillonnant",
-  "Flammes sans chaleur",
+  "Flammes sans chaleur", "Guidage", "Appel", "Lumiere vacillante",
 ];
 
-test("the shared catalogue exposes all 26 editable sigils", () => {
+test("the shared catalogue exposes all 29 editable sigils", () => {
   assert.deepEqual(Object.keys(SIGIL_PROFILES), expectedSigils);
   for (const name of expectedSigils) {
     assert.ok(SYMBOL_PATHS[name]?.length > 0, `${name} needs editable vector paths`);
@@ -50,24 +51,26 @@ test("the ten audited sigils keep the topology visible in the references", () =>
   }
 });
 
-test("every new sigil has French content and an English catalogue entry", async () => {
-  const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
+test("every new sigil has French content and an English catalogue entry", () => {
+  const byName = new Map(PALETTE_ELEMENTS.map((element) => [element.name, element]));
   for (const name of expectedSigils) {
-    assert.match(app, new RegExp(`name: ["']${name}["']`), `${name} needs French catalogue content`);
-    assert.match(app, new RegExp(`["']${name}["']:\\s*["']`), `${name} needs an English entry`);
+    const element = byName.get(name);
+    assert.ok(element, `${name} needs French catalogue content`);
+    assert.ok(element.meaning, `${name} needs a French meaning`);
+    assert.ok(ENGLISH_DISPLAY_NAMES[name], `${name} needs an English entry`);
   }
 });
 
 test("every editable profiled sigil is included in the public matrix", () => {
   const result = validateSpellMatrix();
 
-  assert.equal(Object.keys(SIGIL_PROFILES).length, 26);
-  assert.equal(MATRIX_SIGIL_NAMES.length, 26);
+  assert.equal(Object.keys(SIGIL_PROFILES).length, 29);
+  assert.equal(MATRIX_SIGIL_NAMES.length, 29);
   assert.deepEqual(MATRIX_SIGIL_NAMES, Object.keys(SIGIL_PROFILES));
-  assert.equal(result.sigils, 26);
-  assert.equal(result.materialSignatures, 37);
-  assert.equal(result.tested, 54_834);
-  assert.equal(result.unique, 54_834);
-  assert.equal(result.deterministic, 54_834);
-  assert.deepEqual(result.supports, { none: 27_417, shoe: 27_417 });
+  assert.equal(result.sigils, 29);
+  assert.equal(result.materialSignatures, 40);
+  assert.equal(result.tested, 65_600);
+  assert.equal(result.unique, 65_600);
+  assert.equal(result.deterministic, 65_600);
+  assert.deepEqual(result.supports, { none: 32_800, shoe: 32_800 });
 });

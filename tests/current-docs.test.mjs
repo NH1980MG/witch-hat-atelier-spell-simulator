@@ -11,11 +11,11 @@ const activeCurrentDocs = [
   "docs/spell-effect-catalog.md",
 ];
 
-test("active documentation uses the 54,834 finite index contract", async () => {
+test("active documentation uses the 65,600 finite index contract", async () => {
   for (const file of activeCurrentDocs) {
     const content = await readFile(new URL(`../${file}`, import.meta.url), "utf8");
     assert.doesNotMatch(content, /38[, ]532/, `${file} must not publish the obsolete matrix total`);
-    assert.match(content, /54[, ]834/, `${file} must publish the current matrix total`);
+    assert.match(content, /65[, ]600/, `${file} must publish the current matrix total`);
   }
 });
 

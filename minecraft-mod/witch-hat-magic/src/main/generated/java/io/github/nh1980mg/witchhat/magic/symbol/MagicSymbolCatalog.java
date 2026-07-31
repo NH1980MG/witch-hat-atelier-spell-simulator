@@ -44,6 +44,9 @@ public final class MagicSymbolCatalog {
             new Entry("arret_temporel", "Arret temporel", "Stop", Category.SIGIL),
             new Entry("vent_tourbillonnant", "Vent tourbillonnant", "Whorling Wind", Category.SIGIL),
             new Entry("flammes_sans_chaleur", "Flammes sans chaleur", "Unburning Flames", Category.SIGIL),
+            new Entry("guidage", "Guidage", "Guidance", Category.SIGIL),
+            new Entry("appel", "Appel", "Calling", Category.SIGIL),
+            new Entry("lumiere_vacillante", "Lumiere vacillante", "Flickering Light", Category.SIGIL),
             new Entry("colonne", "Colonne", "Column", Category.SIGN),
             new Entry("dispersion", "Dispersion", "Dispersion", Category.SIGN),
             new Entry("levitation", "Levitation", "Levitation", Category.SIGN),
@@ -81,7 +84,9 @@ public final class MagicSymbolCatalog {
             new Entry("orbe", "Orbe", "Orb", Category.SIGN),
             new Entry("purification", "Purification", "Purification", Category.SIGN),
             new Entry("immobilite", "Immobilite", "Stillness", Category.SIGN),
-            new Entry("projection", "Projection", "Projection", Category.SIGN));
+            new Entry("projection", "Projection", "Projection", Category.SIGN),
+            new Entry("lancement", "Lancement", "Launch", Category.SIGN),
+            new Entry("fenetres", "Fenetres", "Windows", Category.SIGN));
     private static final Set<String> IDS = ENTRIES.stream()
             .map(Entry::id)
             .collect(Collectors.toUnmodifiableSet());

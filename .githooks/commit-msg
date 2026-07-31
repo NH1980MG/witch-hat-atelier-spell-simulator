@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Rejects AI/vendor attribution in commit messages.
+#
+# Standing policy: the git author identity is the only attribution. No
+# Co-authored-by trailers naming an assistant, no "Generated with", no
+# vendor or model names, no operator tags like [cc/didier].
+#
+# Enable (per clone, .git/hooks is not versioned):
+#   git config core.hooksPath .githooks
+#
+# Bypass for a single commit, deliberately and visibly:
+#   git commit --no-verify
+
+set -euo pipefail
+
+MSG_FILE="${1:?commit-msg hook called without a message file}"
+
+# Strip comment lines git adds to the template; they are not part of the message.
+BODY="$(grep -v '^#' "$MSG_FILE" || true)"
+
+fail() {
+  echo "commit-msg: BLOCKED - $1" >&2
+  echo "" >&2
+  echo "  Offending line(s):" >&2
+  printf '%s\n' "$2" | sed 's/^/    /' >&2
+  echo "" >&2
+  echo "  The git author identity is the only attribution this repo carries." >&2
+  echo "  Remove the line and re-commit. To override deliberately: git commit --no-verify" >&2
+  exit 1
+}
+
+# 1. Co-authored-by trailers naming an assistant rather than a person.
+#    A human co-author is legitimate, so match on the vendor/model names only.
+HITS="$(printf '%s\n' "$BODY" | grep -in 'co-authored-by:.*\(claude\|anthropic\|noreply@anthropic\|copilot\|chatgpt\|openai\|gemini\|codex\|cursor\|devin\)' || true)"
+[ -n "$HITS" ] && fail "AI co-author trailer" "$HITS"
+
+# 2. Generation banners.
+HITS="$(printf '%s\n' "$BODY" | grep -in '\(generated with\|created with\|written by\|authored by\).*\(claude\|anthropic\|copilot\|chatgpt\|openai\|gemini\|codex\|cursor\)' || true)"
+[ -n "$HITS" ] && fail "AI generation banner" "$HITS"
+
+# 3. Operator/agent tags. Convention is retired; the author identity replaces it.
+#    Anchored to line start: that is where a real tag sits (it prefixes the
+#    subject). Unanchored, this rule fires on prose that merely names the
+#    pattern - including this hook's own commit message, which is how the
+#    false positive was found.
+HITS="$(printf '%s\n' "$BODY" | grep -inE '^[[:space:]]*\[(cc|cd|claude|codex|gpt|ai)/[a-z0-9_-]+\]' || true)"
+[ -n "$HITS" ] && fail "operator/agent tag" "$HITS"
+
+# 4. Bare model-name signoff lines (e.g. a trailing "Claude Fable 5").
+HITS="$(printf '%s\n' "$BODY" | grep -inE '^[[:space:]]*(claude|gpt|gemini|codex)([[:space:]-][a-z0-9.]+)*[[:space:]]*$' || true)"
+[ -n "$HITS" ] && fail "model-name signoff" "$HITS"
+
+exit 0

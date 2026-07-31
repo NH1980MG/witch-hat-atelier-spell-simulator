@@ -5,6 +5,7 @@ import { buildRecipeHref, parseRecipeParams, RECIPE_LINK_LIMITS } from "../recip
 import { MATRIX_SIGIL_NAMES, MATRIX_SIGN_NAMES, composeSpellRecipe } from "../spell-grammar.mjs";
 import { buildVariantIndex, getVariantDetail } from "../variant-catalog.mjs";
 import { translate } from "../i18n.mjs";
+import { PALETTE_ELEMENTS } from "../symbol-palette-data.mjs";
 
 const allowed = { sigilNames: MATRIX_SIGIL_NAMES, signNames: MATRIX_SIGN_NAMES };
 
@@ -76,10 +77,14 @@ test("every matrix sigil and sign is accepted by the parser", () => {
   }
 });
 
-test("every matrix name exists in the atelier element list with the same kind", async () => {
-  const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
-  const entries = [...app.matchAll(/\{ name: "([^"]+)",[^\n]*kind: "(sigil|sign)"/g)];
-  const kinds = new Map(entries.map(([, name, kind]) => [name, kind]));
+test("every matrix name exists in the atelier element list with the same kind", () => {
+  // La table vivait en ligne dans app.js et etait lue par regex sur la source.
+  // Elle a depuis ete extraite dans symbol-palette-data.mjs, qui est importable
+  // sous Node - donc on lit les donnees reelles plutot qu'un texte source. Plus
+  // robuste au passage: un changement de mise en forme ne peut plus vider
+  // silencieusement la Map et faire passer la boucle a vide.
+  const kinds = new Map(PALETTE_ELEMENTS.map((element) => [element.name, element.kind]));
+  assert.equal(kinds.size, 69);
   for (const sigil of MATRIX_SIGIL_NAMES) {
     assert.equal(kinds.get(sigil), "sigil", `sigil ${sigil} missing from the atelier`);
   }

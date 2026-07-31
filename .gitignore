@@ -28,3 +28,6 @@ minecraft-mod/run-magic/
 
 # Isolated agent workspaces
 .worktrees/
+
+# Cross-model review handoffs (coordination artifacts, not source)
+docs/audits/handoffs/

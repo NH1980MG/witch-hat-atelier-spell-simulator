@@ -11,7 +11,7 @@ test("Minecraft export covers every web symbol with stable unique ids", () => {
   const manifest = buildMinecraftSymbolManifest();
   const webNames = Object.keys(SYMBOL_PATHS);
 
-  assert.equal(manifest.length, 64);
+  assert.equal(manifest.length, 69);
   assert.deepEqual(manifest.map(({ frenchName }) => frenchName), webNames);
   assert.equal(new Set(manifest.map(({ id }) => id)).size, manifest.length);
   assert.equal(minecraftSymbolId("Vent sous pied"), "vent_sous_pied");

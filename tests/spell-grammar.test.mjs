@@ -120,18 +120,18 @@ test("phase-restricted signs remain ignored when no mixture phase matches", () =
 });
 
 test("the public matrix includes all 26 profiled sigils and all modifier signs", () => {
-  assert.equal(MATRIX_SIGIL_NAMES.length, 26);
-  assert.equal(MATRIX_SIGN_NAMES.length, 38);
+  assert.equal(MATRIX_SIGIL_NAMES.length, 29);
+  assert.equal(MATRIX_SIGN_NAMES.length, 40);
   assert.deepEqual(MATRIX_SIGIL_NAMES, Object.keys(SIGIL_PROFILES));
 });
 
 test("the matrix validates every indexed material signature", () => {
   const result = validateSpellMatrix();
 
-  assert.equal(result.materialSignatures, 37);
-  assert.equal(result.tested, 54_834);
-  assert.equal(result.unique, 54_834);
-  assert.equal(result.deterministic, 54_834);
-  assert.deepEqual(result.supports, { none: 27_417, shoe: 27_417 });
+  assert.equal(result.materialSignatures, 40);
+  assert.equal(result.tested, 65_600);
+  assert.equal(result.unique, 65_600);
+  assert.equal(result.deterministic, 65_600);
+  assert.deepEqual(result.supports, { none: 32_800, shoe: 32_800 });
   assert.ok(result.distinctPlans > 0);
 });

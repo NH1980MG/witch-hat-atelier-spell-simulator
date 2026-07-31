@@ -209,8 +209,8 @@ Per-effect recipe:
 Minimum practical tests:
 
 - Syntax checks for JS and Python.
-- Pure matrix test for all 54,834 support-aware variants: 26 single sigils plus
-  11 balanced Feu/Eau/Terre/Vent mixtures, 741 unordered sign pairs and 2
+- Pure matrix test for all 65,600 support-aware variants: 26 single sigils plus
+  11 balanced Feu/Eau/Terre/Vent mixtures, 820 unordered sign pairs and 2
   support modes. Arbitrary repeated base sigils remain runtime dominance and
   intensity inputs, not exhaustively indexed material signatures.
 - Shared-drawing test for all 64 sigils/signs.

@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'">
-    <meta name="description" content="Draw, read, and animate magic circles in a bilingual Witch Hat Atelier spell simulator with a 3D workshop and 54,834 deterministic variants.">
+    <meta name="description" content="Draw, read, and animate magic circles in a bilingual Witch Hat Atelier spell simulator with a 3D workshop and 65,600 deterministic variants.">
     <meta property="og:title" content="Witch Hat Atelier Spell Simulator | Magic Circle Maker">
     <meta property="og:description" content="Draw magic circles, combine sigils and signs, then inspect their animated effects in a bilingual 3D workshop.">
     <meta property="og:type" content="website">
@@ -23,7 +23,7 @@
         "applicationCategory": "GameApplication",
         "operatingSystem": "Any",
         "inLanguage": ["en", "fr"],
-        "description": "A bilingual magic circle maker and 3D spell simulator with 54,834 deterministic variants."
+        "description": "A bilingual magic circle maker and 3D spell simulator with 65,600 deterministic variants."
       }
     </script>
     <script>
@@ -31,7 +31,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260730-recipe-load-v1">
+    <link rel="stylesheet" href="styles.css?v=20260731-wiki-symbols-v1">
     <script type="importmap">
       {
         "imports": {
@@ -40,8 +40,8 @@
         }
       }
     </script>
-    <script type="module" src="site-i18n.mjs?v=20260729-select-all-rotate-v2"></script>
-    <script type="module" src="app.js?v=20260730-recipe-load-v1"></script>
+    <script type="module" src="site-i18n.mjs?v=20260731-wiki-symbols-v1"></script>
+    <script type="module" src="app.js?v=20260731-wiki-symbols-v1"></script>
   </head>
   <body class="simulator-page">
     <main class="app-shell">
@@ -117,6 +117,9 @@
             <button class="tool-button selection-tool" id="growSelectionButton" type="button" data-i18n-aria-label="tool.grow" data-i18n-title="tool.grow" aria-label="Enlarge selected symbol" title="Enlarge selected symbol" disabled>
               <span aria-hidden="true">+</span>
             </button>
+            <button class="tool-button selection-tool" id="duplicateSelectionButton" type="button" data-i18n-aria-label="tool.duplicate" data-i18n-title="tool.duplicate" aria-label="Duplicate the selection" title="Duplicate the selection" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="4" y="4" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+            </button>
             <button class="tool-button selection-tool" id="rotateSelectionLeftButton" type="button" data-i18n-aria-label="tool.rotateLeft" data-i18n-title="tool.rotateLeft" aria-label="Rotate selection counterclockwise" title="Rotate selection counterclockwise" disabled>
               <span aria-hidden="true">&#8634;</span>
             </button>
@@ -150,7 +153,7 @@
         <aside class="sidebar symbol-drawer" id="symbolDrawer" data-i18n-aria-label="drawer.symbolDictionary" aria-label="Symbol dictionary" aria-hidden="true">
           <div class="panel-heading">
             <div>
-              <h2 data-i18n="drawer.symbols">Sigils and signs</h2>
+              <h2 data-i18n="drawer.symbols">Sigils and signs</h2><span class="symbol-drawer-hint" data-i18n="search.hint">Cmd+K</span>
               <p data-i18n="drawer.symbolsDescription">Choose a symbol, then drag it like a Scratch block onto the parchment.</p>
             </div>
             <button class="drawer-close" id="closeSymbolsButton" type="button" data-i18n-aria-label="drawer.closeSymbols" aria-label="Close sigils and signs">&times;</button>
@@ -314,6 +317,27 @@
         <output class="status" id="statusText" aria-live="polite" data-i18n="status.buttonMode">Button mode: draw a closed circle, then press Activate.</output>
       </footer>
     </main>
+    <dialog class="symbol-search-dialog" id="symbolSearchDialog" aria-labelledby="symbolSearchTitle">
+      <form method="dialog" class="symbol-search-head">
+        <h2 id="symbolSearchTitle" data-i18n="search.title">Find an element</h2>
+        <button class="symbol-search-close" id="closeSymbolSearchButton" type="submit" value="cancel" data-i18n-aria-label="search.close" aria-label="Close the element search">&times;</button>
+      </form>
+      <input
+        class="symbol-search-input"
+        id="symbolSearchInput"
+        type="search"
+        autocomplete="off"
+        role="combobox"
+        aria-expanded="true"
+        aria-controls="symbolSearchResults"
+        data-i18n-placeholder="search.placeholder"
+        placeholder="Name or rune"
+        data-i18n-aria-label="search.title"
+        aria-label="Find an element"
+      >
+      <ul class="symbol-search-results" id="symbolSearchResults" role="listbox"></ul>
+      <p class="symbol-search-status" id="symbolSearchStatus" aria-live="polite"></p>
+    </dialog>
     <div class="symbol-drag-ghost" id="symbolDragGhost" aria-hidden="true"></div>
   </body>
 </html>

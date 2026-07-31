@@ -6,17 +6,17 @@ sigil and modifier signs, read the result, then activate a live Three.js scene.
 
 The public site is designed as both a workshop and a small wiki. Its library
 contains 33 tightly cropped reference circles and a searchable catalog of exactly
-54,834 deterministic, support-aware recipes:
+65,600 deterministic, support-aware recipes:
 
 ```text
-38 * 39 / 2 = 741 unordered sign pairs with repetition
-26 single sigils + 11 balanced base-element mixtures = 37 material signatures
-37 material signatures * 741 pairs = 27,417 recipes
-27,417 recipes * 2 support modes = 54,834 variants
+40 * 41 / 2 = 820 unordered sign pairs with repetition
+29 single sigils + 11 balanced base-element mixtures = 40 material signatures
+40 material signatures * 820 pairs = 32,800 recipes
+32,800 recipes * 2 support modes = 65,600 variants
 ```
 
 The two support modes are paper only and a small paper fixed under a shoe. This
-count is a simulator validation matrix, not a claim that the manga names 54,834
+count is a simulator validation matrix, not a claim that the manga names 65,600
 spells. The 11 indexed mixtures use only Feu, Eau, Terre and Vent; their pair
 and triple interpretations are inferred, and the four-element mixture is
 experimental, not manga-confirmed. Arbitrary repeated base sigils are evaluated
@@ -28,7 +28,7 @@ in this public contract.
 ## Features
 
 - Freehand drawing, geometric tools, undo/redo, PNG export and movable grid.
-- Scratch-like placement and selection of 64 shared vector symbols.
+- Scratch-like placement and selection of 69 shared vector symbols.
 - Separate recognition of central sigils and modifier signs.
 - Geometry-aware balance, direction, tilt, rotation and ring connectivity.
 - Physical diameter from 5 cm to 5 m; one grid cell represents 5 cm.
@@ -66,9 +66,9 @@ node scripts/validate-spell-matrix.mjs
 node scripts/security-audit.mjs
 ```
 
-The matrix validator must report 64 drawings, 26 single sigils, 11 balanced
-base-element mixtures, 37 material signatures, 38 signs, 54,834
-tested/unique/deterministic variants, a 27,417/27,417 support split and all
+The matrix validator must report 69 drawings, 29 single sigils, 11 balanced
+base-element mixtures, 40 material signatures, 40 signs, 65,600
+tested/unique/deterministic variants, a 32,800/32,800 support split and all
 semantic checks passing.
 
 ## Project Map
@@ -79,7 +79,7 @@ semantic checks passing.
 - `symbol-catalog.mjs`: shared vector drawings for the editor and renderer.
 - `spell-grammar.mjs`, `spell-model.mjs`: deterministic mechanics and snapshots.
 - `elemental-mixtures.mjs`: finite base-element profiles and runtime dominance.
-- `variant-catalog.mjs`, `variant-index-worker.mjs`: 54,834-recipe index.
+- `variant-catalog.mjs`, `variant-index-worker.mjs`: 65,600-recipe index.
 - `support-policy.mjs`, `support-geometry.mjs`: support limits and 3D placement.
 - `assets/library-schematics/`: 33 local PNG crops containing only the named reference circles.
 - `docs/`: architecture, fidelity, QA, release and research provenance notes.
@@ -94,6 +94,8 @@ runtime CDN dependency.
 
 This is an unofficial fan project. *Witch Hat Atelier* and related names belong
 to their respective rights holders.
+<<<<<<< Updated upstream
+=======
 
 ## Local Minecraft AI Builder
 
@@ -138,7 +140,7 @@ The unpublished `minecraft-mod/witch-hat-magic` subproject is a separate Fabric
 1.21.1 mod. Its first playable milestone provides a persistent magic-circle
 notebook with bounded pages, native circular drawing, pen and eraser tools,
 undo/redo, zoom, bilingual labels, server-authoritative saves, and the complete
-64-entry symbol catalogue generated from the web simulator. Workshop mode
+69-entry symbol catalogue generated from the web simulator. Workshop mode
 supports placement, right-click selection, selection rectangles, grouped
 movement, proportional corner resizing, deletion, and undo. The native page
 index supports direct selection, renaming, duplication, and reordering.
@@ -166,3 +168,4 @@ The playable JAR is written to
 support selection, animated manifestation phases, and physical spell
 interactions remain separate implementation phases. The magic mod does not
 depend on AI Builder.
+>>>>>>> Stashed changes

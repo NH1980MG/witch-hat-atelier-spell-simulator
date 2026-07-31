@@ -52,6 +52,8 @@ const MODIFIER_SIGN_SHA256 = Object.freeze({
   Purification: "6a3fbf977ea2ee76ca6f8ee9abff6bf1dad567ed10cd237d0cb91c91bcfb82f4",
   Immobilite: "bbe41afa9cc35f91922e5d039607f3e1fb65b088be9066955b408ac80d3d9573",
   Projection: "6a2ed71eddd1368bdcde22d2607c628d8e23907d76c5e18af9221ae088866353",
+  Lancement: "e11434300f0d3ea592c14229fa7be9a97e54fae8b0f83baf7c97f3dd013851dd",
+  Fenetres: "6ab71ff7be8c756f7e0a9594c81757f65d0a17a80513cd81c15bffa7e353a6f1",
 });
 
 const SOURCE_OPENING_COUNTS = Object.freeze({
@@ -80,6 +82,9 @@ const SOURCE_OPENING_COUNTS = Object.freeze({
   "Arret temporel": 13,
   "Vent tourbillonnant": 4,
   "Flammes sans chaleur": 1,
+  Guidage: 4,
+  Appel: 1,
+  "Lumiere vacillante": 3,
 });
 
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
@@ -254,7 +259,7 @@ function conventionalMedian(values) {
 test("chaque cellule de planche possede un masque visuel runtime", async () => {
   const boardEntries = Object.entries(SYMBOL_BOARD_TRACE).filter(([, trace]) => trace.board);
 
-  assert.equal(boardEntries.length, 63);
+  assert.equal(boardEntries.length, 68);
   assert.deepEqual(Object.keys(SYMBOL_BOARD_ASSET), Object.keys(SYMBOL_BOARD_TRACE));
 
   for (const [name, trace] of boardEntries) {
@@ -282,7 +287,7 @@ test("le selecteur et le parchemin utilisent les masques issus des planches", as
   assert.doesNotMatch(css, /symbolStrokeExpansion/);
 });
 
-test("la mediane des 38 signes est la moyenne conventionnelle des deux valeurs centrales", async () => {
+test("la mediane des 40 signes est la moyenne conventionnelle des deux valeurs centrales", async () => {
   const report = JSON.parse(await readFile(
     new URL("../docs/qa/2026-07-26-central-sigil-weight-report.json", import.meta.url),
     "utf8",
@@ -299,7 +304,7 @@ test("la mediane des 38 signes est la moyenne conventionnelle des deux valeurs c
   assert.equal(report.targetStrokeWidth, report.modifierSignMedian);
 });
 
-test("la topologie finale des 25 PNG est mesuree independamment du rapport", async () => {
+test("la topologie finale des 28 PNG est mesuree independamment du rapport", async () => {
   const expectedNames = MATRIX_SIGIL_NAMES.filter((name) => SYMBOL_BOARD_ASSET[name]);
   assert.deepEqual(Object.keys(SOURCE_OPENING_COUNTS).sort(), [...expectedNames].sort());
 
@@ -314,7 +319,7 @@ test("la topologie finale des 25 PNG est mesuree independamment du rapport", asy
   }
 });
 
-test("les 25 sigils raster atteignent le poids median des signes sans fermer leurs ouvertures", async () => {
+test("les 28 sigils raster atteignent le poids median des signes sans fermer leurs ouvertures", async () => {
   const report = JSON.parse(await readFile(
     new URL("../docs/qa/2026-07-26-central-sigil-weight-report.json", import.meta.url),
     "utf8",
@@ -324,7 +329,7 @@ test("les 25 sigils raster atteignent le poids median des signes sans fermer leu
   assert.ok(report.modifierSignMedian >= 6.3 && report.modifierSignMedian <= 6.5);
   assert.equal(report.measurement, "Raster aggregate 2 * foreground area / perimeter");
   assert.deepEqual(report.modifierSignHashes, MODIFIER_SIGN_SHA256);
-  assert.equal(MATRIX_SIGN_NAMES.length, 38);
+  assert.equal(MATRIX_SIGN_NAMES.length, 40);
 
   for (const name of MATRIX_SIGN_NAMES) {
     const asset = await readFile(new URL(`../${SYMBOL_BOARD_ASSET[name]}`, import.meta.url));
@@ -336,10 +341,10 @@ test("les 25 sigils raster atteignent le poids median des signes sans fermer leu
   }
 
   const expectedNames = MATRIX_SIGIL_NAMES.filter((name) => SYMBOL_BOARD_ASSET[name]);
-  assert.equal(expectedNames.length, 25);
-  assert.equal(report.entries.length, 25);
+  assert.equal(expectedNames.length, 28);
+  assert.equal(report.entries.length, 28);
   assert.deepEqual(report.entries.map((entry) => entry.name).sort(), [...expectedNames].sort());
-  assert.equal(new Set(report.entries.map((entry) => entry.asset)).size, 25);
+  assert.equal(new Set(report.entries.map((entry) => entry.asset)).size, 28);
 
   for (const entry of report.entries) {
     const expectedTrace = SYMBOL_BOARD_TRACE[entry.name];
