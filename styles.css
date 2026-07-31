@@ -2436,3 +2436,58 @@ input:focus-visible {
 .spoiler-filter input {
   width: 5.5rem;
 }
+
+.practice-bar {
+  position: fixed;
+  top: 4.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+  box-shadow: 0 10px 30px rgba(36, 48, 68, 0.25);
+}
+
+.practice-preview {
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--paper-dark) 45%, transparent);
+}
+
+.practice-preview img,
+.practice-preview svg {
+  width: 60px;
+  height: 60px;
+}
+
+.practice-controls {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.practice-target {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.practice-score {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-height: 1.2em;
+}
+
+.practice-island.is-active {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
