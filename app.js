@@ -18,6 +18,7 @@ import {
   saveUserGuides,
 } from "./guide-storage.mjs";
 import { classifySymbolDragGesture } from "./symbol-drag-gesture.mjs?v=20260716-touch-scroll-v1";
+import { parseRecipeParams } from "./recipe-link.mjs";
 import {
   combinedSelectionBounds,
   canDropGlyph,
@@ -9188,6 +9189,89 @@ window.addEventListener("wha:localechange", () => {
   render();
 });
 
+function loadRecipeFromUrl() {
+  const recipe = parseRecipeParams(window.location.search, {
+    sigilNames: elements.filter((element) => (element.kind || "sigil") === "sigil").map((element) => element.name),
+    signNames: elements.filter((element) => element.kind === "sign").map((element) => element.name),
+  });
+  if (!recipe) {
+    return false;
+  }
+  history.replaceState(null, "", window.location.pathname);
+
+  recordHistory();
+  state.actions = [];
+  state.currentAction = null;
+  state.activeSpell = null;
+  state.activation = null;
+  state.selectedActionIndices = [];
+
+  const { width, height } = canvasSize();
+  const centerX = (width > 0 ? width : 800) / 2;
+  const centerY = (height > 0 ? height : 600) / 2;
+  const targetDiameterM = 0.25;
+  const ringRadius = (targetDiameterM / MIN_CIRCLE_DIAMETER_M) * BASE_GRID_STEP / 2;
+
+  state.actions.push({
+    type: "ring",
+    label: labels.ring,
+    element: "Structure",
+    charge: 0,
+    color: colors.normalInk,
+    width: lineWidth(),
+    cx: centerX,
+    cy: centerY,
+    radius: ringRadius,
+  });
+  state.circleCenter = { x: centerX, y: centerY };
+
+  recipe.sigils.forEach((name, index) => {
+    const element = elements.find((item) => item.name === name);
+    if (!element) {
+      return;
+    }
+    let point = { x: centerX, y: centerY };
+    if (recipe.sigils.length > 1) {
+      const angle = -Math.PI / 2 + (index * 2 * Math.PI) / recipe.sigils.length;
+      const clusterRadius = 24;
+      point = {
+        x: centerX + Math.cos(angle) * clusterRadius,
+        y: centerY + Math.sin(angle) * clusterRadius,
+      };
+    }
+    state.actions.push(createGlyphAction(element, point, recipe.sigils.length > 1 ? 20 : 30));
+  });
+
+  const signAngles = { 1: [-90], 2: [-150, -30], 3: [-90, -210, -330] };
+  const angles = signAngles[recipe.signs.length] || [];
+  recipe.signs.forEach((name, index) => {
+    const element = elements.find((item) => item.name === name);
+    if (!element) {
+      return;
+    }
+    const angle = ((angles[index] ?? -90) * Math.PI) / 180;
+    const orbit = ringRadius * 0.82;
+    const point = {
+      x: centerX + Math.cos(angle) * orbit,
+      y: centerY + Math.sin(angle) * orbit,
+    };
+    state.actions.push(createGlyphAction(element, point, 18));
+  });
+
+  state.supportId = recipe.supportId === "shoe" ? "shoe" : "none";
+
+  renderSupportList();
+  updateUsedList();
+  updateSpellState();
+  render();
+  const recipeName = [...recipe.sigils, ...recipe.signs].map(elementDisplayName).join(" + ");
+  setStatus(t("status.recipeLoaded", { name: recipeName }));
+  if (recipe.activate) {
+    window.setTimeout(() => activateCircle(), 350);
+  }
+  return true;
+}
+
 renderInkList();
 renderSupportList();
 renderGuideLists();
@@ -9211,3 +9295,4 @@ if (guideOpacityInput) {
 resetCanvasPanToOrigin(false);
 applyCanvasScale();
 resizeCanvas();
+loadRecipeFromUrl();
