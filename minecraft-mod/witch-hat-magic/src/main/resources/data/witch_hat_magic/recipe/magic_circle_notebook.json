@@ -4,7 +4,7 @@
   "pattern": [
     " C ",
     "CPC",
-    " C "
+    "CEC"
   ],
   "key": {
     "C": {
@@ -12,6 +12,9 @@
     },
     "P": {
       "item": "minecraft:paper"
+    },
+    "E": {
+      "item": "witch_hat_magic:magic_ink"
     }
   },
   "result": {

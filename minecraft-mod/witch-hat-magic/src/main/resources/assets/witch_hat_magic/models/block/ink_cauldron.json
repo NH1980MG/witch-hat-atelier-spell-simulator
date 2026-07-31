@@ -1,0 +1,9 @@
+{
+  "parent": "minecraft:block/cauldron",
+  "textures": {
+    "top": "witch_hat_magic:block/ink_cauldron_top",
+    "bottom": "witch_hat_magic:block/ink_cauldron_side",
+    "side": "witch_hat_magic:block/ink_cauldron_side",
+    "inside": "witch_hat_magic:block/ink_cauldron_top"
+  }
+}

@@ -50,6 +50,28 @@ public final class MagicItems {
             ResourceLocation.fromNamespaceAndPath(WitchHatMagicMod.MOD_ID, "magic_circle_page"),
             new MagicCirclePageItem(new Item.Properties().stacksTo(16)));
 
+    public static final BlockItem INKWOOD_LOG = registerBlockItem("inkwood_log", MagicBlocks.INKWOOD_LOG, 64);
+    public static final BlockItem INKWOOD_LEAVES = registerBlockItem("inkwood_leaves", MagicBlocks.INKWOOD_LEAVES, 64);
+    public static final BlockItem INKWOOD_SAPLING = registerBlockItem("inkwood_sapling", MagicBlocks.INKWOOD_SAPLING, 64);
+    public static final BlockItem INK_CAULDRON = registerBlockItem("ink_cauldron", MagicBlocks.INK_CAULDRON, 16);
+
+    public static final Item INK_POD = Registry.register(
+            BuiltInRegistries.ITEM,
+            ResourceLocation.fromNamespaceAndPath(WitchHatMagicMod.MOD_ID, "ink_pod"),
+            new Item(new Item.Properties()));
+
+    public static final Item MAGIC_INK = Registry.register(
+            BuiltInRegistries.ITEM,
+            ResourceLocation.fromNamespaceAndPath(WitchHatMagicMod.MOD_ID, "magic_ink"),
+            new Item(new Item.Properties().stacksTo(16)));
+
+    private static BlockItem registerBlockItem(String name, net.minecraft.world.level.block.Block block, int stackSize) {
+        return Registry.register(
+                BuiltInRegistries.ITEM,
+                ResourceLocation.fromNamespaceAndPath(WitchHatMagicMod.MOD_ID, name),
+                new BlockItem(block, new Item.Properties().stacksTo(stackSize)));
+    }
+
     private MagicItems() {
     }
 
@@ -61,6 +83,12 @@ public final class MagicItems {
                     entries.accept(LARGE_CANVAS);
                     entries.accept(SYLPH_SHOES);
                     entries.accept(MAGIC_CIRCLE_PAGE);
+                    entries.accept(INKWOOD_LOG);
+                    entries.accept(INKWOOD_LEAVES);
+                    entries.accept(INKWOOD_SAPLING);
+                    entries.accept(INK_CAULDRON);
+                    entries.accept(INK_POD);
+                    entries.accept(MAGIC_INK);
                 });
     }
 

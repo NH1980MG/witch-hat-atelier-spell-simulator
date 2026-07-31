@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "level=0": {
+      "model": "witch_hat_magic:block/ink_cauldron"
+    },
+    "level=1": {
+      "model": "witch_hat_magic:block/ink_cauldron"
+    },
+    "level=2": {
+      "model": "witch_hat_magic:block/ink_cauldron"
+    },
+    "level=3": {
+      "model": "witch_hat_magic:block/ink_cauldron"
+    }
+  }
+}

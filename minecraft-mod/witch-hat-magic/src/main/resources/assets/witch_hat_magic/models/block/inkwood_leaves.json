@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "witch_hat_magic:block/inkwood_leaves"
+  }
+}

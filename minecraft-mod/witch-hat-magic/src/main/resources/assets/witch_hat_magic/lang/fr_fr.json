@@ -63,5 +63,11 @@
   "item.witch_hat_magic.magic_circle_page.signs": "Signes : %s",
   "item.witch_hat_magic.magic_circle_page.ready": "Pret — puissance %sx, %s%% precis, %ss",
   "item.witch_hat_magic.magic_circle_page.not_ready": "Cercle incomplet",
-  "screen.witch_hat_magic.extract_page": "Extraire"
+  "screen.witch_hat_magic.extract_page": "Extraire",
+  "block.witch_hat_magic.inkwood_log": "Bois d'encrier",
+  "block.witch_hat_magic.inkwood_leaves": "Feuilles d'encrier",
+  "block.witch_hat_magic.inkwood_sapling": "Pousse d'encrier",
+  "block.witch_hat_magic.ink_cauldron": "Chaudron a encre",
+  "item.witch_hat_magic.ink_pod": "Gousse d'encre",
+  "item.witch_hat_magic.magic_ink": "Encre magique"
 }

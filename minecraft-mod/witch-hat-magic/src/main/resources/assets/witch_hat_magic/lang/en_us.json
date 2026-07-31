@@ -63,5 +63,11 @@
   "item.witch_hat_magic.magic_circle_page.signs": "Signs: %s",
   "item.witch_hat_magic.magic_circle_page.ready": "Ready — power %sx, %s%% precise, %ss",
   "item.witch_hat_magic.magic_circle_page.not_ready": "Incomplete circle",
-  "screen.witch_hat_magic.extract_page": "Extract"
+  "screen.witch_hat_magic.extract_page": "Extract",
+  "block.witch_hat_magic.inkwood_log": "Inkwood Log",
+  "block.witch_hat_magic.inkwood_leaves": "Inkwood Leaves",
+  "block.witch_hat_magic.inkwood_sapling": "Inkwood Sapling",
+  "block.witch_hat_magic.ink_cauldron": "Ink Cauldron",
+  "item.witch_hat_magic.ink_pod": "Ink Pod",
+  "item.witch_hat_magic.magic_ink": "Magic Ink"
 }

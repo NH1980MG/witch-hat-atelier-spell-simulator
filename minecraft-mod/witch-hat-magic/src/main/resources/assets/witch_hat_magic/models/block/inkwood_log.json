@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/cube_column",
+  "textures": {
+    "end": "witch_hat_magic:block/inkwood_log_top",
+    "side": "witch_hat_magic:block/inkwood_log"
+  }
+}

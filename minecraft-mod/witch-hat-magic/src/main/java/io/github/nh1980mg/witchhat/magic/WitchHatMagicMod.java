@@ -9,7 +9,14 @@ import io.github.nh1980mg.witchhat.magic.registry.MagicItems;
 import io.github.nh1980mg.witchhat.magic.registry.MagicRecipes;
 import io.github.nh1980mg.witchhat.magic.spell.SpellManifestationService;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
+import net.fabricmc.fabric.api.biome.v1.BiomeSelectors;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.BiomeTags;
+import net.minecraft.world.level.levelgen.GenerationStep;
 
 public final class WitchHatMagicMod implements ModInitializer {
     public static final String MOD_ID = "witch_hat_magic";
@@ -30,5 +37,11 @@ public final class WitchHatMagicMod implements ModInitializer {
             SpellManifestationService.scheduler().tick();
             io.github.nh1980mg.witchhat.magic.spell.FlightService.instance().tick();
         });
+        BiomeModifications.addFeature(
+                BiomeSelectors.tag(BiomeTags.IS_FOREST),
+                GenerationStep.Decoration.VEGETAL_DECORATION,
+                ResourceKey.create(
+                        Registries.PLACED_FEATURE,
+                        ResourceLocation.fromNamespaceAndPath(MOD_ID, "inkwood_tree")));
     }
 }
