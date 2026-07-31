@@ -23,6 +23,12 @@ public final class WitchHatMagicClient implements ClientModInitializer {
         net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
                 io.github.nh1980mg.witchhat.magic.registry.MagicEntities.BRIMCAP_BOSS,
                 BrimcapBossRenderer::new);
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
+                io.github.nh1980mg.witchhat.magic.registry.MagicEntities.BRIMCAP_ALLY,
+                BrimcapWitchRenderer::new);
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
+                io.github.nh1980mg.witchhat.magic.registry.MagicEntities.SEAL_KNIGHT,
+                net.minecraft.client.renderer.entity.VindicatorRenderer::new);
 
         ClientPlayNetworking.registerGlobalReceiver(
                 OpenNotebookPayload.TYPE,

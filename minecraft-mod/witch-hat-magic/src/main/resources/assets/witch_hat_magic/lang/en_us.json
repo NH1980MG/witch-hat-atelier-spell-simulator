@@ -80,5 +80,14 @@
   "quest.witch_hat_magic.stage.7": "[Master] You have arrived. Steel yourself, apprentice: a Brimmed Cap witch awaits.",
   "entity.witch_hat_magic.brimcap_witch": "Brimmed Cap Witch",
   "entity.witch_hat_magic.brimcap_boss": "Brimmed Cap Matriarch",
-  "quest.witch_hat_magic.boss_arrival": "[???] A witch dares enter MY territory... Show me your circles, apprentice."
+  "quest.witch_hat_magic.boss_arrival": "[???] A witch dares enter MY territory... Show me your circles, apprentice.",
+  "item.witch_hat_magic.blood_vial": "Empty Vial",
+  "item.witch_hat_magic.blood_vial_full": "Vial of Blood",
+  "item.witch_hat_magic.blood_ink": "Blood Ink",
+  "entity.witch_hat_magic.brimcap_ally": "Brimmed Cap Sister",
+  "entity.witch_hat_magic.seal_knight": "Knight of the Seal",
+  "quest.witch_hat_magic.blood_vial_not_hurt": "The vial needs fresh pain — use it while you bleed.",
+  "quest.witch_hat_magic.blood_vial_filled": "The vial fills with your blood...",
+  "quest.witch_hat_magic.brotherhood_welcome": "[Brimmed Caps] Your blood and ink are one. Welcome, brother.",
+  "quest.witch_hat_magic.brotherhood_warning": "[Brimmed Caps] Our sisters will fight beside you now. But beware — the Knights of the Seal hunt what we are."
 }

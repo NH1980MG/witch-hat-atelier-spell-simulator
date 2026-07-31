@@ -1,7 +1,9 @@
 package io.github.nh1980mg.witchhat.magic.quest;
 
+import io.github.nh1980mg.witchhat.magic.entity.BrimcapAllyEntity;
 import io.github.nh1980mg.witchhat.magic.entity.BrimcapBossEntity;
 import io.github.nh1980mg.witchhat.magic.entity.BrimcapWitchEntity;
+import io.github.nh1980mg.witchhat.magic.entity.SealKnightEntity;
 import io.github.nh1980mg.witchhat.magic.registry.MagicEntities;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -33,6 +35,7 @@ public final class BrimcapSpawnService {
         }
         QuestWorldState state = QuestWorldState.get(server);
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            BrotherhoodService.pollMembership(player);
             if (state.stage(player.getUUID()) < 6) {
                 continue;
             }
@@ -40,21 +43,79 @@ public final class BrimcapSpawnService {
             double distanceSqr = player.distanceToSqr(
                     lair.getX() + 0.5, lair.getY(), lair.getZ() + 0.5);
 
-            if (distanceSqr < BOSS_TRIGGER_DISTANCE_SQR && !state.bossSpawned()) {
+            if (distanceSqr < BOSS_TRIGGER_DISTANCE_SQR && !state.bossSpawned()
+                    && !state.isBrotherhoodMember(player.getUUID())) {
                 spawnBoss(player, state, lair);
                 continue;
             }
             int interval = intervalFor(distanceSqr);
             int cooldown = cooldowns.getOrDefault(player, 0) - CHECK_INTERVAL;
             if (cooldown <= 0) {
-                if (trySpawnScout(player)) {
-                    cooldown = interval;
-                } else {
-                    cooldown = interval / 2;
-                }
+                boolean member = state.isBrotherhoodMember(player.getUUID());
+                boolean spawned = member
+                        ? (trySpawnKnight(player) || trySpawnAlly(player))
+                        : trySpawnScout(player);
+                cooldown = spawned ? interval : interval / 2;
             }
             cooldowns.put(player, cooldown);
         }
+    }
+
+    /** Knights hunt members at half the scout rate — allies outnumber them. */
+    private static boolean trySpawnKnight(ServerPlayer player) {
+        return player.getRandom().nextInt(3) == 0
+                && spawnNear(player, () -> {
+                    SealKnightEntity knight = MagicEntities.SEAL_KNIGHT.create(player.serverLevel());
+                    return knight;
+                });
+    }
+
+    /** Up to two allies follow a member at a time. */
+    private static boolean trySpawnAlly(ServerPlayer player) {
+        long nearby = player.serverLevel().getEntitiesOfClass(
+                io.github.nh1980mg.witchhat.magic.entity.BrimcapAllyEntity.class,
+                new net.minecraft.world.phys.AABB(player.blockPosition()).inflate(32.0),
+                ally -> player.getUUID().equals(ally.ownerId())).size();
+        if (nearby >= 2) {
+            return false;
+        }
+        return spawnNear(player, () -> {
+            BrimcapAllyEntity ally = MagicEntities.BRIMCAP_ALLY.create(player.serverLevel());
+            if (ally != null) {
+                ally.setOwnerId(player.getUUID());
+                ally.setPersistenceRequired();
+            }
+            return ally;
+        });
+    }
+
+    private interface SpawnFactory<T extends net.minecraft.world.entity.Mob> {
+        T create();
+    }
+
+    private static <T extends net.minecraft.world.entity.Mob> boolean spawnNear(
+            ServerPlayer player, SpawnFactory<T> factory) {
+        ServerLevel level = player.serverLevel();
+        RandomSource random = level.getRandom();
+        double angle = random.nextDouble() * Math.PI * 2.0;
+        double distance = 16 + random.nextInt(13);
+        int x = (int) (player.getX() + Math.cos(angle) * distance);
+        int z = (int) (player.getZ() + Math.sin(angle) * distance);
+        int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+        BlockPos pos = new BlockPos(x, y, z);
+        if (!level.getBlockState(pos).isAir()
+                || !level.getBlockState(pos.above()).isAir()
+                || !level.getBlockState(pos.below()).isSolidRender(level, pos.below())) {
+            return false;
+        }
+        T mob = factory.create();
+        if (mob == null) {
+            return false;
+        }
+        mob.moveTo(x + 0.5, y, z + 0.5, random.nextFloat() * 360.0F, 0.0F);
+        mob.finalizeSpawn(level, level.getCurrentDifficultyAt(pos), MobSpawnType.NATURAL, null);
+        level.addFreshEntity(mob);
+        return true;
     }
 
     /** Far: rare. Close: frequent. */

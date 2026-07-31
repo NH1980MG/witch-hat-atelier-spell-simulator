@@ -12,6 +12,7 @@ import io.github.nh1980mg.witchhat.magic.spell.SpellManifestationService;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
 import net.fabricmc.fabric.api.biome.v1.BiomeSelectors;
+import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.core.registries.Registries;
@@ -44,6 +45,13 @@ public final class WitchHatMagicMod implements ModInitializer {
         });
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
                 io.github.nh1980mg.witchhat.magic.quest.QuestService.onPlayerJoin(handler.player));
+        ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
+            if (entity instanceof net.minecraft.server.level.ServerPlayer player) {
+                io.github.nh1980mg.witchhat.magic.quest.BrotherhoodService.onPlayerHurt(
+                        player, source, amount);
+            }
+            return true;
+        });
         BiomeModifications.addFeature(
                 BiomeSelectors.tag(BiomeTags.IS_FOREST),
                 GenerationStep.Decoration.VEGETAL_DECORATION,

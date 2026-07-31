@@ -1,6 +1,7 @@
 package io.github.nh1980mg.witchhat.magic.registry;
 
 import io.github.nh1980mg.witchhat.magic.WitchHatMagicMod;
+import io.github.nh1980mg.witchhat.magic.item.BloodVialItem;
 import io.github.nh1980mg.witchhat.magic.item.MagicCircleNotebookItem;
 import io.github.nh1980mg.witchhat.magic.item.MagicCirclePageItem;
 import io.github.nh1980mg.witchhat.magic.item.SylphShoesItem;
@@ -63,6 +64,21 @@ public final class MagicItems {
     public static final Item MAGIC_INK = Registry.register(
             BuiltInRegistries.ITEM,
             ResourceLocation.fromNamespaceAndPath(WitchHatMagicMod.MOD_ID, "magic_ink"),
+            new Item(new Item.Properties().stacksTo(16)));
+
+    public static final BloodVialItem BLOOD_VIAL = Registry.register(
+            BuiltInRegistries.ITEM,
+            ResourceLocation.fromNamespaceAndPath(WitchHatMagicMod.MOD_ID, "blood_vial"),
+            new BloodVialItem(new Item.Properties().stacksTo(16)));
+
+    public static final Item BLOOD_VIAL_FULL = Registry.register(
+            BuiltInRegistries.ITEM,
+            ResourceLocation.fromNamespaceAndPath(WitchHatMagicMod.MOD_ID, "blood_vial_full"),
+            new Item(new Item.Properties().stacksTo(1)));
+
+    public static final Item BLOOD_INK = Registry.register(
+            BuiltInRegistries.ITEM,
+            ResourceLocation.fromNamespaceAndPath(WitchHatMagicMod.MOD_ID, "blood_ink"),
             new Item(new Item.Properties().stacksTo(16)));
 
     private static BlockItem registerBlockItem(String name, net.minecraft.world.level.block.Block block, int stackSize) {

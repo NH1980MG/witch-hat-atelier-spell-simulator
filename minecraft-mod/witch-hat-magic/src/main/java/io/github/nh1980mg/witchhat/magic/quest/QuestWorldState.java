@@ -15,6 +15,7 @@ public class QuestWorldState extends SavedData {
     private static final String ID = WitchHatMagicMod.MOD_ID + "_quest";
 
     private final Map<UUID, Integer> stages = new HashMap<>();
+    private final java.util.Set<UUID> brotherhoodMembers = new java.util.HashSet<>();
     private BlockPos lairPos;
     private boolean bossSpawned;
 
@@ -37,6 +38,10 @@ public class QuestWorldState extends SavedData {
             state.lairPos = BlockPos.of(tag.getLong("lair"));
         }
         state.bossSpawned = tag.getBoolean("boss_spawned");
+        CompoundTag members = tag.getCompound("brotherhood");
+        for (String key : members.getAllKeys()) {
+            state.brotherhoodMembers.add(UUID.fromString(key));
+        }
         return state;
     }
 
@@ -49,6 +54,9 @@ public class QuestWorldState extends SavedData {
             tag.putLong("lair", lairPos.asLong());
         }
         tag.putBoolean("boss_spawned", bossSpawned);
+        CompoundTag members = new CompoundTag();
+        brotherhoodMembers.forEach(uuid -> members.putBoolean(uuid.toString(), true));
+        tag.put("brotherhood", members);
         return tag;
     }
 
@@ -58,6 +66,15 @@ public class QuestWorldState extends SavedData {
 
     public boolean bossSpawned() {
         return bossSpawned;
+    }
+
+    public boolean isBrotherhoodMember(UUID playerId) {
+        return brotherhoodMembers.contains(playerId);
+    }
+
+    public void addBrotherhoodMember(UUID playerId) {
+        brotherhoodMembers.add(playerId);
+        setDirty();
     }
 
     public void setBossSpawned(boolean spawned) {

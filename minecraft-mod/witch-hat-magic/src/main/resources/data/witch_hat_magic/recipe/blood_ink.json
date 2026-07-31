@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "witch_hat_magic:magic_ink"
+    },
+    {
+      "item": "witch_hat_magic:blood_vial_full"
+    }
+  ],
+  "result": {
+    "id": "witch_hat_magic:blood_ink",
+    "count": 1
+  }
+}

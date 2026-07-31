@@ -80,5 +80,14 @@
   "quest.witch_hat_magic.stage.7": "[Maitre] Tu es arrive. Tiens-toi pret, apprenti : une sorciere des Chapeaux a large bord t'attend.",
   "entity.witch_hat_magic.brimcap_witch": "Sorciere des Chapeaux a large bord",
   "entity.witch_hat_magic.brimcap_boss": "Matriarche des Chapeaux a large bord",
-  "quest.witch_hat_magic.boss_arrival": "[???] Une sorciere ose entrer dans MON territoire... Montre-moi tes cercles, apprenti."
+  "quest.witch_hat_magic.boss_arrival": "[???] Une sorciere ose entrer dans MON territoire... Montre-moi tes cercles, apprenti.",
+  "item.witch_hat_magic.blood_vial": "Fiole vide",
+  "item.witch_hat_magic.blood_vial_full": "Fiole de sang",
+  "item.witch_hat_magic.blood_ink": "Encre de sang",
+  "entity.witch_hat_magic.brimcap_ally": "Soeur des Chapeaux a large bord",
+  "entity.witch_hat_magic.seal_knight": "Chevalier du Sceau",
+  "quest.witch_hat_magic.blood_vial_not_hurt": "La fiole exige une douleur fraiche — utilise-la pendant que tu saignes.",
+  "quest.witch_hat_magic.blood_vial_filled": "La fiole se remplit de ton sang...",
+  "quest.witch_hat_magic.brotherhood_welcome": "[Chapeaux a large bord] Ton sang et ton encre ne font qu'un. Bienvenue, frere.",
+  "quest.witch_hat_magic.brotherhood_warning": "[Chapeaux a large bord] Nos soeurs combattront a tes cotes. Mais mefie-toi — les Chevaliers du Sceau chassent ce que nous sommes."
 }
