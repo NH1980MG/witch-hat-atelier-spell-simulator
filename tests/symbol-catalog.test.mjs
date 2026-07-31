@@ -152,8 +152,8 @@ test("le navigateur charge la nouvelle version du catalogue partage", async () =
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 
   assert.match(app, /symbol-catalog\.mjs\?v=20260723-board-assets-v1/);
-  assert.match(html, /app\.js\?v=20260730-review-fixes-v1/);
-  assert.match(html, /styles\.css\?v=20260729-search-rotate-v1/);
+  assert.match(html, /app\.js\?v=20260731-recipe-review-v1/);
+  assert.match(html, /styles\.css\?v=20260731-recipe-review-v1/);
 });
 
 test("chaque glyphe partage possede une planche d'audit generee", () => {
@@ -186,7 +186,7 @@ test("les signes corriges gardent la topologie des captures", () => {
     "Signe de vent": ["M30 8 C20 6", "M20 14 C18 24"],
     Rassemblement: ["M24 42 V11", "M24 28 L14 42"],
     Dissimulation: ["M24 8 V40", "circle"],
-    Fenetre: ["M17 8 H31", "M8 17 H40"],
+    Selection: ["M17 8 H31", "M8 17 H40"],
     Purification: ["M16 8 C26 12", "C7 32 10 26"],
     Immobilite: ["M24 17 V31", "M14 19 H34"],
   };
