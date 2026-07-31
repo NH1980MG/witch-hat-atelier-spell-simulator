@@ -9012,8 +9012,18 @@ function saveCanvas() {
 
 for (const button of toolButtons) {
   button.addEventListener("click", () => {
+    // The glyph button arms rather than merely selecting. A bare
+    // setTool("glyph") leaves ghostOwner null, which renderGhost reads as "no
+    // preview" and the Escape chain reads as "not armed" - so the tool would
+    // be active with nothing on screen and no way out but clearing the canvas.
+    // armSymbol sets its own status and closes the drawer, so return early
+    // rather than overwriting it with the generic tool-selected line.
+    if (button.dataset.tool === "glyph") {
+      armSymbol(state.element);
+      return;
+    }
+    // setTool already calls updateToolButtons; no second call here.
     setTool(button.dataset.tool);
-    updateToolButtons();
     setStatus(t("status.toolSelected", { name: t(`tool.${state.tool}`) }));
   });
 }
