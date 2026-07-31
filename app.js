@@ -18,6 +18,7 @@ import {
   saveUserGuides,
 } from "./guide-storage.mjs";
 import { classifySymbolDragGesture } from "./symbol-drag-gesture.mjs?v=20260716-touch-scroll-v1";
+import { parseRecipeParams } from "./recipe-link.mjs";
 import {
   combinedSelectionBounds,
   canDropGlyph,
@@ -73,12 +74,12 @@ const elements = [
   { name: "Cheval", color: "#755d46", rune: "CV", charge: 1, kind: "sigil", category: "Sigil decoratif", meaning: "Manifeste un cheval magique capable de tirer une charge." },
   { name: "Oiseau A", color: "#4f7180", rune: "OA", charge: 1, kind: "sigil", category: "Sigil decoratif", meaning: "Cree une projection d'oiseau qui vole pendant un moment." },
   { name: "Oiseau B", color: "#577988", rune: "OB", charge: 1, kind: "sigil", category: "Sigil decoratif", meaning: "Manifeste un oiseau plus proche d'un canard que la variante A." },
-  { name: "Arret temporel", color: "#5f536d", rune: "AT", charge: 2, kind: "sigil", category: "Sigil", meaning: "Arrete le temps pour les objets affectes; combine a un autre sigil, il peut figer un aspect precis." },
+  { name: "Arret temporel", color: "#5f536d", rune: "AT", charge: 2, kind: "sigil", category: "Sigil", meaning: "Agencement de signes autour d'un point central remplacable par un sigil pour figer un aspect precis; sort \"Time Stop\" au nom non officiel, pas un sigil canon documente." },
   { name: "Vent tourbillonnant", color: "#568276", rune: "VT", charge: 1, kind: "sigil", category: "Sigil", meaning: "Manipule l'air par rotation; son fonctionnement exact reste incertain." },
   { name: "Flammes sans chaleur", color: "#a84f42", rune: "FC", charge: 1, kind: "sigil", category: "Sigil", meaning: "Participe a la production de flammes sans chaleur; des signes supplementaires peuvent etre requis." },
   { name: "Colonne", color: "#8b1f1f", rune: "CO", charge: 1, kind: "sign", category: "Directionnel", meaning: "Signe directionnel: manifeste le sort en colonne ou faisceau." },
   { name: "Dispersion", color: "#8b1f1f", rune: "DI", charge: 0, kind: "sign", category: "Directionnel", meaning: "Signe proche de colonne: laisse l'energie sortir vers l'exterieur." },
-  { name: "Levitation", color: "#8b1f1f", rune: "LV", charge: 1, kind: "sign", category: "Directionnel", meaning: "Signe directionnel: souleve l'effet ou l'objet lie au sceau." },
+  { name: "Levitation", color: "#8b1f1f", rune: "LV", charge: 1, kind: "sign", category: "Directionnel", meaning: "Signe directionnel: fait leviter l'effet (eau, feu, lumiere) ou deplace l'objet support dans la direction des pointes (vent, air)." },
   { name: "Traction", color: "#8b1f1f", rune: "PU", charge: 1, kind: "sign", category: "Directionnel", meaning: "Pull: tire vers le sceau; inverse, il pousse." },
   { name: "Region", color: "#8b1f1f", rune: "RG", charge: 0, kind: "sign", category: "Directionnel", meaning: "Definit ou deplace la zone ou le sort se manifeste." },
   { name: "Convergence", color: "#8b1f1f", rune: "CV", charge: 1, kind: "sign", category: "Semi-directionnel", meaning: "Centre l'energie vers un point ou une zone compacte." },
@@ -86,7 +87,7 @@ const elements = [
   { name: "Nuage", color: "#8b1f1f", rune: "BI", charge: 0, kind: "sign", category: "Non-directionnel", meaning: "Billow: produit une forme douce ou nuageuse." },
   { name: "Crush", color: "#8b1f1f", rune: "CH", charge: 2, kind: "sign", category: "Semi-directionnel", meaning: "Brise ou reduit la matiere en fragments; inverse, reforme." },
   { name: "Pantin", color: "#8b1f1f", rune: "PA", charge: 1, kind: "sign", category: "Asymetrique", meaning: "Puppet: permet un controle mental ou direct du mouvement." },
-  { name: "Flottement", color: "#8b1f1f", rune: "FL", charge: 1, kind: "sign", category: "Non-directionnel", meaning: "Float: fait flotter l'objet ou l'effet associe." },
+  { name: "Flottement", color: "#8b1f1f", rune: "FL", charge: 1, kind: "sign", category: "Non-directionnel", meaning: "Float: stabilise l'objet sur un plan horizontal dans l'air; il peut pivoter mais garde son niveau." },
   { name: "Etirement", color: "#8b1f1f", rune: "ST", charge: 0, kind: "sign", category: "Non-directionnel", meaning: "Stretch/Weave: etire une matiere en ruban flexible." },
   { name: "Spire physique", color: "#8b1f1f", rune: "SP", charge: 0, kind: "sign", category: "Non-directionnel", meaning: "Coil: donne a la matiere une forme de ressort ou de spire." },
   { name: "Refroidissement", color: "#8b1f1f", rune: "FR", charge: -1, kind: "sign", category: "Non-directionnel", meaning: "Cool: refroidit ou condense l'effet." },
@@ -94,9 +95,9 @@ const elements = [
   { name: "Cible", color: "#8b1f1f", rune: "FO", charge: 1, kind: "sign", category: "Directionnel", meaning: "Sights set: vise un point ou une cible precise." },
   { name: "Enlacement", color: "#8b1f1f", rune: "EN", charge: 0, kind: "sign", category: "Semi-directionnel", meaning: "Entwine: fait s'enrouler un objet autour d'un autre." },
   { name: "Signe de vent", color: "#8b1f1f", rune: "SV", charge: 0, kind: "sign", category: "Asymetrique", meaning: "Signe ancien lie au vent; son effet exact reste incertain." },
-  { name: "Aeriforme defini", color: "#8b1f1f", rune: "AD", charge: 0, kind: "sign", category: "Semi-directionnel", meaning: "Modifie l'aeriforme et peut creer ou definir l'air." },
-  { name: "Rassemblement", color: "#8b1f1f", rune: "GA", charge: 0, kind: "sign", category: "Directionnel", meaning: "Gather: attire activement la matiere proche." },
-  { name: "Glaives", color: "#8b1f1f", rune: "GL", charge: 1, kind: "sign", category: "Semi-directionnel", meaning: "Determine la profondeur ou l'ancrage d'un effet." },
+  { name: "Aeriforme defini", color: "#8b1f1f", rune: "AD", charge: 0, kind: "sign", category: "Semi-directionnel", meaning: "Modifieur de l'aeriforme; sa fonction exacte reste indeterminee (nom et dessin contradictoires)." },
+  { name: "Rassemblement", color: "#8b1f1f", rune: "GA", charge: 0, kind: "sign", category: "Directionnel", meaning: "Gather: semble attirer activement la matiere proche (effet non confirme)." },
+  { name: "Glaives", color: "#8b1f1f", rune: "GL", charge: 1, kind: "sign", category: "Semi-directionnel", meaning: "Determine la profondeur d'enfoncement dans la chair; vu uniquement dans des sorts interdits, statut de signe incertain." },
   { name: "Solidification", color: "#8b1f1f", rune: "SO", charge: 1, kind: "sign", category: "Semi-directionnel", meaning: "Rend plus solide la magie connectee au signe." },
   { name: "Lien", color: "#8b1f1f", rune: "LI", charge: 0, kind: "sign", category: "Semi-directionnel", meaning: "Lie la magie entre objets issus d'une meme origine." },
   { name: "Arret", color: "#8b1f1f", rune: "AR", charge: 0, kind: "sign", category: "Semi-directionnel", meaning: "Bind: immobilise ou unit une matiere en une seule piece." },
@@ -104,7 +105,7 @@ const elements = [
   { name: "Dissimulation", color: "#8b1f1f", rune: "DS", charge: 0, kind: "sign", category: "Asymetrique", meaning: "Conceal: cache, ombre ou prepare une illusion." },
   { name: "Reflection", color: "#8b1f1f", rune: "RF", charge: 0, kind: "sign", category: "Non-directionnel", meaning: "Cible une image reflechie pour les sorts d'illusion." },
   { name: "Diamant", color: "#8b1f1f", rune: "DM", charge: 0, kind: "sign", category: "Non-directionnel", meaning: "Cible les objets proches plutot que l'objet porteur." },
-  { name: "Fenetre", color: "#8b1f1f", rune: "FW", charge: 0, kind: "sign", category: "Non-directionnel", meaning: "Window: limite l'effet a l'objet qui porte le sceau." },
+  { name: "Selection", color: "#8b1f1f", rune: "SE", charge: 0, kind: "sign", category: "Non-directionnel", meaning: "Selection: limite l'effet a l'objet qui porte le sceau." },
   { name: "Agrandissement", color: "#8b1f1f", rune: "AG", charge: 1, kind: "sign", category: "Semi-directionnel", meaning: "Fait grandir, ou reduit si le signe est inverse." },
   { name: "Viseur", color: "#8b1f1f", rune: "VI", charge: 0, kind: "sign", category: "Non-directionnel", meaning: "Crosshair: associe un effet a une cible correspondante." },
   { name: "Radial", color: "#8b1f1f", rune: "RA", charge: -1, kind: "sign", category: "Non-directionnel", meaning: "Reduit ou tempere la puissance d'un effet." },
@@ -204,7 +205,7 @@ const englishElementNames = Object.freeze({
   "Dissimulation": "Concealment",
   "Reflection": "Reflection",
   "Diamant": "Diamond",
-  "Fenetre": "Window",
+  "Selection": "Selection",
   "Agrandissement": "Expansion",
   "Viseur": "Crosshair",
   "Radial": "Radial",
@@ -5876,7 +5877,7 @@ function signModel() {
   const hasBillowing = signCounts.Nuage > 0;
   const hasEnlarge = signCounts.Agrandissement > 0;
   const hasNearbyTarget = signCounts.Diamant > 0;
-  const hasCarrierTarget = signCounts.Fenetre > 0;
+  const hasCarrierTarget = signCounts.Selection > 0;
   const hasFreeSigns = freeSigns.length > 0;
   const hasDirectionalModifier = signs.some((sign) => Boolean(SIGN_PROFILES[sign.element]?.directional));
   const hasMotionModifier = signs.some((sign) => SIGN_PROFILES[sign.element]?.role === "motion");
@@ -9188,6 +9189,89 @@ window.addEventListener("wha:localechange", () => {
   render();
 });
 
+function loadRecipeFromUrl() {
+  const recipe = parseRecipeParams(window.location.search, {
+    sigilNames: elements.filter((element) => (element.kind || "sigil") === "sigil").map((element) => element.name),
+    signNames: elements.filter((element) => element.kind === "sign").map((element) => element.name),
+  });
+  if (!recipe) {
+    return false;
+  }
+  history.replaceState(null, "", window.location.pathname);
+
+  recordHistory();
+  state.actions = [];
+  state.currentAction = null;
+  state.activeSpell = null;
+  state.activation = null;
+  state.selectedActionIndices = [];
+
+  const { width, height } = canvasSize();
+  const centerX = (width > 0 ? width : 800) / 2;
+  const centerY = (height > 0 ? height : 600) / 2;
+  const targetDiameterM = 0.25;
+  const ringRadius = (targetDiameterM / MIN_CIRCLE_DIAMETER_M) * BASE_GRID_STEP / 2;
+
+  state.actions.push({
+    type: "ring",
+    label: labels.ring,
+    element: "Structure",
+    charge: 0,
+    color: colors.normalInk,
+    width: lineWidth(),
+    cx: centerX,
+    cy: centerY,
+    radius: ringRadius,
+  });
+  state.circleCenter = { x: centerX, y: centerY };
+
+  recipe.sigils.forEach((name, index) => {
+    const element = elements.find((item) => item.name === name);
+    if (!element) {
+      return;
+    }
+    let point = { x: centerX, y: centerY };
+    if (recipe.sigils.length > 1) {
+      const angle = -Math.PI / 2 + (index * 2 * Math.PI) / recipe.sigils.length;
+      const clusterRadius = 24;
+      point = {
+        x: centerX + Math.cos(angle) * clusterRadius,
+        y: centerY + Math.sin(angle) * clusterRadius,
+      };
+    }
+    state.actions.push(createGlyphAction(element, point, recipe.sigils.length > 1 ? 20 : 30));
+  });
+
+  const signAngles = { 1: [-90], 2: [-150, -30], 3: [-90, -210, -330] };
+  const angles = signAngles[recipe.signs.length] || [];
+  recipe.signs.forEach((name, index) => {
+    const element = elements.find((item) => item.name === name);
+    if (!element) {
+      return;
+    }
+    const angle = ((angles[index] ?? -90) * Math.PI) / 180;
+    const orbit = ringRadius * 0.82;
+    const point = {
+      x: centerX + Math.cos(angle) * orbit,
+      y: centerY + Math.sin(angle) * orbit,
+    };
+    state.actions.push(createGlyphAction(element, point, 18));
+  });
+
+  state.supportId = recipe.supportId === "shoe" ? "shoe" : "none";
+
+  renderSupportList();
+  updateUsedList();
+  updateSpellState();
+  render();
+  const recipeName = [...recipe.sigils, ...recipe.signs].map(elementDisplayName).join(" + ");
+  setStatus(t("status.recipeLoaded", { name: recipeName }));
+  if (recipe.activate) {
+    window.setTimeout(() => activateCircle(), 350);
+  }
+  return true;
+}
+
 renderInkList();
 renderSupportList();
 renderGuideLists();
@@ -9211,3 +9295,4 @@ if (guideOpacityInput) {
 resetCanvasPanToOrigin(false);
 applyCanvasScale();
 resizeCanvas();
+loadRecipeFromUrl();

@@ -1,4 +1,5 @@
 import { getLocale, t } from "./site-i18n.mjs";
+import { buildRecipeHref } from "./recipe-link.mjs";
 import { MATRIX_SIGIL_NAMES, MATRIX_SIGN_NAMES, SIGN_PROFILES, SIGIL_PROFILES } from "./spell-grammar.mjs";
 import {
   DEFAULT_EXPLORER_STATE,
@@ -117,11 +118,18 @@ if (!form) {
       meta.textContent = `${record.id} · ${t(`library.fidelity.${record.fidelity}`)} · ${record.warningCount ? t("explorer.warningCount", { count: record.warningCount }) : t("explorer.noWarnings")}`;
       const plan = document.createElement("code");
       plan.textContent = record.planKey;
+      const actions = document.createElement("div");
+      actions.className = "variant-result-actions";
       const button = document.createElement("button");
       button.type = "button";
       button.textContent = t("explorer.openDetail");
       button.addEventListener("click", () => requestDetail(record));
-      article.append(heading, meta, plan, button);
+      const loadLink = document.createElement("a");
+      loadLink.className = "variant-action";
+      loadLink.href = buildRecipeHref({ sigils: record.sigils, signs: record.signs, supportId: record.supportId, activate: true });
+      loadLink.textContent = t("explorer.loadInAtelier");
+      actions.append(button, loadLink);
+      article.append(heading, meta, plan, actions);
       resultsNode.append(article);
     }
   }
@@ -187,7 +195,11 @@ if (!form) {
       detailRow(t("explorer.detail.ignored"), detail.ignoredSigns.map(displayName).join(", ")),
       detailRow(t("explorer.detail.warnings"), warningText),
     );
-    dialogBody.replaceChildren(list);
+    const loadLink = document.createElement("a");
+    loadLink.className = "variant-dialog-action";
+    loadLink.href = buildRecipeHref({ sigils: detail.sigils, signs: detail.signs, supportId: detail.supportId, activate: true });
+    loadLink.textContent = t("explorer.loadInAtelier");
+    dialogBody.replaceChildren(list, loadLink);
   }
 
   function updateStateFromControls(resetPage = true) {

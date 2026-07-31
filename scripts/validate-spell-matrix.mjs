@@ -78,7 +78,7 @@ expectLogic(!earthCrush.uncertainSigns.includes("Crush"), "Crush doit etre confi
 const waterCrush = composeSpellRecipe({ sigils: ["Eau"], signs: ["Crush"] });
 expectLogic(waterCrush.uncertainSigns.includes("Crush") && waterCrush.warnings.length > 0, "Crush sur l'eau doit rester une interpretation avertie.");
 
-const targetConflict = composeSpellRecipe({ sigils: ["Terre"], signs: ["Diamant", "Fenetre"] });
+const targetConflict = composeSpellRecipe({ sigils: ["Terre"], signs: ["Diamant", "Selection"] });
 expectLogic(targetConflict.warnings.some((warning) => warning.includes("deux cibles opposees")), "Deux cibles opposees doivent etre signalees.");
 
 const stagedStillness = composeSpellRecipe({ sigils: ["Eau"], signs: ["Levitation", "Immobilite"] });

@@ -72,7 +72,7 @@ public final class MagicSymbolCatalog {
             new Entry("dissimulation", "Dissimulation", "Concealment", Category.SIGN),
             new Entry("reflection", "Reflection", "Reflection", Category.SIGN),
             new Entry("diamant", "Diamant", "Diamond", Category.SIGN),
-            new Entry("fenetre", "Fenetre", "Window", Category.SIGN),
+            new Entry("selection", "Selection", "Selection", Category.SIGN),
             new Entry("agrandissement", "Agrandissement", "Expansion", Category.SIGN),
             new Entry("viseur", "Viseur", "Crosshair", Category.SIGN),
             new Entry("radial", "Radial", "Radial", Category.SIGN),

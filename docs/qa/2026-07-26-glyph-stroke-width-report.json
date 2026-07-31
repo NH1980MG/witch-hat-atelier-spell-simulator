@@ -745,8 +745,8 @@
       "measuredAverageStrokeScale": 1.2434
     },
     {
-      "name": "Fenetre",
-      "asset": "assets/symbol-glyphs/fenetre.png",
+      "name": "Selection",
+      "asset": "assets/symbol-glyphs/selection.png",
       "sourceStrokeWidth": 5.0682,
       "outputStrokeWidth": 6.2933,
       "dilationRadius": 0.375,
