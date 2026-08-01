@@ -35,6 +35,23 @@ public final class SpellManifestationService {
             int durationTicks,
             ServerLevel level,
             net.minecraft.world.phys.Vec3 perTickDrift) {
+        enqueue(plan, durationTicks, level, perTickDrift, 0.0);
+    }
+
+    public static void enqueueWithSpin(
+            ManifestationPlan plan,
+            int durationTicks,
+            ServerLevel level,
+            double spinPerTick) {
+        enqueue(plan, durationTicks, level, net.minecraft.world.phys.Vec3.ZERO, spinPerTick);
+    }
+
+    private static void enqueue(
+            ManifestationPlan plan,
+            int durationTicks,
+            ServerLevel level,
+            net.minecraft.world.phys.Vec3 perTickDrift,
+            double spinPerTick) {
         SimpleParticleType particle = plan.particleProfile().particle();
         SCHEDULER.enqueue(plan, durationTicks, point -> level.sendParticles(
                 particle,
@@ -45,7 +62,7 @@ public final class SpellManifestationService {
                 0.0,
                 0.0,
                 0.0,
-                0.0), perTickDrift);
+                0.0), perTickDrift, spinPerTick);
     }
 
     /** Levitation sign: the manifestation floats upward over its duration. */

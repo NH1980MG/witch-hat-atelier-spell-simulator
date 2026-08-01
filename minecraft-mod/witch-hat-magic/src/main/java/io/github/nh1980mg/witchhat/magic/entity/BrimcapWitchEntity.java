@@ -25,7 +25,7 @@ public class BrimcapWitchEntity extends Witch {
         if (castCooldown <= 0) {
             WitchSpells.Spell spell = WitchSpells.SCOUT_SPELLS.get(
                     random.nextInt(WitchSpells.SCOUT_SPELLS.size()));
-            WitchSpells.cast(this, target, spell);
+            WitchSpells.cast(this, target, spell, 0.8);
             castCooldown = spell.cooldownTicks();
         }
     }

@@ -40,7 +40,7 @@ public class BrimcapBossEntity extends Witch {
         if (castCooldown <= 0) {
             WitchSpells.Spell spell = WitchSpells.BOSS_SPELLS.get(
                     spellIndex++ % WitchSpells.BOSS_SPELLS.size());
-            WitchSpells.cast(this, target, spell);
+            WitchSpells.cast(this, target, spell, 1.5);
             castCooldown = spell.cooldownTicks();
         }
     }

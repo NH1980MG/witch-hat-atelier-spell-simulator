@@ -8,6 +8,7 @@ import net.minecraft.world.phys.Vec3;
 public record ManifestationPlan(
         ManifestationParticleProfile particleProfile,
         Vec3 center,
+        Vec3 normal,
         List<Vec3> points) {
     private static final double DISTANCE_FROM_PLAYER = 2.5;
     private static final double OUTER_RADIUS = 1.0;
@@ -20,6 +21,7 @@ public record ManifestationPlan(
     public ManifestationPlan {
         particleProfile = Objects.requireNonNull(particleProfile, "particleProfile");
         center = Objects.requireNonNull(center, "center");
+        normal = Objects.requireNonNull(normal, "normal");
         points = List.copyOf(Objects.requireNonNull(points, "points"));
         if (points.size() > ManifestationGeometry.MAX_POINTS) {
             throw new IllegalArgumentException("Manifestation exceeds the point limit");
@@ -89,6 +91,7 @@ public record ManifestationPlan(
         return new ManifestationPlan(
                 ManifestationParticleProfile.forSigils(activation.sigilIds()),
                 center,
+                normal,
                 points);
     }
 
