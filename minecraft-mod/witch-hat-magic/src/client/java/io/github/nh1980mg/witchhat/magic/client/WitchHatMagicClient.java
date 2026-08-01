@@ -17,18 +17,22 @@ import net.minecraft.network.chat.Component;
 public final class WitchHatMagicClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
+        net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry.registerModelLayer(
+                MagicModelLayers.BRIMCAP_WITCH, PointedHatModel::createWitchLayer);
+        net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry.registerModelLayer(
+                MagicModelLayers.SEAL_KNIGHT, PointedHatModel::createKnightLayer);
         net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
                 io.github.nh1980mg.witchhat.magic.registry.MagicEntities.BRIMCAP_WITCH,
-                BrimcapWitchRenderer::new);
+                context -> new BrimcapWitchRenderer<>(context, "brimcap_witch"));
         net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
                 io.github.nh1980mg.witchhat.magic.registry.MagicEntities.BRIMCAP_BOSS,
-                BrimcapBossRenderer::new);
+                context -> new BrimcapWitchRenderer<>(context, "brimcap_boss"));
         net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
                 io.github.nh1980mg.witchhat.magic.registry.MagicEntities.BRIMCAP_ALLY,
-                BrimcapWitchRenderer::new);
+                context -> new BrimcapWitchRenderer<>(context, "brimcap_witch"));
         net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
                 io.github.nh1980mg.witchhat.magic.registry.MagicEntities.SEAL_KNIGHT,
-                net.minecraft.client.renderer.entity.VindicatorRenderer::new);
+                SealKnightRenderer::new);
 
         ClientPlayNetworking.registerGlobalReceiver(
                 OpenNotebookPayload.TYPE,

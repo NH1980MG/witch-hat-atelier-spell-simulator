@@ -19,8 +19,38 @@ import net.minecraft.world.level.Level;
  * steel on brotherhood members; ordinary apprentices pass unnoticed.
  */
 public class SealKnightEntity extends Vindicator {
+    private int variant;
+
     public SealKnightEntity(EntityType<? extends Vindicator> type, Level level) {
         super(type, level);
+    }
+
+    public int getVariant() {
+        return variant;
+    }
+
+    @Override
+    public net.minecraft.world.entity.SpawnGroupData finalizeSpawn(
+            net.minecraft.world.level.ServerLevelAccessor level,
+            net.minecraft.world.DifficultyInstance difficulty,
+            net.minecraft.world.entity.MobSpawnType spawnType,
+            net.minecraft.world.entity.SpawnGroupData spawnGroupData) {
+        net.minecraft.world.entity.SpawnGroupData result =
+                super.finalizeSpawn(level, difficulty, spawnType, spawnGroupData);
+        variant = random.nextInt(3);
+        return result;
+    }
+
+    @Override
+    public void addAdditionalSaveData(net.minecraft.nbt.CompoundTag tag) {
+        super.addAdditionalSaveData(tag);
+        tag.putInt("KnightVariant", variant);
+    }
+
+    @Override
+    public void readAdditionalSaveData(net.minecraft.nbt.CompoundTag tag) {
+        super.readAdditionalSaveData(tag);
+        variant = tag.getInt("KnightVariant");
     }
 
     public static AttributeSupplier.Builder createKnightAttributes() {
