@@ -100,5 +100,6 @@
   "body.witch_hat_magic.right_arm": "Bras droit",
   "body.witch_hat_magic.left_leg": "Jambe gauche",
   "body.witch_hat_magic.right_leg": "Jambe droite",
-  "quest.witch_hat_magic.tattoo_activated": "Ton %s devient %s !"
+  "quest.witch_hat_magic.tattoo_activated": "Ton %s devient %s !",
+  "command.witch_hat_magic.rush": "Equipement rush livre — bon vol !"
 }

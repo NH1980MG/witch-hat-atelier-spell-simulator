@@ -1,6 +1,7 @@
 package io.github.nh1980mg.witchhat.magic;
 
 import io.github.nh1980mg.witchhat.magic.network.BodyNetworking;
+import io.github.nh1980mg.witchhat.magic.command.RushCommand;
 import io.github.nh1980mg.witchhat.magic.network.CanvasNetworking;
 import io.github.nh1980mg.witchhat.magic.network.NotebookNetworking;
 import io.github.nh1980mg.witchhat.magic.registry.MagicBlockEntities;
@@ -13,6 +14,7 @@ import io.github.nh1980mg.witchhat.magic.spell.SpellManifestationService;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
 import net.fabricmc.fabric.api.biome.v1.BiomeSelectors;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -46,6 +48,8 @@ public final class WitchHatMagicMod implements ModInitializer {
             io.github.nh1980mg.witchhat.magic.quest.QuestService.tick(server);
             io.github.nh1980mg.witchhat.magic.quest.BrimcapSpawnService.tick(server);
         });
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
+                RushCommand.register(dispatcher));
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
                 io.github.nh1980mg.witchhat.magic.quest.QuestService.onPlayerJoin(handler.player));
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {

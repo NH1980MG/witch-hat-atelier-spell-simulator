@@ -100,5 +100,6 @@
   "body.witch_hat_magic.right_arm": "Right arm",
   "body.witch_hat_magic.left_leg": "Left leg",
   "body.witch_hat_magic.right_leg": "Right leg",
-  "quest.witch_hat_magic.tattoo_activated": "Your %s becomes %s!"
+  "quest.witch_hat_magic.tattoo_activated": "Your %s becomes %s!",
+  "command.witch_hat_magic.rush": "Rush loadout delivered — happy flying!"
 }
