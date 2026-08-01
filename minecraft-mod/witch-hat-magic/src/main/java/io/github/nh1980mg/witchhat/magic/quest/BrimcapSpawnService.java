@@ -36,16 +36,17 @@ public final class BrimcapSpawnService {
         QuestWorldState state = QuestWorldState.get(server);
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             BrotherhoodService.pollMembership(player);
-            if (state.stage(player.getUUID()) < 6) {
-                continue;
-            }
             BlockPos lair = state.lairPos(server);
             double distanceSqr = player.distanceToSqr(
                     lair.getX() + 0.5, lair.getY(), lair.getZ() + 0.5);
 
+            // The matriarch answers any intruder, whatever their quest stage.
             if (distanceSqr < BOSS_TRIGGER_DISTANCE_SQR && !state.bossSpawned()
                     && !state.isBrotherhoodMember(player.getUUID())) {
                 spawnBoss(player, state, lair);
+                continue;
+            }
+            if (state.stage(player.getUUID()) < 6) {
                 continue;
             }
             int interval = intervalFor(distanceSqr);
