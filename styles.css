@@ -2487,7 +2487,7 @@ input:focus-visible {
   min-height: 1.2em;
 }
 
-.practice-island.is-active {
+.commands button.is-active {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
