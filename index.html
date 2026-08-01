@@ -31,7 +31,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260731-photo-import-v1">
+    <link rel="stylesheet" href="styles.css?v=20260801-command-placement-v1">
     <script type="importmap">
       {
         "imports": {
@@ -40,8 +40,8 @@
         }
       }
     </script>
-    <script type="module" src="site-i18n.mjs?v=20260731-photo-import-v1"></script>
-    <script type="module" src="app.js?v=20260731-photo-import-v1"></script>
+    <script type="module" src="site-i18n.mjs?v=20260801-command-placement-v1"></script>
+    <script type="module" src="app.js?v=20260801-command-placement-v1"></script>
   </head>
   <body class="simulator-page">
     <main class="app-shell">
@@ -150,15 +150,6 @@
           <span data-i18n="drawer.guides">Guides</span>
         </button>
 
-        <button class="practice-island" id="practiceToggleButton" type="button" aria-controls="practiceBar" aria-expanded="false">
-          <span aria-hidden="true">&#9998;</span>
-          <span data-i18n="practice.toggle">Practice</span>
-        </button>
-
-        <button class="photo-island" id="photoImportButton" type="button" aria-controls="photoImportDialog" aria-expanded="false">
-          <span aria-hidden="true">&#128247;</span>
-          <span data-i18n="photo.toggle">Photo</span>
-        </button>
         <input type="file" id="photoFileInput" accept="image/*" hidden>
 
         <dialog id="photoImportDialog" class="photo-dialog" data-i18n-aria-label="photo.previewTitle" aria-label="Photo import">
@@ -358,6 +349,8 @@
           <button id="clearButton" type="button" data-i18n="commands.clear">Clear</button>
           <button id="saveButton" type="button" data-i18n="commands.savePng">Archive PNG</button>
           <button id="saveExampleButton" type="button" data-i18n="commands.saveExample">Save as example</button>
+          <button id="practiceToggleButton" type="button" aria-controls="practiceBar" aria-expanded="false" data-i18n="practice.toggle">Practice</button>
+          <button id="photoImportButton" type="button" aria-controls="photoImportDialog" aria-expanded="false" data-i18n="photo.toggle">Photo</button>
         </section>
 
         <output class="status" id="statusText" aria-live="polite" data-i18n="status.buttonMode">Button mode: draw a closed circle, then press Activate.</output>

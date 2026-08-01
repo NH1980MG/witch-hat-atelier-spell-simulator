@@ -8,7 +8,7 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260727-mixture-runtime-v3";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260727-mixture-runtime-v3";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260731-photo-import-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260801-command-placement-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260716-shoe-camera-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -36,19 +36,19 @@ import {
   shouldDeferTouchTool,
   topmostSelectableIndexAtPoint,
   translateSelectedActions,
-} from "./symbol-interactions.mjs?v=20260731-photo-import-v1";
-import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260731-photo-import-v1";
+} from "./symbol-interactions.mjs?v=20260801-command-placement-v1";
+import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260801-command-placement-v1";
 import {
   SPOILER_MAX_CHAPTER,
   clampSpoilerChapter,
   isSymbolVisibleAtChapter,
   readSpoilerChapter,
   writeSpoilerChapter,
-} from "./symbol-chapters.mjs?v=20260731-photo-import-v1";
-import { scoreStrokeMatch } from "./stroke-matcher.mjs?v=20260731-photo-import-v1";
-import { analyzePhoto } from "./photo-import.mjs?v=20260731-photo-import-v1";
-import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260731-photo-import-v1";
-import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260731-photo-import-v1";
+} from "./symbol-chapters.mjs?v=20260801-command-placement-v1";
+import { scoreStrokeMatch } from "./stroke-matcher.mjs?v=20260801-command-placement-v1";
+import { analyzePhoto } from "./photo-import.mjs?v=20260801-command-placement-v1";
+import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260801-command-placement-v1";
+import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260801-command-placement-v1";
 
 export const CENTRAL_SIGIL_STROKE_WIDTH = 6.4365;
 

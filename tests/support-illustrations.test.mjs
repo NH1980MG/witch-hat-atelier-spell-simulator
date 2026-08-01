@@ -19,5 +19,5 @@ test("the shoe card keeps clean mirrored silhouettes and linked seals", () => {
 });
 
 test("the browser loads the refined support artwork version", () => {
-  assert.match(html, /app\.js\?v=20260731-photo-import-v1/);
+  assert.match(html, /app\.js\?v=20260801-command-placement-v1/);
 });
