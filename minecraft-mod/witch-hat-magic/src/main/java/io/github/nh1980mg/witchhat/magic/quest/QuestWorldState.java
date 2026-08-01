@@ -16,6 +16,7 @@ public class QuestWorldState extends SavedData {
 
     private final Map<UUID, Integer> stages = new HashMap<>();
     private final java.util.Set<UUID> brotherhoodMembers = new java.util.HashSet<>();
+    private final java.util.Set<UUID> memoryWiped = new java.util.HashSet<>();
     private final Map<UUID, Map<io.github.nh1980mg.witchhat.magic.body.BodyPart, io.github.nh1980mg.witchhat.magic.notebook.NotebookPage>> tattoos = new HashMap<>();
     private BlockPos lairPos;
     private boolean bossSpawned;
@@ -42,6 +43,10 @@ public class QuestWorldState extends SavedData {
         CompoundTag members = tag.getCompound("brotherhood");
         for (String key : members.getAllKeys()) {
             state.brotherhoodMembers.add(UUID.fromString(key));
+        }
+        CompoundTag wiped = tag.getCompound("memory_wiped");
+        for (String key : wiped.getAllKeys()) {
+            state.memoryWiped.add(UUID.fromString(key));
         }
         CompoundTag tattooTag = tag.getCompound("tattoos");
         for (String playerKey : tattooTag.getAllKeys()) {
@@ -71,6 +76,9 @@ public class QuestWorldState extends SavedData {
         CompoundTag members = new CompoundTag();
         brotherhoodMembers.forEach(uuid -> members.putBoolean(uuid.toString(), true));
         tag.put("brotherhood", members);
+        CompoundTag wiped = new CompoundTag();
+        memoryWiped.forEach(uuid -> wiped.putBoolean(uuid.toString(), true));
+        tag.put("memory_wiped", wiped);
         CompoundTag tattooTag = new CompoundTag();
         tattoos.forEach((uuid, parts) -> {
             CompoundTag partTag = new CompoundTag();
@@ -98,6 +106,19 @@ public class QuestWorldState extends SavedData {
 
     public void addBrotherhoodMember(UUID playerId) {
         brotherhoodMembers.add(playerId);
+        setDirty();
+    }
+
+    public boolean isMemoryWiped(UUID playerId) {
+        return memoryWiped.contains(playerId);
+    }
+
+    public void setMemoryWiped(UUID playerId, boolean wiped) {
+        if (wiped) {
+            memoryWiped.add(playerId);
+        } else {
+            memoryWiped.remove(playerId);
+        }
         setDirty();
     }
 

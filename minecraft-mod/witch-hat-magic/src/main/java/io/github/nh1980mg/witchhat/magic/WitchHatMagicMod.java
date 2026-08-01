@@ -47,6 +47,8 @@ public final class WitchHatMagicMod implements ModInitializer {
             io.github.nh1980mg.witchhat.magic.spell.FlightService.instance().tick();
             io.github.nh1980mg.witchhat.magic.quest.QuestService.tick(server);
             io.github.nh1980mg.witchhat.magic.quest.BrimcapSpawnService.tick(server);
+            io.github.nh1980mg.witchhat.magic.quest.MemoryWipeService.tick(server);
+            io.github.nh1980mg.witchhat.magic.spell.CastCircleService.instance().tick();
         });
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 RushCommand.register(dispatcher));

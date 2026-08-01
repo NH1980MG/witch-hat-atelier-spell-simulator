@@ -101,5 +101,8 @@
   "body.witch_hat_magic.left_leg": "Jambe gauche",
   "body.witch_hat_magic.right_leg": "Jambe droite",
   "quest.witch_hat_magic.tattoo_activated": "Ton %s devient %s !",
-  "command.witch_hat_magic.rush": "Equipement rush livre — bon vol !"
+  "command.witch_hat_magic.rush": "Equipement rush livre — bon vol !",
+  "quest.witch_hat_magic.memories_lost": "[Chevaliers du Sceau] Ton art est juge. Tes souvenirs des cercles s'effacent...",
+  "quest.witch_hat_magic.memories_return": "Le parfum de l'encre fraiche — tes souvenirs reviennent.",
+  "quest.witch_hat_magic.notebook_forgotten": "Tu ne te souviens de rien... fais bouillir de l'encre magique pour te souvenir."
 }

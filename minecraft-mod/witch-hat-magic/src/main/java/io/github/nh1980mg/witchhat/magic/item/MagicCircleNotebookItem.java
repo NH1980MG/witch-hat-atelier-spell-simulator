@@ -21,6 +21,15 @@ public final class MagicCircleNotebookItem extends Item {
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
         if (!level.isClientSide() && player instanceof ServerPlayer serverPlayer) {
+            if (io.github.nh1980mg.witchhat.magic.quest.QuestWorldState
+                    .get(serverPlayer.getServer())
+                    .isMemoryWiped(serverPlayer.getUUID())) {
+                serverPlayer.sendSystemMessage(net.minecraft.network.chat.Component.translatable(
+                                "quest.witch_hat_magic.notebook_forgotten")
+                        .withStyle(net.minecraft.ChatFormatting.GRAY,
+                                net.minecraft.ChatFormatting.ITALIC));
+                return InteractionResultHolder.fail(stack);
+            }
             NotebookNetworking.open(serverPlayer, hand);
         }
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());

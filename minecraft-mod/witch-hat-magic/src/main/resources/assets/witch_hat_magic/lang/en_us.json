@@ -101,5 +101,8 @@
   "body.witch_hat_magic.left_leg": "Left leg",
   "body.witch_hat_magic.right_leg": "Right leg",
   "quest.witch_hat_magic.tattoo_activated": "Your %s becomes %s!",
-  "command.witch_hat_magic.rush": "Rush loadout delivered — happy flying!"
+  "command.witch_hat_magic.rush": "Rush loadout delivered — happy flying!",
+  "quest.witch_hat_magic.memories_lost": "[Seal Knights] Your craft is judged. Your memories of the circles fade to nothing...",
+  "quest.witch_hat_magic.memories_return": "The scent of fresh ink — your memories return.",
+  "quest.witch_hat_magic.notebook_forgotten": "You remember nothing of the circles... brew magic ink to remember."
 }
