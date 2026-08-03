@@ -8,7 +8,7 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260727-mixture-runtime-v3";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260727-mixture-runtime-v3";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260801-command-placement-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260802-photo-dialog-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260716-shoe-camera-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -36,19 +36,19 @@ import {
   shouldDeferTouchTool,
   topmostSelectableIndexAtPoint,
   translateSelectedActions,
-} from "./symbol-interactions.mjs?v=20260801-command-placement-v1";
-import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260801-command-placement-v1";
+} from "./symbol-interactions.mjs?v=20260802-photo-dialog-v1";
+import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260802-photo-dialog-v1";
 import {
   SPOILER_MAX_CHAPTER,
   clampSpoilerChapter,
   isSymbolVisibleAtChapter,
   readSpoilerChapter,
   writeSpoilerChapter,
-} from "./symbol-chapters.mjs?v=20260801-command-placement-v1";
-import { scoreStrokeMatch } from "./stroke-matcher.mjs?v=20260801-command-placement-v1";
-import { analyzePhoto } from "./photo-import.mjs?v=20260801-command-placement-v1";
-import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260801-command-placement-v1";
-import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260801-command-placement-v1";
+} from "./symbol-chapters.mjs?v=20260802-photo-dialog-v1";
+import { scoreStrokeMatch } from "./stroke-matcher.mjs?v=20260802-photo-dialog-v1";
+import { analyzePhoto } from "./photo-import.mjs?v=20260802-photo-dialog-v1";
+import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260802-photo-dialog-v1";
+import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260802-photo-dialog-v1";
 
 export const CENTRAL_SIGIL_STROKE_WIDTH = 6.4365;
 
@@ -9385,6 +9385,30 @@ practiceVerifyButton?.addEventListener("click", verifyPracticeStroke);
 
 let pendingPhotoImport = null;
 
+function photoScoreTier(score) {
+  if (score >= 70) return "high";
+  if (score >= 55) return "mid";
+  return "low";
+}
+
+// Dessine les zones detectees sur l'apercu : cercle pour l'anneau, cadres
+// pour les glyphes reconnus.
+function drawDetectionOverlay(context, analysis) {
+  const lineWidth = Math.max(2, Math.round(Math.min(analysis.imageWidth, analysis.imageHeight) / 240));
+  context.lineWidth = lineWidth;
+  if (analysis.ring) {
+    context.strokeStyle = "#8c6b3f";
+    context.beginPath();
+    context.arc(analysis.ring.cx, analysis.ring.cy, analysis.ring.radius, 0, Math.PI * 2);
+    context.stroke();
+  }
+  context.strokeStyle = "#243044";
+  for (const symbol of analysis.symbols) {
+    const half = symbol.size / 2 + lineWidth * 2;
+    context.strokeRect(symbol.cx - half, symbol.cy - half, half * 2, half * 2);
+  }
+}
+
 function describePhotoAnalysis(analysis) {
   if (!photoImportResults) {
     return;
@@ -9392,16 +9416,38 @@ function describePhotoAnalysis(analysis) {
   photoImportResults.replaceChildren();
   if (analysis.ring) {
     const item = document.createElement("li");
-    item.textContent = t("photo.result.ring");
+    item.className = "photo-import-row";
+    const icon = document.createElement("span");
+    icon.className = "photo-import-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = "◎";
+    const label = document.createElement("span");
+    label.textContent = t("photo.result.ring");
+    item.append(icon, label);
     photoImportResults.append(item);
   }
   for (const symbol of analysis.symbols) {
-    const item = document.createElement("li");
     const element = elements.find((entry) => entry.name === symbol.name);
-    item.textContent = t("photo.result.symbol", {
-      name: element ? elementDisplayName(element) : symbol.name,
-      score: symbol.score,
-    });
+    const item = document.createElement("li");
+    item.className = "photo-import-row";
+    const icon = document.createElement("span");
+    icon.className = "photo-import-icon";
+    icon.setAttribute("aria-hidden", "true");
+    if (element) {
+      icon.innerHTML = elementIconMarkup(element);
+    }
+    const label = document.createElement("span");
+    label.textContent = element ? elementDisplayName(element) : symbol.name;
+    const score = document.createElement("span");
+    score.className = "photo-import-score";
+    score.textContent = `${symbol.score}%`;
+    const meter = document.createElement("span");
+    meter.className = "photo-import-meter";
+    const fill = document.createElement("span");
+    fill.style.width = `${Math.min(100, Math.max(0, symbol.score))}%`;
+    fill.dataset.tier = photoScoreTier(symbol.score);
+    meter.append(fill);
+    item.append(icon, label, score, meter);
     photoImportResults.append(item);
   }
   if (analysis.ignored > 0) {
@@ -9431,6 +9477,7 @@ async function handlePhotoFile(file) {
       setStatus(t("photo.status.nothing"));
       return;
     }
+    drawDetectionOverlay(context, analysis);
     pendingPhotoImport = analysis;
     if (photoPreviewImage) {
       photoPreviewImage.src = offscreen.toDataURL("image/png");
