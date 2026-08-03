@@ -525,7 +525,7 @@ const en = {
   "search.close": "Close the element search",
   "search.empty": "No element matches.",
   "search.results": "{count} results",
-  "search.hint": "Cmd+K",
+  "search.hint": "Command/Ctrl + K",
   "spoiler.toggle": "Hide symbols past my chapter",
   "practice.toggle": "Practice",
   "photo.toggle": "Photo",
@@ -750,7 +750,7 @@ const en = {
   "tutorial.annotation.title": "Add notes without changing the spell",
   "tutorial.annotation.body": "Set stroke fluidity in Settings to stabilize new freehand traces. Choose Annotation in the toolbar, then Drawing or Text in the Grimoire. Annotations remain visible, selectable, and saved, but the simulator excludes them from recognition, measurement, and activation.",
   "tutorial.step15.title": "Keyboard shortcuts",
-  "tutorial.step15.body": "Command/Ctrl + Z undoes, Command/Ctrl + Shift + Z redoes, and Command/Ctrl + S archives a PNG. A activates the ritual and L reads the circle. Delete or Backspace removes a selected symbol. Escape first closes the 3D view or an open panel, then clears the current selection before clearing the parchment.",
+  "tutorial.step15.body": "Command/Ctrl + Z undoes, Command/Ctrl + Shift + Z redoes, and Command/Ctrl + S archives a PNG. Command/Ctrl + K opens the element search, Command/Ctrl + D duplicates the selection, and Command/Ctrl + A, C and V select all, copy and paste. A activates the ritual and L reads the circle. Delete or Backspace removes a selected symbol. Escape steps back one layer at a time: it closes the 3D view, then an open panel, then releases an armed symbol, then clears the selection, then the guide, and only then the parchment.",
   "settings.heading": "Simulator settings",
   "settings.region": "Available settings",
   "settings.display.title": "Display",
@@ -974,7 +974,6 @@ const en = {
   "status.ruleApplied": "Applied rule: {id}",
   "status.precision": "Accuracy: {value}%",
   "status.stability": "Stability: {value}",
-  "status.symbolPrepared": "{name} symbol ready.",
 };
 
 const fr = {
@@ -1501,7 +1500,7 @@ const fr = {
   "search.close": "Fermer la recherche d'element",
   "search.empty": "Aucun element ne correspond.",
   "search.results": "{count} resultats",
-  "search.hint": "Cmd+K",
+  "search.hint": "Commande/Ctrl + K",
   "spoiler.toggle": "Masquer les symboles apres mon chapitre",
   "practice.toggle": "Entrainement",
   "photo.toggle": "Photo",
@@ -1726,7 +1725,7 @@ const fr = {
   "tutorial.annotation.title": "Ajouter des notes sans modifier le sort",
   "tutorial.annotation.body": "Regle la fluidite du trait dans les Parametres pour stabiliser les nouveaux traces libres. Choisis Commentaire dans la barre d'outils, puis Dessin ou Texte dans le Grimoire. Les commentaires restent visibles, selectionnables et sauvegardes, mais le simulateur les exclut de la reconnaissance, de la mesure et de l'activation.",
   "tutorial.step15.title": "Raccourcis clavier",
-  "tutorial.step15.body": "Commande/Ctrl + Z defait, Commande/Ctrl + Shift + Z refait, Commande/Ctrl + S archive en PNG. A active le rituel et L lit le cercle. Supprimer ou Retour arriere enleve un symbole selectionne. Echap ferme d'abord la vue 3D ou un ilot ouvert, puis annule la selection avant d'effacer le parchemin.",
+  "tutorial.step15.body": "Commande/Ctrl + Z defait, Commande/Ctrl + Shift + Z refait, Commande/Ctrl + S archive en PNG. Commande/Ctrl + K ouvre la recherche d'element, Commande/Ctrl + D duplique la selection, et Commande/Ctrl + A, C et V selectionnent tout, copient et collent. A active le rituel et L lit le cercle. Supprimer ou Retour arriere enleve un symbole selectionne. Echap revient d'un cran a la fois: il ferme la vue 3D, puis un ilot ouvert, puis relache le symbole arme, puis annule la selection, puis le guide, et seulement ensuite efface le parchemin.",
   "settings.heading": "Parametres du simulateur",
   "settings.region": "Parametres disponibles",
   "settings.display.title": "Affichage",
@@ -1950,7 +1949,6 @@ const fr = {
   "status.ruleApplied": "Regle appliquee: {id}",
   "status.precision": "Precision: {value}%",
   "status.stability": "Equilibre: {value}",
-  "status.symbolPrepared": "Symbole {name} prepare.",
 };
 
 export const catalogs = Object.freeze({
