@@ -9521,10 +9521,11 @@ function confirmPhotoImport() {
   });
 
   recordHistory();
+  const importedActions = [];
   if (analysis.ring) {
     const ringCenter = mapPoint(analysis.ring.cx, analysis.ring.cy);
     const radius = Math.min(analysis.ring.radius * scale, maxRadiusInsideDrawingLimit(ringCenter));
-    state.actions.push({
+    const ringAction = {
       type: "ring",
       label: labels.ring,
       element: "Structure",
@@ -9534,7 +9535,9 @@ function confirmPhotoImport() {
       cx: ringCenter.x,
       cy: ringCenter.y,
       radius,
-    });
+    };
+    state.actions.push(ringAction);
+    importedActions.push(ringAction);
     state.circleCenter = { x: ringCenter.x, y: ringCenter.y };
   }
   for (const symbol of analysis.symbols) {
@@ -9544,13 +9547,30 @@ function confirmPhotoImport() {
     }
     const point = mapPoint(symbol.cx, symbol.cy);
     const size = Math.max(14, Math.min(64, symbol.size * scale));
-    state.actions.push(createGlyphAction(element, point, size));
+    const glyphAction = createGlyphAction(element, point, size);
+    state.actions.push(glyphAction);
+    importedActions.push(glyphAction);
+  }
+  try {
+    const guide = createUserGuide(importedActions, {
+      name: t("guides.importedName", { count: state.userGuides.length + 1 }),
+    });
+    state.userGuides = saveUserGuides(localStorage, [guide, ...state.userGuides]);
+    renderGuideLists();
+    setStatus(t("photo.status.importedWithGuide", {
+      count: analysis.symbols.length,
+      ring: analysis.ring ? 1 : 0,
+      name: guide.name,
+    }));
+  } catch {
+    render();
+    setStatus(t("photo.status.imported", {
+      count: analysis.symbols.length,
+      ring: analysis.ring ? 1 : 0,
+    }));
+    return;
   }
   render();
-  setStatus(t("photo.status.imported", {
-    count: analysis.symbols.length,
-    ring: analysis.ring ? 1 : 0,
-  }));
 }
 
 photoImportButton?.addEventListener("click", () => photoFileInput?.click());
