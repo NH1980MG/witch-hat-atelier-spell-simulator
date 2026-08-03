@@ -4,6 +4,11 @@
 // console one at a time, in order. Reload the page between blocks marked
 // "RELOAD FIRST" so canvas/selection state starts clean.
 //
+// WARNING: every assertion below is console.assert — it logs and continues,
+// it never throws. This file is deliberately outside the tests/*.test.mjs
+// glob; wiring it into automation as-is would report unconditional success.
+// Convert each console.assert to node:assert first if that ever changes.
+//
 // Asserts the single highest-severity case in the design: Escape while the
 // search overlay is open must close the overlay and leave the drawing intact
 // (Block 1). Blocks 2-3 exercise adjacent Escape/search paths worth covering

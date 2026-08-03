@@ -219,7 +219,7 @@ test("le defilement tactile vertical ne demarre pas le transport d'un symbole", 
 
 test("une seule affectation de state.tool subsiste, dans setTool", async () => {
   const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
-  const assignments = app.match(/state\.tool = /g) || [];
+  const assignments = app.match(/state\s*\.\s*tool\s*[-+?&|]?=[^=]/g) || [];
 
   assert.equal(
     assignments.length,
