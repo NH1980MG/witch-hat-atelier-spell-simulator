@@ -2437,6 +2437,10 @@ input:focus-visible {
   width: 5.5rem;
 }
 
+.practice-bar[hidden] {
+  display: none;
+}
+
 .practice-bar {
   position: fixed;
   top: 4.5rem;
@@ -2493,47 +2497,120 @@ input:focus-visible {
 }
 
 .photo-dialog {
-  max-width: 30rem;
+  width: min(34rem, calc(100vw - 2rem));
+  max-width: calc(100vw - 2rem);
   border: 1px solid var(--line);
   border-radius: 14px;
   background: var(--paper);
   color: var(--ink);
   padding: 1rem 1.25rem;
+  box-sizing: border-box;
 }
 
 .photo-dialog::backdrop {
   background: rgba(36, 48, 68, 0.45);
 }
 
+.photo-dialog h2 {
+  margin: 0 0 0.5rem;
+}
+
 .photo-preview-frame {
-  display: grid;
-  place-items: center;
   border: 1px dashed var(--line);
   border-radius: 10px;
   margin: 0.5rem 0;
   background: color-mix(in srgb, var(--paper-dark) 40%, transparent);
+  overflow: hidden;
 }
 
 .photo-preview-frame img {
-  max-width: 100%;
-  max-height: 40vh;
-  border-radius: 8px;
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 52vh;
+  object-fit: contain;
 }
 
 .photo-import-results {
   margin: 0.5rem 0;
-  padding-left: 1.2rem;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.4rem;
   font-size: 0.9rem;
+}
+
+.photo-import-row {
+  display: grid;
+  grid-template-columns: 1.6rem 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(140, 107, 63, 0.26);
+  border-radius: 8px;
+  padding: 0.35rem 0.6rem;
+  background: rgba(255, 248, 234, 0.54);
+}
+
+.photo-import-row .photo-import-icon {
+  display: grid;
+  place-items: center;
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+.photo-import-row .photo-import-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.photo-import-meter {
+  grid-column: 2 / 4;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: rgba(36, 48, 68, 0.12);
+  overflow: hidden;
+}
+
+.photo-import-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--line);
+}
+
+.photo-import-meter > span[data-tier="high"] {
+  background: #5d7a4e;
+}
+
+.photo-import-meter > span[data-tier="mid"] {
+  background: #a8763e;
+}
+
+.photo-import-meter > span[data-tier="low"] {
+  background: #a3523e;
+}
+
+.photo-import-score {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
 }
 
 .photo-import-ignored {
   opacity: 0.65;
   font-style: italic;
+  padding-left: 0.6rem;
 }
 
 .photo-dialog-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.6rem;
   justify-content: flex-end;
   margin-top: 0.75rem;
+}
+
+.photo-dialog-actions > button,
+.photo-dialog-actions .dialog-close {
+  flex: 1 1 10rem;
+  min-width: 0;
 }

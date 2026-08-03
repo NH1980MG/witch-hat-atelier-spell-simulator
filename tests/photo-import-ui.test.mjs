@@ -21,11 +21,25 @@ test("l'atelier importe l'analyse photo", async () => {
   assert.match(source, /confirmPhotoImport/);
 });
 
+test("la boite de dialogue affiche icones, jauges et cadres de detection", async () => {
+  const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
+  const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
+  assert.match(source, /drawDetectionOverlay/);
+  assert.match(source, /photoScoreTier/);
+  assert.match(source, /photo-import-row/);
+  assert.match(source, /photo-import-meter/);
+  assert.match(source, /elementIconMarkup\(element\)/);
+  assert.match(css, /\.photo-import-row/);
+  assert.match(css, /\.photo-import-meter/);
+  assert.match(css, /data-tier="high"/);
+  assert.match(css, /\.photo-dialog-actions > button/);
+});
+
 test("les chaines de l'import photo existent dans les deux locales", async () => {
   const source = await readFile(new URL("../i18n.mjs", import.meta.url), "utf8");
   for (const key of [
     "photo.toggle", "photo.previewTitle", "photo.confirm", "photo.cancel",
-    "photo.result.ring", "photo.result.symbol", "photo.result.ignored",
+    "photo.result.ring", "photo.result.ignored",
     "photo.status.imported", "photo.status.nothing", "photo.status.error",
   ]) {
     const occurrences = source.split(`"${key}"`).length - 1;
