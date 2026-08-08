@@ -103,6 +103,44 @@ function neighbourhoodMaximum(luma, width, height, x, y, radius) {
   return maximum;
 }
 
+// Paper shadows commonly form coherent dark regions connected to the photo frame;
+// dense drawn regions surrounded by paper remain enclosed.
+function enclosedGlobalOutliers(luma, width, height, globalThreshold, globalPaper, outlierThreshold) {
+  const pixelCount = width * height;
+  const candidates = new Uint8Array(pixelCount);
+  for (let i = 0; i < pixelCount; i += 1) {
+    candidates[i] = luma[i] <= globalThreshold && globalPaper - luma[i] > outlierThreshold ? 1 : 0;
+  }
+
+  const visited = new Uint8Array(pixelCount);
+  const enclosed = new Uint8Array(pixelCount);
+  for (let start = 0; start < pixelCount; start += 1) {
+    if (!candidates[start] || visited[start]) continue;
+    const component = [];
+    const pending = [start];
+    visited[start] = 1;
+    let reachesFrame = false;
+    while (pending.length) {
+      const index = pending.pop();
+      component.push(index);
+      const x = index % width;
+      const y = Math.floor(index / width);
+      if (x === 0 || y === 0 || x === width - 1 || y === height - 1) reachesFrame = true;
+      for (const neighbor of [index - width, index - 1, index + 1, index + width]) {
+        const nx = neighbor % width;
+        if (neighbor < 0 || neighbor >= pixelCount || Math.abs(nx - x) > 1) continue;
+        if (!candidates[neighbor] || visited[neighbor]) continue;
+        visited[neighbor] = 1;
+        pending.push(neighbor);
+      }
+    }
+    if (!reachesFrame) {
+      for (const index of component) enclosed[index] = 1;
+    }
+  }
+  return enclosed;
+}
+
 export function estimateInkMask(imageData) {
   const { data, width, height } = imageData;
   if (!width || !height) return new Uint8Array(0);
@@ -137,8 +175,14 @@ export function estimateInkMask(imageData) {
   const globalThreshold = otsuThreshold(histogram);
   const globalPaper = percentile(Array.from(luma), 0.85);
   const globalOutlierThreshold = Math.max(32, Math.round(globalPaper * 0.35));
-  const globalDarkCount = histogram.slice(0, globalThreshold + 1).reduce((sum, count) => sum + count, 0);
-  const globalDarkFraction = globalDarkCount / pixelCount;
+  const globalOutliers = enclosedGlobalOutliers(
+    luma,
+    width,
+    height,
+    globalThreshold,
+    globalPaper,
+    globalOutlierThreshold,
+  );
   const localReliabilityFloor = Math.max(24, Math.round(globalPaper * 0.7));
   const localSignal = contrastHistogram.slice(localThreshold + 1).reduce((sum, count) => sum + count, 0);
   const useLocalContrast = localSignal > 0 && localThreshold >= 3;
@@ -146,9 +190,8 @@ export function estimateInkMask(imageData) {
   for (let i = 0; i < pixelCount; i += 1) {
     const localInk = useLocalContrast && contrast[i] >= Math.max(6, Math.round(localThreshold * 0.55));
     const localBackgroundReliable = backgroundEstimate[i] >= localReliabilityFloor;
-    const globalOutlier = globalDarkFraction < 0.25 && globalPaper - luma[i] > globalOutlierThreshold;
     const localOutlier = neighbourhoodContrast[i] >= globalOutlierThreshold;
-    const globalInk = luma[i] <= globalThreshold && (!useLocalContrast || (!localBackgroundReliable && globalOutlier && localOutlier));
+    const globalInk = luma[i] <= globalThreshold && (!useLocalContrast || (!localBackgroundReliable && globalOutliers[i] && localOutlier));
     mask[i] = localInk || globalInk ? 1 : 0;
   }
   return removeIsolatedPixels(mask, width, height);
