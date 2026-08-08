@@ -17,6 +17,8 @@ import {
   serializeExplorerState,
 } from "./variant-catalog.mjs";
 
+import { dailyPick } from "./daily-spell.mjs";
+
 const form = document.querySelector("#variantFilters");
 if (!form) {
   // This module is only active on the library page.
@@ -53,6 +55,20 @@ if (!form) {
   let searchTimer = 0;
 
   const displayName = (name) => getLocale() === "en" ? ENGLISH_ELEMENT_NAMES[name] || name : name;
+
+  // Sort du jour : tirage deterministe partage par tous les visiteurs.
+  const dailyCard = document.querySelector("#dailySpellCard");
+  if (dailyCard) {
+    const pick = dailyPick();
+    const supportName = pick.supportId === "shoe" ? t("support.shoe.name") : t("support.none.name");
+    document.querySelector("#dailySpellDate").textContent = pick.dateKey;
+    document.querySelector("#dailySpellRecipe").textContent =
+      `${pick.sigils.map(displayName).join(" + ")} · ${pick.signs.map(displayName).join(" + ")} · ${supportName}`;
+    document.querySelector("#dailySpellMeta").textContent =
+      `${pick.recipeId} · ${t(`library.fidelity.${pick.fidelity}`)}`;
+    document.querySelector("#dailySpellLink").href =
+      buildRecipeHref({ sigils: [...pick.sigils], signs: [...pick.signs], supportId: pick.supportId, activate: true });
+  }
 
   function option(select, value, label) {
     const node = document.createElement("option");

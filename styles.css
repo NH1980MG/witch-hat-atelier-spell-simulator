@@ -1481,6 +1481,52 @@ input:focus-visible {
   background: rgba(255, 250, 240, 0.82);
 }
 
+.daily-spell-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px 14px;
+  align-items: center;
+  min-width: 0;
+  margin: 0 0 14px;
+  border: 1px solid rgba(140, 107, 63, 0.55);
+  border-left: 4px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: linear-gradient(120deg, rgba(255, 244, 214, 0.92), rgba(255, 250, 240, 0.82));
+}
+
+.daily-spell-card-text {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.daily-spell-card h3,
+.daily-spell-card p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.daily-spell-card h3 {
+  font-size: 0.95rem;
+}
+
+.daily-spell-date {
+  color: var(--edge);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.daily-spell-recipe {
+  font-weight: 700;
+}
+
+.daily-spell-meta {
+  color: var(--edge);
+  font-size: 0.75rem;
+}
+
 .variant-result h3,
 .variant-result p {
   grid-column: 1;
