@@ -140,34 +140,47 @@ export function isRingComponent(component, imageWidth, imageHeight, centerFill) 
   return fill < 0.45 && centerFill < 0.08;
 }
 
-function median(values) {
-  if (!values.length) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  const middle = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+function boxesWithinGap(a, b, maxGap) {
+  const horizontalGap = Math.max(0, a.left - b.right - 1, b.left - a.right - 1);
+  const verticalGap = Math.max(0, a.top - b.bottom - 1, b.top - a.bottom - 1);
+  return Math.hypot(horizontalGap, verticalGap) <= maxGap;
 }
 
-function ringZone(component, rings) {
-  const cx = component.left + component.width / 2;
-  const cy = component.top + component.height / 2;
-  return rings.map((ring) => Math.hypot(cx - ring.cx, cy - ring.cy) < ring.radius).join(":");
+function combinedBounds(a, b) {
+  return {
+    left: Math.min(a.left, b.left),
+    top: Math.min(a.top, b.top),
+    right: Math.max(a.right, b.right),
+    bottom: Math.max(a.bottom, b.bottom),
+  };
 }
 
-function expandedBoxesOverlap(a, b, expansion) {
-  return a.left - expansion <= b.right + expansion
-    && a.right + expansion >= b.left - expansion
-    && a.top - expansion <= b.bottom + expansion
-    && a.bottom + expansion >= b.top - expansion;
+function boundsCrossRing(bounds, ring) {
+  const nearestX = Math.max(bounds.left, Math.min(ring.cx, bounds.right));
+  const nearestY = Math.max(bounds.top, Math.min(ring.cy, bounds.bottom));
+  const minRadius = Math.hypot(nearestX - ring.cx, nearestY - ring.cy);
+  const maxRadius = Math.max(
+    Math.hypot(bounds.left - ring.cx, bounds.top - ring.cy),
+    Math.hypot(bounds.right - ring.cx, bounds.top - ring.cy),
+    Math.hypot(bounds.left - ring.cx, bounds.bottom - ring.cy),
+    Math.hypot(bounds.right - ring.cx, bounds.bottom - ring.cy),
+  );
+  return minRadius <= ring.radius && maxRadius >= ring.radius;
 }
 
-// Les traits proches d'un meme glyphe forment une seule region. La signature
-// d'appartenance aux anneaux empeche une fusion de part et d'autre d'un cercle.
+// Le petit ecart autorise suit l'echelle de la photo mais reste borne pour ne
+// pas fusionner deux glyphes voisins. Une fusion proposee ne peut traverser un
+// rayon d'anneau, meme si les centres des composantes sont du meme cote.
 export function groupComponents(components, imageWidth, imageHeight, rings) {
   if (!components.length) return [];
-  const strokeSpan = median(components.map((component) => Math.min(component.width, component.height)));
-  const expansion = Math.max(2, Math.min(strokeSpan * 0.4, Math.min(imageWidth, imageHeight) * 0.08));
+  const maxGap = Math.max(3, Math.min(12, Math.round(Math.min(imageWidth, imageHeight) * 0.025)));
   const parents = components.map((_, index) => index);
-  const zones = components.map((component) => ringZone(component, rings));
+  const boundsByRoot = components.map((component) => ({
+    left: component.left,
+    top: component.top,
+    right: component.right,
+    bottom: component.bottom,
+  }));
   const find = (index) => {
     while (parents[index] !== index) {
       parents[index] = parents[parents[index]];
@@ -178,11 +191,15 @@ export function groupComponents(components, imageWidth, imageHeight, rings) {
   const unite = (a, b) => {
     const rootA = find(a);
     const rootB = find(b);
-    if (rootA !== rootB) parents[rootB] = rootA;
+    if (rootA === rootB) return;
+    const proposedBounds = combinedBounds(boundsByRoot[rootA], boundsByRoot[rootB]);
+    if (rings.some((ring) => boundsCrossRing(proposedBounds, ring))) return;
+    parents[rootB] = rootA;
+    boundsByRoot[rootA] = proposedBounds;
   };
   for (let i = 0; i < components.length; i += 1) {
     for (let j = i + 1; j < components.length; j += 1) {
-      if (zones[i] === zones[j] && expandedBoxesOverlap(components[i], components[j], expansion)) {
+      if (boxesWithinGap(components[i], components[j], maxGap)) {
         unite(i, j);
       }
     }

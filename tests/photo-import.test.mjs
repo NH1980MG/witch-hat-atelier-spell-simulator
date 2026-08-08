@@ -186,6 +186,15 @@ test("le regroupement ne traverse pas la frontiere d'un anneau", () => {
   assert.equal(groupComponents(components, 200, 200, [{ cx: 100, cy: 100, radius: 50 }]).length, 2);
 });
 
+test("le regroupement utilise les etendues quand les centres partagent la meme zone d'anneau", () => {
+  const components = [
+    { id: 1, size: 45, left: 135, top: 96, right: 143, bottom: 104, width: 9, height: 9 },
+    { id: 2, size: 45, left: 145, top: 96, right: 153, bottom: 104, width: 9, height: 9 },
+  ];
+  assert.equal(groupComponents(components, 200, 200, []).length, 1);
+  assert.equal(groupComponents(components, 200, 200, [{ cx: 100, cy: 100, radius: 50 }]).length, 2);
+});
+
 test("la reconnaissance couvre les bornes de rotation de moins douze a douze degres", () => {
   for (const degrees of [-12, 12]) {
     const photo = blankPhoto(240, 240);
@@ -251,6 +260,16 @@ test("deux glyphes separes donnent deux symboles aux bonnes positions", () => {
   const viseur = result.symbols.find((symbol) => symbol.name === "Viseur");
   assert.ok(feu && viseur, `attendu Feu+Viseur, obtenu ${result.symbols.map((s) => s.name).join(",")}`);
   assert.ok(feu.cx < 200 && viseur.cx > 200, "les positions relatives sont conservees");
+});
+
+test("deux glyphes proches restent deux regions acceptees", () => {
+  const photo = blankPhoto(360, 200);
+  inkGlyph(photo, "Feu", 30, 40, 120);
+  inkGlyph(photo, "Viseur", 155, 40, 120);
+  const result = analyzePhoto(photo, SYMBOL_PATHS);
+  assert.equal(result.regions.length, 2);
+  assert.deepEqual(result.regions.map(({ status }) => status), ["accepted", "accepted"]);
+  assert.deepEqual(result.symbols.map(({ name }) => name).sort(), ["Feu", "Viseur"]);
 });
 
 test("la reconnaissance reste stable sous un leger bruit de fond", () => {
