@@ -8,7 +8,7 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260727-mixture-runtime-v3";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260727-mixture-runtime-v3";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260802-photo-dialog-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260803-my-spells-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260716-shoe-camera-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -17,6 +17,12 @@ import {
   loadUserGuides,
   saveUserGuides,
 } from "./guide-storage.mjs";
+import {
+  createSpell,
+  deleteMySpell,
+  loadMySpells,
+  saveMySpells,
+} from "./spell-library.mjs";
 import { classifySymbolDragGesture } from "./symbol-drag-gesture.mjs?v=20260716-touch-scroll-v1";
 import { parseRecipeParams } from "./recipe-link.mjs";
 import {
@@ -36,19 +42,19 @@ import {
   shouldDeferTouchTool,
   topmostSelectableIndexAtPoint,
   translateSelectedActions,
-} from "./symbol-interactions.mjs?v=20260802-photo-dialog-v1";
-import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260802-photo-dialog-v1";
+} from "./symbol-interactions.mjs?v=20260803-my-spells-v1";
+import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260803-my-spells-v1";
 import {
   SPOILER_MAX_CHAPTER,
   clampSpoilerChapter,
   isSymbolVisibleAtChapter,
   readSpoilerChapter,
   writeSpoilerChapter,
-} from "./symbol-chapters.mjs?v=20260802-photo-dialog-v1";
-import { scoreStrokeMatch } from "./stroke-matcher.mjs?v=20260802-photo-dialog-v1";
-import { analyzePhoto } from "./photo-import.mjs?v=20260802-photo-dialog-v1";
-import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260802-photo-dialog-v1";
-import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260802-photo-dialog-v1";
+} from "./symbol-chapters.mjs?v=20260803-my-spells-v1";
+import { scoreStrokeMatch } from "./stroke-matcher.mjs?v=20260803-my-spells-v1";
+import { analyzePhoto } from "./photo-import.mjs?v=20260803-my-spells-v1";
+import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260803-my-spells-v1";
+import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260803-my-spells-v1";
 
 export const CENTRAL_SIGIL_STROKE_WIDTH = 6.4365;
 
@@ -317,12 +323,18 @@ const guideDrawer = document.querySelector("#guideDrawer");
 const closeGuidesButton = document.querySelector("#closeGuidesButton");
 const guideLibraryTab = document.querySelector("#guideLibraryTab");
 const guidePersonalTab = document.querySelector("#guidePersonalTab");
+const guideSpellsTab = document.querySelector("#guideSpellsTab");
 const guideLibraryList = document.querySelector("#guideLibraryList");
 const guidePersonalList = document.querySelector("#guidePersonalList");
+const guideSpellsList = document.querySelector("#guideSpellsList");
 const guideVisibleInput = document.querySelector("#guideVisibleInput");
 const guideOpacityInput = document.querySelector("#guideOpacityInput");
 const clearGuideButton = document.querySelector("#clearGuideButton");
 const saveExampleButton = document.querySelector("#saveExampleButton");
+const saveSpellButton = document.querySelector("#saveSpellButton");
+const spellSaveDialog = document.querySelector("#spellSaveDialog");
+const spellNameInput = document.querySelector("#spellNameInput");
+const spellSaveConfirm = document.querySelector("#spellSaveConfirm");
 const symbolSearchDialog = document.getElementById("symbolSearchDialog");
 const symbolSearchInput = document.getElementById("symbolSearchInput");
 const symbolSearchResults = document.getElementById("symbolSearchResults");
@@ -369,6 +381,7 @@ const state = {
   guideVisible: localStorage.getItem("whaGuideVisible") !== "false",
   guideOpacity: Math.max(10, Math.min(70, Number(localStorage.getItem("whaGuideOpacity") || 28))),
   userGuides: loadUserGuides(localStorage),
+  mySpells: loadMySpells(localStorage),
   guideTab: "library",
   guideScale: 1,
   guideSelected: false,
@@ -8344,19 +8357,125 @@ function selectGuide(source, id) {
 }
 
 function setGuideTab(tab) {
-  state.guideTab = tab === "personal" ? "personal" : "library";
-  const libraryActive = state.guideTab === "library";
-  guideLibraryTab?.classList.toggle("is-active", libraryActive);
-  guidePersonalTab?.classList.toggle("is-active", !libraryActive);
-  guideLibraryTab?.setAttribute("aria-selected", String(libraryActive));
-  guidePersonalTab?.setAttribute("aria-selected", String(!libraryActive));
+  state.guideTab = ["library", "personal", "spells"].includes(tab) ? tab : "library";
+  guideLibraryTab?.classList.toggle("is-active", state.guideTab === "library");
+  guidePersonalTab?.classList.toggle("is-active", state.guideTab === "personal");
+  guideSpellsTab?.classList.toggle("is-active", state.guideTab === "spells");
+  guideLibraryTab?.setAttribute("aria-selected", String(state.guideTab === "library"));
+  guidePersonalTab?.setAttribute("aria-selected", String(state.guideTab === "personal"));
+  guideSpellsTab?.setAttribute("aria-selected", String(state.guideTab === "spells"));
   if (guideLibraryList) {
-    guideLibraryList.hidden = !libraryActive;
+    guideLibraryList.hidden = state.guideTab !== "library";
   }
   if (guidePersonalList) {
-    guidePersonalList.hidden = libraryActive;
+    guidePersonalList.hidden = state.guideTab !== "personal";
+  }
+  if (guideSpellsList) {
+    guideSpellsList.hidden = state.guideTab !== "spells";
   }
 }
+
+function renderSpellList() {
+  if (!guideSpellsList) {
+    return;
+  }
+  guideSpellsList.innerHTML = "";
+  if (state.mySpells.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "guide-empty";
+    empty.textContent = t("spells.empty");
+    guideSpellsList.append(empty);
+  }
+  for (const spell of state.mySpells) {
+    const card = document.createElement("article");
+    card.className = "guide-card";
+    const useButton = document.createElement("button");
+    useButton.type = "button";
+    useButton.innerHTML = `<span class="guide-card-preview" aria-hidden="true">&#9672;</span><span class="guide-card-name">${spell.name}</span>`;
+    useButton.addEventListener("click", () => loadMySpell(spell.id));
+    const meta = document.createElement("p");
+    meta.className = "guide-card-meta";
+    meta.textContent = t("spells.meta", {
+      count: spell.actions.length,
+      date: new Date(spell.createdAt).toLocaleDateString(getLocale()),
+    });
+    const actions = document.createElement("div");
+    actions.className = "guide-card-actions";
+    const loadButton = document.createElement("button");
+    loadButton.type = "button";
+    loadButton.textContent = t("spells.load");
+    loadButton.addEventListener("click", () => loadMySpell(spell.id));
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.textContent = t("spells.delete");
+    deleteButton.setAttribute("aria-label", t("spells.deleteNamed", { name: spell.name }));
+    deleteButton.addEventListener("click", () => removeMySpell(spell.id));
+    actions.append(loadButton, deleteButton);
+    card.append(useButton, meta, actions);
+    guideSpellsList.append(card);
+  }
+}
+
+function saveCurrentSpell() {
+  if (state.actions.length === 0) {
+    setStatus(t("status.guideNeedsDrawing"));
+    return;
+  }
+  if (spellNameInput) {
+    spellNameInput.value = t("spells.defaultName", { count: state.mySpells.length + 1 });
+  }
+  spellSaveDialog?.showModal();
+  spellNameInput?.focus();
+  spellNameInput?.select();
+}
+
+function confirmSaveSpell() {
+  const name = spellNameInput?.value.trim() || t("spells.defaultName", { count: state.mySpells.length + 1 });
+  try {
+    const spell = createSpell({
+      name,
+      actions: state.actions,
+      intensity: state.intensity,
+      stroke: state.strokeSize,
+    });
+    state.mySpells = saveMySpells(localStorage, [spell, ...state.mySpells]);
+    renderSpellList();
+    spellSaveDialog?.close();
+    setStatus(t("spells.status.saved", { name: spell.name }));
+  } catch (error) {
+    console.warn("Spell save failed", error);
+    setStatus(t("status.guideNeedsDrawing"));
+  }
+}
+
+function loadMySpell(id) {
+  const spell = state.mySpells.find((entry) => entry.id === id);
+  if (!spell) {
+    return;
+  }
+  recordHistory();
+  state.actions = structuredClone(spell.actions);
+  state.activeSpell = null;
+  state.pendingSpell = null;
+  state.intensity = spell.intensity;
+  state.strokeSize = spell.stroke;
+  if (intensityInput) {
+    intensityInput.value = String(spell.intensity);
+  }
+  if (strokeInput) {
+    strokeInput.value = String(spell.stroke);
+  }
+  render();
+  setStatus(t("spells.status.loaded", { name: spell.name }));
+}
+
+function removeMySpell(id) {
+  const spell = state.mySpells.find((entry) => entry.id === id);
+  state.mySpells = saveMySpells(localStorage, deleteMySpell(state.mySpells, id));
+  renderSpellList();
+  setStatus(t("spells.status.deleted", { name: spell?.name || "" }));
+}
+
 
 function renderGuideLists() {
   if (!guideLibraryList || !guidePersonalList) {
@@ -8407,6 +8526,7 @@ function renderGuideLists() {
     card.append(useButton, actions);
     guidePersonalList.append(card);
   }
+  renderSpellList();
   setGuideTab(state.guideTab);
 }
 
@@ -9129,6 +9249,15 @@ guideToggleButton?.addEventListener("click", () => setGuideDrawer(true));
 closeGuidesButton?.addEventListener("click", () => setGuideDrawer(false));
 guideLibraryTab?.addEventListener("click", () => setGuideTab("library"));
 guidePersonalTab?.addEventListener("click", () => setGuideTab("personal"));
+guideSpellsTab?.addEventListener("click", () => setGuideTab("spells"));
+saveSpellButton?.addEventListener("click", saveCurrentSpell);
+spellSaveConfirm?.addEventListener("click", confirmSaveSpell);
+spellNameInput?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    confirmSaveSpell();
+  }
+});
 guideVisibleInput?.addEventListener("change", () => {
   state.guideVisible = guideVisibleInput.checked;
   if (!state.guideVisible) {

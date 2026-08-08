@@ -31,7 +31,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260803-daily-spell-v1">
+    <link rel="stylesheet" href="styles.css?v=20260803-my-spells-v1">
     <script type="importmap">
       {
         "imports": {
@@ -40,8 +40,8 @@
         }
       }
     </script>
-    <script type="module" src="site-i18n.mjs?v=20260803-daily-spell-v1"></script>
-    <script type="module" src="app.js?v=20260803-daily-spell-v1"></script>
+    <script type="module" src="site-i18n.mjs?v=20260803-my-spells-v1"></script>
+    <script type="module" src="app.js?v=20260803-my-spells-v1"></script>
   </head>
   <body class="simulator-page">
     <main class="app-shell">
@@ -235,10 +235,24 @@
           <div class="guide-tabs" role="tablist" data-i18n-aria-label="guides.sources">
             <button id="guideLibraryTab" class="is-active" type="button" role="tab" aria-selected="true" aria-controls="guideLibraryList" data-i18n="guides.library">Library</button>
             <button id="guidePersonalTab" type="button" role="tab" aria-selected="false" aria-controls="guidePersonalList" data-i18n="guides.personal">My examples</button>
+            <button id="guideSpellsTab" type="button" role="tab" aria-selected="false" aria-controls="guideSpellsList" data-i18n="guides.spells">My spells</button>
           </div>
           <div class="guide-list" id="guideLibraryList" role="tabpanel"></div>
           <div class="guide-list" id="guidePersonalList" role="tabpanel" hidden></div>
+          <div class="guide-list" id="guideSpellsList" role="tabpanel" hidden></div>
         </aside>
+
+        <dialog id="spellSaveDialog" class="photo-dialog spell-save-dialog" data-i18n-aria-label="spells.dialogTitle" aria-label="Save this spell">
+          <h2 data-i18n="spells.dialogTitle">Save this spell</h2>
+          <label class="spell-name-field" for="spellNameInput">
+            <span data-i18n="spells.nameLabel">Spell name</span>
+            <input id="spellNameInput" type="text" maxlength="80" autocomplete="off">
+          </label>
+          <div class="photo-dialog-actions">
+            <button id="spellSaveConfirm" type="button" data-i18n="spells.confirm">Save</button>
+            <form method="dialog"><button class="dialog-close" type="button" data-i18n="spells.cancel">Cancel</button></form>
+          </div>
+        </dialog>
 
         <aside class="sidebar details-drawer" id="detailsDrawer" data-i18n-aria-label="drawer.details" aria-label="Ritual details" aria-hidden="true">
           <div class="panel-heading">
@@ -351,6 +365,7 @@
           <button id="saveExampleButton" type="button" data-i18n="commands.saveExample">Save as example</button>
           <button id="practiceToggleButton" type="button" aria-controls="practiceBar" aria-expanded="false" data-i18n="practice.toggle">Practice</button>
           <button id="photoImportButton" type="button" aria-controls="photoImportDialog" aria-expanded="false" data-i18n="photo.toggle">Photo</button>
+          <button id="saveSpellButton" type="button" aria-controls="spellSaveDialog" data-i18n="commands.saveSpell">Save spell</button>
         </section>
 
         <output class="status" id="statusText" aria-live="polite" data-i18n="status.buttonMode">Button mode: draw a closed circle, then press Activate.</output>
