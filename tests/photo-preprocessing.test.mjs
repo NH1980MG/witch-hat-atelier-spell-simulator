@@ -34,6 +34,17 @@ function inkCircle(photo, cx, cy, radius, thickness) {
   }
 }
 
+function inkRect(photo, left, top, right, bottom) {
+  for (let y = top; y <= bottom; y += 1) {
+    for (let x = left; x <= right; x += 1) {
+      const i = (y * photo.width + x) * 4;
+      photo.data[i] = 35;
+      photo.data[i + 1] = 30;
+      photo.data[i + 2] = 28;
+    }
+  }
+}
+
 test("estimateInkMask keeps ink visible across uneven paper light", () => {
   const photo = gradientPaper(180, 120);
   inkCircle(photo, 90, 60, 34, 5);
@@ -55,6 +66,15 @@ test("estimateInkMask removes isolated one-pixel noise", () => {
   for (const [x, y] of [[4, 4], [115, 8], [8, 84]]) {
     assert.equal(mask[y * photo.width + x], 0, `noise at ${x},${y} should be removed`);
   }
+});
+
+test("estimateInkMask keeps dense ink when local paper is unreliable", () => {
+  const photo = gradientPaper(240, 160);
+  inkRect(photo, 20, 30, 70, 120);
+  inkRect(photo, 160, 40, 161, 112);
+  const mask = estimateInkMask(photo);
+  assert.equal(mask[75 * photo.width + 45], 1, "dense dark area should survive global fallback");
+  assert.equal(mask[75 * photo.width + 160], 1, "thin stroke should survive local contrast");
 });
 
 test("ink bounds include the entire ring radius and a safe margin", () => {
