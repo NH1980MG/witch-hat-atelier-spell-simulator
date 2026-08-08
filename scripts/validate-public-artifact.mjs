@@ -9,6 +9,7 @@ const required = [
   "bibliotheque.html",
   "tutoriel.html",
   "parametres.html",
+  "fonctionnement.html",
   "styles.css",
   "app.js",
   "variant-catalog.mjs",
@@ -17,6 +18,9 @@ const required = [
   "robots.txt",
   "sitemap.xml",
   ".nojekyll",
+  "assets/brand/atelier-mark-180.png",
+  "assets/brand/atelier-mark-512.png",
+  "assets/brand/atelier-mark.svg",
   "vendor/three/LICENSE",
   ...Object.values(SYMBOL_BOARD_ASSET).filter(Boolean),
 ];

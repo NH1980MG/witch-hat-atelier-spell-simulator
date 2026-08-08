@@ -33,6 +33,7 @@ jobs:
           mkdir -p public/assets
           cp ./*.html ./*.css ./*.js ./*.mjs public/
           cp robots.txt sitemap.xml public/
+          cp -R assets/brand public/assets/brand
           cp -R assets/library-schematics public/assets/library-schematics
           cp -R assets/symbol-glyphs public/assets/symbol-glyphs
           cp -R vendor public/vendor

@@ -15,6 +15,7 @@ test("Pages artifact includes discovery files and excludes private references", 
   assert.doesNotMatch(workflow, /cp\s+-R\s+["']?(Witch hat|docs\/research|reference)/i);
   assert.match(workflow, /cp -R assets\/library-schematics public\/assets\/library-schematics/);
   assert.match(workflow, /cp -R assets\/symbol-glyphs public\/assets\/symbol-glyphs/);
+  assert.match(workflow, /cp -R assets\/brand public\/assets\/brand/);
 });
 
 test("the public build keeps all runtime modules", () => {
@@ -24,4 +25,8 @@ test("the public build keeps all runtime modules", () => {
 test("the artifact audit requires every generated symbol glyph", () => {
   assert.match(artifactValidator, /SYMBOL_BOARD_ASSET/);
   assert.match(artifactValidator, /Object\.values\(SYMBOL_BOARD_ASSET\)/);
+  assert.match(artifactValidator, /fonctionnement\.html/);
+  assert.match(artifactValidator, /assets\/brand\/atelier-mark-180\.png/);
+  assert.match(artifactValidator, /assets\/brand\/atelier-mark-512\.png/);
+  assert.match(artifactValidator, /assets\/brand\/atelier-mark\.svg/);
 });
