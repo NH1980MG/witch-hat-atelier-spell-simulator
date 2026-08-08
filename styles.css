@@ -2582,7 +2582,7 @@ input:focus-visible {
 }
 
 .photo-dialog {
-  width: min(34rem, calc(100vw - 2rem));
+  width: min(46rem, calc(100vw - 2rem));
   max-width: calc(100vw - 2rem);
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -2634,6 +2634,38 @@ input:focus-visible {
   border-radius: 8px;
   padding: 0.35rem 0.6rem;
   background: rgba(255, 248, 234, 0.54);
+}
+
+.photo-import-row[data-status="ambiguous"] {
+  border-color: rgba(168, 118, 62, 0.72);
+  background: rgba(255, 241, 214, 0.72);
+}
+
+.photo-import-row[data-status="unreadable"] {
+  border-style: dashed;
+  opacity: 0.72;
+}
+
+.photo-region-copy {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.photo-region-state {
+  color: color-mix(in srgb, var(--ink) 68%, transparent);
+  font-size: 0.78rem;
+}
+
+.photo-region-select {
+  grid-column: 2 / 4;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--paper);
+  color: var(--ink);
+  padding: 0.42rem 0.5rem;
 }
 
 .photo-import-row .photo-import-icon {
@@ -2698,4 +2730,19 @@ input:focus-visible {
 .photo-dialog-actions .dialog-close {
   flex: 1 1 10rem;
   min-width: 0;
+}
+
+@media (max-width: 560px) {
+  .photo-dialog {
+    padding: 0.85rem;
+  }
+
+  .photo-import-row {
+    grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+  }
+
+  .photo-dialog-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
 }

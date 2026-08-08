@@ -45,3 +45,35 @@ test("un exemple personnel peut etre supprime", () => {
     { id: "b", actions: [] },
   ], "a"), [{ id: "b", actions: [] }]);
 });
+
+test("un exemple photo conserve un raster sans action de dessin", () => {
+  const raster = {
+    src: "data:image/png;base64,cGhvdG8=",
+    width: 640,
+    height: 360,
+  };
+  const guide = createUserGuide([], {
+    id: "photo-1",
+    name: "Photo recadree",
+    createdAt: 20,
+    raster,
+  });
+
+  assert.deepEqual(guide, {
+    id: "photo-1",
+    name: "Photo recadree",
+    createdAt: 20,
+    actions: [],
+    raster,
+  });
+
+  const storage = memoryStorage();
+  saveUserGuides(storage, [guide]);
+  assert.deepEqual(loadUserGuides(storage), [guide]);
+});
+
+test("un raster personnel invalide est refuse", () => {
+  assert.throws(() => createUserGuide([], {
+    raster: { src: "javascript:alert(1)", width: 640, height: 360 },
+  }), /guide requires/i);
+});

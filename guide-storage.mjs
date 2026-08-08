@@ -34,20 +34,37 @@ function sanitizeAction(action) {
   return clean;
 }
 
+function sanitizeRaster(raster) {
+  if (!raster || typeof raster.src !== "string" ||
+      !/^data:image\/(?:png|jpeg|webp);base64,[a-z0-9+/=]+$/i.test(raster.src) ||
+      !Number.isFinite(raster.width) || raster.width <= 0 ||
+      !Number.isFinite(raster.height) || raster.height <= 0) {
+    return null;
+  }
+  return {
+    src: raster.src,
+    width: raster.width,
+    height: raster.height,
+  };
+}
+
 function normalizeGuide(guide) {
   if (!guide || typeof guide.id !== "string" || !Array.isArray(guide.actions)) {
     return null;
   }
   const actions = guide.actions.map(sanitizeAction).filter(Boolean);
-  if (actions.length === 0) {
+  const raster = sanitizeRaster(guide.raster);
+  if (actions.length === 0 && !raster) {
     return null;
   }
-  return {
+  const normalized = {
     id: guide.id.slice(0, 100),
     name: String(guide.name || "Example").slice(0, 80),
     createdAt: Number.isFinite(guide.createdAt) ? guide.createdAt : Date.now(),
     actions,
   };
+  if (raster) normalized.raster = raster;
+  return normalized;
 }
 
 export function createUserGuide(actions, options = {}) {
@@ -56,6 +73,7 @@ export function createUserGuide(actions, options = {}) {
     name: options.name || "Example",
     createdAt: options.createdAt ?? Date.now(),
     actions,
+    raster: options.raster,
   });
   if (!guide) {
     throw new TypeError("A guide requires at least one valid drawing action");

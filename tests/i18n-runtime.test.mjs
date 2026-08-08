@@ -8,7 +8,7 @@ const siteI18nSource = await readFile(new URL("../site-i18n.mjs", import.meta.ur
 const howItWorksSource = await readFile(new URL("../fonctionnement.html", import.meta.url), "utf8");
 
 test("the language controller imports the current catalog revision", () => {
-  assert.match(siteI18nSource, /from "\.\/i18n\.mjs\?v=20260808-how-it-works-v1"/);
+  assert.match(siteI18nSource, /from "\.\/i18n\.mjs\?v=20260808-photo-review-v1"/);
   assert.match(howItWorksSource, /site-i18n\.mjs\?v=20260808-how-it-works-v1/);
 });
 

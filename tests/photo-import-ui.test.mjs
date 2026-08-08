@@ -9,22 +9,31 @@ test("l'atelier expose l'import photo complet", async () => {
   assert.match(html, /id="photoImportDialog"/);
   assert.match(html, /id="photoPreviewImage"/);
   assert.match(html, /id="photoImportResults"/);
-  assert.match(html, /id="photoImportConfirm"/);
+  assert.match(html, /id="photoRecreateButton"/);
+  assert.match(html, /id="photoGuideButton"/);
   assert.match(html, /data-i18n="photo\.toggle"/);
-  assert.match(html, /data-i18n="photo\.confirm"/);
+  assert.match(html, /data-i18n="photo\.recreate"/);
+  assert.match(html, /data-i18n="photo\.guide"/);
 });
 
 test("l'atelier importe l'analyse photo", async () => {
   const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
   assert.match(source, /import \{ analyzePhoto \} from "\.\/photo-import\.mjs\?v=/);
+  assert.match(source, /import \{ mapPhotoAnalysis \} from "\.\/photo-placement\.mjs\?v=/);
   assert.match(source, /createImageBitmap/);
-  assert.match(source, /confirmPhotoImport/);
+  assert.match(source, /recreatePhotoImport/);
+  assert.match(source, /savePhotoAsGuide/);
 });
 
-test("la boite de dialogue affiche icones, jauges et cadres de detection", async () => {
+test("la boite de dialogue affiche le recadrage corrige et chaque region une fois", async () => {
   const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
   const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
   assert.match(source, /drawDetectionOverlay/);
+  assert.match(source, /analysis\.cropBounds/);
+  assert.match(source, /context\.translate\(-cropBounds\.left, -cropBounds\.top\)/);
+  assert.match(source, /for \(const region of analysis\.regions \|\| \[\]\)/);
+  assert.match(source, /select\.dataset\.photoRegion/);
+  assert.match(source, /region\.candidates\.slice\(0, 3\)/);
   assert.match(source, /photoScoreTier/);
   assert.match(source, /photo-import-row/);
   assert.match(source, /photo-import-meter/);
@@ -32,15 +41,32 @@ test("la boite de dialogue affiche icones, jauges et cadres de detection", async
   assert.match(css, /\.photo-import-row/);
   assert.match(css, /\.photo-import-meter/);
   assert.match(css, /data-tier="high"/);
+  assert.match(css, /\.photo-region-select/);
   assert.match(css, /\.photo-dialog-actions > button/);
+});
+
+test("la recreation se desactive sans anneau ni candidat confirme", async () => {
+  const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
+  assert.match(source, /photoRecreateButton\.disabled = mapped\.rings\.length === 0 && mapped\.symbols\.length === 0/);
+  assert.match(source, /region\.selectedName = select\.value \|\| null/);
+});
+
+test("le guide photo conserve le raster corrige sans ajouter d'actions", async () => {
+  const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
+  assert.match(source, /createUserGuide\(\[\], \{/);
+  assert.match(source, /raster: \{/);
+  assert.match(source, /src: pending\.cropDataUrl/);
+  assert.match(source, /drawImage\(image, scaledBounds\.left, scaledBounds\.top, scaledBounds\.width, scaledBounds\.height\)/);
 });
 
 test("les chaines de l'import photo existent dans les deux locales", async () => {
   const source = await readFile(new URL("../i18n.mjs", import.meta.url), "utf8");
   for (const key of [
-    "photo.toggle", "photo.previewTitle", "photo.confirm", "photo.cancel",
-    "photo.result.ring", "photo.result.ignored",
-    "photo.status.imported", "photo.status.nothing", "photo.status.error",
+    "photo.toggle", "photo.previewTitle", "photo.recreate", "photo.guide", "photo.cancel",
+    "photo.result.ring", "photo.result.noRing", "photo.result.accepted",
+    "photo.result.ambiguous", "photo.result.unreadable", "photo.result.choose",
+    "photo.status.imported", "photo.status.guideSaved", "photo.status.guideUnsaved",
+    "photo.status.nothing", "photo.status.error",
   ]) {
     const occurrences = source.split(`"${key}"`).length - 1;
     assert.equal(occurrences, 2, `${key} doit exister en fr et en`);

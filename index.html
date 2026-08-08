@@ -34,7 +34,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260803-daily-spell-v1">
+    <link rel="stylesheet" href="styles.css?v=20260808-photo-review-v1">
     <script type="importmap">
       {
         "imports": {
@@ -43,8 +43,8 @@
         }
       }
     </script>
-    <script type="module" src="site-i18n.mjs?v=20260803-daily-spell-v1"></script>
-    <script type="module" src="app.js?v=20260803-daily-spell-v1"></script>
+    <script type="module" src="site-i18n.mjs?v=20260808-photo-review-v1"></script>
+    <script type="module" src="app.js?v=20260808-photo-review-v1"></script>
   </head>
   <body class="simulator-page">
     <main class="app-shell">
@@ -158,8 +158,9 @@
           <div class="photo-preview-frame"><img id="photoPreviewImage" alt=""></div>
           <ul id="photoImportResults" class="photo-import-results"></ul>
           <div class="photo-dialog-actions">
-            <button id="photoImportConfirm" type="button" data-i18n="photo.confirm">Place on the parchment</button>
-            <form method="dialog"><button class="dialog-close" type="button" data-i18n="photo.cancel">Cancel</button></form>
+            <button id="photoRecreateButton" type="button" data-i18n="photo.recreate">Recreate in the simulator</button>
+            <button id="photoGuideButton" type="button" data-i18n="photo.guide">Use as a guide</button>
+            <form method="dialog"><button class="dialog-close" type="submit" data-i18n="photo.cancel">Cancel</button></form>
           </div>
         </dialog>
 

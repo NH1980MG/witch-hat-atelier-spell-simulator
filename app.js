@@ -8,15 +8,16 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260727-mixture-runtime-v3";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260727-mixture-runtime-v3";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260802-photo-dialog-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260808-photo-review-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260716-shoe-camera-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
   createUserGuide,
   deleteUserGuide,
   loadUserGuides,
+  MAX_USER_GUIDES,
   saveUserGuides,
-} from "./guide-storage.mjs";
+} from "./guide-storage.mjs?v=20260808-photo-review-v1";
 import { classifySymbolDragGesture } from "./symbol-drag-gesture.mjs?v=20260716-touch-scroll-v1";
 import { parseRecipeParams } from "./recipe-link.mjs";
 import {
@@ -46,7 +47,8 @@ import {
   writeSpoilerChapter,
 } from "./symbol-chapters.mjs?v=20260802-photo-dialog-v1";
 import { scoreStrokeMatch } from "./stroke-matcher.mjs?v=20260802-photo-dialog-v1";
-import { analyzePhoto } from "./photo-import.mjs?v=20260802-photo-dialog-v1";
+import { analyzePhoto } from "./photo-import.mjs?v=20260808-photo-review-v1";
+import { mapPhotoAnalysis } from "./photo-placement.mjs?v=20260808-photo-review-v1";
 import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260802-photo-dialog-v1";
 import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260802-photo-dialog-v1";
 
@@ -298,7 +300,8 @@ const photoFileInput = document.querySelector("#photoFileInput");
 const photoImportDialog = document.querySelector("#photoImportDialog");
 const photoPreviewImage = document.querySelector("#photoPreviewImage");
 const photoImportResults = document.querySelector("#photoImportResults");
-const photoImportConfirm = document.querySelector("#photoImportConfirm");
+const photoRecreateButton = document.querySelector("#photoRecreateButton");
+const photoGuideButton = document.querySelector("#photoGuideButton");
 const closeSymbolsButton = document.querySelector("#closeSymbolsButton");
 const symbolDragGhost = document.querySelector("#symbolDragGhost");
 const detailsToggleButton = document.querySelector("#detailsToggleButton");
@@ -6625,6 +6628,33 @@ function libraryGuideImage(id) {
   return guideImageCache.get(id);
 }
 
+function personalGuideImage(guide) {
+  if (!guide?.raster) return null;
+  const key = `personal:${guide.id}`;
+  if (!guideImageCache.has(key)) {
+    const image = new Image();
+    image.addEventListener("load", render, { once: true });
+    image.src = guide.raster.src;
+    guideImageCache.set(key, image);
+  }
+  return guideImageCache.get(key);
+}
+
+function centeredRasterGuideBounds(raster, width, height) {
+  const maximum = Math.min(width, height) * 0.72;
+  const ratio = Math.min(maximum / raster.width, maximum / raster.height);
+  const guideWidth = raster.width * ratio;
+  const guideHeight = raster.height * ratio;
+  return {
+    left: (width - guideWidth) / 2,
+    right: (width + guideWidth) / 2,
+    top: (height - guideHeight) / 2,
+    bottom: (height + guideHeight) / 2,
+    width: guideWidth,
+    height: guideHeight,
+  };
+}
+
 function activeGuideBaseBounds(width, height) {
   if (!state.activeGuide) {
     return null;
@@ -6647,6 +6677,9 @@ function activeGuideBaseBounds(width, height) {
     };
   }
   const guide = state.userGuides.find((item) => item.id === state.activeGuide.id);
+  if (guide?.raster) {
+    return centeredRasterGuideBounds(guide.raster, width, height);
+  }
   if (!guide?.actions.length) {
     return null;
   }
@@ -6686,13 +6719,20 @@ function drawActiveGuide(width, height) {
     }
   } else {
     const guide = state.userGuides.find((item) => item.id === state.activeGuide.id);
-    const centerX = (baseBounds.left + baseBounds.right) / 2;
-    const centerY = (baseBounds.top + baseBounds.bottom) / 2;
-    ctx.translate(centerX, centerY);
-    ctx.scale(state.guideScale, state.guideScale);
-    ctx.translate(-centerX, -centerY);
-    for (const action of guide?.actions || []) {
-      drawAction(action);
+    if (guide?.raster) {
+      const image = personalGuideImage(guide);
+      if (image?.complete && image.naturalWidth > 0) {
+        ctx.drawImage(image, scaledBounds.left, scaledBounds.top, scaledBounds.width, scaledBounds.height);
+      }
+    } else {
+      const centerX = (baseBounds.left + baseBounds.right) / 2;
+      const centerY = (baseBounds.top + baseBounds.bottom) / 2;
+      ctx.translate(centerX, centerY);
+      ctx.scale(state.guideScale, state.guideScale);
+      ctx.translate(-centerX, -centerY);
+      for (const action of guide?.actions || []) {
+        drawAction(action);
+      }
     }
   }
   ctx.restore();
@@ -8390,7 +8430,18 @@ function renderGuideLists() {
     card.className = `guide-card${active ? " is-active" : ""}`;
     const useButton = document.createElement("button");
     useButton.type = "button";
-    useButton.innerHTML = `<span class="guide-card-preview" aria-hidden="true">&#9678;</span><span class="guide-card-name">${guide.name}</span>`;
+    if (guide.raster) {
+      const preview = document.createElement("img");
+      preview.className = "guide-card-preview";
+      preview.src = guide.raster.src;
+      preview.alt = "";
+      const name = document.createElement("span");
+      name.className = "guide-card-name";
+      name.textContent = guide.name;
+      useButton.append(preview, name);
+    } else {
+      useButton.innerHTML = `<span class="guide-card-preview" aria-hidden="true">&#9678;</span><span class="guide-card-name">${guide.name}</span>`;
+    }
     useButton.addEventListener("click", () => selectGuide("personal", guide.id));
     const actions = document.createElement("div");
     actions.className = "guide-card-actions";
@@ -9391,22 +9442,53 @@ function photoScoreTier(score) {
   return "low";
 }
 
-// Dessine les zones detectees sur l'apercu : cercle pour l'anneau, cadres
-// pour les glyphes reconnus.
-function drawDetectionOverlay(context, analysis) {
+function photoAnalysisRings(analysis) {
+  return analysis.rings?.length ? analysis.rings : analysis.ring ? [analysis.ring] : [];
+}
+
+function drawDetectionOverlay(context, analysis, cropBounds) {
   const lineWidth = Math.max(2, Math.round(Math.min(analysis.imageWidth, analysis.imageHeight) / 240));
+  context.save();
+  context.translate(-cropBounds.left, -cropBounds.top);
   context.lineWidth = lineWidth;
-  if (analysis.ring) {
-    context.strokeStyle = "#8c6b3f";
+  context.strokeStyle = "#8c6b3f";
+  for (const ring of photoAnalysisRings(analysis)) {
     context.beginPath();
-    context.arc(analysis.ring.cx, analysis.ring.cy, analysis.ring.radius, 0, Math.PI * 2);
+    context.arc(ring.cx, ring.cy, ring.radius, 0, Math.PI * 2);
     context.stroke();
   }
-  context.strokeStyle = "#243044";
-  for (const symbol of analysis.symbols) {
-    const half = symbol.size / 2 + lineWidth * 2;
-    context.strokeRect(symbol.cx - half, symbol.cy - half, half * 2, half * 2);
+  for (const region of analysis.regions || []) {
+    context.strokeStyle = region.status === "accepted"
+      ? "#3f7047"
+      : region.status === "ambiguous" ? "#a8763e" : "#a3523e";
+    context.setLineDash(region.status === "unreadable" ? [lineWidth * 3, lineWidth * 2] : []);
+    context.strokeRect(region.left, region.top, region.width, region.height);
   }
+  context.setLineDash([]);
+  context.restore();
+}
+
+function renderPhotoPreview(pending) {
+  if (!photoPreviewImage) return;
+  const preview = document.createElement("canvas");
+  preview.width = pending.cropWidth;
+  preview.height = pending.cropHeight;
+  const context = preview.getContext("2d");
+  context.drawImage(pending.cropCanvas, 0, 0);
+  drawDetectionOverlay(context, pending.analysis, pending.cropBounds);
+  photoPreviewImage.src = preview.toDataURL("image/png");
+}
+
+function photoRegionIcon(region) {
+  const candidate = region.candidates?.[0];
+  const element = elements.find((entry) => entry.name === candidate?.name);
+  return element ? elementIconMarkup(element) : "?";
+}
+
+function updatePhotoRecreateAvailability() {
+  if (!pendingPhotoImport || !photoRecreateButton) return;
+  const mapped = mapPhotoAnalysis(pendingPhotoImport.analysis, { left: 0, top: 0, width: 1, height: 1 });
+  photoRecreateButton.disabled = mapped.rings.length === 0 && mapped.symbols.length === 0;
 }
 
 function describePhotoAnalysis(analysis) {
@@ -9414,7 +9496,7 @@ function describePhotoAnalysis(analysis) {
     return;
   }
   photoImportResults.replaceChildren();
-  if (analysis.ring) {
+  if (photoAnalysisRings(analysis).length > 0) {
     const item = document.createElement("li");
     item.className = "photo-import-row";
     const icon = document.createElement("span");
@@ -9425,35 +9507,69 @@ function describePhotoAnalysis(analysis) {
     label.textContent = t("photo.result.ring");
     item.append(icon, label);
     photoImportResults.append(item);
+  } else {
+    const item = document.createElement("li");
+    item.className = "photo-import-ignored";
+    item.textContent = t("photo.result.noRing");
+    photoImportResults.append(item);
   }
-  for (const symbol of analysis.symbols) {
-    const element = elements.find((entry) => entry.name === symbol.name);
+  for (const [index, region] of (analysis.regions || []).entries()) {
+    const candidate = region.candidates?.[0];
+    const element = elements.find((entry) => entry.name === candidate?.name);
     const item = document.createElement("li");
     item.className = "photo-import-row";
+    item.dataset.status = region.status;
     const icon = document.createElement("span");
     icon.className = "photo-import-icon";
     icon.setAttribute("aria-hidden", "true");
-    if (element) {
-      icon.innerHTML = elementIconMarkup(element);
-    }
-    const label = document.createElement("span");
-    label.textContent = element ? elementDisplayName(element) : symbol.name;
+    icon.innerHTML = photoRegionIcon(region);
+    const copy = document.createElement("span");
+    copy.className = "photo-region-copy";
+    const label = document.createElement("strong");
+    label.textContent = element ? elementDisplayName(element) : candidate?.name || t("photo.result.unreadable");
+    const stateLabel = document.createElement("span");
+    stateLabel.className = "photo-region-state";
+    stateLabel.textContent = t(`photo.result.${region.status}`);
+    copy.append(label, stateLabel);
     const score = document.createElement("span");
     score.className = "photo-import-score";
-    score.textContent = `${symbol.score}%`;
+    score.textContent = candidate ? `${candidate.score}%` : "-";
     const meter = document.createElement("span");
     meter.className = "photo-import-meter";
     const fill = document.createElement("span");
-    fill.style.width = `${Math.min(100, Math.max(0, symbol.score))}%`;
-    fill.dataset.tier = photoScoreTier(symbol.score);
+    fill.style.width = `${Math.min(100, Math.max(0, candidate?.score || 0))}%`;
+    fill.dataset.tier = photoScoreTier(candidate?.score || 0);
     meter.append(fill);
-    item.append(icon, label, score, meter);
+    item.append(icon, copy, score, meter);
+    if (region.status === "ambiguous") {
+      const select = document.createElement("select");
+      select.className = "photo-region-select";
+      select.dataset.photoRegion = String(index);
+      const ignore = document.createElement("option");
+      ignore.value = "";
+      ignore.textContent = t("photo.result.choose");
+      select.append(ignore);
+      for (const optionCandidate of region.candidates.slice(0, 3)) {
+        const option = document.createElement("option");
+        option.value = optionCandidate.name;
+        const optionElement = elements.find((entry) => entry.name === optionCandidate.name);
+        option.textContent = `${optionElement ? elementDisplayName(optionElement) : optionCandidate.name} (${optionCandidate.score}%)`;
+        select.append(option);
+      }
+      select.addEventListener("change", () => {
+        region.selectedName = select.value || null;
+        updatePhotoRecreateAvailability();
+      });
+      item.append(select);
+    }
     photoImportResults.append(item);
   }
-  if (analysis.ignored > 0) {
+  const listedUnreadable = (analysis.regions || []).filter(({ status }) => status === "unreadable").length;
+  const unlistedIgnored = Math.max(0, analysis.ignored - listedUnreadable);
+  if (unlistedIgnored > 0) {
     const item = document.createElement("li");
     item.className = "photo-import-ignored";
-    item.textContent = t("photo.result.ignored", { count: analysis.ignored });
+    item.textContent = t("photo.result.ignored", { count: unlistedIgnored });
     photoImportResults.append(item);
   }
 }
@@ -9473,58 +9589,70 @@ async function handlePhotoFile(file) {
     bitmap.close?.();
     const imageData = context.getImageData(0, 0, width, height);
     const analysis = analyzePhoto(imageData, SYMBOL_PATHS);
-    if (!analysis.ring && analysis.symbols.length === 0) {
-      setStatus(t("photo.status.nothing"));
-      return;
-    }
-    drawDetectionOverlay(context, analysis);
-    pendingPhotoImport = analysis;
-    if (photoPreviewImage) {
-      photoPreviewImage.src = offscreen.toDataURL("image/png");
-    }
+    const cropBounds = analysis.cropBounds || {
+      left: 0,
+      top: 0,
+      right: width - 1,
+      bottom: height - 1,
+      width,
+      height,
+    };
+    const cropCanvas = document.createElement("canvas");
+    cropCanvas.width = cropBounds.width;
+    cropCanvas.height = cropBounds.height;
+    cropCanvas.getContext("2d").drawImage(
+      offscreen,
+      cropBounds.left,
+      cropBounds.top,
+      cropBounds.width,
+      cropBounds.height,
+      0,
+      0,
+      cropBounds.width,
+      cropBounds.height,
+    );
+    pendingPhotoImport = {
+      analysis,
+      cropBounds,
+      cropCanvas,
+      cropDataUrl: cropCanvas.toDataURL("image/png"),
+      cropWidth: cropBounds.width,
+      cropHeight: cropBounds.height,
+    };
+    renderPhotoPreview(pendingPhotoImport);
     describePhotoAnalysis(analysis);
-    if (photoImportConfirm) {
-      photoImportConfirm.disabled = false;
-    }
+    updatePhotoRecreateAvailability();
+    if (photoGuideButton) photoGuideButton.disabled = false;
     photoImportDialog?.showModal();
+    if (photoRecreateButton?.disabled) setStatus(t("photo.status.nothing"));
   } catch (error) {
     console.warn("photo import failed", error);
     setStatus(t("photo.status.error"));
   }
 }
 
-function confirmPhotoImport() {
-  const analysis = pendingPhotoImport;
-  pendingPhotoImport = null;
-  if (!analysis) {
-    return;
-  }
-  // Cadre du contenu detecte, ramene au centre du parchemin a 55 % de sa taille.
-  const points = analysis.symbols.map((symbol) => ({ x: symbol.cx, y: symbol.cy }));
-  if (analysis.ring) {
-    points.push({ x: analysis.ring.cx, y: analysis.ring.cy });
-  }
-  const minX = Math.min(...points.map(({ x }) => x));
-  const maxX = Math.max(...points.map(({ x }) => x));
-  const minY = Math.min(...points.map(({ y }) => y));
-  const maxY = Math.max(...points.map(({ y }) => y));
-  const contentCx = (minX + maxX) / 2;
-  const contentCy = (minY + maxY) / 2;
-  const contentSpan = Math.max(24, maxX - minX, maxY - minY);
+function photoPlacementTarget() {
   const { width, height } = canvasSize();
   const targetSpan = Math.min(width, height) * 0.55;
-  const scale = targetSpan / contentSpan;
-  const center = { x: width / 2, y: height / 2 };
-  const mapPoint = (x, y) => clampPointToDrawingLimit({
-    x: center.x + (x - contentCx) * scale,
-    y: center.y + (y - contentCy) * scale,
-  });
+  return {
+    left: width / 2 - targetSpan / 2,
+    top: height / 2 - targetSpan / 2,
+    width: targetSpan,
+    height: targetSpan,
+  };
+}
 
+function recreatePhotoImport() {
+  const pending = pendingPhotoImport;
+  if (!pending) {
+    return;
+  }
+  const mapped = mapPhotoAnalysis(pending.analysis, photoPlacementTarget());
+  if (mapped.rings.length === 0 && mapped.symbols.length === 0) return;
   recordHistory();
-  const importedActions = [];
-  if (analysis.ring) {
-    const ringCenter = mapPoint(analysis.ring.cx, analysis.ring.cy);
-    const radius = Math.min(analysis.ring.radius * scale, maxRadiusInsideDrawingLimit(ringCenter));
+  for (const [index, ring] of mapped.rings.entries()) {
+    const ringCenter = { x: ring.cx, y: ring.cy };
+    const radius = Math.min(ring.radius, maxRadiusInsideDrawingLimit(ringCenter));
     const ringAction = {
       type: "ring",
       label: labels.ring,
@@ -9537,40 +9665,72 @@ function confirmPhotoImport() {
       radius,
     };
     state.actions.push(ringAction);
-    importedActions.push(ringAction);
-    state.circleCenter = { x: ringCenter.x, y: ringCenter.y };
+    if (index === 0) state.circleCenter = { x: ringCenter.x, y: ringCenter.y };
   }
-  for (const symbol of analysis.symbols) {
+  for (const symbol of mapped.symbols) {
     const element = elements.find((entry) => entry.name === symbol.name);
     if (!element) {
       continue;
     }
-    const point = mapPoint(symbol.cx, symbol.cy);
-    const size = Math.max(14, Math.min(64, symbol.size * scale));
+    const point = { x: symbol.cx, y: symbol.cy };
+    const size = Math.max(1, symbol.size);
     const glyphAction = createGlyphAction(element, point, size);
     state.actions.push(glyphAction);
-    importedActions.push(glyphAction);
   }
-  try {
-    const guide = createUserGuide(importedActions, {
-      name: t("guides.importedName", { count: state.userGuides.length + 1 }),
-    });
-    state.userGuides = saveUserGuides(localStorage, [guide, ...state.userGuides]);
-    renderGuideLists();
-    setStatus(t("photo.status.importedWithGuide", {
-      count: analysis.symbols.length,
-      ring: analysis.ring ? 1 : 0,
-      name: guide.name,
-    }));
-  } catch {
-    render();
-    setStatus(t("photo.status.imported", {
-      count: analysis.symbols.length,
-      ring: analysis.ring ? 1 : 0,
-    }));
-    return;
-  }
+  pendingPhotoImport = null;
+  photoImportDialog?.close();
   render();
+  setStatus(t("photo.status.imported", {
+    count: mapped.symbols.length,
+    ring: mapped.rings.length,
+  }));
+}
+
+function activateRasterGuide(guide) {
+  state.activeGuide = { source: "personal", id: guide.id };
+  state.guideScale = 1;
+  state.guideSelected = true;
+  state.selectedActionIndices = [];
+  setTool("select");
+  state.guideVisible = true;
+  try {
+    localStorage.setItem("whaGuideVisible", "true");
+  } catch {
+    // The raster remains usable for this session when browser storage is full.
+  }
+  if (guideVisibleInput) guideVisibleInput.checked = true;
+  setGuideTab("personal");
+  renderGuideLists();
+  updateToolButtons();
+  updateSelectionControls();
+  render();
+}
+
+function savePhotoAsGuide() {
+  const pending = pendingPhotoImport;
+  if (!pending) return;
+  const guide = createUserGuide([], {
+    name: t("guides.importedName", { count: state.userGuides.length + 1 }),
+    raster: {
+      src: pending.cropDataUrl,
+      width: pending.cropWidth,
+      height: pending.cropHeight,
+    },
+  });
+  let saved = true;
+  try {
+    state.userGuides = saveUserGuides(localStorage, [guide, ...state.userGuides]);
+  } catch {
+    saved = false;
+    state.userGuides = [guide, ...state.userGuides.filter((item) => item.id !== guide.id)]
+      .slice(0, MAX_USER_GUIDES);
+  }
+  activateRasterGuide(guide);
+  pendingPhotoImport = null;
+  photoImportDialog?.close();
+  setStatus(saved
+    ? t("photo.status.guideSaved", { name: guide.name })
+    : t("photo.status.guideUnsaved"));
 }
 
 photoImportButton?.addEventListener("click", () => photoFileInput?.click());
@@ -9581,9 +9741,10 @@ photoFileInput?.addEventListener("change", () => {
   }
   photoFileInput.value = "";
 });
-photoImportConfirm?.addEventListener("click", () => {
-  confirmPhotoImport();
-  photoImportDialog?.close();
+photoRecreateButton?.addEventListener("click", recreatePhotoImport);
+photoGuideButton?.addEventListener("click", savePhotoAsGuide);
+photoImportDialog?.addEventListener("close", () => {
+  pendingPhotoImport = null;
 });
 
 symbolSearchInput?.addEventListener("keydown", (event) => {
