@@ -251,28 +251,144 @@ function bestStrokeDistance(template, candidate) {
   return Math.min(forward, backward);
 }
 
-// Score de ressemblance 0-100 entre des traits utilisateur et les modeles du
-// symbole (commandes SVG du catalogue, potentiellement multi-sous-chemins).
-export function scoreStrokeMatch(userStrokes, templatePaths) {
+function clampPercentage(value) {
+  return Math.round(Math.max(0, Math.min(100, value)));
+}
+
+function shapeProportions(strokes) {
+  const points = strokes.flat();
+  if (!points.length) {
+    return [0, 0];
+  }
+  const xs = points.map(([x]) => x);
+  const ys = points.map(([, y]) => y);
+  const width = Math.max(...xs) - Math.min(...xs);
+  const height = Math.max(...ys) - Math.min(...ys);
+  const scale = Math.max(width, height) || 1;
+  return [width / scale, height / scale];
+}
+
+function proportionSimilarity(left, right) {
+  const [leftWidth, leftHeight] = shapeProportions(left);
+  const [rightWidth, rightHeight] = shapeProportions(right);
+  const difference = (Math.abs(leftWidth - rightWidth) + Math.abs(leftHeight - rightHeight)) / 2;
+  return clampPercentage((1 - difference) * 100);
+}
+
+function principalAxis(strokes) {
+  const points = strokes.flat();
+  if (points.length < 2) {
+    return { angle: 0, strength: 0 };
+  }
+  const center = points.reduce(
+    (sum, [x, y]) => [sum[0] + x / points.length, sum[1] + y / points.length],
+    [0, 0],
+  );
+  let xx = 0;
+  let xy = 0;
+  let yy = 0;
+  for (const [x, y] of points) {
+    const dx = x - center[0];
+    const dy = y - center[1];
+    xx += dx * dx;
+    xy += dx * dy;
+    yy += dy * dy;
+  }
+  const spread = xx + yy;
+  const anisotropy = Math.hypot(xx - yy, 2 * xy);
+  return {
+    angle: 0.5 * Math.atan2(2 * xy, xx - yy),
+    strength: spread > 0 ? anisotropy / spread : 0,
+  };
+}
+
+function orientationSimilarity(left, right) {
+  const leftAxis = principalAxis(left);
+  const rightAxis = principalAxis(right);
+  // A nearly round drawing has no stable principal direction.
+  if (leftAxis.strength < 0.05 || rightAxis.strength < 0.05) {
+    return 100;
+  }
+  let difference = Math.abs(leftAxis.angle - rightAxis.angle) % Math.PI;
+  difference = Math.min(difference, Math.PI - difference);
+  return clampPercentage((1 - difference / (Math.PI / 2)) * 100);
+}
+
+function pairStrokes(templateStrokes, userStrokes) {
+  const distances = [];
+  for (let templateIndex = 0; templateIndex < templateStrokes.length; templateIndex += 1) {
+    for (let userIndex = 0; userIndex < userStrokes.length; userIndex += 1) {
+      distances.push({
+        distance: bestStrokeDistance(templateStrokes[templateIndex], userStrokes[userIndex]),
+        templateIndex,
+        userIndex,
+      });
+    }
+  }
+  distances.sort((left, right) => left.distance - right.distance);
+
+  const usedTemplates = new Set();
+  const usedUsers = new Set();
+  const pairs = [];
+  for (const candidate of distances) {
+    if (usedTemplates.has(candidate.templateIndex) || usedUsers.has(candidate.userIndex)) {
+      continue;
+    }
+    usedTemplates.add(candidate.templateIndex);
+    usedUsers.add(candidate.userIndex);
+    pairs.push(candidate);
+  }
+  return pairs;
+}
+
+// Diagnostic 0-100 entre les traits utilisateur et les chemins SVG du modele.
+export function analyzeStrokeMatch(userStrokes, templatePaths) {
   const templateStrokes = templatePaths.flatMap((d) => flattenSvgPath(d)).map((points) => resamplePoints(points));
   const user = userStrokes.filter((stroke) => stroke.length > 0).map((points) => resamplePoints(points));
   if (user.length === 0 || templateStrokes.length === 0) {
-    return 0;
+    return {
+      score: 0,
+      coverage: 0,
+      extraPenalty: user.length ? Math.min(35, user.length * 12) : 0,
+      proportionScore: 0,
+      orientationScore: 0,
+      missingStrokes: templateStrokes.length,
+      extraStrokes: user.length,
+    };
   }
   const normalizedUser = normalizeStrokes(user);
   const normalizedTemplate = normalizeStrokes(templateStrokes);
+  const pairs = pairStrokes(normalizedTemplate, normalizedUser);
+  const missingStrokes = normalizedTemplate.length - pairs.length;
+  const extraStrokes = normalizedUser.length - pairs.length;
+  const coverage = clampPercentage((pairs.length / normalizedTemplate.length) * 100);
+  const meanDistance = pairs.length
+    ? pairs.reduce((sum, pair) => sum + pair.distance, 0) / pairs.length
+    : 1;
+  const shapeScore = clampPercentage((1 - meanDistance / 0.5) * 100);
+  const extraPenalty = Math.min(35, extraStrokes * 12);
+  const proportionScore = proportionSimilarity(user, templateStrokes);
+  const orientationScore = orientationSimilarity(user, templateStrokes);
+  const score = clampPercentage(
+    shapeScore * 0.65
+      + coverage * 0.2
+      + proportionScore * 0.1
+      + orientationScore * 0.05
+      - extraPenalty,
+  );
 
-  // Couplage glouton : chaque trait du modele prend le meilleur trait utilisateur.
-  const perTemplate = normalizedTemplate.map((template) => {
-    let best = Infinity;
-    for (const candidate of normalizedUser) {
-      best = Math.min(best, bestStrokeDistance(template, candidate));
-    }
-    return best;
-  });
-  const meanDistance = perTemplate.reduce((sum, value) => sum + value, 0) / perTemplate.length;
-  // Penalite douce quand le nombre de traits differe (trait oublie ou en trop).
-  const countPenalty = Math.min(0.35, 0.12 * Math.abs(normalizedUser.length - normalizedTemplate.length));
-  const score = Math.max(0, 1 - meanDistance / 0.5 - countPenalty);
-  return Math.round(Math.min(1, score) * 100);
+  return {
+    score,
+    coverage,
+    extraPenalty,
+    proportionScore,
+    orientationScore,
+    missingStrokes,
+    extraStrokes,
+  };
+}
+
+// API historique conservee pour les consommateurs qui n'ont besoin que du score.
+export function scoreStrokeMatch(userStrokes, templatePaths) {
+  return analyzeStrokeMatch(userStrokes, templatePaths).score;
 }

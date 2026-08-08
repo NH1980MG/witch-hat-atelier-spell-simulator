@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import { SYMBOL_PATHS } from "../symbol-catalog.mjs";
 import {
+  analyzeStrokeMatch,
   flattenSvgPath,
   normalizeStrokes,
   resamplePoints,
@@ -43,6 +44,42 @@ test("un trait manquant est penalise sans effondrer le score", () => {
   const partialScore = scoreStrokeMatch(partial, SYMBOL_PATHS.Guidage);
   assert.ok(partialScore < fullScore, `${partialScore} doit etre < ${fullScore}`);
   assert.ok(partialScore > 40, `${partialScore} doit rester > 40`);
+});
+
+test("un trait utilisateur ne peut pas satisfaire plusieurs traits du modele", () => {
+  const template = ["M 0 0 L 10 0", "M 0 10 L 10 10"];
+  const result = analyzeStrokeMatch([[[0, 0], [10, 0]]], template);
+
+  assert.equal(result.missingStrokes, 1);
+  assert.equal(result.extraStrokes, 0);
+  assert.equal(result.coverage, 50);
+  assert.ok(result.score < 80, `score ${result.score} attendu < 80`);
+});
+
+test("les diagnostics signalent separement les traits en trop", () => {
+  const template = ["M 0 0 L 10 0"];
+  const user = [
+    [[0, 0], [10, 0]],
+    [[0, 5], [10, 5]],
+  ];
+  const result = analyzeStrokeMatch(user, template);
+
+  assert.equal(result.missingStrokes, 0);
+  assert.equal(result.extraStrokes, 1);
+  assert.ok(result.extraPenalty > 0);
+  assert.ok(result.score < 100);
+});
+
+test("les diagnostics exposent proportions et orientation sans casser les correspondances parfaites", () => {
+  const perfect = analyzeStrokeMatch(strokesOf("Viseur"), SYMBOL_PATHS.Viseur);
+  const stretched = strokesOf("Viseur").map((stroke) => stroke.map(([x, y]) => [x * 4, y]));
+  const distorted = analyzeStrokeMatch(stretched, SYMBOL_PATHS.Viseur);
+
+  assert.equal(perfect.score, scoreStrokeMatch(strokesOf("Viseur"), SYMBOL_PATHS.Viseur));
+  assert.ok(perfect.proportionScore >= 99);
+  assert.ok(perfect.orientationScore >= 99);
+  assert.ok(distorted.proportionScore < perfect.proportionScore);
+  assert.ok(distorted.score < perfect.score);
 });
 
 test("l'aplatissement couvre tous les glyphes du catalogue", () => {

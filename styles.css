@@ -2535,7 +2535,9 @@ input:focus-visible {
   display: flex;
   align-items: center;
   gap: 0.9rem;
+  width: min(46rem, calc(100vw - 1.5rem));
   padding: 0.6rem 0.9rem;
+  box-sizing: border-box;
   border: 1px solid var(--line);
   border-radius: 14px;
   background: var(--paper);
@@ -2560,7 +2562,9 @@ input:focus-visible {
 
 .practice-controls {
   display: grid;
+  flex: 1;
   gap: 0.45rem;
+  min-width: 0;
 }
 
 .practice-target {
@@ -2574,6 +2578,15 @@ input:focus-visible {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   min-height: 1.2em;
+}
+
+.practice-feedback {
+  max-width: 34rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: color-mix(in srgb, var(--ink) 78%, var(--paper));
+  font-size: 0.78rem;
+  line-height: 1.35;
 }
 
 .commands button.is-active {

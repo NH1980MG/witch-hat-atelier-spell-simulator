@@ -34,7 +34,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260808-photo-review-v1">
+    <link rel="stylesheet" href="styles.css?v=20260808-practice-diagnostics-v1">
     <script type="importmap">
       {
         "imports": {
@@ -43,8 +43,8 @@
         }
       }
     </script>
-    <script type="module" src="site-i18n.mjs?v=20260808-photo-review-v1"></script>
-    <script type="module" src="app.js?v=20260808-photo-review-v2"></script>
+    <script type="module" src="site-i18n.mjs?v=20260808-practice-diagnostics-v1"></script>
+    <script type="module" src="app.js?v=20260808-practice-diagnostics-v1"></script>
   </head>
   <body class="simulator-page">
     <main class="app-shell">
@@ -173,6 +173,7 @@
             </label>
             <button id="practiceVerifyButton" type="button" data-i18n="practice.verify">Score my stroke</button>
             <output id="practiceScore" class="practice-score" aria-live="polite"></output>
+            <p id="practiceFeedback" class="practice-feedback" role="status" aria-live="polite" aria-atomic="true" data-i18n="practice.feedback.empty">Draw the target, then score it to see detailed feedback.</p>
           </div>
           <button class="drawer-close" id="practiceCloseButton" type="button" data-i18n-aria-label="practice.close" aria-label="Close practice">&times;</button>
         </div>

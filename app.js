@@ -46,7 +46,7 @@ import {
   readSpoilerChapter,
   writeSpoilerChapter,
 } from "./symbol-chapters.mjs?v=20260802-photo-dialog-v1";
-import { scoreStrokeMatch } from "./stroke-matcher.mjs?v=20260802-photo-dialog-v1";
+import { analyzeStrokeMatch } from "./stroke-matcher.mjs?v=20260808-practice-diagnostics-v1";
 import { analyzePhoto } from "./photo-import.mjs?v=20260808-photo-review-v1";
 import { mapPhotoAnalysis, selectPhotoCandidate } from "./photo-placement.mjs?v=20260808-photo-review-v2";
 import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260802-photo-dialog-v1";
@@ -294,6 +294,7 @@ const practicePreview = document.querySelector("#practicePreview");
 const practiceTargetSelect = document.querySelector("#practiceTargetSelect");
 const practiceVerifyButton = document.querySelector("#practiceVerifyButton");
 const practiceScore = document.querySelector("#practiceScore");
+const practiceFeedback = document.querySelector("#practiceFeedback");
 const practiceCloseButton = document.querySelector("#practiceCloseButton");
 const photoImportButton = document.querySelector("#photoImportButton");
 const photoFileInput = document.querySelector("#photoFileInput");
@@ -9390,6 +9391,9 @@ function setPracticeOpen(open) {
     if (practiceScore) {
       practiceScore.value = "";
     }
+    if (practiceFeedback) {
+      practiceFeedback.textContent = t("practice.feedback.empty");
+    }
   }
 }
 
@@ -9406,15 +9410,29 @@ function verifyPracticeStroke() {
     if (practiceScore) {
       practiceScore.value = "-";
     }
+    if (practiceFeedback) {
+      practiceFeedback.textContent = t("practice.feedback.empty");
+    }
     setStatus(t("practice.status.empty"));
     return;
   }
-  const score = scoreStrokeMatch(attempts, SYMBOL_PATHS[target]);
+  const analysis = analyzeStrokeMatch(attempts, SYMBOL_PATHS[target]);
+  const { score } = analysis;
   const tier = score >= 80 ? "excellent" : score >= 60 ? "good" : "retry";
   const element = elements.find((item) => item.name === target);
   const name = element ? elementDisplayName(element) : target;
   if (practiceScore) {
     practiceScore.value = `${score}%`;
+  }
+  if (practiceFeedback) {
+    practiceFeedback.textContent = t("practice.feedback.summary", {
+      coverage: analysis.coverage,
+      missing: analysis.missingStrokes,
+      extra: analysis.extraStrokes,
+      penalty: analysis.extraPenalty,
+      proportion: analysis.proportionScore,
+      orientation: analysis.orientationScore,
+    });
   }
   setStatus(t(`practice.status.${tier}`, { score, name }));
   // La prochaine verification part d'une page blanche logique : les traits de
@@ -9430,6 +9448,9 @@ practiceTargetSelect?.addEventListener("change", () => {
   state.practiceStartIndex = state.actions.length;
   if (practiceScore) {
     practiceScore.value = "";
+  }
+  if (practiceFeedback) {
+    practiceFeedback.textContent = t("practice.feedback.empty");
   }
 });
 practiceVerifyButton?.addEventListener("click", verifyPracticeStroke);
