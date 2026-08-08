@@ -30,4 +30,4 @@ not changed or run in this step.
 - Browser and publication checklist items remain unchecked for controller
   verification.
 - Commit: `docs: document photo recognition workflow`
-- Commit hash: `PENDING_UNTIL_COMMIT`
+- Commit hash: `17541ca`
