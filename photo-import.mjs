@@ -5,14 +5,9 @@
 // du catalogue. Aucune dependance, tout est deterministe et testable sous Node.
 
 import { flattenSvgPath } from "./stroke-matcher.mjs";
+import { estimateInkMask } from "./photo-preprocessing.mjs";
 
 export const TEMPLATE_SIZE = 48;
-
-// --- binarisation ---------------------------------------------------------
-
-function luminance(r, g, b) {
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
 
 // Seuil d'Otsu sur les luminances 0-255 (encre sombre sur papier clair).
 export function otsuThreshold(histogram) {
@@ -48,20 +43,7 @@ export function otsuThreshold(histogram) {
 // imageData : { data: Uint8ClampedArray RGBA, width, height }.
 // Retourne un masque Uint8Array (1 = encre).
 export function toInkMask(imageData) {
-  const { data, width, height } = imageData;
-  const histogram = new Array(256).fill(0);
-  const luma = new Uint8Array(width * height);
-  for (let i = 0; i < width * height; i += 1) {
-    const value = Math.round(luminance(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]));
-    luma[i] = value;
-    histogram[value] += 1;
-  }
-  const threshold = otsuThreshold(histogram);
-  const mask = new Uint8Array(width * height);
-  for (let i = 0; i < luma.length; i += 1) {
-    mask[i] = luma[i] <= threshold ? 1 : 0;
-  }
-  return mask;
+  return estimateInkMask(imageData);
 }
 
 // --- composantes connexes --------------------------------------------------

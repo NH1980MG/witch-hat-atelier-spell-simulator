@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { SYMBOL_PATHS } from "../symbol-catalog.mjs";
+import { estimateInkMask } from "../photo-preprocessing.mjs";
 import {
   PHOTO_IMPORT_MIN_SCORE,
   analyzePhoto,
@@ -73,6 +74,12 @@ test("Otsu separe l'encre du papier sur une image bimodale", () => {
   let ink = 0;
   for (const value of mask) ink += value;
   assert.equal(ink, 11 * 11);
+});
+
+test("toInkMask reste le wrapper de compatibilite de estimateInkMask", () => {
+  const photo = blankPhoto(40, 40);
+  inkRect(photo, 10, 10, 20, 20);
+  assert.deepEqual(toInkMask(photo), estimateInkMask(photo));
 });
 
 test("les petites taches sont ignorees, la grosse composante gardee", () => {
