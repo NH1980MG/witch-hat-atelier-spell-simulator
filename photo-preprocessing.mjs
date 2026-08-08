@@ -91,6 +91,18 @@ function removeIsolatedPixels(mask, width, height) {
   return cleaned;
 }
 
+function neighbourhoodMaximum(luma, width, height, x, y, radius) {
+  let maximum = 0;
+  for (const dy of [-radius, 0, radius]) {
+    const sampleY = Math.max(0, Math.min(height - 1, y + dy));
+    for (const dx of [-radius, 0, radius]) {
+      const sampleX = Math.max(0, Math.min(width - 1, x + dx));
+      maximum = Math.max(maximum, luma[sampleY * width + sampleX]);
+    }
+  }
+  return maximum;
+}
+
 export function estimateInkMask(imageData) {
   const { data, width, height } = imageData;
   if (!width || !height) return new Uint8Array(0);
@@ -106,7 +118,9 @@ export function estimateInkMask(imageData) {
   const background = coarseBackground(luma, width, height);
   const contrast = new Uint8Array(pixelCount);
   const backgroundEstimate = new Uint8Array(pixelCount);
+  const neighbourhoodContrast = new Uint8Array(pixelCount);
   const contrastHistogram = new Array(256).fill(0);
+  const neighbourhoodRadius = Math.max(background.cellSize * 4, Math.round(Math.min(width, height) * 0.35));
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
       const index = y * width + x;
@@ -114,6 +128,7 @@ export function estimateInkMask(imageData) {
       backgroundEstimate[index] = localBackground;
       const value = Math.max(0, Math.min(255, localBackground - luma[index]));
       contrast[index] = value;
+      neighbourhoodContrast[index] = Math.max(0, neighbourhoodMaximum(luma, width, height, x, y, neighbourhoodRadius) - luma[index]);
       contrastHistogram[value] += 1;
     }
   }
@@ -121,6 +136,7 @@ export function estimateInkMask(imageData) {
   const localThreshold = otsuThreshold(contrastHistogram);
   const globalThreshold = otsuThreshold(histogram);
   const globalPaper = percentile(Array.from(luma), 0.85);
+  const globalOutlierThreshold = Math.max(32, Math.round(globalPaper * 0.35));
   const localReliabilityFloor = Math.max(24, Math.round(globalPaper * 0.7));
   const localSignal = contrastHistogram.slice(localThreshold + 1).reduce((sum, count) => sum + count, 0);
   const useLocalContrast = localSignal > 0 && localThreshold >= 3;
@@ -128,7 +144,9 @@ export function estimateInkMask(imageData) {
   for (let i = 0; i < pixelCount; i += 1) {
     const localInk = useLocalContrast && contrast[i] >= Math.max(6, Math.round(localThreshold * 0.55));
     const localBackgroundReliable = backgroundEstimate[i] >= localReliabilityFloor;
-    const globalInk = luma[i] <= globalThreshold && (!useLocalContrast || !localBackgroundReliable);
+    const globalOutlier = globalPaper - luma[i] > globalOutlierThreshold;
+    const localOutlier = neighbourhoodContrast[i] >= globalOutlierThreshold;
+    const globalInk = luma[i] <= globalThreshold && (!useLocalContrast || (!localBackgroundReliable && globalOutlier && localOutlier));
     mask[i] = localInk || globalInk ? 1 : 0;
   }
   return removeIsolatedPixels(mask, width, height);

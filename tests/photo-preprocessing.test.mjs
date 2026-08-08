@@ -18,6 +18,21 @@ function gradientPaper(width, height) {
   return { data, width, height };
 }
 
+function shadowedPaper(width, height, shadowValue = 150, lightValue = 230) {
+  const data = new Uint8ClampedArray(width * height * 4);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const value = x < width / 2 ? shadowValue : lightValue;
+      const i = (y * width + x) * 4;
+      data[i] = value;
+      data[i + 1] = value;
+      data[i + 2] = value;
+      data[i + 3] = 255;
+    }
+  }
+  return { data, width, height };
+}
+
 function inkCircle(photo, cx, cy, radius, thickness) {
   const outer = radius + thickness / 2;
   const inner = radius - thickness / 2;
@@ -75,6 +90,18 @@ test("estimateInkMask keeps dense ink when local paper is unreliable", () => {
   const mask = estimateInkMask(photo);
   assert.equal(mask[75 * photo.width + 45], 1, "dense dark area should survive global fallback");
   assert.equal(mask[75 * photo.width + 160], 1, "thin stroke should survive local contrast");
+});
+
+test("estimateInkMask does not classify a legitimate paper shadow as ink", () => {
+  const photo = shadowedPaper(240, 160);
+  inkRect(photo, 60, 30, 61, 130);
+  const mask = estimateInkMask(photo);
+  const shadowInk = Array.from(mask).reduce((count, value, index) => {
+    const x = index % photo.width;
+    return count + (x < photo.width / 2 && x !== 60 && x !== 61 ? value : 0);
+  }, 0);
+  assert.ok(shadowInk < 500, `shadow paper should remain background, got ${shadowInk} ink pixels`);
+  assert.equal(mask[80 * photo.width + 60], 1, "the dark stroke should remain ink");
 });
 
 test("ink bounds include the entire ring radius and a safe margin", () => {
