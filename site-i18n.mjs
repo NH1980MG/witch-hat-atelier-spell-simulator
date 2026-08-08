@@ -2,7 +2,7 @@ import {
   DEFAULT_LOCALE,
   resolveLocale,
   translate,
-} from "./i18n.mjs?v=20260731-recipe-review-v1";
+} from "./i18n.mjs?v=20260808-how-it-works-v1";
 
 let currentLocale = DEFAULT_LOCALE;
 

@@ -4,6 +4,13 @@ import test from "node:test";
 import { translate } from "../i18n.mjs";
 
 const appSource = await readFile(new URL("../app.js", import.meta.url), "utf8");
+const siteI18nSource = await readFile(new URL("../site-i18n.mjs", import.meta.url), "utf8");
+const howItWorksSource = await readFile(new URL("../fonctionnement.html", import.meta.url), "utf8");
+
+test("the language controller imports the current catalog revision", () => {
+  assert.match(siteI18nSource, /from "\.\/i18n\.mjs\?v=20260808-how-it-works-v1"/);
+  assert.match(howItWorksSource, /site-i18n\.mjs\?v=20260808-how-it-works-v1/);
+});
 
 test("the simulator uses the shared runtime translation service", () => {
   assert.match(appSource, /from "\.\/site-i18n\.mjs/);
