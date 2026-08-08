@@ -30,9 +30,9 @@
         window.location.replace("http://127.0.0.1:8000/bibliotheque.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260802-photo-dialog-v1">
+    <link rel="stylesheet" href="styles.css?v=20260803-daily-spell-v1">
     <script type="module" src="site-i18n.mjs?v=20260718-onion-guides-v2"></script>
-    <script type="module" src="library-explorer.mjs?v=20260802-photo-dialog-v1"></script>
+    <script type="module" src="library-explorer.mjs?v=20260803-daily-spell-v1"></script>
   </head>
   <body>
     <main class="app-shell settings-page">
@@ -91,6 +91,15 @@
             </div>
             <output id="variantCount" class="variant-count" aria-live="polite" data-i18n="explorer.loading">Building the index…</output>
           </div>
+          <article class="daily-spell-card" id="dailySpellCard" aria-labelledby="dailySpellTitle">
+            <div class="daily-spell-card-text">
+              <h3 id="dailySpellTitle" data-i18n="daily.title">Spell of the day</h3>
+              <p class="daily-spell-date" id="dailySpellDate"></p>
+              <p class="daily-spell-recipe" id="dailySpellRecipe"></p>
+              <p class="daily-spell-meta" id="dailySpellMeta"></p>
+            </div>
+            <a class="variant-action" id="dailySpellLink" href="#" data-i18n="explorer.loadInAtelier">Load in the atelier</a>
+          </article>
           <form id="variantFilters" class="variant-filters" role="search">
             <label class="variant-search" for="variantSearch"><span data-i18n="explorer.search">Search variants</span><input id="variantSearch" name="q" type="search" autocomplete="off" data-i18n-placeholder="explorer.searchPlaceholder" placeholder="Water levitation, eau orbe…"></label>
             <label for="sigilFilter"><span data-i18n="explorer.sigil">Central sigil</span><select id="sigilFilter" name="sigil"></select></label>

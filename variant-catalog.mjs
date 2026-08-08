@@ -53,10 +53,14 @@ export const DEFAULT_EXPLORER_STATE = Object.freeze({
 
 const FIDELITY_ORDER = Object.freeze({ documented: 0, inferred: 1, experimental: 2 });
 const SUPPORTS = Object.freeze(["none", "shoe"]);
+// Ordre des boucles de buildVariantIndex : support, puis materiau, puis paire
+// de signes. daily-spell.mjs s'appuie sur cet ordre pour son rang plat ; le
+// test daily-spell epingle la correspondance.
+export const VARIANT_SUPPORTS = SUPPORTS;
 const SORTS = Object.freeze(["relevance", "name", "fidelity", "id"]);
 const WARNING_FILTERS = Object.freeze(["all", "with", "without"]);
 const ROLES = Object.freeze([...new Set(Object.values(SIGN_PROFILES).map(({ role }) => role))]);
-const MATERIAL_SIGNATURES = Object.freeze([
+export const MATERIAL_SIGNATURES = Object.freeze([
   ...MATRIX_SIGIL_NAMES.map((sigil) => Object.freeze([sigil])),
   ...INDEXED_ELEMENTAL_MIXTURES,
 ]);
