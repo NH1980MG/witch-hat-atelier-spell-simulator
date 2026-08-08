@@ -93,15 +93,17 @@ test("estimateInkMask keeps dense ink when local paper is unreliable", () => {
 });
 
 test("estimateInkMask does not classify a legitimate paper shadow as ink", () => {
-  const photo = shadowedPaper(240, 160);
-  inkRect(photo, 60, 30, 61, 130);
-  const mask = estimateInkMask(photo);
-  const shadowInk = Array.from(mask).reduce((count, value, index) => {
-    const x = index % photo.width;
-    return count + (x < photo.width / 2 && x !== 60 && x !== 61 ? value : 0);
-  }, 0);
-  assert.ok(shadowInk < 500, `shadow paper should remain background, got ${shadowInk} ink pixels`);
-  assert.equal(mask[80 * photo.width + 60], 1, "the dark stroke should remain ink");
+  for (const shadowValue of [145, 148, 150, 155]) {
+    const photo = shadowedPaper(240, 160, shadowValue, 230);
+    inkRect(photo, 60, 30, 61, 130);
+    const mask = estimateInkMask(photo);
+    const shadowInk = Array.from(mask).reduce((count, value, index) => {
+      const x = index % photo.width;
+      return count + (x < photo.width / 2 && x !== 60 && x !== 61 ? value : 0);
+    }, 0);
+    assert.ok(shadowInk < 500, `${shadowValue} shadow paper should remain background, got ${shadowInk} ink pixels`);
+    assert.equal(mask[80 * photo.width + 60], 1, `${shadowValue} shadow stroke should remain ink`);
+  }
 });
 
 test("ink bounds include the entire ring radius and a safe margin", () => {

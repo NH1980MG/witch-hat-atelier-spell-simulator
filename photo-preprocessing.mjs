@@ -137,6 +137,8 @@ export function estimateInkMask(imageData) {
   const globalThreshold = otsuThreshold(histogram);
   const globalPaper = percentile(Array.from(luma), 0.85);
   const globalOutlierThreshold = Math.max(32, Math.round(globalPaper * 0.35));
+  const globalDarkCount = histogram.slice(0, globalThreshold + 1).reduce((sum, count) => sum + count, 0);
+  const globalDarkFraction = globalDarkCount / pixelCount;
   const localReliabilityFloor = Math.max(24, Math.round(globalPaper * 0.7));
   const localSignal = contrastHistogram.slice(localThreshold + 1).reduce((sum, count) => sum + count, 0);
   const useLocalContrast = localSignal > 0 && localThreshold >= 3;
@@ -144,7 +146,7 @@ export function estimateInkMask(imageData) {
   for (let i = 0; i < pixelCount; i += 1) {
     const localInk = useLocalContrast && contrast[i] >= Math.max(6, Math.round(localThreshold * 0.55));
     const localBackgroundReliable = backgroundEstimate[i] >= localReliabilityFloor;
-    const globalOutlier = globalPaper - luma[i] > globalOutlierThreshold;
+    const globalOutlier = globalDarkFraction < 0.25 && globalPaper - luma[i] > globalOutlierThreshold;
     const localOutlier = neighbourhoodContrast[i] >= globalOutlierThreshold;
     const globalInk = luma[i] <= globalThreshold && (!useLocalContrast || (!localBackgroundReliable && globalOutlier && localOutlier));
     mask[i] = localInk || globalInk ? 1 : 0;
