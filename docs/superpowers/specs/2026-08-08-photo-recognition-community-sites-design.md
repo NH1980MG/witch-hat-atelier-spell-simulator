@@ -173,7 +173,8 @@ combination that is configured.
 The community requires basic moderation before public launch: post reporting,
 author deletion, administrator removal, upload type and size limits, rate
 limits, escaped text rendering, and a visible community policy. Visitor uploads
-and external URLs are treated as untrusted input.
+and external URLs are treated as untrusted input. The community is not directed
+to children under 13, and the public policy states the minimum permitted age.
 
 ## Persistence And Access
 
