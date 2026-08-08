@@ -47,6 +47,11 @@ import {
   writeSpoilerChapter,
 } from "./symbol-chapters.mjs?v=20260802-photo-dialog-v1";
 import { analyzeStrokeMatch } from "./stroke-matcher.mjs?v=20260808-practice-diagnostics-v1";
+import {
+  collectPracticeAttempts,
+  reconcilePracticeStartIndex,
+  updatePracticeDiagnostic,
+} from "./practice-session.mjs?v=20260808-practice-diagnostics-v2";
 import { analyzePhoto } from "./photo-import.mjs?v=20260808-photo-review-v1";
 import { mapPhotoAnalysis, selectPhotoCandidate } from "./photo-placement.mjs?v=20260808-photo-review-v2";
 import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260802-photo-dialog-v1";
@@ -6897,6 +6902,7 @@ function recordHistory() {
 
 function restoreActions(snapshot) {
   state.actions = cloneActions(snapshot);
+  state.practiceStartIndex = reconcilePracticeStartIndex(state.practiceStartIndex, state.actions.length);
   state.activeSpell = null;
   state.activation = null;
   state.selectedActionIndices = [];
@@ -9402,10 +9408,7 @@ function verifyPracticeStroke() {
   if (!target || !SYMBOL_PATHS[target]) {
     return;
   }
-  const attempts = state.actions
-    .slice(state.practiceStartIndex)
-    .filter((action) => action.type === "free" && action.points.length >= 4)
-    .map((action) => action.points.map((point) => [point.x, point.y]));
+  const attempts = collectPracticeAttempts(state.actions, state.practiceStartIndex);
   if (!attempts.length) {
     if (practiceScore) {
       practiceScore.value = "-";
@@ -9421,19 +9424,7 @@ function verifyPracticeStroke() {
   const tier = score >= 80 ? "excellent" : score >= 60 ? "good" : "retry";
   const element = elements.find((item) => item.name === target);
   const name = element ? elementDisplayName(element) : target;
-  if (practiceScore) {
-    practiceScore.value = `${score}%`;
-  }
-  if (practiceFeedback) {
-    practiceFeedback.textContent = t("practice.feedback.summary", {
-      coverage: analysis.coverage,
-      missing: analysis.missingStrokes,
-      extra: analysis.extraStrokes,
-      penalty: analysis.extraPenalty,
-      proportion: analysis.proportionScore,
-      orientation: analysis.orientationScore,
-    });
-  }
+  updatePracticeDiagnostic(practiceScore, practiceFeedback, analysis, t);
   setStatus(t(`practice.status.${tier}`, { score, name }));
   // La prochaine verification part d'une page blanche logique : les traits de
   // l'essai note ne comptent plus dans l'essai suivant.

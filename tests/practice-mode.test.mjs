@@ -1,6 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import {
+  collectPracticeAttempts,
+  reconcilePracticeStartIndex,
+  updatePracticeDiagnostic,
+} from "../practice-session.mjs";
 
 test("l'atelier expose le mode entrainement complet", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
@@ -10,6 +15,8 @@ test("l'atelier expose le mode entrainement complet", async () => {
   assert.match(html, /id="practiceVerifyButton"/);
   assert.match(html, /id="practiceScore"/);
   assert.match(html, /id="practiceFeedback"[^>]*role="status"[^>]*aria-live="polite"/);
+  const scoreMarkup = html.match(/<output id="practiceScore"[^>]*>/)?.[0] || "";
+  assert.doesNotMatch(scoreMarkup, /aria-live/);
   assert.match(html, /id="practiceCloseButton"/);
   assert.match(html, /data-i18n="practice\.toggle"/);
   assert.match(html, /data-i18n="practice\.target"/);
@@ -21,7 +28,63 @@ test("l'atelier importe le comparateur de traits", async () => {
   assert.match(source, /import \{ analyzeStrokeMatch \} from "\.\/stroke-matcher\.mjs\?v=/);
   assert.match(source, /practiceStartIndex/);
   assert.match(source, /verifyPracticeStroke/);
-  assert.match(source, /practiceFeedback\.textContent = t\("practice\.feedback\.summary"/);
+  assert.match(source, /state\.practiceStartIndex = reconcilePracticeStartIndex\(state\.practiceStartIndex, state\.actions\.length\)/);
+  assert.match(source, /updatePracticeDiagnostic\(practiceScore, practiceFeedback, analysis, t\)/);
+});
+
+test("ouvrir, noter, annuler et redessiner conserve le nouvel essai", () => {
+  const freeStroke = (offset) => ({
+    type: "free",
+    points: Array.from({ length: 4 }, (_, index) => ({ x: index + offset, y: offset })),
+  });
+  let actions = [];
+  let practiceStartIndex = actions.length;
+
+  actions.push(freeStroke(0));
+  assert.equal(collectPracticeAttempts(actions, practiceStartIndex).length, 1);
+  practiceStartIndex = actions.length;
+
+  actions = [];
+  practiceStartIndex = reconcilePracticeStartIndex(practiceStartIndex, actions.length);
+  actions.push(freeStroke(20));
+
+  const replacementAttempt = collectPracticeAttempts(actions, practiceStartIndex);
+  assert.equal(replacementAttempt.length, 1);
+  assert.deepEqual(replacementAttempt[0][0], [20, 20]);
+});
+
+test("la verification met a jour le score visible et le diagnostic annonce", () => {
+  const scoreOutput = { value: "" };
+  const feedbackOutput = { textContent: "" };
+  let translated = null;
+  const analysis = {
+    score: 73,
+    coverage: 80,
+    missingStrokes: 1,
+    extraStrokes: 2,
+    extraPenalty: 24,
+    proportionScore: 91,
+    orientationScore: 87,
+  };
+
+  updatePracticeDiagnostic(scoreOutput, feedbackOutput, analysis, (key, params) => {
+    translated = { key, params };
+    return "localized diagnostic";
+  });
+
+  assert.equal(scoreOutput.value, "73%");
+  assert.equal(feedbackOutput.textContent, "localized diagnostic");
+  assert.deepEqual(translated, {
+    key: "practice.feedback.summary",
+    params: {
+      coverage: 80,
+      missing: 1,
+      extra: 2,
+      penalty: 24,
+      proportion: 91,
+      orientation: 87,
+    },
+  });
 });
 
 test("les chaines du mode entrainement existent dans les deux locales", async () => {
