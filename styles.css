@@ -592,6 +592,12 @@ input:focus-visible {
   white-space: nowrap;
 }
 
+.guide-card-meta {
+  margin: 0;
+  color: var(--edge);
+  font-size: 0.72rem;
+}
+
 .guide-card-actions {
   display: grid;
   grid-template-columns: 1fr auto;
