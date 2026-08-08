@@ -39,6 +39,14 @@ function inkRect(photo, left, top, right, bottom) {
   }
 }
 
+function maskRect(mask, width, left, top, right, bottom) {
+  for (let y = top; y <= bottom; y += 1) {
+    for (let x = left; x <= right; x += 1) {
+      mask[y * width + x] = 1;
+    }
+  }
+}
+
 function inkDisc(photo, cx, cy, radius) {
   const r = Math.ceil(radius);
   for (let y = cy - r; y <= cy + r; y += 1) {
@@ -193,6 +201,22 @@ test("le regroupement utilise les etendues quand les centres partagent la meme z
   ];
   assert.equal(groupComponents(components, 200, 200, []).length, 1);
   assert.equal(groupComponents(components, 200, 200, [{ cx: 100, cy: 100, radius: 50 }]).length, 2);
+});
+
+test("le seuil de regroupement suit l'epaisseur d'encre mesuree", () => {
+  const width = 200;
+  const height = 200;
+  const thinMask = new Uint8Array(width * height);
+  maskRect(thinMask, width, 10, 20, 29, 20);
+  maskRect(thinMask, width, 34, 20, 53, 20);
+  const thickMask = new Uint8Array(width * height);
+  maskRect(thickMask, width, 10, 20, 29, 22);
+  maskRect(thickMask, width, 34, 20, 53, 22);
+
+  const thin = connectedComponents(thinMask, width, height, { minSize: 1 }).components;
+  const thick = connectedComponents(thickMask, width, height, { minSize: 1 }).components;
+  assert.equal(groupComponents(thin, width, height, []).length, 2);
+  assert.equal(groupComponents(thick, width, height, []).length, 1);
 });
 
 test("la reconnaissance couvre les bornes de rotation de moins douze a douze degres", () => {

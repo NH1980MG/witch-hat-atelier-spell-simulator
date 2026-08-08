@@ -48,6 +48,52 @@ export function toInkMask(imageData) {
 
 // --- composantes connexes --------------------------------------------------
 
+function estimateStrokeWidth(pixelIndices, imageWidth, left, top, componentWidth, componentHeight) {
+  const localMask = new Uint8Array(componentWidth * componentHeight);
+  for (const index of pixelIndices) {
+    const x = index % imageWidth;
+    const y = (index - x) / imageWidth;
+    localMask[(y - top) * componentWidth + x - left] = 1;
+  }
+  const horizontalRuns = new Uint16Array(localMask.length);
+  const verticalRuns = new Uint16Array(localMask.length);
+  for (let y = 0; y < componentHeight; y += 1) {
+    let x = 0;
+    while (x < componentWidth) {
+      if (!localMask[y * componentWidth + x]) {
+        x += 1;
+        continue;
+      }
+      const start = x;
+      while (x < componentWidth && localMask[y * componentWidth + x]) x += 1;
+      for (let runX = start; runX < x; runX += 1) {
+        horizontalRuns[y * componentWidth + runX] = x - start;
+      }
+    }
+  }
+  for (let x = 0; x < componentWidth; x += 1) {
+    let y = 0;
+    while (y < componentHeight) {
+      if (!localMask[y * componentWidth + x]) {
+        y += 1;
+        continue;
+      }
+      const start = y;
+      while (y < componentHeight && localMask[y * componentWidth + x]) y += 1;
+      for (let runY = start; runY < y; runY += 1) {
+        verticalRuns[runY * componentWidth + x] = y - start;
+      }
+    }
+  }
+  const localWidths = [];
+  for (let index = 0; index < localMask.length; index += 1) {
+    if (localMask[index]) localWidths.push(Math.min(horizontalRuns[index], verticalRuns[index]));
+  }
+  localWidths.sort((a, b) => a - b);
+  // Le corps du trait reste au-dessus des pixels de bord amincis par l'aliasing.
+  return localWidths[Math.floor((localWidths.length - 1) * 0.8)] || 1;
+}
+
 export function connectedComponents(mask, width, height, { minSize = 12 } = {}) {
   const labels = new Int32Array(mask.length).fill(-1);
   const components = [];
@@ -60,11 +106,13 @@ export function connectedComponents(mask, width, height, { minSize = 12 } = {}) 
     let top = height;
     let right = -1;
     let bottom = -1;
+    const pixelIndices = [];
     queue.push(start);
     labels[start] = id;
     while (queue.length) {
       const index = queue.pop();
       size += 1;
+      pixelIndices.push(index);
       const x = index % width;
       const y = (index - x) / width;
       left = Math.min(left, x);
@@ -86,7 +134,19 @@ export function connectedComponents(mask, width, height, { minSize = 12 } = {}) 
       }
     }
     if (size >= minSize) {
-      components.push({ id, size, left, top, right, bottom, width: right - left + 1, height: bottom - top + 1 });
+      const componentWidth = right - left + 1;
+      const componentHeight = bottom - top + 1;
+      components.push({
+        id,
+        size,
+        left,
+        top,
+        right,
+        bottom,
+        width: componentWidth,
+        height: componentHeight,
+        strokeWidth: estimateStrokeWidth(pixelIndices, width, left, top, componentWidth, componentHeight),
+      });
     }
   }
   // maskByComponent ne garde que les composantes retenues.
@@ -146,6 +206,12 @@ function boxesWithinGap(a, b, maxGap) {
   return Math.hypot(horizontalGap, verticalGap) <= maxGap;
 }
 
+function median(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
 function combinedBounds(a, b) {
   return {
     left: Math.min(a.left, b.left),
@@ -168,12 +234,17 @@ function boundsCrossRing(bounds, ring) {
   return minRadius <= ring.radius && maxRadius >= ring.radius;
 }
 
-// Le petit ecart autorise suit l'echelle de la photo mais reste borne pour ne
-// pas fusionner deux glyphes voisins. Une fusion proposee ne peut traverser un
-// rayon d'anneau, meme si les centres des composantes sont du meme cote.
+// Le petit ecart autorise suit l'epaisseur mediane de l'encre, avec une borne
+// dure liee a l'image pour ne pas fusionner deux glyphes voisins. Une fusion
+// proposee ne peut traverser un rayon d'anneau, meme si les centres des
+// composantes sont du meme cote.
 export function groupComponents(components, imageWidth, imageHeight, rings) {
   if (!components.length) return [];
-  const maxGap = Math.max(3, Math.min(12, Math.round(Math.min(imageWidth, imageHeight) * 0.025)));
+  const imageGapCap = Math.max(3, Math.min(12, Math.round(Math.min(imageWidth, imageHeight) * 0.025)));
+  const medianStrokeWidth = median(components.map(({ strokeWidth }) => (
+    Number.isFinite(strokeWidth) && strokeWidth > 0 ? strokeWidth : 1
+  )));
+  const maxGap = Math.min(imageGapCap, Math.max(3, Math.round(medianStrokeWidth * 2)));
   const parents = components.map((_, index) => index);
   const boundsByRoot = components.map((component) => ({
     left: component.left,
