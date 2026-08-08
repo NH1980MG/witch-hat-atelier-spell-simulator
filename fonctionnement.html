@@ -32,8 +32,8 @@
         window.location.replace("http://127.0.0.1:8000/fonctionnement.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260808-how-it-works-v1">
-    <script type="module" src="site-i18n.mjs?v=20260808-how-it-works-v1"></script>
+    <link rel="stylesheet" href="styles.css?v=20260808-final-review-v1">
+    <script type="module" src="site-i18n.mjs?v=20260808-final-review-v1"></script>
   </head>
   <body>
     <main class="app-shell settings-page">
@@ -69,19 +69,40 @@
       <div class="wiki-layout how-wiki-layout">
         <nav class="wiki-toc" data-i18n-aria-label="wiki.contents" aria-label="On this page">
           <strong data-i18n="wiki.contents">On this page</strong>
-          <a href="#drawing" data-i18n="how.toc.drawing">Drawing a circle</a>
+          <a href="#drawing" data-i18n="how.toc.drawing">Drawing tools</a>
+          <a href="#selection" data-i18n="how.toc.selection">Placing and editing</a>
+          <a href="#reading" data-i18n="how.toc.reading">Reading results</a>
           <a href="#photo" data-i18n="how.toc.photo">Reading a photo</a>
           <a href="#practice" data-i18n="how.toc.practice">Tracing practice</a>
-          <a href="#reading" data-i18n="how.toc.reading">Reading results</a>
           <a href="#guides" data-i18n="how.toc.guides">Personal guides</a>
+          <a href="#activation" data-i18n="how.toc.activation">Activation and 3D</a>
+          <a href="#fidelity" data-i18n="how.toc.fidelity">Rule fidelity</a>
           <a href="#limits" data-i18n="how.toc.limits">Limits</a>
         </nav>
 
         <section class="how-board wiki-content" data-i18n-aria-label="how.region" aria-label="How the simulator works">
           <article class="how-intro" id="drawing">
             <p class="wiki-kicker" data-i18n="how.kicker">A transparent workshop</p>
-            <h2 data-i18n="how.drawing.title">Draw a readable circle</h2>
-            <p data-i18n="how.drawing.body">The workshop reads the ring, placed sigils, signs, support, and geometry already on the parchment. It applies the same rule set to the same drawing every time.</p>
+            <h2 data-i18n="how.drawing.title">Draw with the workshop tools</h2>
+            <p data-i18n="how.drawing.body">The workshop applies the same local rule set to the same marks every time.</p>
+            <p data-i18n="how.drawing.tools">Select edits marks; Pen draws freehand; Seal draws one boundary; Double ring adds nested rings; Direction line adds a ray; Glyph stamps the armed symbol; Spiral adds circulation; Scraper removes a mark.</p>
+            <p data-i18n="how.drawing.actions">Read explains the current circle; Activate runs it; Undo/redo restore edits; Clear empties the parchment; Archive PNG exports it; Save as example stores a guide. Practice and Photo open their separate workflows. Force, thickness, zoom, closed-seal, automatic activation, and diameter controls adjust the workshop.</p>
+            <p data-i18n="how.drawing.symbolPlacement">Open Sigils and signs, then drag a symbol like a Scratch block onto a valid dotted preview on the parchment. A click can also stamp the armed Glyph.</p>
+          </article>
+
+          <article class="how-card" id="selection">
+            <h2 data-i18n="how.selection.title">Place, select, and reshape</h2>
+            <p data-i18n="how.selection.rectangle">With Select, drag a mark to move it. Right-click and drag an empty area to draw a rectangle around several marks; Delete removes the selection, while copy, paste, duplicate, and rotate preserve edit history.</p>
+            <p data-i18n="how.selection.resize">Use minus or plus for a selected symbol, or drag a corner handle to resize one mark or the whole rectangular selection proportionally.</p>
+          </article>
+
+          <article class="how-card" id="reading">
+            <h2 data-i18n="how.reading.title">How a circle is read</h2>
+            <p data-i18n="how.reading.boundary">A complete Seal or closed ring is the energy boundary required for activation. Marks outside the largest usable boundary, or disconnected from it, are ignored; a closed ring without a sigil releases only raw energy.</p>
+            <p data-i18n="how.reading.sigils">Central sigils define the material or manifestation. Recognized mixtures are composed deterministically; without a material sigil, signs can only modify the ring's raw energy.</p>
+            <p data-i18n="how.reading.signs">Signs are modifiers. Their names choose operations, while size, position, balance, direction, and tilt affect pressure, reach, and rotation.</p>
+            <p data-i18n="how.reading.support">Support determines where the result acts: paper alone by default, or a small paper fixed under the available shoe. Diameter and support limits can prevent activation.</p>
+            <p data-i18n="how.reading.metrics">Accuracy is the recognized sigil match. Duration comes from the material and stabilizing modifiers; force combines the force setting, symbol charge and quality, direction, and force modifiers. Details also reports stability, diameter, applied rules, and warnings.</p>
           </article>
 
           <article class="how-card" id="photo">
@@ -90,32 +111,41 @@
             <div class="how-output-grid">
               <section class="how-output">
                 <span class="how-output-mark" aria-hidden="true">&#9711;</span>
-                <h3 data-i18n="how.photo.ringTitle">Ring result</h3>
-                <p data-i18n="how.photo.ringOutput">A detected outer ring can be placed on the parchment as a drawing boundary.</p>
+                <h3 data-i18n="how.photo.ringTitle">Editable recreation</h3>
+                <p data-i18n="how.photo.ringOutput">Recreate in the simulator turns an accepted outer ring into an editable drawing boundary.</p>
+                <p data-i18n="how.photo.symbolsOutput">Accepted sigils and signs become editable marks that you can move, resize, replace, or remove before reading.</p>
               </section>
               <section class="how-output">
                 <span class="how-output-mark" aria-hidden="true">&#9671;</span>
-                <h3 data-i18n="how.photo.symbolsTitle">Symbol result</h3>
-                <p data-i18n="how.photo.symbolsOutput">Recognized symbols are offered as editable placed marks; unreadable traces remain excluded instead of being invented.</p>
+                <h3 data-i18n="how.photo.symbolsTitle">Image as guide</h3>
+                <p data-i18n="how.photo.guideOutput">Use as a guide keeps the complete cropped image below the drawing for tracing without converting it into marks.</p>
               </section>
             </div>
+            <p data-i18n="how.photo.uncertain">Ambiguous regions offer candidate choices and require your decision. Unreadable regions are reported and excluded; the simulator never invents a match.</p>
           </article>
 
           <article class="how-card" id="practice">
             <h2 data-i18n="how.practice.title">Practice is a separate exercise</h2>
             <p data-i18n="how.practice.knownTarget">Practice compares your stroke with one known target symbol selected by the exercise.</p>
             <p data-i18n="how.practice.noRing">It does not require a closed ring, because it scores a trace rather than trying to activate or interpret a spell.</p>
-          </article>
-
-          <article class="how-card" id="reading">
-            <h2 data-i18n="how.reading.title">Read the result and correct it</h2>
-            <p data-i18n="how.reading.confidence">Confidence expresses how closely a local shape matches the available template. A low-confidence or ambiguous result is a cue to correct the drawing, not a hidden decision.</p>
-            <p data-i18n="how.reading.correction">You can move, remove, redraw, or replace any imported mark before using it in the workshop.</p>
+            <p data-i18n="how.practice.diagnostics">Score my stroke reports a bounded score, coverage, proportions, orientation, missing strokes, extra strokes, and their penalty so you know what to redraw.</p>
           </article>
 
           <article class="how-card" id="guides">
             <h2 data-i18n="how.guides.title">Keep useful references close</h2>
             <p data-i18n="how.guides.body">Saved examples and imported photos can become personal tracing guides. They stay available in this browser so you can compare a new drawing with your own reference.</p>
+            <p data-i18n="how.guides.resize">Choose a library or personal guide, then change its visibility and opacity. Select the guide on the parchment and drag a corner handle to resize it proportionally; Remove guide leaves the drawing untouched.</p>
+          </article>
+
+          <article class="how-card" id="activation">
+            <h2 data-i18n="how.activation.title">Activate a valid circle</h2>
+            <p data-i18n="how.activation.requirements">Activation needs at least one shape, a usable closed boundary, and a diameter allowed by the selected support. Read first to correct ignored marks, warnings, or size errors.</p>
+            <p data-i18n="how.activation.view3d">After the ink animation, activation opens a nonblank 3D view built from an immutable snapshot of the drawing, recipe, geometry, dimensions, and support. The manifestation remains animated until its computed duration ends.</p>
+          </article>
+
+          <article class="how-card" id="fidelity">
+            <h2 data-i18n="how.fidelity.title">Know which rules are evidence-backed</h2>
+            <p data-i18n="how.fidelity.body">Documented means a rule is directly supported by the research set; inferred means documented rules are composed into a combination not directly shown. Experimental labels identify simulator-coherent behavior where the research does not define a result.</p>
           </article>
 
           <article class="how-card how-limits" id="limits">

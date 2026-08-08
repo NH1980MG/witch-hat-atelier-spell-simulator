@@ -204,6 +204,23 @@ export function isRingComponent(component, imageWidth, imageHeight, centerFill) 
   return fill < 0.45 && centerFill < 0.08;
 }
 
+function ringEdgeFit(component, componentMask) {
+  const cx = (component.width - 1) / 2;
+  const cy = (component.height - 1) / 2;
+  const radius = (component.width + component.height) / 4;
+  const tolerance = Math.max(2, Math.min(component.strokeWidth * 1.5, radius * 0.14));
+  let ink = 0;
+  let edgeInk = 0;
+  for (let y = 0; y < component.height; y += 1) {
+    for (let x = 0; x < component.width; x += 1) {
+      if (!componentMask[y * component.width + x]) continue;
+      ink += 1;
+      if (Math.abs(Math.hypot(x - cx, y - cy) - radius) <= tolerance) edgeInk += 1;
+    }
+  }
+  return ink ? edgeInk / ink : 0;
+}
+
 function boxesWithinGap(a, b, maxGap) {
   const horizontalGap = Math.max(0, a.left - b.right - 1, b.left - a.right - 1);
   const verticalGap = Math.max(0, a.top - b.bottom - 1, b.top - a.bottom - 1);
@@ -244,7 +261,7 @@ function boundsCrossRing(bounds, ring) {
 // composantes sont du meme cote.
 export function groupComponents(components, imageWidth, imageHeight, rings) {
   if (!components.length) return [];
-  const imageGapCap = Math.max(3, Math.min(12, Math.round(Math.min(imageWidth, imageHeight) * 0.025)));
+  const imageGapCap = Math.max(3, Math.min(12, Math.round(Math.min(imageWidth, imageHeight) * 0.05)));
   const medianStrokeWidth = median(components.map(({ strokeWidth }) => (
     Number.isFinite(strokeWidth) && strokeWidth > 0 ? strokeWidth : 1
   )));
@@ -547,7 +564,7 @@ export function recognizeComponent(componentMask, componentWidth, componentHeigh
 
 const GROUP_ROTATIONS = [-12, -6, 0, 6, 12];
 const PHOTO_IMPORT_ACCEPTED_SCORE = 58;
-const PHOTO_IMPORT_ACCEPTED_MARGIN = 7;
+const PHOTO_IMPORT_ACCEPTED_MARGIN = 6;
 
 function rotateMask(mask, degrees, size = TEMPLATE_SIZE) {
   if (degrees === 0) return mask;
@@ -572,11 +589,24 @@ function rotateMask(mask, degrees, size = TEMPLATE_SIZE) {
 
 export function recognizeGroup(groupMask, width, height, symbolPaths) {
   const normalized = skeletonizeMask(normalizeGroupMask(groupMask, width, height));
-  const rotations = GROUP_ROTATIONS.map((degrees) => rotateMask(normalized, degrees));
-  const candidates = templateMasks(symbolPaths).map(({ name, skeleton, skeletonDist }) => ({
-    name,
-    score: Math.max(...rotations.map((rotated) => rasterMatchScore(rotated, skeleton, skeletonDist))),
+  const rotations = GROUP_ROTATIONS.map((degrees) => ({
+    degrees,
+    mask: rotateMask(normalized, degrees),
   }));
+  const candidates = templateMasks(symbolPaths).map(({ name, skeleton, skeletonDist }) => {
+    const matches = rotations.map(({ degrees, mask }) => ({
+      degrees,
+      score: rasterMatchScore(mask, skeleton, skeletonDist),
+    }));
+    matches.sort((a, b) => b.score - a.score || Math.abs(a.degrees) - Math.abs(b.degrees));
+    return {
+      name,
+      score: matches[0].score,
+      // `degrees` aligne la photo sur le modele; l'action recreee reprend
+      // l'angle inverse, c'est-a-dire l'orientation originale du dessin.
+      rotation: -matches[0].degrees * Math.PI / 180,
+    };
+  });
   candidates.sort((a, b) => b.score - a.score);
   const topCandidates = candidates.slice(0, 3);
   const bestScore = topCandidates[0]?.score || 0;
@@ -595,40 +625,64 @@ export function recognizeGroup(groupMask, width, height, symbolPaths) {
 
 export const PHOTO_IMPORT_MIN_SCORE = 42;
 
+function eraseDetectedRings(mask, width, height, rings) {
+  const out = Uint8Array.from(mask);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const index = y * width + x;
+      if (!out[index]) continue;
+      if (rings.some((ring) => (
+        Math.abs(Math.hypot(x - ring.cx, y - ring.cy) - ring.radius) <= ring.eraseTolerance
+      ))) {
+        out[index] = 0;
+      }
+    }
+  }
+  return out;
+}
+
 export function analyzePhoto(imageData, symbolPaths) {
   const { width, height } = imageData;
   const mask = toInkMask(imageData);
-  const { components, componentMask } = connectedComponents(mask, width, height, {
-    minSize: Math.max(10, Math.round((width * height) * 0.0002)),
-  });
+  const cropBounds = inkBounds(mask, width, height);
+  const minSize = Math.max(10, Math.round((width * height) * 0.0002));
+  const initialComponents = connectedComponents(mask, width, height, { minSize });
   // Un glyphe a une emprise significative dans le cadre ; en dessous, c'est du
   // bruit (poussiere du papier, taches) qu'on ignore sans tenter de reconnaitre.
   const minSpan = Math.max(18, Math.round(Math.min(width, height) * 0.03));
   const rings = [];
-  const glyphComponents = [];
   let ignored = 0;
-  for (const component of components) {
-    if (Math.max(component.width, component.height) < minSpan) {
-      ignored += 1;
-      continue;
-    }
-    const ownMask = componentMask(component);
-    if (isRingComponent(component, width, height, ringCenterFill(component, ownMask, component.width))) {
+  const contentWidth = cropBounds?.width || width;
+  const contentHeight = cropBounds?.height || height;
+  for (const component of initialComponents.components) {
+    if (Math.max(component.width, component.height) < minSpan) continue;
+    const ownMask = initialComponents.componentMask(component);
+    if (
+      isRingComponent(component, contentWidth, contentHeight, ringCenterFill(component, ownMask, component.width))
+      && Math.max(component.width, component.height) >= Math.max(contentWidth, contentHeight) * 0.68
+      && ringEdgeFit(component, ownMask) >= 0.78
+    ) {
       rings.push({
         cx: component.left + component.width / 2,
         cy: component.top + component.height / 2,
         radius: (component.width + component.height) / 4,
+        eraseTolerance: Math.max(2, component.strokeWidth * 1.75),
       });
-      continue;
     }
-    glyphComponents.push(component);
   }
   rings.sort((a, b) => b.radius - a.radius);
+  const glyphMask = eraseDetectedRings(mask, width, height, rings);
+  const residualComponents = connectedComponents(glyphMask, width, height, { minSize });
+  const glyphComponents = residualComponents.components.filter((component) => {
+    if (Math.max(component.width, component.height) >= minSpan) return true;
+    ignored += 1;
+    return false;
+  });
   const groups = groupComponents(glyphComponents, width, height, rings);
   const regions = groups.map((group) => {
     const groupMask = new Uint8Array(group.width * group.height);
     for (const component of group.components) {
-      const localMask = componentMask(component);
+      const localMask = residualComponents.componentMask(component);
       const offsetX = component.left - group.left;
       const offsetY = component.top - group.top;
       for (let y = 0; y < component.height; y += 1) {

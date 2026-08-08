@@ -162,6 +162,31 @@ test("un anneau dessine est detecte comme anneau", () => {
   assert.ok(isRingComponent(components[0], 300, 300, ringCenterFill(components[0], mask, 300)), "la grande couronne doit etre un anneau");
 });
 
+test("un anneau complet reste detecte avec de grandes marges autour", () => {
+  const photo = blankPhoto(500, 500);
+  for (let angle = 0; angle < Math.PI * 2; angle += 0.004) {
+    inkDisc(photo, Math.round(250 + 100 * Math.cos(angle)), Math.round(250 + 100 * Math.sin(angle)), 3);
+  }
+
+  const result = analyzePhoto(photo, SYMBOL_PATHS);
+
+  assert.equal(result.rings.length, 1);
+  assert.ok(result.rings[0].radius > 95);
+});
+
+test("un trait raccorde a l'anneau reste une region reconnaissable", () => {
+  const photo = blankPhoto(300, 300);
+  for (let angle = 0; angle < Math.PI * 2; angle += 0.004) {
+    inkDisc(photo, Math.round(150 + 110 * Math.cos(angle)), Math.round(150 + 110 * Math.sin(angle)), 3);
+  }
+  inkRect(photo, 40, 147, 92, 153);
+
+  const result = analyzePhoto(photo, SYMBOL_PATHS);
+
+  assert.equal(result.rings.length, 1);
+  assert.ok(result.regions.length >= 1, "le trait radial ne doit pas disparaitre avec l'anneau");
+});
+
 test("un anneau reste detecte quand des traits occupent son interieur", () => {
   const photo = blankPhoto(300, 300);
   const drawRing = (radius) => {
@@ -242,6 +267,10 @@ test("la reconnaissance couvre les bornes de rotation de moins douze a douze deg
     assert.equal(result.regions.length, 1);
     assert.equal(result.regions[0].status, "accepted", `${degrees} degres: ${JSON.stringify(result.regions[0])}`);
     assert.equal(result.regions[0].candidates[0].name, "Eau");
+    const detectedRotation = result.regions[0].candidates[0].rotation;
+    assert.equal(Math.sign(detectedRotation), Math.sign(degrees));
+    assert.ok(Math.abs(detectedRotation) >= 6 * Math.PI / 180);
+    assert.ok(Math.abs(detectedRotation) <= 12 * Math.PI / 180);
   }
   const outsidePhoto = blankPhoto(240, 240);
   inkGlyphWithDisconnectedStrokes(outsidePhoto, "Eau", 50, 50, 140, 24);

@@ -2,20 +2,40 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-test("the explanation page documents deterministic recognition", async () => {
+test("the explanation page covers the complete workshop workflow", async () => {
   const html = await readFile(new URL("../fonctionnement.html", import.meta.url), "utf8");
 
-  for (const id of ["drawing", "photo", "practice", "reading", "guides", "limits"]) {
+  for (const id of ["drawing", "selection", "reading", "photo", "practice", "guides", "activation", "fidelity", "limits"]) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
 
-  assert.match(html, /data-i18n="how\.photo\.pipeline"/);
-  assert.match(html, /data-i18n="how\.photo\.ringOutput"/);
-  assert.match(html, /data-i18n="how\.photo\.symbolsOutput"/);
-  assert.match(html, /data-i18n="how\.reading\.confidence"/);
-  assert.match(html, /data-i18n="how\.practice\.knownTarget"/);
-  assert.match(html, /data-i18n="how\.practice\.noRing"/);
-  assert.match(html, /data-i18n="how\.limits\.local"/);
+  for (const key of [
+    "how.drawing.tools",
+    "how.drawing.actions",
+    "how.drawing.symbolPlacement",
+    "how.selection.rectangle",
+    "how.selection.resize",
+    "how.reading.boundary",
+    "how.reading.sigils",
+    "how.reading.signs",
+    "how.reading.support",
+    "how.reading.metrics",
+    "how.photo.pipeline",
+    "how.photo.ringOutput",
+    "how.photo.symbolsOutput",
+    "how.photo.guideOutput",
+    "how.photo.uncertain",
+    "how.practice.knownTarget",
+    "how.practice.noRing",
+    "how.practice.diagnostics",
+    "how.guides.resize",
+    "how.activation.requirements",
+    "how.activation.view3d",
+    "how.fidelity.body",
+    "how.limits.local",
+  ]) {
+    assert.match(html, new RegExp(`data-i18n="${key.replaceAll(".", "\\.")}"`), `missing ${key}`);
+  }
 });
 
 test("every public page links to the explanation page", async () => {

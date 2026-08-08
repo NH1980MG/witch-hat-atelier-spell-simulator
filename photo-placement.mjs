@@ -2,6 +2,23 @@ function finite(value) {
   return Number.isFinite(value);
 }
 
+export function sourceCropForAnalysis(cropBounds, analysisWidth, analysisHeight, sourceWidth, sourceHeight) {
+  const scaleX = sourceWidth / analysisWidth;
+  const scaleY = sourceHeight / analysisHeight;
+  const left = Math.max(0, Math.round(cropBounds.left * scaleX));
+  const top = Math.max(0, Math.round(cropBounds.top * scaleY));
+  const right = Math.min(sourceWidth, Math.round((cropBounds.left + cropBounds.width) * scaleX));
+  const bottom = Math.min(sourceHeight, Math.round((cropBounds.top + cropBounds.height) * scaleY));
+  return {
+    left,
+    top,
+    width: Math.max(1, right - left),
+    height: Math.max(1, bottom - top),
+    scaleX,
+    scaleY,
+  };
+}
+
 function analysisRings(analysis) {
   if (Array.isArray(analysis?.rings) && analysis.rings.length > 0) {
     return analysis.rings;
@@ -129,6 +146,7 @@ export function mapPhotoAnalysis(analysis, target) {
   const symbols = importableRegions(analysis).map(({ region, candidate }) => ({
     name: candidate.name,
     score: candidate.score,
+    rotation: finite(candidate.rotation) ? candidate.rotation : 0,
     candidates: region.candidates || [candidate],
     status: region.status || "accepted",
     ...mapPoint(region.cx, region.cy),

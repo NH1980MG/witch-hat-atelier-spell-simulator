@@ -1,19 +1,27 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { translate } from "../i18n.mjs";
+import { catalogKeys, translate } from "../i18n.mjs";
 
 const appSource = await readFile(new URL("../app.js", import.meta.url), "utf8");
 const siteI18nSource = await readFile(new URL("../site-i18n.mjs", import.meta.url), "utf8");
-const howItWorksSource = await readFile(new URL("../fonctionnement.html", import.meta.url), "utf8");
+const publicPages = ["index.html", "bibliotheque.html", "tutoriel.html", "parametres.html", "fonctionnement.html"];
+const sharedRevision = "20260808-final-review-v1";
 
 test("the language controller imports the current catalog revision", () => {
-  assert.match(siteI18nSource, /from "\.\/i18n\.mjs\?v=20260808-practice-diagnostics-v1"/);
-  assert.match(howItWorksSource, /site-i18n\.mjs\?v=20260808-how-it-works-v1/);
+  assert.match(siteI18nSource, new RegExp(`from "\\./i18n\\.mjs\\?v=${sharedRevision}"`));
+});
+
+test("every public page uses the same shared asset revision", async () => {
+  for (const page of publicPages) {
+    const source = await readFile(new URL(`../${page}`, import.meta.url), "utf8");
+    assert.match(source, new RegExp(`styles\\.css\\?v=${sharedRevision}`), `${page}: stale styles revision`);
+    assert.match(source, new RegExp(`site-i18n\\.mjs\\?v=${sharedRevision}`), `${page}: stale i18n runtime revision`);
+  }
 });
 
 test("the simulator uses the shared runtime translation service", () => {
-  assert.match(appSource, /from "\.\/site-i18n\.mjs/);
+  assert.match(appSource, new RegExp(`from "\\./site-i18n\\.mjs\\?v=${sharedRevision}"`));
   assert.match(appSource, /function elementDisplayName\(/);
   assert.match(appSource, /wha:localechange/);
 });
@@ -48,4 +56,51 @@ test("group selection statuses are bilingual", () => {
     assert.notEqual(translate("en", key, { count: 2 }), key);
     assert.notEqual(translate("fr", key, { count: 2 }), key);
   }
+});
+
+test("the complete how-it-works topics are bilingual", () => {
+  const keys = [
+    "how.drawing.tools",
+    "how.drawing.actions",
+    "how.drawing.symbolPlacement",
+    "how.selection.rectangle",
+    "how.selection.resize",
+    "how.reading.boundary",
+    "how.reading.sigils",
+    "how.reading.signs",
+    "how.reading.support",
+    "how.reading.metrics",
+    "how.photo.guideOutput",
+    "how.photo.uncertain",
+    "how.practice.noRing",
+    "how.practice.diagnostics",
+    "how.guides.resize",
+    "how.activation.requirements",
+    "how.activation.view3d",
+    "how.fidelity.body",
+  ];
+
+  for (const key of keys) {
+    assert.notEqual(translate("en", key), key, `missing English ${key}`);
+    assert.notEqual(translate("fr", key), key, `missing French ${key}`);
+  }
+
+  assert.match(translate("en", "how.drawing.tools"), /Select.*Pen.*Seal.*Double ring.*Direction line.*Glyph.*Spiral.*Scraper/);
+  assert.match(translate("fr", "how.drawing.tools"), /Selection.*Plume.*Sceau.*Double anneau.*Trait directeur.*Glyphe.*Spire.*Grattoir/);
+  assert.match(translate("en", "how.selection.rectangle"), /right-click.*rectangle/i);
+  assert.match(translate("fr", "how.selection.rectangle"), /clic droit.*rectangle/i);
+  assert.match(translate("en", "how.reading.metrics"), /Accuracy.*Duration.*force/i);
+  assert.match(translate("fr", "how.reading.metrics"), /precision.*duree.*force/i);
+  assert.match(translate("en", "how.photo.uncertain"), /Ambiguous.*Unreadable/i);
+  assert.match(translate("fr", "how.photo.uncertain"), /ambigues.*illisibles/i);
+  assert.match(translate("en", "how.guides.resize"), /corner handle.*resize/i);
+  assert.match(translate("fr", "how.guides.resize"), /poignee d'angle.*redimensionner/i);
+  assert.match(translate("en", "how.activation.view3d"), /(?=.*3D)(?=.*nonblank)/i);
+  assert.match(translate("fr", "how.activation.view3d"), /(?=.*3D)(?=.*non vide)/i);
+  assert.match(translate("en", "how.fidelity.body"), /Documented.*inferred/i);
+  assert.match(translate("fr", "how.fidelity.body"), /Documente.*deduit/i);
+});
+
+test("English and French catalogs expose exactly the same keys", () => {
+  assert.deepEqual(catalogKeys("en"), catalogKeys("fr"));
 });

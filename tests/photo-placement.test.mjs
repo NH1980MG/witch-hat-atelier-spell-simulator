@@ -4,7 +4,25 @@ import {
   mapPhotoAnalysis,
   photoContentBounds,
   selectPhotoCandidate,
+  sourceCropForAnalysis,
 } from "../photo-placement.mjs";
+
+test("le recadrage du guide conserve les pixels de la photo originale", () => {
+  assert.deepEqual(sourceCropForAnalysis(
+    { left: 96, top: 48, width: 480, height: 240 },
+    768,
+    384,
+    2400,
+    1200,
+  ), {
+    left: 300,
+    top: 150,
+    width: 1500,
+    height: 750,
+    scaleX: 3.125,
+    scaleY: 3.125,
+  });
+});
 
 test("placement bounds include ring edges instead of only centers", () => {
   const bounds = photoContentBounds({
@@ -98,7 +116,7 @@ test("mapping recreates accepted and explicitly confirmed candidates only", () =
     regions: [
       {
         status: "accepted",
-        candidates: [{ name: "Eau", score: 78 }],
+        candidates: [{ name: "Eau", score: 78, rotation: Math.PI / 6 }],
         cx: 20,
         cy: 20,
         size: 20,
@@ -150,6 +168,7 @@ test("mapping recreates accepted and explicitly confirmed candidates only", () =
     { name: "Eau", score: 78 },
     { name: "Feu", score: 49 },
   ]);
+  assert.equal(mapped.symbols[0].rotation, Math.PI / 6);
   assert.deepEqual(mapped.symbols.map(({ cx, cy, size, width, height }) => ({
     cx,
     cy,

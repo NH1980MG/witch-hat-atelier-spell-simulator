@@ -46,6 +46,14 @@ test("un trait manquant est penalise sans effondrer le score", () => {
   assert.ok(partialScore > 40, `${partialScore} doit rester > 40`);
 });
 
+test("un seul trait d'Arret temporel ne peut pas obtenir un score excellent", () => {
+  const [correctStroke] = strokesOf("Arret temporel");
+  const result = analyzeStrokeMatch([correctStroke], SYMBOL_PATHS["Arret temporel"]);
+
+  assert.ok(result.missingStrokes >= 7, `${result.missingStrokes} traits manquants attendus >= 7`);
+  assert.ok(result.score < 80, `score ${result.score} attendu < 80`);
+});
+
 test("un trait utilisateur ne peut pas satisfaire plusieurs traits du modele", () => {
   const template = ["M 0 0 L 10 0", "M 0 10 L 10 10"];
   const result = analyzeStrokeMatch([[[0, 0], [10, 0]]], template);
@@ -80,6 +88,15 @@ test("les diagnostics exposent proportions et orientation sans casser les corres
   assert.ok(perfect.orientationScore >= 99);
   assert.ok(distorted.proportionScore < perfect.proportionScore);
   assert.ok(distorted.score < perfect.score);
+});
+
+test("chaque nouvelle commande M commence une sous-polyligne distincte", () => {
+  const subpaths = flattenSvgPath("M0 0 L10 0 M20 20 L30 20");
+
+  assert.deepEqual(subpaths, [
+    [[0, 0], [10, 0]],
+    [[20, 20], [30, 20]],
+  ]);
 });
 
 test("l'aplatissement couvre tous les glyphes du catalogue", () => {

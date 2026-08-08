@@ -102,6 +102,9 @@ export function flattenSvgPath(d) {
   while (i < tokens.length) {
     if (/^[MLHVCQZA]$/i.test(tokens[i])) {
       cmd = tokens[i++].toUpperCase();
+      if (cmd === "M") {
+        push();
+      }
       if (cmd === "Z") {
         current.push([startX, startY]);
         x = startX;
@@ -369,13 +372,14 @@ export function analyzeStrokeMatch(userStrokes, templatePaths) {
   const extraPenalty = Math.min(35, extraStrokes * 12);
   const proportionScore = proportionSimilarity(user, templateStrokes);
   const orientationScore = orientationSimilarity(user, templateStrokes);
-  const score = clampPercentage(
+  const blendedScore =
     shapeScore * 0.65
       + coverage * 0.2
       + proportionScore * 0.1
       + orientationScore * 0.05
-      - extraPenalty,
-  );
+      - extraPenalty;
+  const coverageCeiling = 50 + coverage / 2;
+  const score = clampPercentage(Math.min(blendedScore, coverageCeiling));
 
   return {
     score,

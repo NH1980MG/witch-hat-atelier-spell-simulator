@@ -8,7 +8,7 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260727-mixture-runtime-v3";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260727-mixture-runtime-v3";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260808-photo-review-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260808-final-review-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260716-shoe-camera-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -46,14 +46,18 @@ import {
   readSpoilerChapter,
   writeSpoilerChapter,
 } from "./symbol-chapters.mjs?v=20260802-photo-dialog-v1";
-import { analyzeStrokeMatch } from "./stroke-matcher.mjs?v=20260808-practice-diagnostics-v1";
+import { analyzeStrokeMatch } from "./stroke-matcher.mjs?v=20260808-final-review-v1";
 import {
   collectPracticeAttempts,
   reconcilePracticeStartIndex,
   updatePracticeDiagnostic,
 } from "./practice-session.mjs?v=20260808-practice-diagnostics-v2";
-import { analyzePhoto } from "./photo-import.mjs?v=20260808-photo-review-v1";
-import { mapPhotoAnalysis, selectPhotoCandidate } from "./photo-placement.mjs?v=20260808-photo-review-v2";
+import { analyzePhoto } from "./photo-import.mjs?v=20260808-final-review-v1";
+import {
+  mapPhotoAnalysis,
+  selectPhotoCandidate,
+  sourceCropForAnalysis,
+} from "./photo-placement.mjs?v=20260808-final-review-v1";
 import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260802-photo-dialog-v1";
 import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260802-photo-dialog-v1";
 
@@ -9458,9 +9462,10 @@ function photoAnalysisRings(analysis) {
   return analysis.rings?.length ? analysis.rings : analysis.ring ? [analysis.ring] : [];
 }
 
-function drawDetectionOverlay(context, analysis, cropBounds) {
+function drawDetectionOverlay(context, analysis, cropBounds, scaleX = 1, scaleY = 1) {
   const lineWidth = Math.max(2, Math.round(Math.min(analysis.imageWidth, analysis.imageHeight) / 240));
   context.save();
+  context.scale(scaleX, scaleY);
   context.translate(-cropBounds.left, -cropBounds.top);
   context.lineWidth = lineWidth;
   context.strokeStyle = "#8c6b3f";
@@ -9487,7 +9492,13 @@ function renderPhotoPreview(pending) {
   preview.height = pending.cropHeight;
   const context = preview.getContext("2d");
   context.drawImage(pending.cropCanvas, 0, 0);
-  drawDetectionOverlay(context, pending.analysis, pending.cropBounds);
+  drawDetectionOverlay(
+    context,
+    pending.analysis,
+    pending.cropBounds,
+    pending.overlayScaleX,
+    pending.overlayScaleY,
+  );
   photoPreviewImage.src = preview.toDataURL("image/png");
 }
 
@@ -9538,6 +9549,7 @@ function describePhotoAnalysis(analysis) {
     const copy = document.createElement("span");
     copy.className = "photo-region-copy";
     const label = document.createElement("strong");
+    label.id = `photo-region-label-${index}`;
     label.textContent = element ? elementDisplayName(element) : candidate?.name || t("photo.result.unreadable");
     const stateLabel = document.createElement("span");
     stateLabel.className = "photo-region-state";
@@ -9557,6 +9569,7 @@ function describePhotoAnalysis(analysis) {
       const select = document.createElement("select");
       select.className = "photo-region-select";
       select.dataset.photoRegion = String(index);
+      select.setAttribute("aria-labelledby", label.id);
       const ignore = document.createElement("option");
       ignore.value = "";
       ignore.textContent = t("photo.result.choose");
@@ -9587,8 +9600,9 @@ function describePhotoAnalysis(analysis) {
 }
 
 async function handlePhotoFile(file) {
+  let bitmap = null;
   try {
-    const bitmap = await createImageBitmap(file);
+    bitmap = await createImageBitmap(file);
     const maxSide = 768;
     const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
     const width = Math.max(1, Math.round(bitmap.width * scale));
@@ -9598,7 +9612,6 @@ async function handlePhotoFile(file) {
     offscreen.height = height;
     const context = offscreen.getContext("2d", { willReadFrequently: true });
     context.drawImage(bitmap, 0, 0, width, height);
-    bitmap.close?.();
     const imageData = context.getImageData(0, 0, width, height);
     const analysis = analyzePhoto(imageData, SYMBOL_PATHS);
     const cropBounds = analysis.cropBounds || {
@@ -9609,27 +9622,36 @@ async function handlePhotoFile(file) {
       width,
       height,
     };
+    const sourceCrop = sourceCropForAnalysis(
+      cropBounds,
+      width,
+      height,
+      bitmap.width,
+      bitmap.height,
+    );
     const cropCanvas = document.createElement("canvas");
-    cropCanvas.width = cropBounds.width;
-    cropCanvas.height = cropBounds.height;
+    cropCanvas.width = sourceCrop.width;
+    cropCanvas.height = sourceCrop.height;
     cropCanvas.getContext("2d").drawImage(
-      offscreen,
-      cropBounds.left,
-      cropBounds.top,
-      cropBounds.width,
-      cropBounds.height,
+      bitmap,
+      sourceCrop.left,
+      sourceCrop.top,
+      sourceCrop.width,
+      sourceCrop.height,
       0,
       0,
-      cropBounds.width,
-      cropBounds.height,
+      sourceCrop.width,
+      sourceCrop.height,
     );
     pendingPhotoImport = {
       analysis,
       cropBounds,
       cropCanvas,
       cropDataUrl: cropCanvas.toDataURL("image/png"),
-      cropWidth: cropBounds.width,
-      cropHeight: cropBounds.height,
+      cropWidth: sourceCrop.width,
+      cropHeight: sourceCrop.height,
+      overlayScaleX: sourceCrop.scaleX,
+      overlayScaleY: sourceCrop.scaleY,
     };
     renderPhotoPreview(pendingPhotoImport);
     describePhotoAnalysis(analysis);
@@ -9640,6 +9662,8 @@ async function handlePhotoFile(file) {
   } catch (error) {
     console.warn("photo import failed", error);
     setStatus(t("photo.status.error"));
+  } finally {
+    bitmap?.close?.();
   }
 }
 
@@ -9666,8 +9690,8 @@ function recreatePhotoImport() {
     const ringCenter = { x: ring.cx, y: ring.cy };
     const radius = Math.min(ring.radius, maxRadiusInsideDrawingLimit(ringCenter));
     const ringAction = {
-      type: "ring",
-      label: labels.ring,
+      type: "circle",
+      label: labels.circle,
       element: "Structure",
       charge: 0,
       color: colors.normalInk,
@@ -9675,6 +9699,8 @@ function recreatePhotoImport() {
       cx: ringCenter.x,
       cy: ringCenter.y,
       radius,
+      closed: true,
+      boundary: true,
     };
     state.actions.push(ringAction);
     if (index === 0) state.circleCenter = { x: ringCenter.x, y: ringCenter.y };
@@ -9687,6 +9713,7 @@ function recreatePhotoImport() {
     const point = { x: symbol.cx, y: symbol.cy };
     const size = Math.max(1, symbol.size);
     const glyphAction = createGlyphAction(element, point, size);
+    glyphAction.rotation = Number.isFinite(symbol.rotation) ? symbol.rotation : 0;
     state.actions.push(glyphAction);
   }
   pendingPhotoImport = null;
