@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en" data-i18n-title="page.how.title">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-store">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'">
+    <meta name="description" content="Learn how the Witch Hat Atelier Spell Simulator reads drawings, compares photo geometry locally, scores tracing practice, and keeps corrections in your control.">
+    <meta property="og:title" content="How It Works | Witch Hat Atelier Spell Simulator">
+    <meta property="og:description" content="A bilingual guide to local deterministic photo recognition, confidence scores, tracing practice, and the simulator's limits.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://nh1980mg.github.io/witch-hat-atelier-spell-simulator/fonctionnement.html">
+    <link rel="canonical" href="https://nh1980mg.github.io/witch-hat-atelier-spell-simulator/fonctionnement.html">
+    <link rel="icon" type="image/svg+xml" href="assets/brand/atelier-mark.svg">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/brand/atelier-mark-180.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="assets/brand/atelier-mark-512.png">
+    <title>How It Works | Witch Hat Atelier Spell Simulator</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "How the Witch Hat Atelier Spell Simulator works",
+        "url": "https://nh1980mg.github.io/witch-hat-atelier-spell-simulator/fonctionnement.html",
+        "inLanguage": ["en", "fr"],
+        "description": "A bilingual explanation of the simulator's local deterministic drawing, photo, and practice tools."
+      }
+    </script>
+    <script>
+      if (window.location.protocol === "file:") {
+        window.location.replace("http://127.0.0.1:8000/fonctionnement.html");
+      }
+    </script>
+    <link rel="stylesheet" href="styles.css?v=20260808-how-it-works-v1">
+    <script type="module" src="site-i18n.mjs?v=20260808-how-it-works-v1"></script>
+  </head>
+  <body>
+    <main class="app-shell settings-page">
+      <header class="top-title">
+        <a class="page-title-link brand-title" href="index.html" data-i18n-aria-label="nav.home" aria-label="Return to the main workshop">
+          <img class="brand-logo-image" src="assets/brand/atelier-mark.svg" alt="" aria-hidden="true">
+          <h1 data-i18n="how.heading">How the simulator works</h1>
+        </a>
+        <nav class="header-nav" data-i18n-aria-label="nav.secondary" aria-label="Secondary navigation">
+          <a class="header-link" href="index.html" data-i18n-aria-label="nav.openWorkshop" data-i18n-title="nav.workshop" aria-label="Return to the simulator" title="Workshop">
+            <span aria-hidden="true">&#8592;</span>
+            <span data-i18n="nav.workshop">Workshop</span>
+          </a>
+          <a class="header-link" href="bibliotheque.html" data-i18n-aria-label="nav.openLibrary" data-i18n-title="nav.library" aria-label="Open the magic-circle library" title="Library">
+            <span aria-hidden="true">&#9678;</span>
+            <span data-i18n="nav.library">Library</span>
+          </a>
+          <a class="header-link" href="tutoriel.html" data-i18n-aria-label="nav.openTutorial" data-i18n-title="nav.tutorial" aria-label="Open the tutorial" title="Tutorial">
+            <span aria-hidden="true">?</span>
+            <span data-i18n="nav.tutorial">Tutorial</span>
+          </a>
+          <a class="header-link" href="parametres.html" data-i18n-aria-label="nav.openSettings" data-i18n-title="nav.settings" aria-label="Open settings" title="Settings">
+            <span aria-hidden="true">&#9881;</span>
+            <span data-i18n="nav.settings">Settings</span>
+          </a>
+          <div class="language-switcher" role="group" data-i18n-aria-label="language.label">
+            <button type="button" data-locale="en" aria-pressed="true" data-i18n-aria-label="language.english">EN</button>
+            <button type="button" data-locale="fr" aria-pressed="false" data-i18n-aria-label="language.french">FR</button>
+          </div>
+        </nav>
+      </header>
+
+      <div class="wiki-layout how-wiki-layout">
+        <nav class="wiki-toc" data-i18n-aria-label="wiki.contents" aria-label="On this page">
+          <strong data-i18n="wiki.contents">On this page</strong>
+          <a href="#drawing" data-i18n="how.toc.drawing">Drawing a circle</a>
+          <a href="#photo" data-i18n="how.toc.photo">Reading a photo</a>
+          <a href="#practice" data-i18n="how.toc.practice">Tracing practice</a>
+          <a href="#reading" data-i18n="how.toc.reading">Reading results</a>
+          <a href="#guides" data-i18n="how.toc.guides">Personal guides</a>
+          <a href="#limits" data-i18n="how.toc.limits">Limits</a>
+        </nav>
+
+        <section class="how-board wiki-content" data-i18n-aria-label="how.region" aria-label="How the simulator works">
+          <article class="how-intro" id="drawing">
+            <p class="wiki-kicker" data-i18n="how.kicker">A transparent workshop</p>
+            <h2 data-i18n="how.drawing.title">Draw a readable circle</h2>
+            <p data-i18n="how.drawing.body">The workshop reads the ring, placed sigils, signs, support, and geometry already on the parchment. It applies the same rule set to the same drawing every time.</p>
+          </article>
+
+          <article class="how-card" id="photo">
+            <h2 data-i18n="how.photo.title">Importing a photo</h2>
+            <p data-i18n="how.photo.pipeline">Photo recognition stays in your browser. The simulator compares local geometry and symbol templates deterministically; it does not send the image to a remote model or guess from an online catalogue.</p>
+            <div class="how-output-grid">
+              <section class="how-output">
+                <span class="how-output-mark" aria-hidden="true">&#9711;</span>
+                <h3 data-i18n="how.photo.ringTitle">Ring result</h3>
+                <p data-i18n="how.photo.ringOutput">A detected outer ring can be placed on the parchment as a drawing boundary.</p>
+              </section>
+              <section class="how-output">
+                <span class="how-output-mark" aria-hidden="true">&#9671;</span>
+                <h3 data-i18n="how.photo.symbolsTitle">Symbol result</h3>
+                <p data-i18n="how.photo.symbolsOutput">Recognized symbols are offered as editable placed marks; unreadable traces remain excluded instead of being invented.</p>
+              </section>
+            </div>
+          </article>
+
+          <article class="how-card" id="practice">
+            <h2 data-i18n="how.practice.title">Practice is a separate exercise</h2>
+            <p data-i18n="how.practice.knownTarget">Practice compares your stroke with one known target symbol selected by the exercise.</p>
+            <p data-i18n="how.practice.noRing">It does not require a closed ring, because it scores a trace rather than trying to activate or interpret a spell.</p>
+          </article>
+
+          <article class="how-card" id="reading">
+            <h2 data-i18n="how.reading.title">Read the result and correct it</h2>
+            <p data-i18n="how.reading.confidence">Confidence expresses how closely a local shape matches the available template. A low-confidence or ambiguous result is a cue to correct the drawing, not a hidden decision.</p>
+            <p data-i18n="how.reading.correction">You can move, remove, redraw, or replace any imported mark before using it in the workshop.</p>
+          </article>
+
+          <article class="how-card" id="guides">
+            <h2 data-i18n="how.guides.title">Keep useful references close</h2>
+            <p data-i18n="how.guides.body">Saved examples and imported photos can become personal tracing guides. They stay available in this browser so you can compare a new drawing with your own reference.</p>
+          </article>
+
+          <article class="how-card how-limits" id="limits">
+            <h2 data-i18n="how.limits.title">What this does not claim</h2>
+            <p data-i18n="how.limits.local">The simulator is a local deterministic geometry and template comparison tool, not a general image-recognition service or an authoritative reading of every hand-drawn mark.</p>
+            <p data-i18n="how.limits.body">Lighting, blur, perspective, incomplete strokes, and symbols outside the supported catalogue can reduce recognition quality. Check the preview and make corrections before relying on a result.</p>
+          </article>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>

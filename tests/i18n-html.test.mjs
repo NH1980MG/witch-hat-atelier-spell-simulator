@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { catalogs } from "../i18n.mjs";
 
-const pages = ["index.html", "bibliotheque.html", "tutoriel.html", "parametres.html"];
+const pages = ["index.html", "bibliotheque.html", "tutoriel.html", "parametres.html", "fonctionnement.html"];
 
 test("every page exposes the bilingual control", async () => {
   for (const page of pages) {

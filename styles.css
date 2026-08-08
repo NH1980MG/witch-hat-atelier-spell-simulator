@@ -1354,6 +1354,61 @@ input:focus-visible {
   min-width: 0;
 }
 
+.how-board {
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+}
+
+.how-intro,
+.how-card {
+  border: 1px solid rgba(140, 107, 63, 0.34);
+  border-radius: 10px;
+  padding: 20px;
+  background: rgba(255, 252, 237, 0.7);
+  box-shadow: 0 8px 18px rgba(60, 43, 25, 0.08);
+}
+
+.how-intro {
+  border-left: 5px solid var(--gold-dark);
+}
+
+.how-intro h2,
+.how-card h2,
+.how-card h3,
+.how-card p {
+  margin-top: 0;
+}
+
+.how-card p:last-child {
+  margin-bottom: 0;
+}
+
+.how-output-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.how-output {
+  padding: 16px;
+  border-radius: 8px;
+  background: rgba(209, 189, 146, 0.2);
+}
+
+.how-output-mark {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--gold-dark);
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.how-limits {
+  border-color: rgba(139, 67, 43, 0.45);
+}
+
 .tutorial-wiki-layout .tutorial-board {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -2198,6 +2253,10 @@ input:focus-visible {
   .wiki-section-heading {
     display: grid;
     align-items: start;
+  }
+
+  .how-output-grid {
+    grid-template-columns: 1fr;
   }
 
   .variant-filters,
