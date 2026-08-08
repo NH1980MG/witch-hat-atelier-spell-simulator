@@ -105,6 +105,18 @@ test("estimateInkMask keeps dense ink covering more than one quarter of the phot
   assert.equal(mask[75 * photo.width + 180], 1, "thin stroke should remain visible beside dense ink");
 });
 
+test("estimateInkMask keeps the center of a large enclosed dense region", () => {
+  const photo = gradientPaper(240, 160);
+  inkRect(photo, 20, 15, 219, 144);
+  const mask = estimateInkMask(photo);
+  let denseInk = 0;
+  for (let y = 15; y <= 144; y += 1) {
+    for (let x = 20; x <= 219; x += 1) denseInk += mask[y * photo.width + x];
+  }
+  assert.equal(denseInk, 26000, `expected all 26000 dense ink pixels, got ${denseInk}`);
+  assert.equal(mask[80 * photo.width + 120], 1, "the enclosed component center should survive fallback");
+});
+
 test("estimateInkMask does not classify a legitimate paper shadow as ink", () => {
   for (const shadowValue of [145, 148, 150, 155]) {
     const photo = shadowedPaper(240, 160, shadowValue, 230);
