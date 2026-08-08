@@ -36,6 +36,15 @@ test("the workshop and library publish valid JSON-LD types", async () => {
   assert.doesNotMatch(library, /38,532/);
 });
 
+test("all public pages expose the canonical brand icon metadata", async () => {
+  for (const [file] of pages) {
+    const html = await readFile(new URL(`../${file}`, import.meta.url), "utf8");
+    assert.match(html, /<link rel="icon" type="image\/svg\+xml" href="assets\/brand\/atelier-mark\.svg">/);
+    assert.match(html, /<link rel="apple-touch-icon" sizes="180x180" href="assets\/brand\/atelier-mark-180\.png">/);
+    assert.match(html, /<link rel="icon" type="image\/png" sizes="512x512" href="assets\/brand\/atelier-mark-512\.png">/);
+  }
+});
+
 test("robots and sitemap advertise every public page", async () => {
   const robots = await readFile(new URL("../robots.txt", import.meta.url), "utf8");
   const sitemap = await readFile(new URL("../sitemap.xml", import.meta.url), "utf8");
