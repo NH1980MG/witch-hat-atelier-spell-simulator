@@ -5,7 +5,7 @@
 // du catalogue. Aucune dependance, tout est deterministe et testable sous Node.
 
 import { flattenSvgPath } from "./stroke-matcher.mjs";
-import { estimateInkMask } from "./photo-preprocessing.mjs";
+import { estimateInkMask, inkBounds } from "./photo-preprocessing.mjs";
 
 export const TEMPLATE_SIZE = 48;
 
@@ -140,6 +140,77 @@ export function isRingComponent(component, imageWidth, imageHeight, centerFill) 
   return fill < 0.45 && centerFill < 0.08;
 }
 
+function median(values) {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+function ringZone(component, rings) {
+  const cx = component.left + component.width / 2;
+  const cy = component.top + component.height / 2;
+  return rings.map((ring) => Math.hypot(cx - ring.cx, cy - ring.cy) < ring.radius).join(":");
+}
+
+function expandedBoxesOverlap(a, b, expansion) {
+  return a.left - expansion <= b.right + expansion
+    && a.right + expansion >= b.left - expansion
+    && a.top - expansion <= b.bottom + expansion
+    && a.bottom + expansion >= b.top - expansion;
+}
+
+// Les traits proches d'un meme glyphe forment une seule region. La signature
+// d'appartenance aux anneaux empeche une fusion de part et d'autre d'un cercle.
+export function groupComponents(components, imageWidth, imageHeight, rings) {
+  if (!components.length) return [];
+  const strokeSpan = median(components.map((component) => Math.min(component.width, component.height)));
+  const expansion = Math.max(2, Math.min(strokeSpan * 0.4, Math.min(imageWidth, imageHeight) * 0.08));
+  const parents = components.map((_, index) => index);
+  const zones = components.map((component) => ringZone(component, rings));
+  const find = (index) => {
+    while (parents[index] !== index) {
+      parents[index] = parents[parents[index]];
+      index = parents[index];
+    }
+    return index;
+  };
+  const unite = (a, b) => {
+    const rootA = find(a);
+    const rootB = find(b);
+    if (rootA !== rootB) parents[rootB] = rootA;
+  };
+  for (let i = 0; i < components.length; i += 1) {
+    for (let j = i + 1; j < components.length; j += 1) {
+      if (zones[i] === zones[j] && expandedBoxesOverlap(components[i], components[j], expansion)) {
+        unite(i, j);
+      }
+    }
+  }
+  const grouped = new Map();
+  for (let index = 0; index < components.length; index += 1) {
+    const root = find(index);
+    if (!grouped.has(root)) grouped.set(root, []);
+    grouped.get(root).push(components[index]);
+  }
+  return [...grouped.values()].map((members) => {
+    const left = Math.min(...members.map((component) => component.left));
+    const top = Math.min(...members.map((component) => component.top));
+    const right = Math.max(...members.map((component) => component.right));
+    const bottom = Math.max(...members.map((component) => component.bottom));
+    return {
+      components: members,
+      left,
+      top,
+      right,
+      bottom,
+      width: right - left + 1,
+      height: bottom - top + 1,
+      size: members.reduce((sum, component) => sum + component.size, 0),
+    };
+  }).sort((a, b) => a.top - b.top || a.left - b.left);
+}
+
 // --- rasterisation des modeles --------------------------------------------
 
 // Rasterise les commandes SVG d'un modele dans un carre `size` (masque 0/1).
@@ -198,6 +269,83 @@ export function normalizeComponentMask(mask, componentWidth, componentHeight, si
     }
   }
   return out;
+}
+
+// En reduction, un simple echantillon au centre peut supprimer un trait fin.
+// Cette variante conserve un pixel cible des qu'une partie de sa zone source
+// contient de l'encre; le squelette ci-dessous neutralise ensuite l'epaisseur.
+function normalizeGroupMask(mask, componentWidth, componentHeight, size = TEMPLATE_SIZE) {
+  const scale = (size * 0.82) / Math.max(componentWidth, componentHeight);
+  const outWidth = Math.max(1, Math.round(componentWidth * scale));
+  const outHeight = Math.max(1, Math.round(componentHeight * scale));
+  const offsetX = Math.round((size - outWidth) / 2);
+  const offsetY = Math.round((size - outHeight) / 2);
+  const out = new Float32Array(size * size);
+  for (let y = offsetY; y < offsetY + outHeight; y += 1) {
+    for (let x = offsetX; x < offsetX + outWidth; x += 1) {
+      const sourceLeft = Math.max(0, Math.floor((x - offsetX) / scale));
+      const sourceRight = Math.min(componentWidth - 1, Math.ceil((x + 1 - offsetX) / scale) - 1);
+      const sourceTop = Math.max(0, Math.floor((y - offsetY) / scale));
+      const sourceBottom = Math.min(componentHeight - 1, Math.ceil((y + 1 - offsetY) / scale) - 1);
+      let hasInk = false;
+      for (let sy = sourceTop; sy <= sourceBottom && !hasInk; sy += 1) {
+        for (let sx = sourceLeft; sx <= sourceRight; sx += 1) {
+          if (mask[sy * componentWidth + sx]) {
+            hasInk = true;
+            break;
+          }
+        }
+      }
+      if (hasInk) out[y * size + x] = 1;
+    }
+  }
+  return out;
+}
+
+// Amincissement de Zhang-Suen : compare la geometrie des traits plutot que
+// l'epaisseur variable produite par une photo et sa mise a l'echelle.
+function skeletonizeMask(mask, size = TEMPLATE_SIZE) {
+  const out = Uint8Array.from(mask);
+  const neighbors = (x, y) => [
+    out[(y - 1) * size + x],
+    out[(y - 1) * size + x + 1],
+    out[y * size + x + 1],
+    out[(y + 1) * size + x + 1],
+    out[(y + 1) * size + x],
+    out[(y + 1) * size + x - 1],
+    out[y * size + x - 1],
+    out[(y - 1) * size + x - 1],
+  ];
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (let phase = 0; phase < 2; phase += 1) {
+      const removals = [];
+      for (let y = 1; y < size - 1; y += 1) {
+        for (let x = 1; x < size - 1; x += 1) {
+          const index = y * size + x;
+          if (!out[index]) continue;
+          const adjacent = neighbors(x, y);
+          const count = adjacent.reduce((sum, value) => sum + value, 0);
+          const transitions = adjacent.reduce(
+            (sum, value, neighborIndex) => sum + (!value && adjacent[(neighborIndex + 1) % adjacent.length] ? 1 : 0),
+            0,
+          );
+          if (count < 2 || count > 6 || transitions !== 1) continue;
+          const [north, , east, , south, , west] = adjacent;
+          const blocksFirstPhase = north * east * south || east * south * west;
+          const blocksSecondPhase = north * east * west || north * south * west;
+          if (phase === 0 ? blocksFirstPhase : blocksSecondPhase) continue;
+          removals.push(index);
+        }
+      }
+      if (removals.length) {
+        changed = true;
+        for (const index of removals) out[index] = 0;
+      }
+    }
+  }
+  return Float32Array.from(out);
 }
 
 // --- comparaison raster ----------------------------------------------------
@@ -271,19 +419,27 @@ export function rasterMatchScore(componentMask, templateMask, templateDist) {
   return Math.round((0.5 * chamferScore + 0.3 * iou + 0.2 * densitySim) * 100);
 }
 
-// Cache des modeles rasterises (par taille).
-const templateCache = new Map();
+// Cache des modeles rasterises par catalogue et par taille.
+const templateCache = new WeakMap();
 
 export function templateMasks(symbolPaths, size = TEMPLATE_SIZE) {
-  const key = `${size}`;
-  if (!templateCache.has(key)) {
+  if (!templateCache.has(symbolPaths)) templateCache.set(symbolPaths, new Map());
+  const cacheBySize = templateCache.get(symbolPaths);
+  if (!cacheBySize.has(size)) {
     const entries = Object.entries(symbolPaths).map(([name, paths]) => {
       const mask = rasterizeTemplate(paths, size);
-      return { name, mask, dist: distanceTransform(mask, size) };
+      const skeleton = skeletonizeMask(mask, size);
+      return {
+        name,
+        mask,
+        dist: distanceTransform(mask, size),
+        skeleton,
+        skeletonDist: distanceTransform(skeleton, size),
+      };
     });
-    templateCache.set(key, entries);
+    cacheBySize.set(size, entries);
   }
-  return templateCache.get(key);
+  return cacheBySize.get(size);
 }
 
 // Reconnait une composante : retourne les 3 meilleurs candidats tries.
@@ -295,6 +451,52 @@ export function recognizeComponent(componentMask, componentWidth, componentHeigh
   }));
   candidates.sort((a, b) => b.score - a.score);
   return candidates.slice(0, 3);
+}
+
+const GROUP_ROTATIONS = [-12, -6, 0, 6, 12];
+const PHOTO_IMPORT_ACCEPTED_SCORE = 58;
+const PHOTO_IMPORT_ACCEPTED_MARGIN = 7;
+
+function rotateMask(mask, degrees, size = TEMPLATE_SIZE) {
+  if (degrees === 0) return mask;
+  const out = new Float32Array(size * size);
+  const radians = degrees * Math.PI / 180;
+  const cosine = Math.cos(radians);
+  const sine = Math.sin(radians);
+  const center = (size - 1) / 2;
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const dx = x - center;
+      const dy = y - center;
+      const sourceX = Math.round(center + dx * cosine + dy * sine);
+      const sourceY = Math.round(center - dx * sine + dy * cosine);
+      if (sourceX >= 0 && sourceY >= 0 && sourceX < size && sourceY < size) {
+        out[y * size + x] = mask[sourceY * size + sourceX];
+      }
+    }
+  }
+  return out;
+}
+
+export function recognizeGroup(groupMask, width, height, symbolPaths) {
+  const normalized = skeletonizeMask(normalizeGroupMask(groupMask, width, height));
+  const rotations = GROUP_ROTATIONS.map((degrees) => rotateMask(normalized, degrees));
+  const candidates = templateMasks(symbolPaths).map(({ name, skeleton, skeletonDist }) => ({
+    name,
+    score: Math.max(...rotations.map((rotated) => rasterMatchScore(rotated, skeleton, skeletonDist))),
+  }));
+  candidates.sort((a, b) => b.score - a.score);
+  const topCandidates = candidates.slice(0, 3);
+  const bestScore = topCandidates[0]?.score || 0;
+  const secondScore = topCandidates[1]?.score || 0;
+  const scoreMargin = bestScore - secondScore;
+  let status = "unreadable";
+  if (bestScore >= PHOTO_IMPORT_ACCEPTED_SCORE && scoreMargin >= PHOTO_IMPORT_ACCEPTED_MARGIN) {
+    status = "accepted";
+  } else if (bestScore >= PHOTO_IMPORT_MIN_SCORE) {
+    status = "ambiguous";
+  }
+  return { status, candidates: topCandidates, scoreMargin };
 }
 
 // --- pipeline complet ------------------------------------------------------
@@ -311,7 +513,7 @@ export function analyzePhoto(imageData, symbolPaths) {
   // bruit (poussiere du papier, taches) qu'on ignore sans tenter de reconnaitre.
   const minSpan = Math.max(18, Math.round(Math.min(width, height) * 0.03));
   const rings = [];
-  const symbols = [];
+  const glyphComponents = [];
   let ignored = 0;
   for (const component of components) {
     if (Math.max(component.width, component.height) < minSpan) {
@@ -326,21 +528,57 @@ export function analyzePhoto(imageData, symbolPaths) {
       });
       continue;
     }
-    const candidates = recognizeComponent(componentMask(component), component.width, component.height, symbolPaths);
-    const best = candidates[0];
-    if (best && best.score >= PHOTO_IMPORT_MIN_SCORE) {
-      symbols.push({
-        name: best.name,
-        score: best.score,
-        candidates,
-        cx: component.left + component.width / 2,
-        cy: component.top + component.height / 2,
-        size: Math.max(component.width, component.height),
-      });
-    } else {
-      ignored += 1;
-    }
+    glyphComponents.push(component);
   }
   rings.sort((a, b) => b.radius - a.radius);
-  return { ring: rings[0] || null, symbols, ignored, imageWidth: width, imageHeight: height };
+  const groups = groupComponents(glyphComponents, width, height, rings);
+  const regions = groups.map((group) => {
+    const groupMask = new Uint8Array(group.width * group.height);
+    for (const component of group.components) {
+      const localMask = componentMask(component);
+      const offsetX = component.left - group.left;
+      const offsetY = component.top - group.top;
+      for (let y = 0; y < component.height; y += 1) {
+        for (let x = 0; x < component.width; x += 1) {
+          if (localMask[y * component.width + x]) {
+            groupMask[(offsetY + y) * group.width + offsetX + x] = 1;
+          }
+        }
+      }
+    }
+    const recognition = recognizeGroup(groupMask, group.width, group.height, symbolPaths);
+    if (recognition.status === "unreadable") ignored += 1;
+    return {
+      ...recognition,
+      cx: group.left + group.width / 2,
+      cy: group.top + group.height / 2,
+      size: Math.max(group.width, group.height),
+      left: group.left,
+      top: group.top,
+      right: group.right,
+      bottom: group.bottom,
+      width: group.width,
+      height: group.height,
+    };
+  });
+  const symbols = regions
+    .filter((region) => region.status === "accepted")
+    .map((region) => ({
+      name: region.candidates[0].name,
+      score: region.candidates[0].score,
+      candidates: region.candidates,
+      cx: region.cx,
+      cy: region.cy,
+      size: region.size,
+    }));
+  return {
+    rings,
+    ring: rings[0] || null,
+    regions,
+    symbols,
+    ignored,
+    cropBounds: inkBounds(mask, width, height),
+    imageWidth: width,
+    imageHeight: height,
+  };
 }

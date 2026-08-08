@@ -7,10 +7,12 @@ import {
   PHOTO_IMPORT_MIN_SCORE,
   analyzePhoto,
   connectedComponents,
+  groupComponents,
   isRingComponent,
   otsuThreshold,
   rasterizeTemplate,
   recognizeComponent,
+  recognizeGroup,
   ringCenterFill,
   toInkMask,
 } from "../photo-import.mjs";
@@ -67,6 +69,51 @@ function inkGlyph(photo, name, left, top, boxSize) {
   }
 }
 
+function inkGlyphWithDisconnectedStrokes(photo, name, left, top, boxSize, rotation = 0) {
+  const scale = boxSize / 48;
+  const radians = rotation * Math.PI / 180;
+  const cosine = Math.cos(radians);
+  const sine = Math.sin(radians);
+  for (const path of SYMBOL_PATHS[name]) {
+    const mask = rasterizeTemplate([path], 48);
+    for (let y = 0; y < 48; y += 1) {
+      for (let x = 0; x < 48; x += 1) {
+        if (!mask[y * 48 + x]) continue;
+        const dx = x - 24;
+        const dy = y - 24;
+        const px = Math.round(left + (24 + dx * cosine - dy * sine) * scale);
+        const py = Math.round(top + (24 + dx * sine + dy * cosine) * scale);
+        inkDisc(photo, px, py, Math.max(1.2, scale * 0.45));
+      }
+    }
+  }
+}
+
+function trimMask(mask, width, height) {
+  let left = width;
+  let top = height;
+  let right = -1;
+  let bottom = -1;
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      if (!mask[y * width + x]) continue;
+      left = Math.min(left, x);
+      top = Math.min(top, y);
+      right = Math.max(right, x);
+      bottom = Math.max(bottom, y);
+    }
+  }
+  const outWidth = right - left + 1;
+  const outHeight = bottom - top + 1;
+  const out = new Uint8Array(outWidth * outHeight);
+  for (let y = top; y <= bottom; y += 1) {
+    for (let x = left; x <= right; x += 1) {
+      out[(y - top) * outWidth + x - left] = mask[y * width + x];
+    }
+  }
+  return { mask: out, width: outWidth, height: outHeight };
+}
+
 test("Otsu separe l'encre du papier sur une image bimodale", () => {
   const photo = blankPhoto(40, 40);
   inkRect(photo, 10, 10, 20, 20);
@@ -115,7 +162,83 @@ test("un glyphe photographie est reconnu comme le bon symbole", () => {
     assert.equal(result.symbols.length, 1, `${name}: ${result.symbols.length} symbole(s)`);
     assert.equal(result.symbols[0].name, name, `${name} reconnu en ${result.symbols[0].name} (${result.symbols[0].score})`);
     assert.ok(result.symbols[0].score >= PHOTO_IMPORT_MIN_SCORE);
+    assert.equal(result.regions.length, 1);
+    assert.equal(result.regions[0].status, "accepted");
+    assert.equal(result.symbols[0].name, result.regions[0].candidates[0].name);
+    assert.ok(result.cropBounds);
   }
+});
+
+test("les traits deconnectes d'un sigil d'eau forment une seule region", () => {
+  const photo = blankPhoto(240, 240);
+  inkGlyphWithDisconnectedStrokes(photo, "Eau", 50, 50, 140);
+  const result = analyzePhoto(photo, SYMBOL_PATHS);
+  assert.equal(result.regions.length, 1);
+  assert.equal(result.regions[0].candidates[0].name, "Eau");
+});
+
+test("le regroupement ne traverse pas la frontiere d'un anneau", () => {
+  const components = [
+    { id: 1, size: 40, left: 144, top: 96, right: 151, bottom: 103, width: 8, height: 8 },
+    { id: 2, size: 40, left: 153, top: 96, right: 160, bottom: 103, width: 8, height: 8 },
+  ];
+  assert.equal(groupComponents(components, 200, 200, []).length, 1);
+  assert.equal(groupComponents(components, 200, 200, [{ cx: 100, cy: 100, radius: 50 }]).length, 2);
+});
+
+test("la reconnaissance couvre les bornes de rotation de moins douze a douze degres", () => {
+  for (const degrees of [-12, 12]) {
+    const photo = blankPhoto(240, 240);
+    inkGlyphWithDisconnectedStrokes(photo, "Eau", 50, 50, 140, degrees);
+    const result = analyzePhoto(photo, SYMBOL_PATHS);
+    assert.equal(result.regions.length, 1);
+    assert.equal(result.regions[0].status, "accepted", `${degrees} degres: ${JSON.stringify(result.regions[0])}`);
+    assert.equal(result.regions[0].candidates[0].name, "Eau");
+  }
+  const outsidePhoto = blankPhoto(240, 240);
+  inkGlyphWithDisconnectedStrokes(outsidePhoto, "Eau", 50, 50, 140, 24);
+  assert.notEqual(analyzePhoto(outsidePhoto, SYMBOL_PATHS).regions[0].status, "accepted");
+});
+
+test("deux meilleurs candidats egaux rendent la region ambigue", () => {
+  const paths = {
+    Alpha: ["M8 8 V40 H36"],
+    Beta: ["M8 8 V40 H36"],
+  };
+  const source = trimMask(rasterizeTemplate(paths.Alpha, 48), 48, 48);
+  const recognition = recognizeGroup(source.mask, source.width, source.height, paths);
+  assert.equal(recognition.status, "ambiguous");
+  assert.equal(recognition.scoreMargin, 0);
+  assert.deepEqual(recognition.candidates.slice(0, 2).map(({ name }) => name), ["Alpha", "Beta"]);
+});
+
+test("symbols reste limite aux regions acceptees", () => {
+  const paths = {
+    Alpha: ["M8 8 V40 H36"],
+    Beta: ["M8 8 V40 H36"],
+  };
+  const photo = blankPhoto(180, 180);
+  const mask = rasterizeTemplate(paths.Alpha, 48);
+  for (let y = 0; y < 48; y += 1) {
+    for (let x = 0; x < 48; x += 1) {
+      if (mask[y * 48 + x]) inkDisc(photo, 50 + x * 2, 50 + y * 2, 1.2);
+    }
+  }
+  const result = analyzePhoto(photo, paths);
+  assert.equal(result.regions.length, 1);
+  assert.equal(result.regions[0].status, "ambiguous");
+  assert.deepEqual(result.symbols, []);
+});
+
+test("un masque illisible conserve des candidats sans etre accepte", () => {
+  const recognition = recognizeGroup(
+    new Uint8Array(48 * 48).fill(1),
+    48,
+    48,
+    { Trait: ["M24 8 V40"] },
+  );
+  assert.equal(recognition.status, "unreadable");
+  assert.equal(recognition.candidates[0].name, "Trait");
 });
 
 test("deux glyphes separes donnent deux symboles aux bonnes positions", () => {
