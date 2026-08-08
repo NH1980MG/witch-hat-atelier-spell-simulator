@@ -4,18 +4,18 @@ Use this before pushing to GitHub or publishing a static site.
 
 ## Task 7 Release Gate
 
-- [ ] **Step 1: Document the two photo outputs and recognition limits**
+- [x] **Step 1: Document the two photo outputs and recognition limits**
   - Add concise English and French-facing usage notes without promising
     perfect recognition.
-- [ ] **Step 2: Run syntax and full automated tests**
+- [x] **Step 2: Run syntax and full automated tests**
   - Run `node --check app.js && node --test tests/*.test.mjs`; require all
     tests to pass.
-- [ ] **Step 3: Start or reuse the local server and smoke-test the browser**
+- [x] **Step 3: Start or reuse the local server and smoke-test the browser**
   - Open `http://127.0.0.1:8000/index.html`. Verify desktop and narrow mobile
     layouts, logo, navigation, nonblank canvas, photo recreation, photo guide
     import, ambiguous correction, non-circle handling, Practice feedback, and
     nonblank 3D view after activation.
-- [ ] **Step 4: Verify commit scope**
+- [x] **Step 4: Verify commit scope**
   - Run `git status --short && git diff --check origin/main...HEAD && git diff
     --name-only origin/main...HEAD`; require no `minecraft-mod/` path and no
     unrelated file.

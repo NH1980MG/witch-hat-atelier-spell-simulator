@@ -173,6 +173,7 @@ export function connectedComponents(mask, width, height, { minSize = 12 } = {}) 
 // Part d'encre dans la zone centrale (30%-70%) de la boite : un anneau a le
 // centre creux, un glyphe l'occupe.
 export function ringCenterFill(component, mask, imageWidth) {
+  const localMask = mask.length === component.width * component.height;
   const x0 = Math.round(component.left + component.width * 0.3);
   const x1 = Math.round(component.left + component.width * 0.7);
   const y0 = Math.round(component.top + component.height * 0.3);
@@ -182,7 +183,10 @@ export function ringCenterFill(component, mask, imageWidth) {
   for (let y = y0; y <= y1; y += 1) {
     for (let x = x0; x <= x1; x += 1) {
       total += 1;
-      ink += mask[y * imageWidth + x];
+      const index = localMask
+        ? (y - component.top) * component.width + (x - component.left)
+        : y * imageWidth + x;
+      ink += mask[index];
     }
   }
   return total ? ink / total : 1;
@@ -608,7 +612,8 @@ export function analyzePhoto(imageData, symbolPaths) {
       ignored += 1;
       continue;
     }
-    if (isRingComponent(component, width, height, ringCenterFill(component, mask, width))) {
+    const ownMask = componentMask(component);
+    if (isRingComponent(component, width, height, ringCenterFill(component, ownMask, component.width))) {
       rings.push({
         cx: component.left + component.width / 2,
         cy: component.top + component.height / 2,

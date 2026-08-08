@@ -346,4 +346,3 @@ git push origin main
 ```
 
 Expected: GitHub accepts `main`; verify the public `index.html` and `fonctionnement.html` return HTTP 200 after Pages deployment.
-

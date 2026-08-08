@@ -162,6 +162,21 @@ test("un anneau dessine est detecte comme anneau", () => {
   assert.ok(isRingComponent(components[0], 300, 300, ringCenterFill(components[0], mask, 300)), "la grande couronne doit etre un anneau");
 });
 
+test("un anneau reste detecte quand des traits occupent son interieur", () => {
+  const photo = blankPhoto(300, 300);
+  const drawRing = (radius) => {
+    for (let angle = 0; angle < Math.PI * 2; angle += 0.004) {
+      inkDisc(photo, Math.round(150 + radius * Math.cos(angle)), Math.round(150 + radius * Math.sin(angle)), 3);
+    }
+  };
+  drawRing(110);
+  drawRing(60);
+  inkRect(photo, 122, 122, 178, 178);
+
+  const result = analyzePhoto(photo, SYMBOL_PATHS);
+  assert.ok(result.rings.some((ring) => ring.radius > 100), "l'anneau exterieur doit survivre au contenu imbrique");
+});
+
 test("un glyphe photographie est reconnu comme le bon symbole", () => {
   for (const name of ["Colonne", "Feu", "Lancement"]) {
     const photo = blankPhoto(200, 200);
