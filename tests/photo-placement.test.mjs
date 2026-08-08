@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mapPhotoAnalysis, photoContentBounds } from "../photo-placement.mjs";
+import {
+  mapPhotoAnalysis,
+  photoContentBounds,
+  selectPhotoCandidate,
+} from "../photo-placement.mjs";
 
 test("placement bounds include ring edges instead of only centers", () => {
   const bounds = photoContentBounds({
@@ -146,9 +150,17 @@ test("mapping recreates accepted and explicitly confirmed candidates only", () =
     { name: "Eau", score: 78 },
     { name: "Feu", score: 49 },
   ]);
-  assert.deepEqual(mapped.symbols.map(({ cx, cy, size }) => ({ cx, cy, size })), [
-    { cx: 22, cy: 37.5, size: 44 },
-    { cx: 88, cy: 37.5, size: 44 },
+  assert.deepEqual(mapped.symbols.map(({ cx, cy, size, width, height }) => ({
+    cx,
+    cy,
+    size,
+    width,
+    height,
+    renderedLeft: cx - size,
+    renderedRight: cx + size,
+  })), [
+    { cx: 22, cy: 37.5, size: 22, width: 44, height: 44, renderedLeft: 0, renderedRight: 44 },
+    { cx: 88, cy: 37.5, size: 22, width: 44, height: 44, renderedLeft: 66, renderedRight: 110 },
   ]);
 });
 
@@ -163,4 +175,40 @@ test("mapping returns no output when nothing is accepted or confirmed", () => {
       size: 10,
     }],
   }, { left: 0, top: 0, width: 100, height: 100 }), { rings: [], symbols: [] });
+});
+
+test("candidate selection mutates pending analysis and updates placement", () => {
+  const pending = {
+    analysis: {
+      rings: [],
+      regions: [{
+        status: "ambiguous",
+        candidates: [{ name: "Terre", score: 51 }, { name: "Feu", score: 49 }],
+        cx: 10,
+        cy: 10,
+        size: 20,
+        left: 0,
+        top: 0,
+        right: 20,
+        bottom: 20,
+      }],
+    },
+  };
+  const target = { left: 0, top: 0, width: 100, height: 100 };
+
+  assert.deepEqual(mapPhotoAnalysis(pending.analysis, target), { rings: [], symbols: [] });
+
+  selectPhotoCandidate(pending.analysis, 0, "Feu");
+
+  assert.equal(pending.analysis.regions[0].selectedName, "Feu");
+  assert.deepEqual(mapPhotoAnalysis(pending.analysis, target).symbols.map(({ name, score, size }) => ({
+    name,
+    score,
+    size,
+  })), [{ name: "Feu", score: 49, size: 50 }]);
+
+  selectPhotoCandidate(pending.analysis, 0, "");
+
+  assert.equal(pending.analysis.regions[0].selectedName, null);
+  assert.deepEqual(mapPhotoAnalysis(pending.analysis, target), { rings: [], symbols: [] });
 });

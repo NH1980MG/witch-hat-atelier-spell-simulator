@@ -20,6 +20,16 @@ function selectedCandidate(region) {
   return candidates.find((candidate) => candidate.name === region.selectedName) || null;
 }
 
+export function selectPhotoCandidate(analysis, regionIndex, selectedName) {
+  const region = analysis?.regions?.[regionIndex];
+  if (region?.status !== "ambiguous") {
+    return null;
+  }
+  const candidate = (region.candidates || []).find(({ name }) => name === selectedName);
+  region.selectedName = candidate?.name || null;
+  return region.selectedName;
+}
+
 function importableRegions(analysis) {
   if (Array.isArray(analysis?.regions)) {
     return analysis.regions
@@ -122,7 +132,7 @@ export function mapPhotoAnalysis(analysis, target) {
     candidates: region.candidates || [candidate],
     status: region.status || "accepted",
     ...mapPoint(region.cx, region.cy),
-    size: region.size * scale,
+    size: (region.size * scale) / 2,
     width: (finite(region.width) ? region.width : region.size) * scale,
     height: (finite(region.height) ? region.height : region.size) * scale,
   }));

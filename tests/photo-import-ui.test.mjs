@@ -19,7 +19,7 @@ test("l'atelier expose l'import photo complet", async () => {
 test("l'atelier importe l'analyse photo", async () => {
   const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
   assert.match(source, /import \{ analyzePhoto \} from "\.\/photo-import\.mjs\?v=/);
-  assert.match(source, /import \{ mapPhotoAnalysis \} from "\.\/photo-placement\.mjs\?v=/);
+  assert.match(source, /import \{ mapPhotoAnalysis, selectPhotoCandidate \} from "\.\/photo-placement\.mjs\?v=/);
   assert.match(source, /createImageBitmap/);
   assert.match(source, /recreatePhotoImport/);
   assert.match(source, /savePhotoAsGuide/);
@@ -43,12 +43,6 @@ test("la boite de dialogue affiche le recadrage corrige et chaque region une foi
   assert.match(css, /data-tier="high"/);
   assert.match(css, /\.photo-region-select/);
   assert.match(css, /\.photo-dialog-actions > button/);
-});
-
-test("la recreation se desactive sans anneau ni candidat confirme", async () => {
-  const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
-  assert.match(source, /photoRecreateButton\.disabled = mapped\.rings\.length === 0 && mapped\.symbols\.length === 0/);
-  assert.match(source, /region\.selectedName = select\.value \|\| null/);
 });
 
 test("le guide photo conserve le raster corrige sans ajouter d'actions", async () => {

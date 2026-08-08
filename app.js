@@ -48,7 +48,7 @@ import {
 } from "./symbol-chapters.mjs?v=20260802-photo-dialog-v1";
 import { scoreStrokeMatch } from "./stroke-matcher.mjs?v=20260802-photo-dialog-v1";
 import { analyzePhoto } from "./photo-import.mjs?v=20260808-photo-review-v1";
-import { mapPhotoAnalysis } from "./photo-placement.mjs?v=20260808-photo-review-v1";
+import { mapPhotoAnalysis, selectPhotoCandidate } from "./photo-placement.mjs?v=20260808-photo-review-v2";
 import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260802-photo-dialog-v1";
 import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260802-photo-dialog-v1";
 
@@ -9557,7 +9557,7 @@ function describePhotoAnalysis(analysis) {
         select.append(option);
       }
       select.addEventListener("change", () => {
-        region.selectedName = select.value || null;
+        selectPhotoCandidate(analysis, index, select.value);
         updatePhotoRecreateAvailability();
       });
       item.append(select);
