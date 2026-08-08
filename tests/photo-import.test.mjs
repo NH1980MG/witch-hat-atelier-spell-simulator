@@ -187,6 +187,19 @@ test("un trait raccorde a l'anneau reste une region reconnaissable", () => {
   assert.ok(result.regions.length >= 1, "le trait radial ne doit pas disparaitre avec l'anneau");
 });
 
+test("un petit trait raccorde a l'anneau n'est pas efface avec sa bordure", () => {
+  const photo = blankPhoto(300, 300);
+  for (let angle = 0; angle < Math.PI * 2; angle += 0.004) {
+    inkDisc(photo, Math.round(150 + 110 * Math.cos(angle)), Math.round(150 + 110 * Math.sin(angle)), 3);
+  }
+  inkRect(photo, 40, 147, 58, 153);
+
+  const result = analyzePhoto(photo, SYMBOL_PATHS);
+
+  assert.equal(result.rings.length, 1);
+  assert.ok(result.regions.length >= 1, "le petit trait radial doit rester modifiable");
+});
+
 test("un anneau reste detecte quand des traits occupent son interieur", () => {
   const photo = blankPhoto(300, 300);
   const drawRing = (radius) => {

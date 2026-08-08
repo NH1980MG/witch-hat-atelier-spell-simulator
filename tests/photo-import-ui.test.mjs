@@ -18,11 +18,14 @@ test("l'atelier expose l'import photo complet", async () => {
 
 test("l'atelier importe l'analyse photo", async () => {
   const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
+  const photoSource = await readFile(new URL("../photo-import.mjs", import.meta.url), "utf8");
   assert.match(source, /import \{ analyzePhoto \} from "\.\/photo-import\.mjs\?v=20260808-final-review-v1"/);
+  assert.match(source, /from "\.\/guide-storage\.mjs\?v=20260808-final-review-v1"/);
   assert.match(source, /mapPhotoAnalysis,\s+selectPhotoCandidate,\s+sourceCropForAnalysis,\s+\} from "\.\/photo-placement\.mjs\?v=20260808-final-review-v1"/);
   assert.match(source, /createImageBitmap/);
   assert.match(source, /recreatePhotoImport/);
   assert.match(source, /savePhotoAsGuide/);
+  assert.match(photoSource, /from "\.\/stroke-matcher\.mjs\?v=20260808-final-review-v1"/);
   assert.match(source, /type: "circle"/);
   assert.doesNotMatch(source, /const ringAction = \{\s*type: "ring"/);
 });
@@ -55,6 +58,7 @@ test("le guide photo conserve le raster corrige sans ajouter d'actions", async (
   assert.match(source, /src: pending\.cropDataUrl/);
   assert.match(source, /sourceCropForAnalysis/);
   assert.match(source, /drawImage\(\s*bitmap,/);
+  assert.match(source, /toDataURL\("image\/webp", 0\.82\)/);
   assert.match(source, /drawImage\(image, scaledBounds\.left, scaledBounds\.top, scaledBounds\.width, scaledBounds\.height\)/);
 });
 

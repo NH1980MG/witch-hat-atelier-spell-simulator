@@ -369,6 +369,10 @@ export function analyzeStrokeMatch(userStrokes, templatePaths) {
     ? pairs.reduce((sum, pair) => sum + pair.distance, 0) / pairs.length
     : 1;
   const shapeScore = clampPercentage((1 - meanDistance / 0.5) * 100);
+  // Une moitie de trait peut garder le bon nombre de sous-chemins et la bonne
+  // orientation. Cette mesure plus stricte transforme la distance de forme en
+  // plafond de completion sans penaliser une homothetie complete du glyphe.
+  const completionScore = clampPercentage((1 - meanDistance / 0.18) * 100);
   const extraPenalty = Math.min(35, extraStrokes * 12);
   const proportionScore = proportionSimilarity(user, templateStrokes);
   const orientationScore = orientationSimilarity(user, templateStrokes);
@@ -379,11 +383,13 @@ export function analyzeStrokeMatch(userStrokes, templatePaths) {
       + orientationScore * 0.05
       - extraPenalty;
   const coverageCeiling = 50 + coverage / 2;
-  const score = clampPercentage(Math.min(blendedScore, coverageCeiling));
+  const completionCeiling = 50 + completionScore / 2;
+  const score = clampPercentage(Math.min(blendedScore, coverageCeiling, completionCeiling));
 
   return {
     score,
     coverage,
+    completionScore,
     extraPenalty,
     proportionScore,
     orientationScore,

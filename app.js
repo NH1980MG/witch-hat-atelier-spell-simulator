@@ -17,7 +17,7 @@ import {
   loadUserGuides,
   MAX_USER_GUIDES,
   saveUserGuides,
-} from "./guide-storage.mjs?v=20260808-photo-review-v1";
+} from "./guide-storage.mjs?v=20260808-final-review-v1";
 import { classifySymbolDragGesture } from "./symbol-drag-gesture.mjs?v=20260716-touch-scroll-v1";
 import { parseRecipeParams } from "./recipe-link.mjs";
 import {
@@ -9502,6 +9502,11 @@ function renderPhotoPreview(pending) {
   photoPreviewImage.src = preview.toDataURL("image/png");
 }
 
+function encodePhotoGuideRaster(canvas) {
+  const webp = canvas.toDataURL("image/webp", 0.82);
+  return webp.startsWith("data:image/webp") ? webp : canvas.toDataURL("image/png");
+}
+
 function photoRegionIcon(region) {
   const candidate = region.candidates?.[0];
   const element = elements.find((entry) => entry.name === candidate?.name);
@@ -9647,7 +9652,7 @@ async function handlePhotoFile(file) {
       analysis,
       cropBounds,
       cropCanvas,
-      cropDataUrl: cropCanvas.toDataURL("image/png"),
+      cropDataUrl: encodePhotoGuideRaster(cropCanvas),
       cropWidth: sourceCrop.width,
       cropHeight: sourceCrop.height,
       overlayScaleX: sourceCrop.scaleX,
@@ -9759,6 +9764,9 @@ function savePhotoAsGuide() {
   let saved = true;
   try {
     state.userGuides = saveUserGuides(localStorage, [guide, ...state.userGuides]);
+    if (!state.userGuides.some(({ id }) => id === guide.id)) {
+      throw new DOMException("Photo guide exceeds persistent storage budget", "QuotaExceededError");
+    }
   } catch {
     saved = false;
     state.userGuides = [guide, ...state.userGuides.filter((item) => item.id !== guide.id)]

@@ -1,5 +1,6 @@
 export const USER_GUIDE_STORAGE_KEY = "whaUserGuidesV1";
 export const MAX_USER_GUIDES = 24;
+export const MAX_USER_GUIDE_STORAGE_CHARS = 2_500_000;
 
 const DRAWING_ACTION_TYPES = new Set(["free", "circle", "ring", "ray", "glyph", "spiral"]);
 const ACTION_KEYS = [
@@ -95,8 +96,15 @@ export function loadUserGuides(storage = globalThis.localStorage) {
 
 export function saveUserGuides(storage = globalThis.localStorage, guides = []) {
   const normalized = guides.map(normalizeGuide).filter(Boolean).slice(0, MAX_USER_GUIDES);
-  storage?.setItem(USER_GUIDE_STORAGE_KEY, JSON.stringify(normalized));
-  return normalized;
+  const fitted = [];
+  for (const guide of normalized) {
+    const candidate = [...fitted, guide];
+    if (JSON.stringify(candidate).length <= MAX_USER_GUIDE_STORAGE_CHARS) {
+      fitted.push(guide);
+    }
+  }
+  storage?.setItem(USER_GUIDE_STORAGE_KEY, JSON.stringify(fitted));
+  return fitted;
 }
 
 export function deleteUserGuide(guides, id) {

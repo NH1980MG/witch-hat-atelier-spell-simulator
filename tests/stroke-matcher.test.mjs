@@ -54,6 +54,19 @@ test("un seul trait d'Arret temporel ne peut pas obtenir un score excellent", ()
   assert.ok(result.score < 80, `score ${result.score} attendu < 80`);
 });
 
+test("la premiere moitie de chaque trait ne peut pas obtenir un score excellent", () => {
+  for (const name of ["Colonne", "Viseur", "Enveloppe"]) {
+    const truncated = strokesOf(name).map((stroke) => {
+      const [start] = stroke;
+      const end = stroke[stroke.length - 1];
+      return [start, [(start[0] + end[0]) / 2, (start[1] + end[1]) / 2]];
+    });
+    const result = analyzeStrokeMatch(truncated, SYMBOL_PATHS[name]);
+
+    assert.ok(result.score < 80, `${name}: score tronque ${result.score} attendu < 80`);
+  }
+});
+
 test("un trait utilisateur ne peut pas satisfaire plusieurs traits du modele", () => {
   const template = ["M 0 0 L 10 0", "M 0 10 L 10 10"];
   const result = analyzeStrokeMatch([[[0, 0], [10, 0]]], template);

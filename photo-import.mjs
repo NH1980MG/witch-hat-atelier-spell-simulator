@@ -4,7 +4,7 @@
 // comparaison raster (distance de chamfer symetrique + IoU) contre les modeles
 // du catalogue. Aucune dependance, tout est deterministe et testable sous Node.
 
-import { flattenSvgPath } from "./stroke-matcher.mjs";
+import { flattenSvgPath } from "./stroke-matcher.mjs?v=20260808-final-review-v1";
 import { estimateInkMask, inkBounds } from "./photo-preprocessing.mjs";
 
 export const TEMPLATE_SIZE = 48;
@@ -641,6 +641,17 @@ function eraseDetectedRings(mask, width, height, rings) {
   return out;
 }
 
+function componentNearErasedRing(component, ring) {
+  const farthestRadius = Math.max(
+    Math.hypot(component.left - ring.cx, component.top - ring.cy),
+    Math.hypot(component.right - ring.cx, component.top - ring.cy),
+    Math.hypot(component.left - ring.cx, component.bottom - ring.cy),
+    Math.hypot(component.right - ring.cx, component.bottom - ring.cy),
+  );
+  const allowance = ring.eraseTolerance + component.strokeWidth + 2;
+  return farthestRadius >= ring.radius - allowance;
+}
+
 export function analyzePhoto(imageData, symbolPaths) {
   const { width, height } = imageData;
   const mask = toInkMask(imageData);
@@ -666,7 +677,7 @@ export function analyzePhoto(imageData, symbolPaths) {
         cx: component.left + component.width / 2,
         cy: component.top + component.height / 2,
         radius: (component.width + component.height) / 4,
-        eraseTolerance: Math.max(2, component.strokeWidth * 1.75),
+        eraseTolerance: Math.max(2, component.strokeWidth * 0.85),
       });
     }
   }
@@ -675,6 +686,13 @@ export function analyzePhoto(imageData, symbolPaths) {
   const residualComponents = connectedComponents(glyphMask, width, height, { minSize });
   const glyphComponents = residualComponents.components.filter((component) => {
     if (Math.max(component.width, component.height) >= minSpan) return true;
+    const shortAttachedSpan = Math.max(5, Math.round(minSpan * 0.3));
+    if (
+      Math.max(component.width, component.height) >= shortAttachedSpan
+      && rings.some((ring) => componentNearErasedRing(component, ring))
+    ) {
+      return true;
+    }
     ignored += 1;
     return false;
   });

@@ -77,3 +77,20 @@ test("un raster personnel invalide est refuse", () => {
     raster: { src: "javascript:alert(1)", width: 640, height: 360 },
   }), /guide requires/i);
 });
+
+test("le stockage retire les anciens guides avant de depasser son budget", () => {
+  const makeLargeGuide = (id) => createUserGuide([], {
+    id,
+    raster: {
+      src: `data:image/webp;base64,${"A".repeat(2_200_000)}`,
+      width: 4000,
+      height: 3000,
+    },
+  });
+  const storage = memoryStorage();
+
+  const saved = saveUserGuides(storage, [makeLargeGuide("recent"), makeLargeGuide("old")]);
+
+  assert.deepEqual(saved.map(({ id }) => id), ["recent"]);
+  assert.deepEqual(loadUserGuides(storage).map(({ id }) => id), ["recent"]);
+});
