@@ -8,7 +8,7 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260727-mixture-runtime-v3";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260727-mixture-runtime-v3";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260808-final-review-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260808-community-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260716-shoe-camera-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -18,7 +18,6 @@ import {
   MAX_USER_GUIDES,
   saveUserGuides,
 } from "./guide-storage.mjs?v=20260808-final-review-v1";
-} from "./guide-storage.mjs?v=20260808-final-review-v1";
 import {
   createSpell,
   deleteMySpell,
@@ -27,6 +26,12 @@ import {
 } from "./spell-library.mjs";
 import { classifySymbolDragGesture } from "./symbol-drag-gesture.mjs?v=20260716-touch-scroll-v1";
 import { parseRecipeParams } from "./recipe-link.mjs";
+import {
+  buildCommunityComposeUrl,
+  decodeCircleShare,
+  fitCircleShare,
+  parseCircleShare,
+} from "./circle-share.mjs?v=20260808-community-v1";
 import {
   combinedSelectionBounds,
   canDropGlyph,
@@ -346,6 +351,7 @@ const guideOpacityInput = document.querySelector("#guideOpacityInput");
 const clearGuideButton = document.querySelector("#clearGuideButton");
 const saveExampleButton = document.querySelector("#saveExampleButton");
 const saveSpellButton = document.querySelector("#saveSpellButton");
+const publishCommunityButton = document.querySelector("#publishCommunityButton");
 const spellSaveDialog = document.querySelector("#spellSaveDialog");
 const spellNameInput = document.querySelector("#spellNameInput");
 const spellSaveConfirm = document.querySelector("#spellSaveConfirm");
@@ -9227,6 +9233,113 @@ function saveCanvas() {
   setStatus(t("status.archivedPng"));
 }
 
+function shareableAction(action) {
+  if (action.type === "free") {
+    return { type: "free", width: action.width, points: action.points.map(({ x, y }) => ({ x, y })) };
+  }
+  if (action.type === "ray") {
+    return { type: "ray", cx: action.cx, cy: action.cy, x: action.x, y: action.y, width: action.width };
+  }
+  if (action.type === "glyph") {
+    return {
+      type: "glyph",
+      element: action.element,
+      kind: action.kind === "sign" ? "sign" : "sigil",
+      x: action.x,
+      y: action.y,
+      size: action.size,
+      rotation: action.rotation || 0,
+    };
+  }
+  const shared = {
+    type: action.type,
+    cx: action.cx,
+    cy: action.cy,
+    radius: action.radius,
+    width: action.width,
+  };
+  if (action.type === "circle") shared.closed = action.closed !== false;
+  if (action.type === "spiral") shared.turns = action.turns;
+  return shared;
+}
+
+function currentCircleShare() {
+  const { width, height } = canvasSize();
+  return parseCircleShare({
+    version: 1,
+    locale: getLocale(),
+    title: t("community.defaultTitle"),
+    canvas: { width, height },
+    actions: state.actions.map(shareableAction),
+  }, { glyphNames: new Set(elements.map((element) => element.name)) });
+}
+
+function publishCurrentCircle() {
+  if (state.actions.length === 0) {
+    setStatus(t("status.communityNeedsDrawing"));
+    return;
+  }
+  const baseUrl = publishCommunityButton?.dataset.communityUrl;
+  if (!baseUrl) {
+    setStatus(t("status.communityUnavailable"));
+    return;
+  }
+  window.location.assign(buildCommunityComposeUrl(baseUrl, currentCircleShare()));
+}
+
+function hydrateSharedAction(action) {
+  const base = { color: colors.normalInk, width: action.width };
+  if (action.type === "free") {
+    return { ...base, ...action, label: labels.free, element: "Trace", charge: 0 };
+  }
+  if (action.type === "glyph") {
+    const element = elements.find((entry) => entry.name === action.element);
+    return {
+      ...base,
+      ...action,
+      label: labels.glyph,
+      charge: element.charge,
+      category: element.category || "Sigil",
+      rune: element.rune,
+    };
+  }
+  const metadata = {
+    circle: [labels.circle, "Structure"],
+    ring: [labels.ring, "Structure"],
+    ray: [labels.ray, "Direction"],
+    spiral: [labels.spiral, "Mouvement"],
+  }[action.type];
+  return { ...base, ...action, label: metadata[0], element: metadata[1], charge: 0 };
+}
+
+function loadCommunityCircleFromUrl() {
+  const url = new URL(window.location.href);
+  const encoded = url.searchParams.get("communityCircle");
+  if (!encoded) return false;
+  try {
+    const circle = decodeCircleShare(encoded, { glyphNames: new Set(elements.map((element) => element.name)) });
+    const actions = fitCircleShare(circle, canvasSize()).map(hydrateSharedAction);
+    recordHistory();
+    state.actions = actions;
+    state.currentAction = null;
+    state.activeSpell = null;
+    state.activation = null;
+    state.selectedActionIndices = [];
+    refreshCircleCenter();
+    updateSelectionControls();
+    updateUsedList();
+    updateSpellState();
+    render();
+    setStatus(t("status.communityCircleLoaded", { name: circle.title }));
+  } catch (error) {
+    console.warn("community circle import failed", error);
+    setStatus(t("status.communityCircleInvalid"));
+  }
+  url.searchParams.delete("communityCircle");
+  history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  return true;
+}
+
 for (const button of toolButtons) {
   button.addEventListener("click", () => {
     // The glyph button arms rather than merely selecting. A bare
@@ -9314,6 +9427,7 @@ guideLibraryTab?.addEventListener("click", () => setGuideTab("library"));
 guidePersonalTab?.addEventListener("click", () => setGuideTab("personal"));
 guideSpellsTab?.addEventListener("click", () => setGuideTab("spells"));
 saveSpellButton?.addEventListener("click", saveCurrentSpell);
+publishCommunityButton?.addEventListener("click", publishCurrentCircle);
 spellSaveConfirm?.addEventListener("click", confirmSaveSpell);
 spellNameInput?.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
@@ -10171,4 +10285,4 @@ if (guideOpacityInput) {
 resetCanvasPanToOrigin(false);
 applyCanvasScale();
 resizeCanvas();
-loadRecipeFromUrl();
+if (!loadCommunityCircleFromUrl()) loadRecipeFromUrl();
