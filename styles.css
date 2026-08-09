@@ -2814,6 +2814,17 @@ input:focus-visible {
   min-width: 0;
 }
 
+.photo-dialog-actions > form {
+  display: flex;
+  flex: 1 1 10rem;
+  min-width: 0;
+  margin: 0;
+}
+
+.photo-dialog-actions > form .dialog-close {
+  width: 100%;
+}
+
 @media (max-width: 560px) {
   .photo-dialog {
     padding: 0.85rem;
@@ -2826,5 +2837,9 @@ input:focus-visible {
   .photo-dialog-actions {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .photo-dialog-actions > form {
+    width: 100%;
   }
 }

@@ -39,6 +39,21 @@ function inkRect(photo, left, top, right, bottom) {
   }
 }
 
+function inkGrid(photo, spacing = 40) {
+  const setPixel = (x, y) => {
+    const index = (y * photo.width + x) * 4;
+    photo.data[index] = 230;
+    photo.data[index + 1] = 217;
+    photo.data[index + 2] = 192;
+  };
+  for (let x = 0; x < photo.width; x += spacing) {
+    for (let y = 0; y < photo.height; y += 1) setPixel(x, y);
+  }
+  for (let y = 0; y < photo.height; y += spacing) {
+    for (let x = 0; x < photo.width; x += 1) setPixel(x, y);
+  }
+}
+
 function maskRect(mask, width, left, top, right, bottom) {
   for (let y = top; y <= bottom; y += 1) {
     for (let x = left; x <= right; x += 1) {
@@ -228,6 +243,19 @@ test("un glyphe photographie est reconnu comme le bon symbole", () => {
     assert.equal(result.symbols[0].name, result.regions[0].candidates[0].name);
     assert.ok(result.cropBounds);
   }
+});
+
+test("un sigil de feu reste reconnaissable sur un papier quadrille", () => {
+  const photo = blankPhoto(320, 520);
+  inkGrid(photo);
+  inkGlyph(photo, "Feu", 115, 215, 90);
+
+  const result = analyzePhoto(photo, SYMBOL_PATHS);
+
+  assert.equal(result.regions.length, 1);
+  assert.equal(result.regions[0].status, "accepted", JSON.stringify(result.regions[0].candidates));
+  assert.equal(result.regions[0].candidates[0].name, "Feu", JSON.stringify(result.regions[0].candidates));
+  assert.ok(result.cropBounds.width < photo.width * 0.6, "le quadrillage ne doit pas definir le recadrage");
 });
 
 test("les traits deconnectes d'un sigil d'eau forment une seule region", () => {

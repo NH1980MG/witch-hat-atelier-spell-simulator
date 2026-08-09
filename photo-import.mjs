@@ -4,7 +4,7 @@
 // comparaison raster (distance de chamfer symetrique + IoU) contre les modeles
 // du catalogue. Aucune dependance, tout est deterministe et testable sous Node.
 
-import { flattenSvgPath } from "./stroke-matcher.mjs?v=20260809-handoff-layout-v2";
+import { flattenSvgPath } from "./stroke-matcher.mjs?v=20260809-photo-import-v3";
 import { estimateInkMask, inkBounds } from "./photo-preprocessing.mjs";
 
 export const TEMPLATE_SIZE = 48;

@@ -91,6 +91,53 @@ function removeIsolatedPixels(mask, width, height) {
   return cleaned;
 }
 
+// A photographed worksheet or a simulator screenshot can contain a regular
+// grid whose lines connect every otherwise independent glyph. Remove only
+// axis-aligned runs spanning almost the full frame; local strokes and rings do
+// not meet that criterion.
+function removeDocumentGrid(mask, contrast, width, height, localThreshold) {
+  const rowCoverage = new Uint32Array(height);
+  const columnCoverage = new Uint32Array(width);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      if (!mask[y * width + x]) continue;
+      rowCoverage[y] += 1;
+      columnCoverage[x] += 1;
+    }
+  }
+  const rowLimit = Math.ceil(width * 0.82);
+  const columnLimit = Math.ceil(height * 0.82);
+  const thinRuns = (coverage, limit, maxThickness) => {
+    const lines = new Uint8Array(coverage.length);
+    let start = 0;
+    while (start < coverage.length) {
+      if (coverage[start] < limit) {
+        start += 1;
+        continue;
+      }
+      let end = start + 1;
+      while (end < coverage.length && coverage[end] >= limit) end += 1;
+      if (end - start <= maxThickness) lines.fill(1, start, end);
+      start = end;
+    }
+    return lines;
+  };
+  const maxGridThickness = Math.max(2, Math.ceil(Math.min(width, height) * 0.012));
+  const gridRows = thinRuns(rowCoverage, rowLimit, maxGridThickness);
+  const gridColumns = thinRuns(columnCoverage, columnLimit, maxGridThickness);
+  if (!gridRows.some(Boolean) && !gridColumns.some(Boolean)) return mask;
+  const strongInkFloor = Math.max(48, Math.min(96, Math.round(localThreshold * 2.5)));
+  const cleaned = new Uint8Array(mask);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      if (!gridRows[y] && !gridColumns[x]) continue;
+      const frameLine = x <= 1 || y <= 1 || x >= width - 2 || y >= height - 2;
+      if (frameLine || contrast[y * width + x] < strongInkFloor) cleaned[y * width + x] = 0;
+    }
+  }
+  return cleaned;
+}
+
 // Paper shadows commonly form coherent dark regions connected to the photo frame;
 // dense drawn regions surrounded by paper remain enclosed.
 function enclosedGlobalOutliers(luma, width, height, globalThreshold, globalPaper, outlierThreshold) {
@@ -178,7 +225,11 @@ export function estimateInkMask(imageData) {
     const globalInk = luma[i] <= globalThreshold && (!useLocalContrast || (!localBackgroundReliable && globalOutliers[i]));
     mask[i] = localInk || globalInk ? 1 : 0;
   }
-  return removeIsolatedPixels(mask, width, height);
+  return removeIsolatedPixels(
+    removeDocumentGrid(mask, contrast, width, height, localThreshold),
+    width,
+    height,
+  );
 }
 
 export function inkBounds(mask, width, height, marginRatio = 0.06) {

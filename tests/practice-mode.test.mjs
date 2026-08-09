@@ -25,7 +25,7 @@ test("l'atelier expose le mode entrainement complet", async () => {
 
 test("l'atelier importe le comparateur de traits", async () => {
   const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
-  assert.match(source, /import \{ analyzeStrokeMatch \} from "\.\/stroke-matcher\.mjs\?v=20260809-handoff-layout-v2"/);
+  assert.match(source, /import \{ analyzeStrokeMatch \} from "\.\/stroke-matcher\.mjs\?v=20260809-photo-import-v3"/);
   assert.match(source, /practiceStartIndex/);
   assert.match(source, /verifyPracticeStroke/);
   assert.match(source, /state\.practiceStartIndex = reconcilePracticeStartIndex\(state\.practiceStartIndex, state\.actions\.length\)/);
