@@ -1,6 +1,6 @@
-import { getLocale, t } from "./site-i18n.mjs";
+import { getLocale, t } from "./site-i18n.mjs?v=20260809-community-release-v1";
 import { buildRecipeHref } from "./recipe-link.mjs";
-import { MATRIX_SIGIL_NAMES, MATRIX_SIGN_NAMES, SIGN_PROFILES, SIGIL_PROFILES } from "./spell-grammar.mjs";
+import { MATRIX_SIGIL_NAMES, MATRIX_SIGN_NAMES, SIGN_PROFILES, SIGIL_PROFILES } from "./spell-grammar.mjs?v=20260809-community-release-v1";
 import {
   SPOILER_MAX_CHAPTER,
   clampSpoilerChapter,
@@ -15,7 +15,7 @@ import {
   parseExplorerState,
   queryVariants,
   serializeExplorerState,
-} from "./variant-catalog.mjs";
+} from "./variant-catalog.mjs?v=20260809-community-release-v1";
 
 import { dailyPick } from "./daily-spell.mjs";
 

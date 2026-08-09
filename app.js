@@ -4,12 +4,12 @@ import {
   SYMBOL_AUDIT,
   SYMBOL_BOARD_ASSET,
   SYMBOL_PATHS,
-} from "./symbol-catalog.mjs?v=20260723-board-assets-v1";
-import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260727-mixture-runtime-v3";
-import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260727-mixture-runtime-v3";
+} from "./symbol-catalog.mjs?v=20260809-community-release-v1";
+import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260809-community-release-v1";
+import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260809-community-release-v1";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260808-community-v1";
-import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260716-shoe-camera-v2";
+import { getLocale, t } from "./site-i18n.mjs?v=20260809-community-release-v1";
+import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260809-community-release-v1";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
   createUserGuide,
@@ -17,21 +17,21 @@ import {
   loadUserGuides,
   MAX_USER_GUIDES,
   saveUserGuides,
-} from "./guide-storage.mjs?v=20260808-final-review-v1";
+} from "./guide-storage.mjs?v=20260809-community-release-v1";
 import {
   createSpell,
   deleteMySpell,
   loadMySpells,
   saveMySpells,
 } from "./spell-library.mjs";
-import { classifySymbolDragGesture } from "./symbol-drag-gesture.mjs?v=20260716-touch-scroll-v1";
+import { classifySymbolDragGesture } from "./symbol-drag-gesture.mjs?v=20260809-community-release-v1";
 import { parseRecipeParams } from "./recipe-link.mjs";
 import {
   buildCommunityComposeUrl,
   decodeCircleShare,
   fitCircleShare,
   parseCircleShare,
-} from "./circle-share.mjs?v=20260808-community-v1";
+} from "./circle-share.mjs?v=20260809-community-release-v1";
 import {
   combinedSelectionBounds,
   canDropGlyph,
@@ -49,29 +49,29 @@ import {
   shouldDeferTouchTool,
   topmostSelectableIndexAtPoint,
   translateSelectedActions,
-} from "./symbol-interactions.mjs?v=20260803-my-spells-v1";
-import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260803-my-spells-v1";
+} from "./symbol-interactions.mjs?v=20260809-community-release-v1";
+import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260809-community-release-v1";
 import {
   SPOILER_MAX_CHAPTER,
   clampSpoilerChapter,
   isSymbolVisibleAtChapter,
   readSpoilerChapter,
   writeSpoilerChapter,
-} from "./symbol-chapters.mjs?v=20260802-photo-dialog-v1";
-import { analyzeStrokeMatch } from "./stroke-matcher.mjs?v=20260808-final-review-v1";
+} from "./symbol-chapters.mjs?v=20260809-community-release-v1";
+import { analyzeStrokeMatch } from "./stroke-matcher.mjs?v=20260809-community-release-v1";
 import {
   collectPracticeAttempts,
   reconcilePracticeStartIndex,
   updatePracticeDiagnostic,
-} from "./practice-session.mjs?v=20260808-practice-diagnostics-v2";
-import { analyzePhoto } from "./photo-import.mjs?v=20260808-final-review-v1";
+} from "./practice-session.mjs?v=20260809-community-release-v1";
+import { analyzePhoto } from "./photo-import.mjs?v=20260809-community-release-v1";
 import {
   mapPhotoAnalysis,
   selectPhotoCandidate,
   sourceCropForAnalysis,
-} from "./photo-placement.mjs?v=20260808-final-review-v1";
-import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260802-photo-dialog-v1";
-import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260802-photo-dialog-v1";
+} from "./photo-placement.mjs?v=20260809-community-release-v1";
+import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260809-community-release-v1";
+import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260809-community-release-v1";
 
 export const CENTRAL_SIGIL_STROKE_WIDTH = 6.4365;
 
@@ -157,6 +157,11 @@ const englishSigilMeanings = Object.freeze({
   "Lumiere vacillante": "Flickering Light sigil: exact function unknown; Coco's failure suggests stable, powerful flickering lights (wiki speculation).",
 });
 
+const englishSignMeanings = Object.freeze({
+  Viseur: "Crosshair: the short ends point toward the intended target; a Target sign can lock that target.",
+  Radial: "Function unresolved: the simulator records this sign but does not apply an invented power change.",
+});
+
 const englishSignRoles = Object.freeze({
   supply: "Supplies or gathers matter for the spell.",
   state: "Changes the state or stability of the spell.",
@@ -192,6 +197,9 @@ function elementMechanicLabel(element, grammarProfile = null) {
   }
   if (element.kind === "sigil") {
     return englishSigilMeanings[element.name] || "Defines the spell's magical material.";
+  }
+  if (englishSignMeanings[element.name]) {
+    return englishSignMeanings[element.name];
   }
   return englishSignRoles[grammarProfile?.role] || "Modifies how the spell manifests.";
 }
@@ -4098,6 +4106,8 @@ function addRecipeGrammarEffects3d(group, model, auraRadius, elementColor, suppo
     .filter((entry) => entry.operation === operation)
     .reduce((total, entry) => total + entry.count, 0);
   const planParameters = recipe.effectPlan?.parameters || {};
+  const targetPlan = recipe.effectPlan?.targeting || {};
+  const materialCapabilities = recipe.effectPlan?.materialCapabilities || {};
   const densityScale = Math.min(2.2, Math.max(0.7, planParameters.density || 1));
   const speedScale = Math.min(2, Math.max(0.25, planParameters.speed || 1));
   const baseY = supportId === "shoe" ? THREE_SHOE_INK_Y + 0.008 : THREE_LOW_EFFECT_Y + 0.012;
@@ -4122,7 +4132,7 @@ function addRecipeGrammarEffects3d(group, model, auraRadius, elementColor, suppo
     });
   }
 
-  if (has("aim") || has("crosshair") || has("nearby") || has("carrier")) {
+  if (targetPlan.directional || targetPlan.locked || has("nearby") || has("carrier")) {
     const direction = directionVector(model.rays, model.signs, model.geometry);
     const target = new THREE.Group();
     const targetRadius = Math.max(0.05, auraRadius * 0.16);
@@ -4138,7 +4148,7 @@ function addRecipeGrammarEffects3d(group, model, auraRadius, elementColor, suppo
     ]), targetMaterial.clone()));
     target.position.set(direction.x * auraRadius * 0.48, 0, direction.y * auraRadius * 0.48);
     addAnimatedObject(group, target, (object, elapsed) => {
-      object.rotation.y = has("crosshair") ? 0 : elapsed * 0.22;
+      object.rotation.y = targetPlan.shortEndsPointToTarget ? 0 : elapsed * 0.22;
       object.scale.setScalar(0.94 + Math.sin(elapsed * 2.5) * 0.07);
     });
   }
@@ -4352,9 +4362,32 @@ function addRecipeGrammarEffects3d(group, model, auraRadius, elementColor, suppo
     }
   }
 
-  if (has("wind-modifier") || has("define-air")) {
+  const createsAir = materialCapabilities.createsAir || has("define-air");
+  const movesAir = materialCapabilities.movesAir || has("wind-modifier");
+
+  if (createsAir) {
+    const airMass = new THREE.Mesh(
+      new THREE.SphereGeometry(auraRadius * 0.46, 28, 18),
+      new THREE.MeshPhysicalMaterial({
+        color: 0xb7ddd4,
+        roughness: 0.08,
+        transmission: 0.5,
+        transparent: true,
+        opacity: 0.11,
+        side: THREE.DoubleSide,
+      }),
+    );
+    airMass.position.y = baseY + auraRadius * 0.44;
+    addAnimatedObject(group, airMass, (object, elapsed) => {
+      const pulse = 0.98 + Math.sin(elapsed * 0.72) * 0.025;
+      object.scale.set(pulse, pulse * 0.96, pulse);
+      object.material.opacity = 0.08 + Math.sin(elapsed * 0.9) * 0.025;
+    });
+  }
+
+  if (movesAir) {
     const airColor = 0x9cc9bd;
-    const streams = has("wind-modifier") && has("define-air") ? 5 : 3;
+    const streams = createsAir ? 5 : 3;
     for (let index = 0; index < streams; index += 1) {
       const points = [];
       for (let step = 0; step <= 72; step += 1) {
@@ -4414,15 +4447,6 @@ function addRecipeGrammarEffects3d(group, model, auraRadius, elementColor, suppo
       object.material.opacity = 0.06 + (Math.sin(elapsed * 1.2) + 1) * 0.035;
       object.rotation.y = elapsed * 0.09;
     });
-  }
-
-  if (has("temper")) {
-    for (const factor of [0.42, 0.58]) {
-      const calmRing = circleLine(auraRadius * factor, baseY + 0.004, 0xd7a63e, 0.3, 96);
-      addAnimatedObject(group, calmRing, (object, elapsed) => {
-        object.material.opacity = 0.2 + Math.sin(elapsed * 0.8 + factor) * 0.05;
-      });
-    }
   }
 
   if (has("still")) {

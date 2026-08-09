@@ -5,6 +5,7 @@ import {
   MATRIX_SIGIL_NAMES,
   MATRIX_SIGN_NAMES,
   SIGIL_PROFILES,
+  SIGN_PROFILES,
   composeSpellRecipe,
   validateSpellMatrix,
 } from "../spell-grammar.mjs";
@@ -119,7 +120,56 @@ test("phase-restricted signs remain ignored when no mixture phase matches", () =
   assert.ok(!steam.operations.form.includes("coil"));
 });
 
-test("the public matrix includes all 26 profiled sigils and all modifier signs", () => {
+test("radial stays experimental and does not invent a power change", () => {
+  const base = composeSpellRecipe({ sigils: ["Feu"] });
+  const radial = composeSpellRecipe({ sigils: ["Feu"], signs: ["Radial"] });
+
+  assert.ok(radial.operations.power.includes("unknown-radial"));
+  assert.equal(radial.fidelity, "experimental");
+  assert.ok(radial.uncertainSigns.includes("Radial"));
+  assert.ok(radial.warnings.some((warning) => /fonction.*indeterminee/i.test(warning)));
+  assert.equal(radial.effectPlan.parameters.elementIntensity, base.effectPlan.parameters.elementIntensity);
+  assert.equal(radial.effectPlan.parameters.focus, base.effectPlan.parameters.focus);
+});
+
+test("convergence concentrates matter without adding elemental power", () => {
+  const base = composeSpellRecipe({ sigils: ["Eau"] });
+  const focused = composeSpellRecipe({ sigils: ["Eau"], signs: ["Convergence"] });
+
+  assert.equal(focused.effectPlan.parameters.elementIntensity, base.effectPlan.parameters.elementIntensity);
+  assert.ok(focused.effectPlan.parameters.focus > base.effectPlan.parameters.focus);
+  assert.ok(focused.effectPlan.parameters.density > base.effectPlan.parameters.density);
+  assert.equal(focused.effectPlan.powerModifier, 1);
+});
+
+test("air creation and air movement remain separate capabilities", () => {
+  assert.deepEqual(SIGIL_PROFILES.Aeriforme.capabilities, { createsAir: true, movesAir: false });
+  assert.deepEqual(SIGIL_PROFILES.Vent.capabilities, { createsAir: false, movesAir: true });
+
+  const definedAirflow = composeSpellRecipe({
+    sigils: ["Aeriforme", "Vent"],
+    signs: ["Aeriforme defini", "Signe de vent"],
+  });
+  assert.deepEqual(definedAirflow.effectPlan.materialCapabilities, { createsAir: true, movesAir: true });
+});
+
+test("crosshair direction and target lock are explicit sequential stages", () => {
+  const recipe = composeSpellRecipe({
+    sigils: ["Eau"],
+    signs: ["Viseur", "Cible", "Enveloppe"],
+  });
+
+  assert.equal(SIGN_PROFILES.Viseur.directional, true);
+  assert.deepEqual(recipe.effectPlan.targeting, {
+    mode: "locked-directional",
+    directional: true,
+    locked: true,
+    shortEndsPointToTarget: true,
+  });
+  assert.ok(recipe.effectPlan.pipeline.indexOf("form:envelopex1") < recipe.effectPlan.pipeline.indexOf("target:aimx1+crosshairx1"));
+});
+
+test("the public matrix includes all 29 profiled sigils and all modifier signs", () => {
   assert.equal(MATRIX_SIGIL_NAMES.length, 29);
   assert.equal(MATRIX_SIGN_NAMES.length, 40);
   assert.deepEqual(MATRIX_SIGIL_NAMES, Object.keys(SIGIL_PROFILES));

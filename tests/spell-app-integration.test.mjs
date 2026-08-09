@@ -4,6 +4,7 @@ import test from "node:test";
 
 const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
 const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+const palette = await readFile(new URL("../symbol-palette-data.mjs", import.meta.url), "utf8");
 
 test("the app shares the canonical primary-sigil decision", () => {
   assert.match(app, /from "\.\/spell-model\.mjs"/);
@@ -79,4 +80,28 @@ test("right-button selection uses the full pointer lifecycle", () => {
 test("marquee selection is limited to drawing actions", () => {
   assert.match(app, /selectableIndicesInRect\(state\.actions/);
   assert.doesNotMatch(app, /selectableIndicesInRect\([^,]*guide/i);
+});
+
+test("the 3D renderer does not invent a radial power effect", () => {
+  assert.doesNotMatch(app, /has\(["']temper["']\)/);
+  assert.doesNotMatch(app, /calmRing/);
+});
+
+test("the 3D renderer consumes structured targeting semantics", () => {
+  assert.match(app, /recipe\.effectPlan\?\.targeting/);
+  assert.match(app, /targetPlan\.directional/);
+  assert.match(app, /targetPlan\.shortEndsPointToTarget/);
+});
+
+test("air creation and movement use distinct 3D layers", () => {
+  assert.match(app, /recipe\.effectPlan\?\.materialCapabilities/);
+  assert.match(app, /createsAir/);
+  assert.match(app, /movesAir/);
+});
+
+test("radial is described as unresolved in both interface languages", () => {
+  assert.match(app, /englishSignMeanings\[element\.name\]/);
+  assert.match(app, /\bRadial:\s*["']Function unresolved/);
+  assert.match(palette, /Radial["'][^\n]+fonction reste inconnue/i);
+  assert.doesNotMatch(palette, /Radial["'][^\n]+tempere la puissance/i);
 });

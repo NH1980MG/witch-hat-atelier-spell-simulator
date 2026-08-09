@@ -3,7 +3,7 @@ import {
   MATRIX_SIGN_NAMES,
   SIGN_PROFILES,
   composeSpellRecipe,
-} from "./spell-grammar.mjs";
+} from "./spell-grammar.mjs?v=20260809-community-release-v1";
 import { INDEXED_ELEMENTAL_MIXTURES } from "./elemental-mixtures.mjs";
 import { isVariantVisibleAtChapter } from "./symbol-chapters.mjs";
 

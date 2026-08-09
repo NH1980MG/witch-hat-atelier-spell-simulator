@@ -15,16 +15,31 @@ material -> supply/state -> form -> motion -> target/scope -> relation -> power
 | State | Cool, Solidify, Strengthen, Purify, Stillness | physical/temporal condition |
 | Form | Orb, Column, Rain, Bolt, Cloud, Coil, Envelop | geometry of manifestation |
 | Motion | Levitation, Pull, Float, Puppet | movement after formation |
-| Target | Focus, Crosshair, Diamond, Window, Reflect | what is affected |
+| Target | Aim, Crosshair, Diamond, Window, Reflect | what is affected |
 | Scope | Region, Glaives | where and how deeply it applies |
 | Relation | Link, Bind, Entwine | connection to other objects/forms |
-| Power | Radial | tempers the output |
+| Unresolved | Radial | recorded without inventing a power change |
 
 Every recognized sign keeps its own operation. The renderer adds layers for
 all operations instead of replacing the whole result with a single canned
 animation. Counts adjust density, spread, focus, lift, speed, containment and
 stability. This is how repeated signs and different pairs remain visibly and
 mechanically distinct.
+
+The pipeline is sequential. Material is established first, then supply/state,
+form, motion, targeting/scope and relations are applied. This also permits
+multiple decorative sigils to participate in one recipe without flattening
+their behavior into an undifferentiated blend.
+
+`Convergence` raises density and focus, not elemental power. `Radial` remains
+experimental because the available references do not establish its function;
+it is preserved in the recipe and shown as a warning, but applies no numerical
+or visual power modifier.
+
+`Aeriforme` and `Vent` expose separate capabilities. Aeriforme creates a mass
+of air without moving it. Vent moves existing air without creating it. Using
+both gives the effect plan both capabilities and the 3D renderer composes a
+visible air volume with moving streams.
 
 ## Seal Geometry
 
@@ -48,7 +63,7 @@ only the manifestation group; spin rotates that group; reach scales its height.
 Current automatic coverage:
 
 ```text
-26 single sigils + 11 balanced Feu/Eau/Terre/Vent mixtures = 37 material signatures
+29 single sigils + 11 balanced Feu/Eau/Terre/Vent mixtures = 40 material signatures
 40 material signatures x 820 unordered two-sign pairs (repetition allowed)
 = 32,800 deterministic recipes per support x 2 supports = 65,600 variants
 ```
@@ -82,6 +97,8 @@ The app separates the central sigil from modifier signs.
 - Multi-stroke signs are clustered before classification. A stem, crossbar and
   arrowhead therefore count as one sign instead of three unrelated marks.
 - Rotation changes a directional sign's output direction, not its identity.
+- Crosshair short ends face the target. `Cible` adds a target lock; without it,
+  the direction remains manually aimed.
 - Size, radial position and tilt are preserved as separate geometry values;
   they determine balance, lateral pressure, spin and reach.
 - Semi-directional signs are rotated visually but do not contribute to the
@@ -116,7 +133,6 @@ Signs can combine when their effects make sense together:
   freezes after the initial phase.
 - `Enveloppe + target/Region`: the shell surrounds the selected target/sector.
 - `Lien + Etirement/Projection`: the output is repeated between linked objects.
-- `Radial + Feu`: visible flame is tempered toward retained heat.
 
 ## Generic 3D Layers
 
@@ -127,11 +143,11 @@ The 3D renderer now has visible procedural layers for every current operation:
 - command crown and control lines for Puppet;
 - hover rings for Float;
 - physical helix for Coil;
-- defined air streams for wind modifiers;
+- a translucent air volume when Aeriforme creates air;
+- moving streams when Vent or a compatible wind modifier moves air;
 - depth gauge for Glaives;
 - wire shell for Envelop;
 - refractive veil for Conceal;
-- calm power rings for Radial;
 - collection, strengthening, cooling, solidification, targeting, linking,
   purification, reflection and stillness layers;
 - the existing element-specific column, dispersion, levitation, crush, rain,
@@ -139,6 +155,7 @@ The 3D renderer now has visible procedural layers for every current operation:
 
 Stillness clamps the animation clock after the initial manifestation. Removing
 or expiring a spell removes its group and therefore stops every live effect.
+Radial has no 3D layer until a reliable function is established.
 
 ## Priority: Water Vertical Slice
 
