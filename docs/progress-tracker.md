@@ -1,6 +1,6 @@
 # Progress Tracker
 
-Last updated: 2026-07-27.
+Last updated: 2026-08-08.
 
 ## Current Status
 
@@ -20,11 +20,14 @@ remaining large `app.js` sections.
 - Pure `spell-grammar.mjs` with separate material, supply, state, form, motion,
   target, scope, relation and power axes.
 - Automatic validation of 65,600 unique two-sign/support variants: 32,800 with
-  paper only and 32,800 with shoe support. The matrix contains 60,702 distinct
-  executable plans plus 19 semantic regression checks. Its 37 material
-  signatures comprise 26 single sigils and 11 balanced Feu/Eau/Terre/Vent
+  paper only and 32,800 with shoe support. Its 40 material signatures comprise
+  29 single sigils and 11 balanced Feu/Eau/Terre/Vent
   mixtures; repeated base sigils are evaluated at runtime as dominance and
   intensity instead of exhaustively indexed.
+- Community mechanics audit added with explicit documented, inferred and
+  experimental levels. Radial no longer invents a power reduction,
+  Convergence concentrates without adding power, Viseur contributes direction,
+  and Aeriforme/Vent keep separate air-creation and air-motion capabilities.
 - Elemental mixtures preserve their composed identity through reading,
   activation, 2D animation and 3D rendering. The frozen activation snapshot
   carries the bilingual name, blended color, element weights and dominance.

@@ -30,6 +30,10 @@ test("the library advertises the 65,600-variant explorer in both locales", () =>
   assert.equal(translate("fr", "explorer.title"), "Explorer 65 600 variantes");
   assert.match(translate("en", "explorer.empty"), /65,600/);
   assert.match(translate("fr", "explorer.empty"), /65 600/);
+  assert.match(translate("en", "explorer.description"), /29 profiled central sigils/);
+  assert.match(translate("en", "explorer.description"), /40 signs/);
+  assert.match(translate("fr", "explorer.description"), /29 sigils centraux profiles/);
+  assert.match(translate("fr", "explorer.description"), /40 signes/);
 });
 
 test("variant fidelity labels never expose translation keys", () => {

@@ -13,10 +13,10 @@ export const SIGIL_PROFILES = Object.freeze({
   Feu: profile({ family: "fire", noun: "feu", phase: "energy", defaultLabel: "flamme au sol", mechanic: "cree et manipule les flammes ou la chaleur" }),
   Eau: profile({ family: "water", noun: "eau", phase: "liquid", defaultLabel: "eau repandue", mechanic: "collecte, cree et manipule l'eau" }),
   Terre: profile({ family: "earth", noun: "terre", phase: "solid", defaultLabel: "terre soulevee", mechanic: "manipule le bois, la pierre, le sable et le sol sans les creer" }),
-  Vent: profile({ family: "wind", noun: "vent", phase: "gas", defaultLabel: "courant d'air", mechanic: "deplace et manipule l'air sans le creer" }),
+  Vent: profile({ family: "wind", noun: "vent", phase: "gas", defaultLabel: "courant d'air", mechanic: "deplace et manipule l'air sans le creer", capabilities: { createsAir: false, movesAir: true } }),
   Lumiere: profile({ family: "light", noun: "lumiere", phase: "energy", defaultLabel: "lueur au sol", mechanic: "produit une manifestation lumineuse" }),
   Cristal: profile({ family: "crystal", noun: "cristal", phase: "solid", defaultLabel: "cristaux formes", mechanic: "cristallise la matiere cible; glace ou cristal selon l'intention", fidelity: "inferred" }),
-  Aeriforme: profile({ family: "air", noun: "air", phase: "gas", defaultLabel: "air defini", mechanic: "cree et manipule l'air, mais ne le met pas en mouvement" }),
+  Aeriforme: profile({ family: "air", noun: "air", phase: "gas", defaultLabel: "air defini", mechanic: "cree et manipule l'air, mais ne le met pas en mouvement", capabilities: { createsAir: true, movesAir: false } }),
   "Vent sous pied": profile({ family: "underfoot-wind", noun: "courant porteur", phase: "gas", defaultLabel: "portance sous le sceau", mechanic: "soutient un objet solide suspendu dans l'air", fidelity: "inferred" }),
   Repetition: profile({ family: "repetition", noun: "etat", phase: "meta", defaultLabel: "boucle de restitution", mechanic: "restaure continuellement l'etat initial de la cible" }),
   Fumee: profile({ family: "smoke", noun: "fumee", phase: "gas", defaultLabel: "nuage de fumee", mechanic: "cree et genere de la fumee; sa manipulation reste non confirmee", fidelity: "inferred" }),
@@ -82,8 +82,8 @@ export const SIGN_PROFILES = Object.freeze({
   Diamant: profile({ role: "target", operation: "nearby", effect: "cible proche", directional: false, invertible: false, confidence: "low", mechanic: "semble viser un objet proche plutot que le support du sceau" }),
   Selection: profile({ role: "target", operation: "carrier", effect: "cible support", directional: false, invertible: false, confidence: "low", mechanic: "semble limiter la transformation a l'objet qui porte le sceau" }),
   Agrandissement: profile({ role: "state", operation: "resize", inverseOperation: "shrink", effect: "agrandissement", radial: true, directional: false, invertible: true, confidence: "high", mechanic: "agrandit la cible; avec les pointes inversees, la reduit" }),
-  Viseur: profile({ role: "target", operation: "crosshair", effect: "viseur", directional: false, invertible: false, confidence: "low", mechanic: "associe la manifestation a une zone ou a un objet correspondant" }),
-  Radial: profile({ role: "power", operation: "temper", effect: "radial", directional: false, invertible: false, confidence: "medium", mechanic: "tempere la puissance pour conserver l'effet sans sa forme la plus violente" }),
+  Viseur: profile({ role: "target", operation: "crosshair", effect: "viseur", directional: true, invertible: false, confidence: "medium", mechanic: "oriente la manifestation; les extremites courtes pointent vers la cible" }),
+  Radial: profile({ role: "power", operation: "unknown-radial", effect: "radial", directional: false, invertible: false, confidence: "low", mechanic: "fonction non determinee; le simulateur n'applique aucun changement de puissance" }),
   Projectile: profile({ role: "form", operation: "bolt", effect: "projectile", directional: false, invertible: false, confidence: "high", mechanic: "fragmente la manifestation en projectiles rapides" }),
   Pluie: profile({ role: "form", operation: "rain", effect: "pluie", radial: true, directional: false, invertible: false, confidence: "high", mechanic: "fait tomber la matiere dans la zone immediate" }),
   Orbe: profile({ role: "form", operation: "orb", effect: "orbe", directional: false, invertible: false, confidence: "high", mechanic: "cree un volume spherique qui contient la matiere sous l'effet de la gravite" }),
@@ -242,6 +242,15 @@ function buildEffectPlan({ axes, material, sigilCounts, signCounts, direction, s
   const inward = count("focus") + count("collect") + count("gather") + count("pull");
   const lift = count("lift") + count("float");
   const targeting = count("aim") + count("crosshair") + count("region");
+  const targetLocked = count("aim") > 0;
+  const targetDirected = count("crosshair") > 0 || count("region") > 0;
+  const materialCapabilities = Object.keys(sigilCounts).reduce((capabilities, name) => {
+    const profileCapabilities = SIGIL_PROFILES[name]?.capabilities;
+    if (!profileCapabilities) return capabilities;
+    capabilities.createsAir ||= profileCapabilities.createsAir === true;
+    capabilities.movesAir ||= profileCapabilities.movesAir === true;
+    return capabilities;
+  }, { createsAir: false, movesAir: false });
   const stateLoad = axes.state.reduce((total, entry) => total + entry.count, 0);
   const relationLoad = axes.relation.reduce((total, entry) => total + entry.count, 0);
   const geometryParameters = {
@@ -262,6 +271,20 @@ function buildEffectPlan({ axes, material, sigilCounts, signCounts, direction, s
     layers,
     direction,
     supportId,
+    powerModifier: 1,
+    materialCapabilities,
+    targeting: {
+      mode: targetLocked && targetDirected
+        ? "locked-directional"
+        : targetLocked
+          ? "locked"
+          : targetDirected
+            ? "directional"
+            : "manual",
+      directional: targetDirected,
+      locked: targetLocked,
+      shortEndsPointToTarget: count("crosshair") > 0,
+    },
     parameters: {
       signTotal,
       sigilTotal,
@@ -346,6 +369,9 @@ export function composeSpellRecipe({
     if (sign.confidence === "low") {
       uncertainSigns.push(name);
     }
+    if (sign.operation === "unknown-radial") {
+      warnings.push("La fonction du signe Radial reste indeterminee; aucun changement de puissance n'est simule.");
+    }
 
     const isInverted = inverted.has(name);
     const operation = isInverted && sign.inverseOperation ? sign.inverseOperation : sign.operation;
@@ -409,7 +435,6 @@ export function composeSpellRecipe({
   if (has("envelope") && (has("aim") || has("crosshair") || has("region"))) pushCombined(combinedEffects, effectNames, "targeted-envelope", "enveloppe ciblee", "enveloppe ciblee");
   if (has("link") && (has("project") || has("ribbon"))) pushCombined(combinedEffects, effectNames, "linked-output", "manifestation reliee", "manifestation reliee");
   if (has("conceal") && has("reflection") && has("project") && material?.family === "light") pushCombined(combinedEffects, effectNames, "concealed-reflection", "illusion reflechie dissimulee", "illusion reflechie dissimulee");
-  if (has("temper") && material?.family === "fire") pushCombined(combinedEffects, effectNames, "tempered-fire", "chaleur sans flamme vive", "chaleur sans flamme vive");
   if (has("define-air") && has("wind-modifier")) pushCombined(combinedEffects, effectNames, "defined-airflow", "courant d'air defini", "courant d'air defini");
   if (has("rain") && has("focus")) pushCombined(combinedEffects, effectNames, "focused-rain", "pluie concentree", "pluie concentree");
   if (has("region") && has("envelope")) pushCombined(combinedEffects, effectNames, "regional-shell", "enveloppe regionale", "enveloppe regionale");

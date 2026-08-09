@@ -43,6 +43,44 @@ Dans l'interface francaise, fais glisser une carte comme dans Scratch jusqu'au
 parchemin depuis `Sigils and signs`. A dotted preview confirms a valid drop
 position before the symbol is added.
 
+## Photo Recognition / Reconnaissance photo
+
+The `Photo` tool works locally in the browser and does not upload the image or
+call an online recognition service. Recognition works best with a complete,
+well-lit magic circle photographed from above, with clear ink and little
+background clutter. It is a practical assistant, not a guarantee of perfect
+recognition.
+
+After review, the photo has two possible outputs:
+
+- **Editable recreation:** accepted ring, sigil and sign candidates become
+  editable simulator objects. Ambiguous regions show candidate choices so they
+  can be corrected before placement. Unreadable regions are reported and are
+  never converted automatically.
+- **Image as guide:** the complete cropped image is placed below the drawing as
+  an onion-skin guide. Its visibility, opacity and scale can be adjusted while
+  tracing it.
+
+La reconnaissance photo fonctionne hors ligne, dans le navigateur. Elle donne
+de meilleurs resultats avec un cercle magique complet, bien eclaire, vu du
+dessus, avec une encre nette et peu de decor autour. Les zones ambigues peuvent
+etre corrigees avant la recreation; les zones illisibles sont signalees et ne
+sont pas converties automatiquement. L'image peut aussi etre conservee comme
+guide sous le dessin. Le resultat reste une aide et ne promet pas une
+reconnaissance parfaite.
+
+## Practice / Entrainement
+
+`Practice` compares the user's strokes one-to-one with the selected template.
+Its diagnostic reports a bounded score, coverage, proportion, orientation,
+missing strokes, extra strokes and the resulting penalty. In French, this is
+the mode `Entrainement`; it helps identify what to redraw instead of replacing
+the user's work.
+
+The `Functionnement` page explains the complete workflow: drawing, local photo
+recognition, candidate review, guide tracing, Practice diagnostics, reading
+the circle and activating the 3D scene.
+
 ## Run Locally
 
 ```bash
@@ -94,8 +132,6 @@ runtime CDN dependency.
 
 This is an unofficial fan project. *Witch Hat Atelier* and related names belong
 to their respective rights holders.
-<<<<<<< Updated upstream
-=======
 
 ## Local Minecraft AI Builder
 
@@ -168,4 +204,3 @@ The playable JAR is written to
 support selection, animated manifestation phases, and physical spell
 interactions remain separate implementation phases. The magic mod does not
 depend on AI Builder.
->>>>>>> Stashed changes

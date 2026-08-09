@@ -33,6 +33,10 @@ test("tutorial covers the final matrix and fidelity model", () => {
   }
   assert.equal(translate("en", "tutorial.matrix.total"), "65,600 tested variants");
   assert.equal(translate("fr", "tutorial.matrix.total"), "65 600 variantes testees");
+  assert.match(translate("en", "tutorial.matrix.formula"), /40 x 41 \/ 2 = 820/);
+  assert.match(translate("en", "tutorial.matrix.formula"), /40 material signatures x 820 = 32,800/);
+  assert.match(translate("fr", "tutorial.matrix.formula"), /40 x 41 \/ 2 = 820/);
+  assert.match(translate("fr", "tutorial.matrix.formula"), /40 signatures de matiere x 820 = 32 800/);
   assert.match(translate("en", "tutorial.matrix.elements"), /Fire, Water, Earth, and Wind/);
   assert.match(translate("fr", "tutorial.matrix.elements"), /Feu, Eau, Terre et Vent/);
   assert.match(translate("en", "tutorial.matrix.dominance"), /repeated base sigil/i);
