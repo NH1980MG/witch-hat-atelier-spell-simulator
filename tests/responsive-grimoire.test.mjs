@@ -1,0 +1,30 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
+
+const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
+const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
+
+test("the Grimoire exposes an accessible bottom-sheet toggle", () => {
+  assert.match(html, /id="grimoireToggle"[^>]+aria-controls="grimoireContent"[^>]+aria-expanded="false"/);
+  assert.match(html, /id="grimoireContent"/);
+  assert.match(app, /function setGrimoireOpen\(open/);
+  assert.match(app, /whaGrimoireOpen/);
+  assert.match(app, /grimoireToggle\?\.addEventListener\("click"/);
+});
+
+test("compact viewports use a safe-area-aware bottom sheet", () => {
+  assert.match(css, /\.app-shell\s*\{[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\)/);
+  assert.match(css, /@media \(max-width: 1180px\)[\s\S]*\.grimoire-toggle\s*\{[\s\S]*display:\s*flex/);
+  assert.match(css, /\.grimoire\.is-open[\s\S]*max-height:\s*min\(62dvh, 620px\)/);
+  assert.match(css, /env\(safe-area-inset-bottom/);
+  assert.match(css, /height:\s*100dvh/);
+});
+
+test("tablet and phone layouts keep controls touchable", () => {
+  assert.match(css, /@media \(min-width: 621px\) and \(max-width: 900px\)[\s\S]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(css, /@media \(max-width: 620px\)[\s\S]*\.setting-grid\s*\{[\s\S]*grid-template-columns:\s*1fr/);
+  assert.match(css, /@media \(max-width: 620px\)[\s\S]*\.header-nav\s*\{[\s\S]*overflow-x:\s*auto/);
+  assert.match(css, /min-height:\s*44px/);
+});

@@ -8,7 +8,7 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260809-handoff-layout-v2";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260809-handoff-layout-v2";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260809-handoff-layout-v2";
+import { getLocale, t } from "./site-i18n.mjs?v=20260809-responsive-v4";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260809-handoff-layout-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -305,6 +305,9 @@ const zoomInButton = document.querySelector("#zoomInButton");
 const closedSealInput = document.querySelector("#closedSealInput");
 const autoInput = document.querySelector("#autoInput");
 const measureInput = document.querySelector("#measureInput");
+const grimoirePanel = document.querySelector("#grimoirePanel");
+const grimoireToggle = document.querySelector("#grimoireToggle");
+const grimoireContent = document.querySelector("#grimoireContent");
 const readButton = document.querySelector("#readButton");
 const activateButton = document.querySelector("#activateButton");
 const undoButton = document.querySelector("#undoButton");
@@ -448,6 +451,21 @@ const DRAWING_LIMIT_MARGIN_CELLS = 8;
 const CENTRAL_SIGIL_RADIAL = 0.48;
 const SIGN_INNER_RADIAL = 0.52;
 const SIGN_OUTER_RADIAL = 1.22;
+const compactGrimoireMedia = window.matchMedia("(max-width: 1180px)");
+let preferredGrimoireOpen = localStorage.getItem("whaGrimoireOpen") === "true";
+
+function setGrimoireOpen(open, { persist = true } = {}) {
+  preferredGrimoireOpen = Boolean(open);
+  if (persist) {
+    localStorage.setItem("whaGrimoireOpen", String(preferredGrimoireOpen));
+  }
+  const expanded = !compactGrimoireMedia.matches || preferredGrimoireOpen;
+  grimoirePanel?.classList.toggle("is-open", expanded);
+  grimoireToggle?.setAttribute("aria-expanded", String(expanded));
+  if (grimoireContent) {
+    grimoireContent.inert = compactGrimoireMedia.matches && !expanded;
+  }
+}
 
 function setStatus(text) {
   statusText.classList.remove("has-list");
@@ -9451,6 +9469,14 @@ measureInput?.addEventListener("change", () => {
   render();
 });
 
+grimoireToggle?.addEventListener("click", () => {
+  setGrimoireOpen(grimoireToggle.getAttribute("aria-expanded") !== "true");
+});
+
+compactGrimoireMedia.addEventListener?.("change", () => {
+  setGrimoireOpen(preferredGrimoireOpen, { persist: false });
+});
+
 readButton.addEventListener("click", analyzeSpell);
 activateButton.addEventListener("click", activateCircle);
 undoButton.addEventListener("click", undo);
@@ -10315,6 +10341,7 @@ updateSpellState();
 if (measureInput) {
   measureInput.checked = state.showMeasure;
 }
+setGrimoireOpen(preferredGrimoireOpen, { persist: false });
 close3dView();
 setSymbolDrawer(false);
 setSupportDrawer(false);

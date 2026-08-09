@@ -63,7 +63,9 @@ input:focus-visible {
 
 .app-shell {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr) auto;
+  min-width: 0;
   min-height: 100vh;
 }
 
@@ -1057,15 +1059,23 @@ input:focus-visible {
 }
 
 .grimoire {
-  display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 16px;
-  align-items: start;
+  display: block;
   padding: 12px 16px 14px;
   background:
     linear-gradient(180deg, rgba(255, 250, 239, 0.72), rgba(234, 216, 184, 0.54)),
     var(--paper);
   border-top: 3px solid var(--edge);
+}
+
+.grimoire-content {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.grimoire-toggle {
+  display: none;
 }
 
 .settings {
@@ -2826,5 +2836,293 @@ input:focus-visible {
   .photo-dialog-actions {
     display: grid;
     grid-template-columns: 1fr;
+  }
+}
+
+/* Compact workshop: the Grimoire becomes a bottom sheet below laptop width. */
+@media (max-width: 1180px) {
+  .simulator-page {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .simulator-page .app-shell {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .workspace {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .canvas-wrap {
+    min-height: 0;
+    overscroll-behavior: contain;
+  }
+
+  .grimoire {
+    position: relative;
+    z-index: 18;
+    width: 100%;
+    min-width: 0;
+    max-height: calc(52px + env(safe-area-inset-bottom, 0px));
+    padding: 0 12px env(safe-area-inset-bottom, 0px);
+    overflow: hidden;
+    transition: max-height 220ms ease;
+  }
+
+  .grimoire.is-open {
+    max-height: min(62dvh, 620px);
+  }
+
+  .grimoire-toggle {
+    display: flex;
+    position: sticky;
+    z-index: 2;
+    top: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 49px;
+    border: 0;
+    border-radius: 0;
+    padding: 10px 12px;
+    background: var(--paper);
+    box-shadow: none;
+    color: var(--ink);
+    font-weight: 700;
+  }
+
+  .grimoire-handle {
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    width: 46px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(140, 107, 63, 0.54);
+    transform: translateX(-50%);
+  }
+
+  .grimoire-chevron {
+    display: inline-block;
+    font-family: "Courier New", monospace;
+    transform: rotate(0deg);
+    transition: transform 180ms ease;
+  }
+
+  .grimoire.is-open .grimoire-chevron {
+    transform: rotate(180deg);
+  }
+
+  .grimoire-content {
+    min-width: 0;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    max-height: 0;
+    overflow: hidden;
+    padding: 0 2px;
+    opacity: 0;
+    transition: opacity 150ms ease;
+  }
+
+  .grimoire.is-open .grimoire-content {
+    max-height: calc(min(62dvh, 620px) - 52px - env(safe-area-inset-bottom, 0px));
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 4px 2px 14px;
+    opacity: 1;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .settings,
+  .commands,
+  .status {
+    grid-column: 1;
+  }
+
+  .settings,
+  .commands {
+    padding: 10px;
+  }
+
+  .command-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .commands .command-button,
+  .grimoire-toggle {
+    min-height: 44px;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1180px) {
+  .grimoire-content {
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  }
+
+  .settings {
+    grid-column: 1;
+  }
+
+  .commands {
+    grid-column: 2;
+  }
+
+  .status {
+    grid-column: 1 / -1;
+  }
+
+  .setting-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .range-field,
+  .check-field {
+    grid-column: auto;
+  }
+}
+
+@media (min-width: 621px) and (max-width: 900px) {
+  .setting-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .range-field,
+  .check-field {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 620px) {
+  .variant-result-actions button,
+  .variant-result-actions a.variant-action {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .top-title {
+    gap: 7px;
+    padding: 7px 10px 8px;
+  }
+
+  .brand-title {
+    align-items: center;
+    gap: 8px;
+  }
+
+  .brand-logo-image {
+    width: 36px;
+    height: 36px;
+  }
+
+  .top-title h1 {
+    font-size: clamp(1.05rem, 5vw, 1.35rem);
+  }
+
+  .header-nav {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding: 1px 1px 4px;
+    scrollbar-width: thin;
+    overscroll-behavior-x: contain;
+  }
+
+  .header-link {
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 40px;
+    padding: 7px 10px;
+    white-space: nowrap;
+  }
+
+  .language-switcher,
+  .language-switcher button {
+    min-height: 40px;
+  }
+
+  .language-switcher {
+    grid-template-columns: repeat(2, 40px);
+  }
+
+  .setting-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .range-field,
+  .check-field {
+    width: 100%;
+    min-height: 52px;
+  }
+
+  .command-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .commands .command-button {
+    min-height: 52px;
+    padding: 8px 6px;
+    font-size: 0.78rem;
+  }
+
+  .atelier-badge {
+    max-width: calc(100% - 222px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .symbol-island,
+  .details-island,
+  .support-island,
+  .guide-island {
+    top: 12px;
+    width: 44px;
+    min-height: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .symbol-island { right: 156px; }
+  .details-island { right: 108px; }
+  .support-island { right: 60px; }
+  .guide-island { right: 12px; }
+
+  .symbol-island > span:not([aria-hidden="true"]),
+  .details-island > span:not([aria-hidden="true"]),
+  .support-island > span:not([aria-hidden="true"]),
+  .guide-island > span:not([aria-hidden="true"]) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .sidebar {
+    top: 8px;
+    right: 8px;
+    bottom: 8px;
+    width: calc(100% - 16px);
+    padding: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grimoire,
+  .grimoire-content,
+  .grimoire-chevron {
+    transition: none;
   }
 }
