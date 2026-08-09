@@ -32,9 +32,13 @@ export function decodeCircleShare(encoded, options = {}) {
   return parseCircleShare(JSON.parse(new TextDecoder().decode(bytes)), options);
 }
 
-export function buildCommunityComposeUrl(baseUrl, circle) {
+export function buildCommunityComposeUrl(baseUrl, circle, { previewDataUrl } = {}) {
   const url = new URL("/posts/new", baseUrl);
-  url.hash = new URLSearchParams({ circle: encodeCircleShare(circle) }).toString();
+  const params = new URLSearchParams({ circle: encodeCircleShare(circle) });
+  if (typeof previewDataUrl === "string" && previewDataUrl.startsWith("data:image/")) {
+    params.set("preview", previewDataUrl);
+  }
+  url.hash = params.toString();
   return url.href;
 }
 

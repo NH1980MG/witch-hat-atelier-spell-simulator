@@ -9299,16 +9299,23 @@ function currentCircleShare() {
 }
 
 function publishCurrentCircle() {
-  if (state.actions.length === 0) {
-    setStatus(t("status.communityNeedsDrawing"));
-    return;
-  }
   const baseUrl = publishCommunityButton?.dataset.communityUrl;
   if (!baseUrl) {
     setStatus(t("status.communityUnavailable"));
     return;
   }
-  window.location.assign(buildCommunityComposeUrl(baseUrl, currentCircleShare()));
+  let previewDataUrl;
+  if (state.actions.length > 0) {
+    try {
+      state.exporting = true;
+      render();
+      previewDataUrl = canvas.toDataURL("image/png");
+    } finally {
+      state.exporting = false;
+      render();
+    }
+  }
+  window.location.assign(buildCommunityComposeUrl(baseUrl, currentCircleShare(), { previewDataUrl }));
 }
 
 function hydrateSharedAction(action) {

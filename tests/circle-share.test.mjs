@@ -33,10 +33,18 @@ test("circle share rejects unsupported actions, non-finite geometry, and unknown
 });
 
 test("community compose links keep the payload in the URL fragment", () => {
-  const href = buildCommunityComposeUrl("https://community.example", circle);
+  const href = buildCommunityComposeUrl("https://community.example", circle, { previewDataUrl: "data:image/png;base64,abc" });
   const url = new URL(href);
   assert.equal(url.origin, "https://community.example");
   assert.equal(url.pathname, "/posts/new");
   assert.equal(url.search, "");
   assert.deepEqual(decodeCircleShare(new URLSearchParams(url.hash.slice(1)).get("circle")), circle);
+  assert.equal(new URLSearchParams(url.hash.slice(1)).get("preview"), "data:image/png;base64,abc");
+});
+
+test("community compose links accept an empty circle without a preview", () => {
+  const href = buildCommunityComposeUrl("https://community.example", { ...circle, actions: [] });
+  const params = new URLSearchParams(new URL(href).hash.slice(1));
+  assert.deepEqual(decodeCircleShare(params.get("circle")).actions, []);
+  assert.equal(params.has("preview"), false);
 });
