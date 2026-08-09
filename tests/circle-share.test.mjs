@@ -32,19 +32,17 @@ test("circle share rejects unsupported actions, non-finite geometry, and unknown
   assert.throws(() => parseCircleShare(circle, { glyphNames: new Set(["Eau"]) }), /glyph/i);
 });
 
-test("community compose links keep the payload in the URL fragment", () => {
-  const href = buildCommunityComposeUrl("https://community.example", circle, { previewDataUrl: "data:image/png;base64,abc" });
+test("community compose links keep only a short handoff id", () => {
+  const href = buildCommunityComposeUrl("https://community.example", "handoff-123");
   const url = new URL(href);
   assert.equal(url.origin, "https://community.example");
   assert.equal(url.pathname, "/posts/new");
-  assert.equal(url.search, "");
-  assert.deepEqual(decodeCircleShare(new URLSearchParams(url.hash.slice(1)).get("circle")), circle);
-  assert.equal(new URLSearchParams(url.hash.slice(1)).get("preview"), "data:image/png;base64,abc");
+  assert.equal(url.searchParams.get("handoff"), "handoff-123");
+  assert.equal(url.hash, "");
 });
 
-test("community compose links accept an empty circle without a preview", () => {
-  const href = buildCommunityComposeUrl("https://community.example", { ...circle, actions: [] });
-  const params = new URLSearchParams(new URL(href).hash.slice(1));
-  assert.deepEqual(decodeCircleShare(params.get("circle")).actions, []);
-  assert.equal(params.has("preview"), false);
+test("community compose links never expose drawing JSON", () => {
+  const href = buildCommunityComposeUrl("https://community.example", "empty-123");
+  assert.equal(new URL(href).hash, "");
+  assert.doesNotMatch(href, /circle=/);
 });

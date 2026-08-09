@@ -4,12 +4,12 @@ import {
   SYMBOL_AUDIT,
   SYMBOL_BOARD_ASSET,
   SYMBOL_PATHS,
-} from "./symbol-catalog.mjs?v=20260809-community-release-v1";
-import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260809-community-release-v1";
-import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260809-community-release-v1";
+} from "./symbol-catalog.mjs?v=20260809-handoff-layout-v2";
+import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260809-handoff-layout-v2";
+import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260809-handoff-layout-v2";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260809-community-release-v1";
-import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260809-community-release-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260809-handoff-layout-v2";
+import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260809-handoff-layout-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
   createUserGuide,
@@ -17,21 +17,21 @@ import {
   loadUserGuides,
   MAX_USER_GUIDES,
   saveUserGuides,
-} from "./guide-storage.mjs?v=20260809-community-release-v1";
+} from "./guide-storage.mjs?v=20260809-handoff-layout-v2";
 import {
   createSpell,
   deleteMySpell,
   loadMySpells,
   saveMySpells,
 } from "./spell-library.mjs";
-import { classifySymbolDragGesture } from "./symbol-drag-gesture.mjs?v=20260809-community-release-v1";
+import { classifySymbolDragGesture } from "./symbol-drag-gesture.mjs?v=20260809-handoff-layout-v2";
 import { parseRecipeParams } from "./recipe-link.mjs";
 import {
   buildCommunityComposeUrl,
   decodeCircleShare,
   fitCircleShare,
   parseCircleShare,
-} from "./circle-share.mjs?v=20260809-community-release-v1";
+} from "./circle-share.mjs?v=20260809-handoff-layout-v2";
 import {
   combinedSelectionBounds,
   canDropGlyph,
@@ -49,29 +49,29 @@ import {
   shouldDeferTouchTool,
   topmostSelectableIndexAtPoint,
   translateSelectedActions,
-} from "./symbol-interactions.mjs?v=20260809-community-release-v1";
-import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260809-community-release-v1";
+} from "./symbol-interactions.mjs?v=20260809-handoff-layout-v2";
+import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260809-handoff-layout-v2";
 import {
   SPOILER_MAX_CHAPTER,
   clampSpoilerChapter,
   isSymbolVisibleAtChapter,
   readSpoilerChapter,
   writeSpoilerChapter,
-} from "./symbol-chapters.mjs?v=20260809-community-release-v1";
-import { analyzeStrokeMatch } from "./stroke-matcher.mjs?v=20260809-community-release-v1";
+} from "./symbol-chapters.mjs?v=20260809-handoff-layout-v2";
+import { analyzeStrokeMatch } from "./stroke-matcher.mjs?v=20260809-handoff-layout-v2";
 import {
   collectPracticeAttempts,
   reconcilePracticeStartIndex,
   updatePracticeDiagnostic,
-} from "./practice-session.mjs?v=20260809-community-release-v1";
-import { analyzePhoto } from "./photo-import.mjs?v=20260809-community-release-v1";
+} from "./practice-session.mjs?v=20260809-handoff-layout-v2";
+import { analyzePhoto } from "./photo-import.mjs?v=20260809-handoff-layout-v2";
 import {
   mapPhotoAnalysis,
   selectPhotoCandidate,
   sourceCropForAnalysis,
-} from "./photo-placement.mjs?v=20260809-community-release-v1";
-import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260809-community-release-v1";
-import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260809-community-release-v1";
+} from "./photo-placement.mjs?v=20260809-handoff-layout-v2";
+import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260809-handoff-layout-v2";
+import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260809-handoff-layout-v2";
 
 export const CENTRAL_SIGIL_STROKE_WIDTH = 6.4365;
 
@@ -9298,7 +9298,7 @@ function currentCircleShare() {
   }, { glyphNames: new Set(elements.map((element) => element.name)) });
 }
 
-function publishCurrentCircle() {
+async function publishCurrentCircle() {
   const baseUrl = publishCommunityButton?.dataset.communityUrl;
   if (!baseUrl) {
     setStatus(t("status.communityUnavailable"));
@@ -9309,13 +9309,31 @@ function publishCurrentCircle() {
     try {
       state.exporting = true;
       render();
-      previewDataUrl = canvas.toDataURL("image/png");
+      const scale = Math.min(1, 1200 / canvas.width, 1200 / canvas.height);
+      const previewCanvas = document.createElement("canvas");
+      previewCanvas.width = Math.max(1, Math.round(canvas.width * scale));
+      previewCanvas.height = Math.max(1, Math.round(canvas.height * scale));
+      previewCanvas.getContext("2d").drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height);
+      previewDataUrl = previewCanvas.toDataURL("image/png");
     } finally {
       state.exporting = false;
       render();
     }
   }
-  window.location.assign(buildCommunityComposeUrl(baseUrl, currentCircleShare(), { previewDataUrl }));
+  setStatus(t("status.communityPublishing"));
+  try {
+    const response = await fetch(`${baseUrl}/api/handoffs`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ circle: currentCircleShare(), previewDataUrl }),
+    });
+    const result = await response.json();
+    if (!response.ok || !result.id) throw new Error(result.error || "handoff failed");
+    window.location.assign(buildCommunityComposeUrl(baseUrl, result.id));
+  } catch (error) {
+    console.warn("community handoff failed", error);
+    setStatus(t("status.communityUnavailable"));
+  }
 }
 
 function hydrateSharedAction(action) {

@@ -2,7 +2,7 @@ import {
   DEFAULT_LOCALE,
   resolveLocale,
   translate,
-} from "./i18n.mjs?v=20260809-community-release-v1";
+} from "./i18n.mjs?v=20260809-handoff-layout-v2";
 
 let currentLocale = DEFAULT_LOCALE;
 

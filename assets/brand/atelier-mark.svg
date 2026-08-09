@@ -3,7 +3,6 @@
   <desc id="desc">A cream magic nib and witch hat mark on a navy field.</desc>
   <rect width="96" height="96" rx="18" fill="#243044"/>
   <path d="M48 12C63 27 74 47 78 76c-17-4-43-4-60 0 4-29 15-49 30-64Z" fill="#f6ecd8" stroke="#c79736" stroke-width="4" stroke-linejoin="round"/>
-  <path d="M48 12v38M33 67l15-17 15 17" fill="none" stroke="#243044" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="48" cy="51" r="7" fill="#243044"/>
-  <path d="M20 26l8 8M76 26l-8 8M27 73l7-7M69 66l7 7" fill="none" stroke="#243044" stroke-width="4" stroke-linecap="round"/>
+  <path d="M48 18V43M43 55L30 68M53 55L66 68" fill="none" stroke="#243044" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="48" cy="49" r="8" fill="#c79736" stroke="#243044" stroke-width="4"/>
 </svg>

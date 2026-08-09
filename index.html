@@ -6,13 +6,15 @@
     <meta http-equiv="Cache-Control" content="no-store">
     <meta http-equiv="Pragma" content="no-cache">
     <meta name="referrer" content="strict-origin-when-cross-origin">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site; object-src 'none'; base-uri 'self'">
     <meta name="description" content="Draw, read, and animate magic circles in a bilingual Witch Hat Atelier spell simulator with a 3D workshop and 65,600 deterministic variants.">
     <meta property="og:title" content="Witch Hat Atelier Spell Simulator | Magic Circle Maker">
     <meta property="og:description" content="Draw magic circles, combine sigils and signs, then inspect their animated effects in a bilingual 3D workshop.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://nh1980mg.github.io/witch-hat-atelier-spell-simulator/">
     <link rel="canonical" href="https://nh1980mg.github.io/witch-hat-atelier-spell-simulator/">
+    <link rel="preconnect" href="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site">
+    <link rel="dns-prefetch" href="//circle-commons-atelier.hwl-brothers-5311.chatgpt.site">
     <link rel="icon" type="image/svg+xml" href="assets/brand/atelier-mark.svg">
     <link rel="apple-touch-icon" sizes="180x180" href="assets/brand/atelier-mark-180.png">
     <link rel="icon" type="image/png" sizes="512x512" href="assets/brand/atelier-mark-512.png">
@@ -34,7 +36,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260809-community-release-v1">
+    <link rel="stylesheet" href="styles.css?v=20260809-handoff-layout-v2">
     <script type="importmap">
       {
         "imports": {
@@ -43,14 +45,14 @@
         }
       }
     </script>
-    <script type="module" src="site-i18n.mjs?v=20260809-community-release-v1"></script>
-    <script type="module" src="app.js?v=20260809-community-release-v1"></script>
+    <script type="module" src="site-i18n.mjs?v=20260809-handoff-layout-v2"></script>
+    <script type="module" src="app.js?v=20260809-handoff-layout-v2"></script>
   </head>
   <body class="simulator-page">
     <main class="app-shell">
       <header class="top-title">
         <a class="brand-title brand-home" href="index.html" data-i18n-aria-label="nav.home" aria-label="Return to the main workshop">
-          <img class="brand-logo-image" src="assets/brand/atelier-mark.svg" alt="" aria-hidden="true">
+          <img class="brand-logo-image" src="assets/brand/atelier-mark.svg?v=2" alt="" aria-hidden="true">
           <h1>Witch Hat Atelier Spell Simulator</h1>
         </a>
         <nav class="header-nav" data-i18n-aria-label="nav.secondary" aria-label="Secondary navigation">
@@ -360,16 +362,19 @@
         </section>
 
         <section class="commands" data-i18n-aria-label="commands.region" aria-label="Ritual commands">
-          <button id="readButton" type="button" data-i18n="commands.read">Read</button>
-          <button id="activateButton" type="button" data-i18n="commands.activate">Activate</button>
-          <button id="undoButton" type="button" data-i18n="commands.undo">Undo</button>
-          <button id="clearButton" type="button" data-i18n="commands.clear">Clear</button>
-          <button id="saveButton" type="button" data-i18n="commands.savePng">Archive PNG</button>
-          <button id="saveExampleButton" type="button" data-i18n="commands.saveExample">Save as example</button>
-          <button id="practiceToggleButton" type="button" aria-controls="practiceBar" aria-expanded="false" data-i18n="practice.toggle">Practice</button>
-          <button id="photoImportButton" type="button" aria-controls="photoImportDialog" aria-expanded="false" data-i18n="photo.toggle">Photo</button>
-          <button id="saveSpellButton" type="button" aria-controls="spellSaveDialog" data-i18n="commands.saveSpell">Save spell</button>
-          <button id="publishCommunityButton" type="button" data-community-url="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site" data-i18n="commands.publishCommunity">Publish this circle</button>
+          <h2 data-i18n="commands.region">Ritual commands</h2>
+          <div class="command-grid">
+            <button class="command-button command-primary" id="readButton" type="button" data-i18n="commands.read">Read</button>
+            <button class="command-button command-primary" id="activateButton" type="button" data-i18n="commands.activate">Activate</button>
+            <button class="command-button command-history" id="undoButton" type="button" data-i18n="commands.undo">Undo</button>
+            <button class="command-button command-danger" id="clearButton" type="button" data-i18n="commands.clear">Clear</button>
+            <button class="command-button command-archive" id="saveButton" type="button" data-i18n="commands.savePng">Archive PNG</button>
+            <button class="command-button command-archive" id="saveExampleButton" type="button" data-i18n="commands.saveExample">Save as example</button>
+            <button class="command-button command-tool" id="practiceToggleButton" type="button" aria-controls="practiceBar" aria-expanded="false" data-i18n="practice.toggle">Practice</button>
+            <button class="command-button command-tool" id="photoImportButton" type="button" aria-controls="photoImportDialog" aria-expanded="false" data-i18n="photo.toggle">Photo</button>
+            <button class="command-button command-archive" id="saveSpellButton" type="button" aria-controls="spellSaveDialog" data-i18n="commands.saveSpell">Save spell</button>
+            <button class="command-button command-community" id="publishCommunityButton" type="button" data-community-url="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site" data-i18n="commands.publishCommunity">Publish this circle</button>
+          </div>
         </section>
 
         <output class="status" id="statusText" aria-live="polite" data-i18n="status.buttonMode">Button mode: draw a closed circle, then press Activate.</output>

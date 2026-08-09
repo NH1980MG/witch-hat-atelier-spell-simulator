@@ -10,6 +10,8 @@ test("the workshop exposes a translated community publishing action", async () =
   ]);
   assert.match(html, /id="publishCommunityButton"[^>]*data-i18n="commands\.publishCommunity"/);
   assert.match(app, /buildCommunityComposeUrl/);
+  assert.match(app, /\/api\/handoffs/);
+  assert.match(app, /method:\s*"POST"/);
   assert.match(app, /loadCommunityCircleFromUrl/);
   assert.equal(i18n.split('"commands.publishCommunity"').length - 1, 2);
   assert.equal(i18n.split('"status.communityCircleLoaded"').length - 1, 2);
