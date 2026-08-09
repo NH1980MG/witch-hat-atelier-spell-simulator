@@ -217,6 +217,9 @@ function supportDisplayHint(support) {
 }
 
 function supportImageMarkup(id) {
+  if (id === "shoe") {
+    return `<img class="support-illustration support-illustration-raster" src="assets/supports/flying-shoes-v2.png" alt="${t("support.shoe.imageAlt")}">`;
+  }
   const drawings = {
     none: `
       <path class="support-paper" d="M29 23 H59 V60 H29 Z"></path>
@@ -224,20 +227,6 @@ function supportImageMarkup(id) {
       <path class="support-detail" d="M34 30 H54 M34 52 H54"></path>
       <path class="support-accent" d="M33 41 H55 M44 30 V52"></path>
       <path class="support-shadow" d="M22 67 C34 73 54 73 66 67"></path>
-    `,
-    shoe: `
-      <path class="support-fill" d="M24 20 C17 25 15 42 20 58 C23 68 31 73 38 68 C44 63 41 54 37 45 C33 36 34 27 39 19 C34 16 29 16 24 20 Z"></path>
-      <path class="support-fill" d="M64 20 C71 25 73 42 68 58 C65 68 57 73 50 68 C44 63 47 54 51 45 C55 36 54 27 49 19 C54 16 59 16 64 20 Z"></path>
-      <path class="support-detail" d="M25 27 C21 37 22 54 29 63 M36 24 C33 34 35 47 39 57"></path>
-      <path class="support-detail" d="M63 27 C67 37 66 54 59 63 M52 24 C55 34 53 47 49 57"></path>
-      <path class="support-detail" d="M20 19 C15 16 10 19 9 25 M68 19 C73 16 78 19 79 25"></path>
-      <circle class="support-paper" cx="37" cy="41" r="7.5"></circle>
-      <circle class="support-paper" cx="51" cy="41" r="7.5"></circle>
-      <circle class="support-accent" cx="37" cy="41" r="6"></circle>
-      <circle class="support-accent" cx="51" cy="41" r="6"></circle>
-      <path class="support-accent" d="M32 41 H42 M37 36 V46 M46 41 H56 M51 36 V46 M43 41 C44 39 44 39 45 41"></path>
-      <path class="support-accent" d="M20 68 C27 75 36 76 44 69 C52 76 61 75 68 68"></path>
-      <path class="support-shadow" d="M15 75 C29 81 59 81 73 75"></path>
     `,
   };
   const drawing = drawings[id] || drawings.none;

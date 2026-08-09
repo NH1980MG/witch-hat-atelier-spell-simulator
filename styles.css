@@ -846,6 +846,11 @@ input:focus-visible {
   height: 74px;
 }
 
+.support-illustration-raster {
+  object-fit: contain;
+  filter: drop-shadow(0 4px 4px rgba(71, 50, 25, 0.18));
+}
+
 .support-illustration rect {
   fill: rgba(255, 250, 239, 0.82);
   stroke: rgba(140, 107, 63, 0.38);
@@ -2841,5 +2846,102 @@ input:focus-visible {
 
   .photo-dialog-actions > form {
     width: 100%;
+  }
+}
+
+.suggestions-page {
+  min-height: 100vh;
+}
+
+.suggestions-layout {
+  display: grid;
+  grid-template-columns: minmax(16rem, 0.72fr) minmax(20rem, 1.28fr);
+  gap: clamp(1rem, 3vw, 2.4rem);
+  width: min(74rem, calc(100% - 2rem));
+  margin: clamp(1rem, 4vw, 3.5rem) auto;
+  align-items: start;
+}
+
+.suggestions-intro {
+  padding: 0.5rem 0;
+}
+
+.suggestions-intro h2 {
+  margin: 0.35rem 0 0.8rem;
+  font-size: clamp(1.65rem, 3vw, 2.65rem);
+  line-height: 1.08;
+}
+
+.suggestions-intro p,
+.suggestions-intro li {
+  line-height: 1.55;
+}
+
+.suggestions-intro ul {
+  padding-left: 1.25rem;
+}
+
+.suggestion-form {
+  display: grid;
+  gap: 0.65rem;
+  min-width: 0;
+  padding: clamp(1rem, 3vw, 1.7rem);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--paper) 92%, white);
+  box-shadow: 0 14px 34px rgba(58, 43, 22, 0.09);
+}
+
+.suggestion-form label {
+  margin-top: 0.35rem;
+  font-weight: 700;
+}
+
+.suggestion-form input,
+.suggestion-form select,
+.suggestion-form textarea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  padding: 0.75rem 0.85rem;
+  font: inherit;
+}
+
+.suggestion-form textarea {
+  resize: vertical;
+  min-height: 12rem;
+}
+
+.suggestion-form :is(input, select, textarea, button):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--gold) 65%, white);
+  outline-offset: 2px;
+}
+
+.suggestion-privacy,
+.suggestion-status {
+  margin: 0.25rem 0;
+  color: color-mix(in srgb, var(--ink) 72%, var(--paper));
+  line-height: 1.4;
+}
+
+.suggestion-submit {
+  min-height: 3rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0.65rem 1rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 760px) {
+  .suggestions-layout {
+    grid-template-columns: 1fr;
   }
 }

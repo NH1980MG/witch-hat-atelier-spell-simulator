@@ -17,7 +17,7 @@ test("the workshop exposes a translated community publishing action", async () =
   assert.equal(i18n.split('"status.communityCircleLoaded"').length - 1, 2);
 });
 
-test("every public simulator page links to the Circle Commons suggestion register", async () => {
+test("every public simulator page links to the local suggestion page", async () => {
   const pages = await Promise.all([
     "index.html",
     "bibliotheque.html",
@@ -30,9 +30,10 @@ test("every public simulator page links to the Circle Commons suggestion registe
   for (const [name, html] of pages) {
     assert.match(
       html,
-      /href="https:\/\/circle-commons-atelier\.hwl-brothers-5311\.chatgpt\.site\/suggestions"[^>]*data-i18n-aria-label="nav\.openSuggestions"/,
+      /href="suggestions\.html"[^>]*data-i18n-aria-label="nav\.openSuggestions"/,
       `${name} should expose the Suggestions tab`,
     );
+    assert.doesNotMatch(html, /circle-commons-atelier[^"']+\/suggestions/);
     assert.match(html, /data-i18n="nav\.suggestions"/);
   }
   assert.equal(i18n.split('"nav.suggestions"').length - 1, 2);
