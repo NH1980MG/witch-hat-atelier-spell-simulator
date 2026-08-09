@@ -72,6 +72,7 @@ import {
 } from "./photo-placement.mjs?v=20260809-handoff-layout-v2";
 import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260809-handoff-layout-v2";
 import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260809-handoff-layout-v2";
+import { assessFreehandBoundary, recognizedMaterialLabel } from "./drawing-recognition.mjs";
 
 export const CENTRAL_SIGIL_STROKE_WIDTH = 6.4365;
 
@@ -1787,32 +1788,11 @@ function isFreehandClosedSeal(action) {
 }
 
 function isFreehandBoundaryLike(action) {
-  if (action.type !== "free" || action.points.length < 24) {
-    return false;
-  }
+  return action.type === "free" && assessFreehandBoundary(action.points).closed;
+}
 
-  const bounds = actionBounds(action);
-  const first = action.points[0];
-  const last = action.points[action.points.length - 1];
-  const closingDistance = distance(first, last);
-  const size = Math.max(bounds.width, bounds.height);
-  const ratio = Math.min(bounds.width, bounds.height) / Math.max(1, size);
-  const center = actionCenter(action);
-  const radii = action.points.map((point) => distance(point, center));
-  const averageRadius = radii.reduce((total, value) => total + value, 0) / radii.length;
-  const radiusVariance = radii.reduce((total, value) => total + Math.abs(value - averageRadius), 0) / Math.max(1, averageRadius * radii.length);
-  let area = 0;
-  let perimeter = 0;
-  for (let index = 0; index < action.points.length; index += 1) {
-    const current = action.points[index];
-    const next = action.points[(index + 1) % action.points.length];
-    area += current.x * next.y - next.x * current.y;
-    perimeter += distance(current, next);
-  }
-  const circularity = perimeter > 0 ? (4 * Math.PI * Math.abs(area / 2)) / (perimeter * perimeter) : 0;
-
-  const closingLimit = Math.max(22, size * 0.12);
-  return size >= 80 && ratio >= 0.42 && circularity >= 0.34 && radiusVariance <= 0.78 && closingDistance <= closingLimit && closingDistance <= averageRadius * 0.42;
+function isFreehandBoundaryCandidate(action) {
+  return action.type === "free" && assessFreehandBoundary(action.points).candidate;
 }
 
 function drawActivation(width, height) {
@@ -6971,8 +6951,11 @@ function commitAction(action) {
     action.element = "Structure";
     action.seal = true;
     action.boundary = true;
-  } else if (action.type === "free" && isFreehandBoundaryLike(action)) {
-    action.boundary = false;
+  } else if (isFreehandBoundaryCandidate(action)) {
+    action.label = "Sceau incomplet";
+    action.element = "Structure";
+    action.boundary = true;
+    action.seal = false;
   }
 
   recordHistory();
@@ -8699,6 +8682,9 @@ function updateUsedList() {
   const inferredSigns = freeSignGlyphs();
   const inferredSignActions = new Set(inferredSigns.flatMap((sign) => sign.sourceActions || [sign.sourceAction]));
   for (const action of state.actions) {
+    if (action.boundary && !action.seal) {
+      continue;
+    }
     if (centralFree.has(action) || inferredSignActions.has(action)) {
       continue;
     }
@@ -8726,6 +8712,11 @@ function updateUsedList() {
   for (const [name, count] of [...counts.entries()].sort()) {
     const item = document.createElement("li");
     item.textContent = `${name} x${count}`;
+    usedList.append(item);
+  }
+  if (counts.size === 0) {
+    const item = document.createElement("li");
+    item.textContent = t("details.noMarks");
     usedList.append(item);
   }
 }
@@ -8756,7 +8747,7 @@ function spellMetrics(model = signModel()) {
   }
 
   const symbolCharge = allGlyphs.reduce((total, action) => total + action.charge, 0);
-  const symbolQuality = glyphs.length > 0 ? Math.max(...glyphs.map((glyph) => glyph.quality || 100)) : 100;
+  const symbolQuality = glyphs.length > 0 ? Math.max(...glyphs.map((glyph) => glyph.quality || 100)) : 0;
   const repetitionBonus = (model.sigilCounts.Repetition || 0) * 2200;
   const levitationBonus = model.hasLevitation ? 1200 : 0;
   const bindBonus = model.hasBind ? 900 : 0;
@@ -8773,7 +8764,7 @@ function spellMetrics(model = signModel()) {
   const rawEnergyPenalty = model.ringOnly ? 42 : model.rawEnergy ? 20 : 0;
   const stability = Math.max(0, Math.min(100, (model.hasBoundary ? 46 : 0) + model.stabilizerScore + (glyphs.length > 0 ? 10 : 0) + geometryStability + (model.hasConvergence ? 8 : 0) + supportStabilityBonus(model) - model.freePenalty - rawEnergyPenalty));
   return {
-    element: effectiveElement(model)?.name || "Aucun",
+    element: glyphs.length > 0 ? effectiveElement(model)?.name || "Aucun" : "Aucun",
     duration,
     force,
     quality,
@@ -8785,8 +8776,11 @@ function spellMetrics(model = signModel()) {
 function updateSpellState() {
   const metrics = spellMetrics();
   const model = signModel();
-  spellElement.textContent = materialPresentationDisplayName(runtimeMaterialPresentation(model))
-    || elementDisplayName(metrics.element);
+  spellElement.textContent = recognizedMaterialLabel({
+    sigilCount: model.sigils.length,
+    presentationLabel: materialPresentationDisplayName(runtimeMaterialPresentation(model)),
+    noneLabel: t("common.none"),
+  });
   spellQuality.textContent = `${metrics.quality}%`;
   spellDuration.textContent = `${Math.round(metrics.duration / 1000)}s`;
   spellStability.textContent = `${metrics.stability}%`;
