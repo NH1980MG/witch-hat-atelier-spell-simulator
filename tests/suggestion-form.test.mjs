@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   buildSuggestionIssueUrl,
   normalizeSuggestionInput,
+  openSuggestionIssue,
 } from "../suggestion-form.mjs";
 
 test("buildSuggestionIssueUrl encodes bilingual free-form feedback", () => {
@@ -35,4 +36,21 @@ test("normalizeSuggestionInput bounds fields and falls back safely", () => {
   assert.equal(normalized.title.length, 120);
   assert.equal(normalized.body.length, 3000);
   assert.doesNotMatch(JSON.stringify(normalized), /<script>/);
+});
+
+test("openSuggestionIssue reports success and severs the opener", () => {
+  const openedWindow = { opener: "workshop" };
+  const calls = [];
+  const opened = openSuggestionIssue("https://example.com", (...args) => {
+    calls.push(args);
+    return openedWindow;
+  });
+
+  assert.equal(opened, true);
+  assert.deepEqual(calls, [["https://example.com", "_blank"]]);
+  assert.equal(openedWindow.opener, null);
+});
+
+test("openSuggestionIssue reports a blocked popup", () => {
+  assert.equal(openSuggestionIssue("https://example.com", () => null), false);
 });

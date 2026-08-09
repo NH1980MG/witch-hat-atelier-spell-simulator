@@ -45,6 +45,17 @@ export function buildSuggestionIssueUrl(input = {}) {
   return url.toString();
 }
 
+export function openSuggestionIssue(url, opener = window.open.bind(window)) {
+  const opened = opener(url, "_blank");
+  if (!opened) return false;
+  try {
+    opened.opener = null;
+  } catch {
+    // Cross-origin windows may reject access after navigation; the tab still opened.
+  }
+  return true;
+}
+
 function initializeSuggestionForm() {
   const form = document.querySelector("[data-suggestion-form]");
   if (!form) return;
@@ -59,7 +70,7 @@ function initializeSuggestionForm() {
       title: data.get("title"),
       body: data.get("body"),
     });
-    const opened = window.open(url, "_blank", "noopener,noreferrer");
+    const opened = openSuggestionIssue(url);
     if (status) {
       status.dataset.i18n = opened ? "suggestions.status.opened" : "suggestions.status.blocked";
       status.textContent = opened
