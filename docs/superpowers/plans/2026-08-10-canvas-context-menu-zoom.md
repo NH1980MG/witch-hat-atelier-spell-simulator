@@ -79,4 +79,3 @@
 - [ ] Smoke-test right-click actions, overlapping objects, unbounded resize, trackpad pinch, ordinary pan, and responsive layouts at `http://127.0.0.1:8000/index.html`.
 - [ ] Inspect `git diff --check` and `git status --short`.
 - [ ] Commit only simulator source, tests, and docs, then push the verified commit to GitHub `main`.
-

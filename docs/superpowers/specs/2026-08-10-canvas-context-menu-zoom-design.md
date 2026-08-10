@@ -35,4 +35,3 @@ The menu is a labelled `role="menu"` surface with native buttons, visible focus,
 French and English labels, and Escape support. Unit tests cover unbounded scale
 and layer ordering. Integration tests cover menu wiring and wheel/pinch routing;
 the full suite and a browser smoke test protect drawing and selection behavior.
-
