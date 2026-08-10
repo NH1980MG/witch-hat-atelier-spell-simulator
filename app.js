@@ -341,6 +341,10 @@ const rotateSelectionRightButton = document.querySelector("#rotateSelectionRight
 const guideToggleButton = document.querySelector("#guideToggleButton");
 const guideDrawer = document.querySelector("#guideDrawer");
 const closeGuidesButton = document.querySelector("#closeGuidesButton");
+const galleryToggleButton = document.querySelector("#galleryToggleButton");
+const galleryDrawer = document.querySelector("#galleryDrawer");
+const closeGalleryButton = document.querySelector("#closeGalleryButton");
+const publishGalleryButton = document.querySelector("#publishGalleryButton");
 const guideLibraryTab = document.querySelector("#guideLibraryTab");
 const guidePersonalTab = document.querySelector("#guidePersonalTab");
 const guideSpellsTab = document.querySelector("#guideSpellsTab");
@@ -4885,11 +4889,16 @@ function setGuideDrawer(open) {
   setOpenDrawer(open ? "guides" : null);
 }
 
+function setGalleryDrawer(open) {
+  setOpenDrawer(open ? "gallery" : null);
+}
+
 function setOpenDrawer(drawer) {
   const symbolsOpen = drawer === "symbols";
   const detailsOpen = drawer === "details";
   const supportOpen = drawer === "support";
   const guidesOpen = drawer === "guides";
+  const galleryOpen = drawer === "gallery";
   if (!symbolsOpen) {
     cancelSymbolDragIntent();
     if (state.symbolDrag) {
@@ -4900,14 +4909,17 @@ function setOpenDrawer(drawer) {
   document.body.classList.toggle("details-open", detailsOpen);
   document.body.classList.toggle("support-open", supportOpen);
   document.body.classList.toggle("guides-open", guidesOpen);
+  document.body.classList.toggle("gallery-open", galleryOpen);
   symbolToggleButton?.setAttribute("aria-expanded", String(symbolsOpen));
   detailsToggleButton?.setAttribute("aria-expanded", String(detailsOpen));
   supportToggleButton?.setAttribute("aria-expanded", String(supportOpen));
   guideToggleButton?.setAttribute("aria-expanded", String(guidesOpen));
+  galleryToggleButton?.setAttribute("aria-expanded", String(galleryOpen));
   symbolDrawer?.setAttribute("aria-hidden", String(!symbolsOpen));
   detailsDrawer?.setAttribute("aria-hidden", String(!detailsOpen));
   supportDrawer?.setAttribute("aria-hidden", String(!supportOpen));
   guideDrawer?.setAttribute("aria-hidden", String(!guidesOpen));
+  galleryDrawer?.setAttribute("aria-hidden", String(!galleryOpen));
   render();
 }
 
@@ -9415,6 +9427,10 @@ async function publishCurrentCircle() {
     setStatus(t("status.communityUnavailable"));
     return;
   }
+  if (state.actions.length === 0) {
+    setStatus(t("status.communityNeedsDrawing"));
+    return;
+  }
   let previewDataUrl;
   if (state.actions.length > 0) {
     try {
@@ -9591,11 +9607,14 @@ supportToggleButton?.addEventListener("click", () => setSupportDrawer(true));
 closeSupportButton?.addEventListener("click", () => setSupportDrawer(false));
 guideToggleButton?.addEventListener("click", () => setGuideDrawer(true));
 closeGuidesButton?.addEventListener("click", () => setGuideDrawer(false));
+galleryToggleButton?.addEventListener("click", () => setGalleryDrawer(true));
+closeGalleryButton?.addEventListener("click", () => setGalleryDrawer(false));
 guideLibraryTab?.addEventListener("click", () => setGuideTab("library"));
 guidePersonalTab?.addEventListener("click", () => setGuideTab("personal"));
 guideSpellsTab?.addEventListener("click", () => setGuideTab("spells"));
 saveSpellButton?.addEventListener("click", saveCurrentSpell);
 publishCommunityButton?.addEventListener("click", publishCurrentCircle);
+publishGalleryButton?.addEventListener("click", publishCurrentCircle);
 spellSaveConfirm?.addEventListener("click", confirmSaveSpell);
 spellNameInput?.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
@@ -10267,7 +10286,8 @@ document.addEventListener("keydown", (event) => {
       document.body.classList.contains("symbols-open") ||
       document.body.classList.contains("details-open") ||
       document.body.classList.contains("support-open") ||
-      document.body.classList.contains("guides-open"),
+      document.body.classList.contains("guides-open") ||
+      document.body.classList.contains("gallery-open"),
     hasSelection: state.selectedActionIndices.length > 0,
     guideSelected: state.guideSelected,
     armed: state.tool === "glyph" && state.ghostOwner === "armed",

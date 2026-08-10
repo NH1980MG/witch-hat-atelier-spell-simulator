@@ -88,3 +88,13 @@ This phase model keeps effects comparable and easier to implement.
 - 3D view needs an obvious close button and should respect reduced-motion if
   that is later added.
 
+## Circle Commons Gallery Handoff
+
+The right-side Gallery drawer is the entry point from the workshop to the
+public Circle Commons gallery. Browsing is public; keeping a circle in an
+account and publishing it require signing in on Circle Commons.
+
+The `Add current circle` action reuses `POST /api/handoffs` and redirects to
+`/posts/new?handoff=<uuid>`. The drawing is validated before transfer, the
+optional PNG preview is stored with the handoff, and the handoff is consumed by
+the composer. The simulator never receives or stores an auth token.

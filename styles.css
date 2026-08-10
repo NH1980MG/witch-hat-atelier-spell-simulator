@@ -371,7 +371,8 @@ input:focus-visible {
 .symbol-island,
 .details-island,
 .support-island,
-.guide-island {
+.guide-island,
+.gallery-island {
   position: absolute;
   z-index: 7;
   right: 18px;
@@ -403,10 +404,15 @@ input:focus-visible {
   top: 180px;
 }
 
+.gallery-island {
+  top: 234px;
+}
+
 .symbol-island > span[aria-hidden="true"],
 .details-island > span[aria-hidden="true"],
 .support-island > span[aria-hidden="true"],
-.guide-island > span[aria-hidden="true"] {
+.guide-island > span[aria-hidden="true"],
+.gallery-island > span[aria-hidden="true"] {
   color: var(--gold);
   font-family: "Courier New", monospace;
   font-size: 1.1rem;
@@ -453,6 +459,11 @@ input:focus-visible {
   overflow: hidden;
 }
 
+.gallery-drawer {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .simulator-page.details-open .details-drawer {
   opacity: 1;
   pointer-events: auto;
@@ -477,6 +488,12 @@ input:focus-visible {
   transform: translateX(0);
 }
 
+.simulator-page.gallery-open .gallery-drawer {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+
 .simulator-page.symbols-open .details-drawer,
 .simulator-page.symbols-open .support-drawer,
 .simulator-page.details-open .symbol-drawer,
@@ -488,10 +505,24 @@ input:focus-visible {
   transform: translateX(calc(100% + 28px));
 }
 
+.simulator-page.symbols-open .gallery-drawer,
+.simulator-page.details-open .gallery-drawer,
+.simulator-page.support-open .gallery-drawer,
+.simulator-page.guides-open .gallery-drawer,
+.simulator-page.gallery-open .symbol-drawer,
+.simulator-page.gallery-open .details-drawer,
+.simulator-page.gallery-open .support-drawer,
+.simulator-page.gallery-open .guide-drawer {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(calc(100% + 28px));
+}
+
 .simulator-page.symbols-open .symbol-island,
 .simulator-page.details-open .details-island,
 .simulator-page.support-open .support-island,
-.simulator-page.guides-open .guide-island {
+.simulator-page.guides-open .guide-island,
+.simulator-page.gallery-open .gallery-island {
   opacity: 0;
   pointer-events: none;
 }
@@ -629,6 +660,43 @@ input:focus-visible {
   line-height: 1.4;
 }
 
+.gallery-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.gallery-actions > a,
+.gallery-actions > button {
+  display: block;
+  min-height: 44px;
+  padding: 11px 14px;
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  background: rgba(255, 248, 234, 0.74);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+
+.gallery-actions > button {
+  background: var(--button-active);
+  cursor: pointer;
+}
+
+.gallery-actions > a:hover,
+.gallery-actions > button:hover {
+  filter: brightness(0.97);
+}
+
+.gallery-note {
+  margin: 0;
+  color: var(--edge);
+  line-height: 1.45;
+}
+
 @media (min-width: 621px) {
   .simulator-page.symbols-open .details-island,
   .simulator-page.symbols-open .support-island,
@@ -641,7 +709,11 @@ input:focus-visible {
   .simulator-page.support-open .guide-island,
   .simulator-page.guides-open .symbol-island,
   .simulator-page.guides-open .details-island,
-  .simulator-page.guides-open .support-island {
+  .simulator-page.guides-open .support-island,
+  .simulator-page.gallery-open .symbol-island,
+  .simulator-page.gallery-open .details-island,
+  .simulator-page.gallery-open .support-island,
+  .simulator-page.gallery-open .guide-island {
     z-index: 13;
     right: calc(min(430px, calc(100% - 24px)) + 24px);
   }
