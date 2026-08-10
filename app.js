@@ -497,6 +497,11 @@ function localizedRecipeWarnings(recipe, limit = 3) {
   return recipe.warnings.slice(0, limit).map(() => t("status.recipeWarning"));
 }
 
+function localizedManifestationLabel(plan) {
+  if (!plan) return "";
+  return getLocale() === "en" ? plan.labelEn : plan.labelFr;
+}
+
 function displayDirection(direction) {
   const keys = {
     contenu: "contained",
@@ -1853,6 +1858,7 @@ function drawActivation(width, height) {
     open3dView();
     setStatusList([
       t("status.ritualActivated", { label: localizedRecipeLabel(snapshot.recipe) }),
+      t("status.manifestation", { label: localizedManifestationLabel(snapshot.recipe.manifestationPlan) }),
       model.rawEnergy
         ? t("status.noMaterialSigil")
         : t("status.sigilRecognized", { name: materialPresentationDisplayName(materialPresentation), quality: Math.round(symbolQuality) }),
@@ -4082,13 +4088,75 @@ function addCombinedSignEffects3d(group, effects, elementName, auraRadius, eleme
   }
 }
 
+function manifestationConsumes(plan, operation) {
+  return Boolean(plan?.consumedOperations?.some((entry) => entry.endsWith(`.${operation}`)));
+}
+
+function addManifestationPlanEffect3d(group, plan, auraRadius, elementColor, supportId = "none") {
+  if (!plan) return;
+  const baseY = supportId === "shoe" ? THREE_SHOE_INK_Y + 0.012 : THREE_LOW_EFFECT_Y + 0.018;
+
+  if (plan.id === "mud.dense-projection") {
+    const material = new THREE.MeshStandardMaterial({ color: elementColor, roughness: 0.96, transparent: true, opacity: 0.7 });
+    const projection = new THREE.Mesh(new THREE.CylinderGeometry(auraRadius * 0.16, auraRadius * 0.38, 1.5, 32), material);
+    projection.position.y = baseY + 0.75;
+    addAnimatedObject(group, projection, (object, elapsed) => {
+      const growth = 0.32 + easeOutCubic(spellProgress3d(elapsed)) * 0.68;
+      object.scale.set(0.72 + growth * 0.28, growth, 0.72 + growth * 0.28);
+      object.material.opacity = 0.48 + growth * 0.22;
+    });
+  }
+
+  if (plan.id === "mist.pressurized-jet") {
+    const positions = [];
+    const particleCount = Math.min(180, plan.particles?.max || 140);
+    for (let index = 0; index < particleCount; index += 1) {
+      const phase = index / particleCount;
+      const angle = index * 2.399;
+      positions.push(
+        Math.cos(angle) * auraRadius * 0.12 * (1 - phase),
+        baseY + 0.16 + phase * 1.35,
+        Math.sin(angle) * auraRadius * (0.12 + phase * 0.32),
+      );
+    }
+    const spray = new THREE.Points(
+      new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute(positions, 3)),
+      new THREE.PointsMaterial({ color: elementColor, size: 0.018, transparent: true, opacity: 0.62, depthWrite: false }),
+    );
+    addAnimatedObject(group, spray, (object, elapsed) => {
+      object.position.z = -((elapsed * 0.18) % Math.max(0.12, auraRadius * 0.4));
+      object.material.opacity = 0.42 + Math.sin(elapsed * 3) * 0.12;
+    });
+  }
+
+  if (plan.id === "crystal.propelled-fragments") {
+    const shardMaterial = new THREE.MeshPhysicalMaterial({ color: elementColor, roughness: 0.22, transmission: 0.2, transparent: true, opacity: 0.78 });
+    const shardCount = Math.min(28, Math.max(12, Math.round((plan.particles?.max || 60) / 3)));
+    for (let index = 0; index < shardCount; index += 1) {
+      const angle = (index / shardCount) * Math.PI * 2;
+      const shard = new THREE.Mesh(new THREE.OctahedronGeometry(Math.max(0.012, auraRadius * 0.04), 0), shardMaterial.clone());
+      addAnimatedObject(group, shard, (object, elapsed) => {
+        const travel = ((elapsed * 0.22 + index / shardCount) % 1);
+        object.position.set(
+          Math.cos(angle) * auraRadius * (0.15 + travel * 0.55),
+          baseY + 0.12 + travel * 1.18,
+          Math.sin(angle) * auraRadius * (0.15 + travel * 0.55),
+        );
+        object.rotation.set(elapsed + index, elapsed * 0.7 + index, elapsed * 0.4);
+      });
+    }
+  }
+}
+
 function addRecipeGrammarEffects3d(group, model, auraRadius, elementColor, supportId = "none") {
   const recipe = model?.recipe;
   if (!recipe) {
     return;
   }
 
-  const operations = new Set(Object.values(recipe.operations).flat());
+  const operations = new Set(recipe.manifestationPlan
+    ? recipe.manifestationPlan.secondaryOperations.map((entry) => entry.split(".").slice(1).join("."))
+    : Object.values(recipe.operations).flat());
   const has = (operation) => operations.has(operation);
   const operationCount = (operation) => Object.values(recipe.axes)
     .flat()
@@ -4452,11 +4520,11 @@ function rebuildThreeSpell() {
   const environment = preferredThreeEnvironment(bounds);
   useThreeEnvironment(environment);
 
-  if (threeView.spellGroup) {
-    threeView.scene.remove(threeView.spellGroup);
-  }
+  clearActiveManifestation("replace", false);
 
   const recipe = state.activeSpell.recipe;
+  const manifestationPlan = recipe.manifestationPlan;
+  const renderOperation = (operation) => !manifestationConsumes(manifestationPlan, operation);
   const materialPresentation = state.activeSpell.materialPresentation;
   const runtimeElementName = materialPresentation?.dominantElement || state.activeSpell.elementName;
   const element = elements.find((item) => item.name === runtimeElementName) || RAW_ENERGY_ELEMENT;
@@ -4503,17 +4571,20 @@ function rebuildThreeSpell() {
   } else {
     addElementBaseEffect3d(group, element.name, effects, auraRadius, elementColor, model, supportId);
   }
+  addManifestationPlanEffect3d(group, manifestationPlan, auraRadius, elementColor, supportId);
   addShoeSupportEffects3d(group, supportProp, recipe.supportPlan, runtimeElementName, elementColor);
-  addCombinedSignEffects3d(group, effects, runtimeElementName, auraRadius, elementColor, model, supportId);
+  if (!manifestationPlan) {
+    addCombinedSignEffects3d(group, effects, runtimeElementName, auraRadius, elementColor, model, supportId);
+  }
   addRecipeGrammarEffects3d(group, { ...model, recipe }, auraRadius, elementColor, supportId);
 
-  if ((effects.has("dispersion") && !combined.has("colonne diffuse")) || effects.has("repetition")) {
+  if (((effects.has("dispersion") && renderOperation("dispersion") && !combined.has("colonne diffuse")) || effects.has("repetition"))) {
     for (let index = 0; index < 4; index += 1) {
       group.add(circleLine(auraRadius * (1.45 + index * 0.28), 0.08 + index * 0.05, elementColor, 0.2, 160));
     }
   }
 
-  if (effects.has("colonne/projection") && !combined.has("colonne diffuse") && !combined.has("plateforme montante")) {
+  if (effects.has("colonne/projection") && renderOperation("column") && !combined.has("colonne diffuse") && !combined.has("plateforme montante")) {
     const columnMaterial = new THREE.MeshBasicMaterial({
       color: elementColor,
       transparent: true,
@@ -4525,13 +4596,13 @@ function rebuildThreeSpell() {
     group.add(column);
   }
 
-  if (effects.has("levitation") && !combined.has("plateforme montante") && !combined.has("flottement stabilise") && !combined.has("vent porteur stabilise")) {
+  if (effects.has("levitation") && renderOperation("lift") && !combined.has("plateforme montante") && !combined.has("flottement stabilise") && !combined.has("vent porteur stabilise")) {
     for (let index = 0; index < 3; index += 1) {
       group.add(circleLine(auraRadius * (0.48 + index * 0.18), 0.86 + index * 0.28, 0x5c8b62, 0.55, 120));
     }
   }
 
-  if (effects.has("convergence") && !combined.has("noyau concentre en vol") && !combined.has("matiere compactee")) {
+  if (effects.has("convergence") && renderOperation("focus") && !combined.has("noyau concentre en vol") && !combined.has("matiere compactee")) {
     const material = new THREE.LineBasicMaterial({ color: 0x756aa3, transparent: true, opacity: 0.6 });
     for (let index = 0; index < 8; index += 1) {
       const angle = (index / 8) * Math.PI * 2;
@@ -4543,7 +4614,7 @@ function rebuildThreeSpell() {
     }
   }
 
-  if (effects.has("air/aeriforme") && !combined.has("vent porteur stabilise")) {
+  if (effects.has("air/aeriforme") && renderOperation("define-air") && !combined.has("vent porteur stabilise")) {
     const airMaterial = new THREE.LineBasicMaterial({ color: 0x9cc9bd, transparent: true, opacity: 0.45 });
     for (let index = 0; index < 5; index += 1) {
       const points = [];
@@ -4556,7 +4627,7 @@ function rebuildThreeSpell() {
     }
   }
 
-  if (effects.has("ecrasement")) {
+  if (effects.has("ecrasement") && renderOperation("crush")) {
     const fragmentGeometry = new THREE.BufferGeometry();
     const points = [];
     for (let index = 0; index < 72; index += 1) {
@@ -4568,7 +4639,7 @@ function rebuildThreeSpell() {
     group.add(new THREE.Points(fragmentGeometry, new THREE.PointsMaterial({ color: 0x9f7b52, size: 0.035, transparent: true, opacity: 0.8 })));
   }
 
-  if (effects.has("collection") && !combined.has("nuage collecte") && !combined.has("matiere compactee")) {
+  if (effects.has("collection") && renderOperation("collect") && renderOperation("gather") && !combined.has("nuage collecte") && !combined.has("matiere compactee")) {
     const material = new THREE.LineBasicMaterial({ color: 0xc79736, transparent: true, opacity: 0.42 });
     for (let index = 0; index < 12; index += 1) {
       const angle = (index / 12) * Math.PI * 2;
@@ -4580,7 +4651,7 @@ function rebuildThreeSpell() {
     }
   }
 
-  if (effects.has("ciblage")) {
+  if (effects.has("ciblage") && renderOperation("aim") && renderOperation("crosshair")) {
     group.add(circleLine(auraRadius * 0.24, 1.18, 0xf6ecd8, 0.65, 96));
     const material = new THREE.LineBasicMaterial({ color: 0xf6ecd8, transparent: true, opacity: 0.55 });
     for (const angle of [0, Math.PI / 2]) {
@@ -4592,7 +4663,7 @@ function rebuildThreeSpell() {
     }
   }
 
-  if (effects.has("immobilite") || effects.has("renforcement")) {
+  if ((effects.has("immobilite") && renderOperation("still")) || (effects.has("renforcement") && renderOperation("strengthen"))) {
     const material = new THREE.LineBasicMaterial({ color: 0xf6ecd8, transparent: true, opacity: 0.35 });
     for (let index = 0; index < 4; index += 1) {
       const angle = Math.PI / 4 + index * Math.PI / 2;
@@ -4604,7 +4675,7 @@ function rebuildThreeSpell() {
     }
   }
 
-  if (effects.has("pluie") && !combined.has("pluie contenue") && !combined.has("pluie condensee")) {
+  if (effects.has("pluie") && renderOperation("rain") && !combined.has("pluie contenue") && !combined.has("pluie condensee")) {
     const material = new THREE.LineBasicMaterial({ color: 0x79b7d6, transparent: true, opacity: 0.5 });
     for (let index = 0; index < 18; index += 1) {
       const angle = (index / 18) * Math.PI * 2;
@@ -4617,7 +4688,7 @@ function rebuildThreeSpell() {
     }
   }
 
-  if (effects.has("orbe") && !combined.has("pluie contenue")) {
+  if (effects.has("orbe") && renderOperation("orb") && !combined.has("pluie contenue")) {
     const orb = new THREE.Mesh(
       new THREE.SphereGeometry(auraRadius * 0.32, 32, 20),
       new THREE.MeshBasicMaterial({ color: elementColor, transparent: true, opacity: 0.18, wireframe: true }),
@@ -4626,7 +4697,7 @@ function rebuildThreeSpell() {
     group.add(orb);
   }
 
-  if ((effects.has("projectile") && !combined.has("projectiles diriges")) || (effects.has("projection") && !combined.has("projection dirigee"))) {
+  if ((effects.has("projectile") && renderOperation("bolt") && !combined.has("projectiles diriges")) || (effects.has("projection") && renderOperation("project") && !combined.has("projection dirigee"))) {
     const material = new THREE.LineBasicMaterial({ color: elementColor, transparent: true, opacity: 0.7 });
     for (let index = -1; index <= 1; index += 1) {
       const geometry = new THREE.BufferGeometry().setFromPoints([
@@ -4726,6 +4797,44 @@ function rebuildThreeSpell() {
   threeView.scene.add(group);
 }
 
+function disposeObject3d(root) {
+  if (!root) {
+    return;
+  }
+
+  root.traverse((object) => {
+    object.geometry?.dispose?.();
+    const materials = Array.isArray(object.material)
+      ? object.material
+      : object.material
+        ? [object.material]
+        : [];
+
+    materials.forEach((material) => {
+      Object.values(material).forEach((value) => {
+        value?.isTexture && value.dispose?.();
+      });
+      material.dispose?.();
+    });
+  });
+}
+
+function clearActiveManifestation(reason = "manual", clearSpell = true) {
+  const group = threeView.spellGroup;
+  if (group) {
+    if (threeView.scene) {
+      threeView.scene.remove(group);
+    }
+    disposeObject3d(group);
+    group.userData.animators = [];
+    threeView.spellGroup = null;
+  }
+  if (clearSpell) {
+    state.activeSpell = null;
+  }
+  return reason;
+}
+
 function renderThreeView(timestamp = performance.now()) {
   if (!threeView.renderer || view3dPanel.hidden) {
     return;
@@ -4737,11 +4846,7 @@ function renderThreeView(timestamp = performance.now()) {
   }
   threeView.lastRenderAt = timestamp;
   if (state.activeSpell && performance.now() - state.activeSpell.startedAt > state.activeSpell.durationMs) {
-    state.activeSpell = null;
-    if (threeView.spellGroup) {
-      threeView.scene.remove(threeView.spellGroup);
-      threeView.spellGroup = null;
-    }
+    clearActiveManifestation("timeout");
     setStatus(t("status.spellDissipated"));
   }
   animateThreeSpell();
@@ -4763,6 +4868,7 @@ function open3dView() {
 function close3dView() {
   view3dPanel.hidden = true;
   cancelAnimationFrame(threeView.animationFrame);
+  clearActiveManifestation("close");
 }
 
 function setSymbolDrawer(open) {
@@ -6201,6 +6307,8 @@ function drawElementEffect(width, height, progress, baseRadius, model = signMode
     return;
   }
   const materialPresentation = runtimeMaterialPresentation(model);
+  const manifestationPlan = model.recipe?.manifestationPlan;
+  const renderOperation = (operation) => !manifestationConsumes(manifestationPlan, operation);
   const center = state.circleCenter;
   const direction = directionVector(model.rays, model.signs, model.geometry);
   const particleCount = 18 + state.intensity * 5;
@@ -6328,7 +6436,7 @@ function drawElementEffect(width, height, progress, baseRadius, model = signMode
     }
   }
 
-  if (model.hasColumn) {
+  if (model.hasColumn && renderOperation("column")) {
     ctx.strokeStyle = "rgba(215, 166, 62, 0.46)";
     ctx.lineWidth = visibleLineWidth(2);
     const columnLength = baseRadius * (0.55 + progress * 0.85);
@@ -6341,7 +6449,7 @@ function drawElementEffect(width, height, progress, baseRadius, model = signMode
     }
   }
 
-  if (model.hasDispersion) {
+  if (model.hasDispersion && renderOperation("dispersion")) {
     ctx.strokeStyle = "rgba(215, 166, 62, 0.34)";
     ctx.lineWidth = visibleLineWidth(2);
     for (let index = 0; index < 12; index += 1) {
@@ -6355,7 +6463,7 @@ function drawElementEffect(width, height, progress, baseRadius, model = signMode
     }
   }
 
-  if (model.hasLevitation) {
+  if (model.hasLevitation && renderOperation("lift")) {
     ctx.strokeStyle = "rgba(92, 139, 98, 0.55)";
     ctx.lineWidth = visibleLineWidth(3);
     for (let index = 0; index < 4; index += 1) {
@@ -6366,7 +6474,7 @@ function drawElementEffect(width, height, progress, baseRadius, model = signMode
     }
   }
 
-  if (model.hasConvergence) {
+  if (model.hasConvergence && renderOperation("focus")) {
     ctx.strokeStyle = "rgba(115, 102, 166, 0.5)";
     ctx.lineWidth = visibleLineWidth(2);
     for (let index = 0; index < 8; index += 1) {
@@ -6379,7 +6487,7 @@ function drawElementEffect(width, height, progress, baseRadius, model = signMode
     }
   }
 
-  if (model.hasCrush) {
+  if (model.hasCrush && renderOperation("crush")) {
     ctx.fillStyle = "rgba(123, 96, 67, 0.55)";
     for (let index = 0; index < 34; index += 1) {
       const angle = (index / 34) * Math.PI * 2 + progress * 0.7;
@@ -6388,7 +6496,7 @@ function drawElementEffect(width, height, progress, baseRadius, model = signMode
     }
   }
 
-  if (model.hasCollection) {
+  if (model.hasCollection && renderOperation("collect")) {
     ctx.strokeStyle = "rgba(140, 107, 63, 0.5)";
     ctx.lineWidth = visibleLineWidth(2);
     for (let index = 0; index < 10; index += 1) {
@@ -6402,7 +6510,7 @@ function drawElementEffect(width, height, progress, baseRadius, model = signMode
     }
   }
 
-  if (model.hasTarget) {
+  if (model.hasTarget && renderOperation("aim")) {
     ctx.strokeStyle = "rgba(36, 48, 68, 0.48)";
     ctx.lineWidth = visibleLineWidth(2);
     ctx.beginPath();
@@ -6414,13 +6522,13 @@ function drawElementEffect(width, height, progress, baseRadius, model = signMode
     ctx.stroke();
   }
 
-  if (model.hasBind || model.hasStrengthen) {
+  if ((model.hasBind && renderOperation("bind")) || (model.hasStrengthen && renderOperation("strengthen"))) {
     ctx.strokeStyle = "rgba(36, 48, 68, 0.42)";
     ctx.lineWidth = visibleLineWidth(3);
     ctx.strokeRect(center.x - baseRadius * 0.28, center.y - baseRadius * 0.28, baseRadius * 0.56, baseRadius * 0.56);
   }
 
-  if (model.hasRain) {
+  if (model.hasRain && renderOperation("rain")) {
     ctx.strokeStyle = "rgba(55, 125, 164, 0.52)";
     ctx.lineWidth = visibleLineWidth(2);
     for (let index = 0; index < 12; index += 1) {
@@ -6433,7 +6541,7 @@ function drawElementEffect(width, height, progress, baseRadius, model = signMode
     }
   }
 
-  if (model.hasOrb) {
+  if (model.hasOrb && renderOperation("orb")) {
     ctx.strokeStyle = "rgba(55, 125, 164, 0.48)";
     ctx.lineWidth = visibleLineWidth(3);
     ctx.beginPath();
@@ -6442,7 +6550,7 @@ function drawElementEffect(width, height, progress, baseRadius, model = signMode
     ctx.stroke();
   }
 
-  if (model.hasProjectile || model.hasProjection) {
+  if ((model.hasProjectile && renderOperation("bolt")) || (model.hasProjection && renderOperation("project"))) {
     ctx.strokeStyle = "rgba(169, 74, 56, 0.54)";
     ctx.lineWidth = visibleLineWidth(3);
     for (let index = -1; index <= 1; index += 1) {
@@ -8909,6 +9017,7 @@ function analyzeSpell() {
   updateSpellState();
   setStatusList([
     t("status.reading", { label: localizedRecipeLabel(model.recipe) }),
+    t("status.manifestation", { label: localizedManifestationLabel(model.recipe.manifestationPlan) }),
     t("status.centralSigil", { names: [...elementNames].map(elementDisplayName).join(", ") }),
     t("status.signs", { names: signNames.length > 0 ? signNames.map(elementDisplayName).join(", ") : model.freeSigns.length > 0 ? t("status.freeSigns", { count: model.freeSigns.length }) : t("explorer.none") }),
     t("status.combination", { value: getLocale() === "fr" ? combinationText : model.recipe.ruleIds.join(", ") }),
@@ -9166,6 +9275,7 @@ function activateCircle() {
     startedAt: performance.now(),
     snapshot: createActivationSnapshot({
       recipe: model.recipe,
+      manifestationPlan: model.recipe.manifestationPlan,
       model,
       elementName: primaryElementNameFromModel(model) || RAW_ENERGY_ELEMENT.name,
       materialPresentation: runtimeMaterialPresentation(model),
