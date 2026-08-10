@@ -36,7 +36,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260809-responsive-v4">
+    <link rel="stylesheet" href="styles.css?v=20260810-context-v1">
     <script type="importmap">
       {
         "imports": {
@@ -45,8 +45,8 @@
         }
       }
     </script>
-    <script type="module" src="site-i18n.mjs?v=20260809-responsive-v4"></script>
-    <script type="module" src="app.js?v=20260809-responsive-v4"></script>
+    <script type="module" src="site-i18n.mjs?v=20260810-context-v1"></script>
+    <script type="module" src="app.js?v=20260810-context-v1"></script>
   </head>
   <body class="simulator-page">
     <main class="app-shell">
@@ -135,6 +135,13 @@
             </button>
           </div>
           <canvas id="magicCanvas" data-i18n-aria-label="atelier.parchment" aria-label="Drawing parchment"></canvas>
+          <div id="selectionContextMenu" class="selection-context-menu" role="menu" data-i18n-aria-label="selectionMenu.label" aria-label="Selected object actions" hidden>
+            <button type="button" role="menuitem" data-selection-action="select" data-i18n="selectionMenu.select">Select</button>
+            <button type="button" role="menuitem" data-selection-action="duplicate" data-i18n="selectionMenu.duplicate">Duplicate</button>
+            <button type="button" role="menuitem" data-selection-action="front" data-i18n="selectionMenu.front">Bring to front</button>
+            <button type="button" role="menuitem" data-selection-action="back" data-i18n="selectionMenu.back">Send to back</button>
+            <button class="is-danger" type="button" role="menuitem" data-selection-action="delete" data-i18n="selectionMenu.delete">Delete</button>
+          </div>
         </div>
 
         <button class="symbol-island" id="symbolToggleButton" type="button" aria-controls="symbolDrawer" aria-expanded="false">
@@ -343,7 +350,7 @@
             </label>
             <div class="range-field zoom-field">
               <span><span data-i18n="grimoire.scale">Scale</span> <strong id="canvasSizeValue">x1</strong></span>
-              <input id="canvasSizeInput" type="hidden" min="50" max="200" value="100" step="10">
+              <input id="canvasSizeInput" type="hidden" min="10" value="100" step="10">
               <div class="zoom-control" data-i18n-aria-label="grimoire.scaleControl" aria-label="Scale control">
                 <button id="zoomOutButton" type="button" data-i18n-aria-label="grimoire.zoomOut" data-i18n-title="grimoire.zoomOut" aria-label="Reduce the display" title="Reduce the display">
                   <span aria-hidden="true">&#8722;</span>

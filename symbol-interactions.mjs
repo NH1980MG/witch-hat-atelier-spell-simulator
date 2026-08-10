@@ -1,8 +1,6 @@
 export const MIN_GLYPH_SIZE = 12;
-export const MAX_GLYPH_SIZE = 120;
 export const GLYPH_SELECTION_SCALE = 1.18;
 export const MIN_GUIDE_SCALE = 0.25;
-export const MAX_GUIDE_SCALE = 3;
 
 export function scaledGuideBounds(bounds, scale = 1) {
   const centerX = (bounds.left + bounds.right) / 2;
@@ -38,7 +36,7 @@ export function resizeGuideScaleFromCorner(baseBounds, point) {
     Math.abs(point.x - centerX) / halfWidth,
     Math.abs(point.y - centerY) / halfHeight,
   );
-  return Math.max(MIN_GUIDE_SCALE, Math.min(MAX_GUIDE_SCALE, Math.round(scale * 100) / 100));
+  return Math.max(MIN_GUIDE_SCALE, Math.round(scale * 100) / 100);
 }
 
 function pointInGlyphSpace(action, point) {
@@ -74,7 +72,7 @@ export function resizeGlyphFromCorner(action, point) {
   }
   const local = pointInGlyphSpace(action, point);
   const nextSize = Math.max(Math.abs(local.x), Math.abs(local.y)) / GLYPH_SELECTION_SCALE;
-  return Math.max(MIN_GLYPH_SIZE, Math.min(MAX_GLYPH_SIZE, Math.round(nextSize * 10) / 10));
+  return Math.max(MIN_GLYPH_SIZE, Math.round(nextSize * 10) / 10);
 }
 
 export function resizeGlyphSize(size, direction) {
@@ -83,7 +81,7 @@ export function resizeGlyphSize(size, direction) {
   }
   const factor = direction === "shrink" ? 0.9 : 1.1;
   const nextSize = Math.round(size * factor * 10) / 10;
-  return Math.max(MIN_GLYPH_SIZE, Math.min(MAX_GLYPH_SIZE, nextSize));
+  return Math.max(MIN_GLYPH_SIZE, nextSize);
 }
 
 export function topmostGlyphIndexAtPoint(actions, point, padding = 10) {
@@ -299,6 +297,21 @@ export function planDuplication(actions, indices, dx, dy) {
   };
 }
 
+export function reorderSelectedActions(actions, indices, placement) {
+  if (!["front", "back"].includes(placement)) {
+    throw new TypeError("Unknown layer placement");
+  }
+  const selected = new Set(indices.filter((index) => index >= 0 && index < actions.length));
+  const picked = actions.filter((_, index) => selected.has(index));
+  const remaining = actions.filter((_, index) => !selected.has(index));
+  const ordered = placement === "front" ? [...remaining, ...picked] : [...picked, ...remaining];
+  const start = placement === "front" ? remaining.length : 0;
+  return {
+    actions: ordered,
+    indices: picked.map((_, index) => start + index),
+  };
+}
+
 export function scaleSelectedActions(actions, indices, origin, scale) {
   if (!Number.isFinite(scale) || scale <= 0) {
     throw new TypeError("A finite positive selection scale is required");
@@ -311,7 +324,7 @@ export function scaleSelectedActions(actions, indices, origin, scale) {
     if (action.type === "glyph") {
       action.x = origin.x + (action.x - origin.x) * scale;
       action.y = origin.y + (action.y - origin.y) * scale;
-      action.size = Math.max(MIN_GLYPH_SIZE, Math.min(MAX_GLYPH_SIZE, action.size * scale));
+      action.size = Math.max(MIN_GLYPH_SIZE, action.size * scale);
       action.userAdjusted = true;
     } else if (action.type === "free") {
       action.points = action.points.map((point) => ({
