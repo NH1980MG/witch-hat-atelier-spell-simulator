@@ -1210,8 +1210,26 @@ input:focus-visible {
   overflow-wrap: anywhere;
 }
 
-.zoom-field {
+.scale-field {
   justify-content: space-between;
+}
+
+.color-field input[type="color"] {
+  min-height: 42px;
+  border: 1px solid rgba(140, 107, 63, 0.42);
+  border-radius: 8px;
+  padding: 4px;
+  background: rgba(255, 248, 234, 0.8);
+  cursor: pointer;
+}
+
+.color-field input[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: 5px;
+}
+
+.scale-field input[type="range"] {
+  min-height: 32px;
 }
 
 .zoom-control {

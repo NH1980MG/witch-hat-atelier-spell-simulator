@@ -8,7 +8,7 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260809-handoff-layout-v2";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260809-handoff-layout-v2";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260810-context-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260810-grimoire-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260809-handoff-layout-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -48,9 +48,10 @@ import {
   selectableIndicesInRect,
   shouldArmLongPress,
   shouldDeferTouchTool,
+  styleSelectedActions,
   topmostSelectableIndexAtPoint,
   translateSelectedActions,
-} from "./symbol-interactions.mjs?v=20260809-handoff-layout-v2";
+} from "./symbol-interactions.mjs?v=20260810-grimoire-v1";
 import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260809-handoff-layout-v2";
 import {
   SPOILER_MAX_CHAPTER,
@@ -285,13 +286,11 @@ const spellSupport = document.querySelector("#spellSupport");
 const fidelityLevel = document.querySelector("#fidelityLevel");
 const fidelityRules = document.querySelector("#fidelityRules");
 const fidelityWarnings = document.querySelector("#fidelityWarnings");
-const intensityInput = document.querySelector("#intensityInput");
 const strokeInput = document.querySelector("#strokeInput");
-const canvasSizeInput = document.querySelector("#canvasSizeInput");
-const canvasSizeValue = document.querySelector("#canvasSizeValue");
-const zoomOutButton = document.querySelector("#zoomOutButton");
-const zoomResetButton = document.querySelector("#zoomResetButton");
-const zoomInButton = document.querySelector("#zoomInButton");
+const inkColorInput = document.querySelector("#inkColorInput");
+const selectionScaleInput = document.querySelector("#selectionScaleInput");
+const selectionScaleLabel = document.querySelector("#selectionScaleLabel");
+const selectionScaleValue = document.querySelector("#selectionScaleValue");
 const closedSealInput = document.querySelector("#closedSealInput");
 const autoInput = document.querySelector("#autoInput");
 const measureInput = document.querySelector("#measureInput");
@@ -334,8 +333,6 @@ const closeDetailsButton = document.querySelector("#closeDetailsButton");
 const supportToggleButton = document.querySelector("#supportToggleButton");
 const supportDrawer = document.querySelector("#supportDrawer");
 const closeSupportButton = document.querySelector("#closeSupportButton");
-const shrinkSelectionButton = document.querySelector("#shrinkSelectionButton");
-const growSelectionButton = document.querySelector("#growSelectionButton");
 const duplicateSelectionButton = document.querySelector("#duplicateSelectionButton");
 const rotateSelectionLeftButton = document.querySelector("#rotateSelectionLeftButton");
 const rotateSelectionRightButton = document.querySelector("#rotateSelectionRightButton");
@@ -367,8 +364,8 @@ const state = {
   tool: "free",
   element: elements[0],
   supportId: "none",
-  intensity: 3,
   strokeSize: 3,
+  drawingColor: colors.normalInk,
   canvasScale: Number(localStorage.getItem("whaCanvasScale") || 100),
   spoilerChapter: readSpoilerChapter(localStorage),
   practiceOpen: false,
@@ -391,6 +388,11 @@ const state = {
   activeSpell: null,
   recognizedSymbol: null,
   selectedActionIndices: [],
+  selectionScaleKey: null,
+  selectionScaleRatio: 1,
+  scaleGestureLast: 0,
+  scaleGestureActive: false,
+  styleGestureActive: false,
   rightSelection: null,
   symbolDrag: null,
   symbolDragIntent: null,
@@ -558,7 +560,7 @@ function centralSigilCanvasLineWidth(size) {
 }
 
 function lineWidth() {
-  return Math.max(1, state.strokeSize + state.intensity - 1);
+  return Math.max(1, state.strokeSize);
 }
 
 function distance(a, b) {
@@ -764,6 +766,15 @@ function estimatedCircleDiameterMeters(bounds = null) {
   }
   const drawnDiameter = Math.max(targetBounds.width, targetBounds.height);
   return Math.max(0, (drawnDiameter / BASE_GRID_STEP) * MIN_CIRCLE_DIAMETER_M);
+}
+
+function diameterPowerLevel(diameter) {
+  if (!Number.isFinite(diameter) || diameter <= 0) return 1;
+  const minimum = MIN_CIRCLE_DIAMETER_M;
+  const maximum = MAX_CIRCLE_DIAMETER_M;
+  const normalized = Math.log(Math.max(minimum, Math.min(maximum, diameter)) / minimum)
+    / Math.log(maximum / minimum);
+  return 1 + Math.max(0, Math.min(1, normalized)) * 4;
 }
 
 function isCircleTooSmall(diameter = estimatedCircleDiameterMeters()) {
@@ -987,20 +998,8 @@ function applyCanvasScale() {
   document.documentElement.style.setProperty("--canvas-size", "100%");
   const gridStep = Math.min(512, Math.max(4, Math.round(BASE_GRID_STEP * (scale / 100))));
   document.documentElement.style.setProperty("--grid-step", `${gridStep}px`);
-  if (canvasSizeInput) {
-    canvasSizeInput.value = String(scale);
-  }
-  if (canvasSizeValue) {
-    canvasSizeValue.textContent = formatZoom(scale);
-  }
-  if (zoomOutButton) {
-    zoomOutButton.disabled = scale <= MIN_CANVAS_SCALE;
-  }
-  if (zoomResetButton) {
-    zoomResetButton.disabled = scale === 100;
-  }
-  if (zoomInButton) {
-    zoomInButton.disabled = false;
+  if (selectionScaleValue && normalizeSelection().length === 0) {
+    selectionScaleValue.textContent = formatZoom(scale);
   }
   requestAnimationFrame(resizeCanvas);
 }
@@ -1339,13 +1338,25 @@ function drawGlyph(action) {
   const { x, y, size, color, rune, element } = action;
   ctx.strokeStyle = color;
   ctx.fillStyle = color;
-  ctx.lineWidth = visibleLineWidth(2);
+  ctx.lineWidth = visibleLineWidth(action.width || 2);
 
   const tintedGlyph = tintedSymbolBoardGlyph(element, color);
   if (tintedGlyph) {
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(action.rotation || 0);
+    const extra = Math.max(0, (action.width || 2) - 2) * size / 90;
+    if (extra > 0) {
+      for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 4) {
+        ctx.drawImage(
+          tintedGlyph,
+          -size + Math.cos(angle) * extra,
+          -size + Math.sin(angle) * extra,
+          size * 2,
+          size * 2,
+        );
+      }
+    }
     ctx.drawImage(tintedGlyph, -size, -size, size * 2, size * 2);
     ctx.restore();
     return;
@@ -1362,7 +1373,7 @@ function drawGlyph(action) {
     if (element === "Vent") {
       ctx.lineWidth = centralSigilCanvasLineWidth(size) / Math.max(0.01, glyphScale);
     } else {
-      ctx.lineWidth = visibleLineWidth(2) / Math.max(0.01, glyphScale);
+      ctx.lineWidth = visibleLineWidth(action.width || 2) / Math.max(0.01, glyphScale);
     }
     for (const pathData of catalogPaths) {
       ctx.stroke(new Path2D(pathData));
@@ -1759,12 +1770,12 @@ function drawAction(action, dashed = false) {
     ctx.stroke();
   } else if (action.type === "ring") {
     for (const factor of [1, 0.72, 0.46]) {
-      ctx.lineWidth = visibleLineWidth(factor === 1 ? action.width : 2);
+      ctx.lineWidth = visibleLineWidth(factor === 1 ? action.width : Math.max(1, action.width * 0.7));
       ctx.beginPath();
       ctx.arc(action.cx, action.cy, action.radius * factor, 0, Math.PI * 2);
       ctx.stroke();
     }
-    ctx.lineWidth = visibleLineWidth(2);
+    ctx.lineWidth = visibleLineWidth(Math.max(1, action.width * 0.7));
     for (let angle = 0; angle < 360; angle += 45) {
       const rad = (angle * Math.PI) / 180;
       const inner = action.radius * 0.78;
@@ -6341,7 +6352,7 @@ function drawElementEffect(width, height, progress, baseRadius, model = signMode
   const renderOperation = (operation) => !manifestationConsumes(manifestationPlan, operation);
   const center = state.circleCenter;
   const direction = directionVector(model.rays, model.signs, model.geometry);
-  const particleCount = 18 + state.intensity * 5;
+  const particleCount = 18 + Math.round(diameterPowerLevel(estimatedCircleDiameterMeters()) * 5);
   ctx.save();
 
   if (materialPresentation?.kind === "elemental-mixture") {
@@ -6681,8 +6692,11 @@ function selectionBounds(actions = state.actions, indices = state.selectedAction
 
 function clearSelection() {
   state.selectedActionIndices = [];
+  state.selectionScaleKey = null;
+  state.selectionScaleRatio = 1;
   state.rightSelection = null;
   closeSelectionContextMenu();
+  syncSelectionGrimoire();
 }
 
 function closeSelectionContextMenu() {
@@ -6720,12 +6734,6 @@ function setSelectionStatus() {
 
 function updateSelectionControls() {
   const hasSelection = normalizeSelection().length > 0;
-  if (shrinkSelectionButton) {
-    shrinkSelectionButton.disabled = !hasSelection;
-  }
-  if (growSelectionButton) {
-    growSelectionButton.disabled = !hasSelection;
-  }
   if (duplicateSelectionButton) {
     duplicateSelectionButton.disabled = !hasSelection;
   }
@@ -6735,6 +6743,112 @@ function updateSelectionControls() {
   if (rotateSelectionRightButton) {
     rotateSelectionRightButton.disabled = !hasSelection;
   }
+  syncSelectionGrimoire();
+}
+
+function relativeScaleLabel(ratio) {
+  const percent = Math.round((ratio - 1) * 100);
+  return `${percent > 0 ? "+" : ""}${percent}%`;
+}
+
+function syncSelectionGrimoire() {
+  const indices = normalizeSelection();
+  const key = indices.length > 0 ? indices.join(",") : null;
+  if (key !== state.selectionScaleKey) {
+    state.selectionScaleKey = key;
+    state.selectionScaleRatio = 1;
+    state.scaleGestureLast = 0;
+    if (selectionScaleInput) selectionScaleInput.value = "0";
+  }
+  const selectedAction = key ? state.actions[indices[0]] : null;
+  if (!state.styleGestureActive && strokeInput) {
+    strokeInput.value = String(selectedAction?.width || state.strokeSize);
+  }
+  if (!state.styleGestureActive && inkColorInput) {
+    inkColorInput.value = /^#[0-9a-f]{6}$/i.test(selectedAction?.color || "")
+      ? selectedAction.color
+      : state.drawingColor;
+  }
+  if (selectionScaleLabel) {
+    selectionScaleLabel.textContent = t(key ? "grimoire.objectScale" : "grimoire.scale");
+  }
+  if (selectionScaleValue) {
+    selectionScaleValue.textContent = key
+      ? relativeScaleLabel(state.selectionScaleRatio)
+      : formatZoom(state.canvasScale);
+  }
+}
+
+function beginStyleGesture() {
+  if (normalizeSelection().length > 0 && !state.styleGestureActive) {
+    recordHistory();
+  }
+  state.styleGestureActive = true;
+}
+
+function endStyleGesture() {
+  state.styleGestureActive = false;
+  syncSelectionGrimoire();
+}
+
+function applySelectedStyle(style) {
+  const indices = normalizeSelection();
+  if (indices.length === 0) {
+    if (style.width !== undefined) state.strokeSize = style.width;
+    if (style.color !== undefined) state.drawingColor = style.color;
+    return;
+  }
+  if (!state.styleGestureActive) beginStyleGesture();
+  state.actions = styleSelectedActions(state.actions, indices, style);
+  state.activeSpell = null;
+  updateUsedList();
+  updateSpellState();
+  setStatus(t("status.selectionStyleUpdated", { count: indices.length }));
+  render();
+}
+
+function finishScaleGesture() {
+  state.scaleGestureActive = false;
+  state.scaleGestureLast = 0;
+  if (selectionScaleInput) selectionScaleInput.value = "0";
+  syncSelectionGrimoire();
+}
+
+function applyScaleSliderDelta(value) {
+  const next = Number(value);
+  if (!Number.isFinite(next)) return;
+  const delta = next - state.scaleGestureLast;
+  if (delta === 0) return;
+  const factor = Math.pow(1.01, delta);
+  const indices = normalizeSelection();
+  if (indices.length > 0) {
+    const bounds = selectionBounds();
+    if (!bounds) return;
+    if (!state.scaleGestureActive) {
+      recordHistory();
+      state.scaleGestureActive = true;
+    }
+    state.actions = scaleSelectedActions(
+      state.actions,
+      indices,
+      { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 },
+      factor,
+    );
+    state.selectionScaleRatio *= factor;
+    state.activeSpell = null;
+    updateUsedList();
+    updateSpellState();
+    setStatus(t("status.selectionGroupResized", { count: indices.length }));
+    render();
+  } else {
+    const rect = canvas.getBoundingClientRect();
+    setCanvasScaleAround(state.canvasScale * factor, {
+      x: rect.width / 2,
+      y: rect.height / 2,
+    });
+  }
+  state.scaleGestureLast = next;
+  syncSelectionGrimoire();
 }
 
 function selectionRotateHandle(bounds) {
@@ -7017,7 +7131,7 @@ function currentElementData() {
 function createAction(type, start, point) {
   const element = currentElementData();
   const width = lineWidth();
-  const color = colors.normalInk;
+  const color = state.drawingColor;
   const circleRadius = constrainCircleRadius(distance(start, point), start);
   const radius = circleRadius.radius;
 
@@ -7079,7 +7193,7 @@ function createAction(type, start, point) {
       cx: start.x,
       cy: start.y,
       radius,
-      turns: 2.5 + state.intensity * 0.3,
+      turns: 3.4,
       limitNotice: circleRadius.notice,
     };
   }
@@ -7156,7 +7270,7 @@ function isCompleteSeal(action) {
   return action.seal || action.type === "ring" || (action.type === "circle" && action.closed);
 }
 
-function createGlyphAction(element, point, size = 16 + state.intensity * 3) {
+function createGlyphAction(element, point, size = 25) {
   const safePoint = clampPointToDrawingLimit(point, size * 1.1);
   const boundary = primarySpellBounds();
   const center = state.circleCenter || (boundary ? {
@@ -7174,8 +7288,8 @@ function createGlyphAction(element, point, size = 16 + state.intensity * 3) {
     charge: element.charge,
     kind: element.kind || "sigil",
     category: element.category || "Sigil",
-    color: colors.normalInk,
-    width: 2,
+    color: state.drawingColor,
+    width: lineWidth(),
     x: safePoint.x,
     y: safePoint.y,
     size,
@@ -7529,6 +7643,7 @@ function beginRightSelection(event, point) {
       handle,
       origin: oppositeCorner(bounds, handle),
       startCorner: draggedCorner(bounds, handle),
+      baselineScaleRatio: state.selectionScaleRatio,
       moved: false,
     };
     canvas.style.cursor = ["nw", "se"].includes(handle) ? "nwse-resize" : "nesw-resize";
@@ -7630,6 +7745,7 @@ function moveRightSelection(event) {
       drag.origin,
       scale,
     );
+    state.selectionScaleRatio = drag.baselineScaleRatio * scale;
     drag.moved = Math.abs(scale - 1) > 0.01;
   } else if (drag.mode === "rotate") {
     const angle = Math.atan2(point.y - drag.center.y, point.x - drag.center.x) - drag.startAngle;
@@ -7695,6 +7811,9 @@ function cancelRightSelection(event, restore = true) {
   }
   if (restore && drag.moved) {
     state.actions = cloneActions(drag.snapshot);
+    if (drag.mode === "resize") {
+      state.selectionScaleRatio = drag.baselineScaleRatio;
+    }
   }
   state.rightSelection = null;
   state.pointerDown = false;
@@ -7799,29 +7918,6 @@ function pasteSelection() {
   updateUsedList();
   updateSpellState();
   setStatus(t("status.selectionPasted", { count: pasted.length }));
-  render();
-}
-
-function resizeSelectedGlyph(direction) {
-  const indices = normalizeSelection();
-  const bounds = selectionBounds();
-  if (!bounds) {
-    setStatus(t("status.selectBeforeResize"));
-    return;
-  }
-  const factor = direction === "shrink" ? 0.9 : 1.1;
-  recordHistory();
-  state.actions = scaleSelectedActions(
-    state.actions,
-    indices,
-    { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 },
-    factor,
-  );
-  state.activeSpell = null;
-  updateSelectionControls();
-  updateUsedList();
-  updateSpellState();
-  setStatus(t("status.selectionGroupResized", { count: indices.length }));
   render();
 }
 
@@ -7974,7 +8070,7 @@ function onPointerDown(event) {
       label: labels.free,
       element: "Trace",
       charge: 0,
-      color: colors.normalInk,
+      color: state.drawingColor,
       width: lineWidth(),
       points: [point],
     };
@@ -8391,7 +8487,7 @@ function beginSymbolDrag(event, element, source) {
     pointerId: event.pointerId,
     element,
     source,
-    size: 16 + state.intensity * 3,
+    size: 25,
     startX: event.clientX,
     startY: event.clientY,
   };
@@ -8662,7 +8758,7 @@ function confirmSaveSpell() {
     const spell = createSpell({
       name,
       actions: state.actions,
-      intensity: state.intensity,
+      intensity: diameterPowerLevel(estimatedCircleDiameterMeters()),
       stroke: state.strokeSize,
     });
     state.mySpells = saveMySpells(localStorage, [spell, ...state.mySpells]);
@@ -8684,14 +8780,11 @@ function loadMySpell(id) {
   state.actions = structuredClone(spell.actions);
   state.activeSpell = null;
   state.pendingSpell = null;
-  state.intensity = spell.intensity;
   state.strokeSize = spell.stroke;
-  if (intensityInput) {
-    intensityInput.value = String(spell.intensity);
-  }
   if (strokeInput) {
     strokeInput.value = String(spell.stroke);
   }
+  syncSelectionGrimoire();
   render();
   setStatus(t("spells.status.loaded", { name: spell.name }));
 }
@@ -8920,7 +9013,7 @@ function spellMetrics(model = signModel()) {
   const duration = model.hasBoundary ? baseDuration + model.stabilizerScore * 90 + repetitionBonus + levitationBonus + bindBonus + strengthenBonus : 0;
   const forcePenalty = model.hasConvergence || model.hasCool ? -4 : 0;
   const rawEnergyForce = model.rawEnergy ? (model.ringOnly ? 22 : 16) : 0;
-  const force = Math.min(100, Math.round((state.intensity * 11) + symbolCharge * 6 + symbolQuality * 0.3 + model.directionScore + rawEnergyForce + (model.hasCrush ? 10 : 0) + (model.hasProjectile ? 12 : 0) + forcePenalty));
+  const force = Math.min(100, Math.round((diameterPowerLevel(diameter) * 11) + symbolCharge * 6 + symbolQuality * 0.3 + model.directionScore + rawEnergyForce + (model.hasCrush ? 10 : 0) + (model.hasProjectile ? 12 : 0) + forcePenalty));
   const quality = Math.round(symbolQuality);
   const geometryStability = Math.round(model.geometry.balance * 28) - Math.round(model.geometry.pressure * 22) - model.geometry.ignoredCount * 3;
   const rawEnergyPenalty = model.ringOnly ? 42 : model.rawEnergy ? 20 : 0;
@@ -9052,7 +9145,7 @@ function analyzeSpell() {
   const signNames = [...new Set(model.signs.map((action) => action.element))];
   const symbolCharge = model.glyphs.reduce((total, action) => total + action.charge, 0);
   const symbolQuality = Math.max(...glyphs.map((glyph) => glyph.quality || 100));
-  const power = Math.max(1, state.intensity + state.actions.length + symbolCharge);
+  const power = Math.max(1, diameterPowerLevel(metrics.diameter) + state.actions.length + symbolCharge);
   const stability = guessStability(model, power);
   const metrics = spellMetrics();
   const metricsSizeIssue = activationSizeIssue(metrics.diameter);
@@ -9565,13 +9658,19 @@ for (const button of toolButtons) {
   });
 }
 
-intensityInput.addEventListener("input", () => {
-  state.intensity = Number(intensityInput.value);
-});
-
 strokeInput.addEventListener("input", () => {
-  state.strokeSize = Number(strokeInput.value);
+  applySelectedStyle({ width: Number(strokeInput.value) });
 });
+strokeInput.addEventListener("pointerdown", beginStyleGesture);
+strokeInput.addEventListener("change", endStyleGesture);
+strokeInput.addEventListener("blur", endStyleGesture);
+
+inkColorInput?.addEventListener("input", () => {
+  applySelectedStyle({ color: inkColorInput.value });
+});
+inkColorInput?.addEventListener("pointerdown", beginStyleGesture);
+inkColorInput?.addEventListener("change", endStyleGesture);
+inkColorInput?.addEventListener("blur", endStyleGesture);
 
 function setCanvasScale(scale, announce = true) {
   state.canvasScale = safeCanvasScale(scale);
@@ -9599,22 +9698,11 @@ function setCanvasScaleAround(scale, screenPoint) {
   );
 }
 
-canvasSizeInput?.addEventListener("input", () => {
-  setCanvasScale(canvasSizeInput.value);
+selectionScaleInput?.addEventListener("input", () => {
+  applyScaleSliderDelta(selectionScaleInput.value);
 });
-
-zoomOutButton?.addEventListener("click", () => {
-  setCanvasScale(state.canvasScale - 10);
-});
-
-zoomResetButton?.addEventListener("click", () => {
-  setCanvasScale(100, false);
-  resetCanvasPanToOrigin(true);
-});
-
-zoomInButton?.addEventListener("click", () => {
-  setCanvasScale(state.canvasScale + 10);
-});
+selectionScaleInput?.addEventListener("change", finishScaleGesture);
+selectionScaleInput?.addEventListener("blur", finishScaleGesture);
 
 closedSealInput.addEventListener("change", () => {
   state.closedSeal = closedSealInput.checked;
@@ -9691,8 +9779,6 @@ clearGuideButton?.addEventListener("click", () => {
   render();
   setStatus(t("status.guideRemoved"));
 });
-shrinkSelectionButton?.addEventListener("click", () => resizeSelectedGlyph("shrink"));
-growSelectionButton?.addEventListener("click", () => resizeSelectedGlyph("grow"));
 duplicateSelectionButton?.addEventListener("click", () => duplicateSelectedActions());
 rotateSelectionLeftButton?.addEventListener("click", () => rotateSelection(-SELECTION_ROTATE_STEP));
 rotateSelectionRightButton?.addEventListener("click", () => rotateSelection(SELECTION_ROTATE_STEP));
@@ -10175,7 +10261,7 @@ function recreatePhotoImport() {
       label: labels.circle,
       element: "Structure",
       charge: 0,
-      color: colors.normalInk,
+      color: state.drawingColor,
       width: lineWidth(),
       cx: ringCenter.x,
       cy: ringCenter.y,
@@ -10437,6 +10523,7 @@ window.addEventListener("wha:localechange", () => {
   renderGuideLists();
   updateUsedList();
   updateSpellState();
+  syncSelectionGrimoire();
   if (state.actions.length > 0) {
     analyzeSpell();
   } else {
@@ -10473,7 +10560,7 @@ function loadRecipeFromUrl() {
     label: labels.ring,
     element: "Structure",
     charge: 0,
-    color: colors.normalInk,
+    color: state.drawingColor,
     width: lineWidth(),
     cx: centerX,
     cy: centerY,

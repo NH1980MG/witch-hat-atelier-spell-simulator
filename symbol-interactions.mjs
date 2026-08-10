@@ -345,6 +345,24 @@ export function scaleSelectedActions(actions, indices, origin, scale) {
   });
 }
 
+export function styleSelectedActions(actions, indices, style) {
+  if (style.width !== undefined && (!Number.isFinite(style.width) || style.width <= 0)) {
+    throw new TypeError("A finite positive selection width is required");
+  }
+  if (style.color !== undefined && !/^#[0-9a-f]{6}$/i.test(style.color)) {
+    throw new TypeError("A six-digit hexadecimal selection color is required");
+  }
+  const selected = new Set(indices);
+  return cloneActions(actions).map((action, index) => {
+    if (!selected.has(index) || !isSelectableAction(action)) {
+      return action;
+    }
+    if (style.width !== undefined) action.width = style.width;
+    if (style.color !== undefined) action.color = style.color;
+    return action;
+  });
+}
+
 export function rotateSelectedActions(actions, indices, origin, angleDelta) {
   if (!Number.isFinite(angleDelta)) {
     throw new TypeError("A finite rotation angle is required");

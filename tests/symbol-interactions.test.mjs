@@ -21,10 +21,35 @@ import {
   selectableIndicesInRect,
   shouldArmLongPress,
   shouldDeferTouchTool,
+  styleSelectedActions,
   topmostSelectableIndexAtPoint,
   topmostGlyphIndexAtPoint,
   translateSelectedActions,
 } from "../symbol-interactions.mjs";
+
+test("styleSelectedActions modifie seulement le style de la selection", () => {
+  const source = [
+    { type: "free", width: 2, color: "#201a16", points: [{ x: 1, y: 1 }] },
+    { type: "circle", width: 3, color: "#201a16", cx: 10, cy: 10, radius: 5 },
+    { type: "glyph", width: 2, color: "#201a16", x: 20, y: 20, size: 8 },
+  ];
+
+  const styled = styleSelectedActions(source, [0, 2], { width: 7, color: "#a94a38" });
+
+  assert.equal(styled[0].width, 7);
+  assert.equal(styled[0].color, "#a94a38");
+  assert.deepEqual(styled[1], source[1]);
+  assert.equal(styled[2].width, 7);
+  assert.equal(styled[2].color, "#a94a38");
+  assert.notEqual(styled, source);
+});
+
+test("styleSelectedActions refuse une epaisseur invalide", () => {
+  assert.throws(
+    () => styleSelectedActions([{ type: "circle", width: 2 }], [0], { width: 0 }),
+    /positive/,
+  );
+});
 
 test("le guide conserve son centre et ses proportions pendant le redimensionnement", () => {
   const base = { left: 20, right: 120, top: 30, bottom: 80, width: 100, height: 50 };
