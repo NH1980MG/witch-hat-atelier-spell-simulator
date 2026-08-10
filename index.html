@@ -36,7 +36,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260809-photo-import-v3">
+    <link rel="stylesheet" href="styles.css?v=20260809-responsive-v4">
     <script type="importmap">
       {
         "imports": {
@@ -45,8 +45,8 @@
         }
       }
     </script>
-    <script type="module" src="site-i18n.mjs?v=20260809-photo-import-v3"></script>
-    <script type="module" src="app.js?v=20260809-photo-import-v3"></script>
+    <script type="module" src="site-i18n.mjs?v=20260809-responsive-v4"></script>
+    <script type="module" src="app.js?v=20260809-responsive-v4"></script>
   </head>
   <body class="simulator-page">
     <main class="app-shell">
@@ -323,7 +323,13 @@
         </aside>
       </section>
 
-      <footer class="grimoire">
+      <footer class="grimoire" id="grimoirePanel">
+        <button class="grimoire-toggle" id="grimoireToggle" type="button" aria-controls="grimoireContent" aria-expanded="false" data-i18n-aria-label="grimoire.toggle" aria-label="Open or close the Grimoire">
+          <span class="grimoire-handle" aria-hidden="true"></span>
+          <span data-i18n="grimoire.title">Grimoire settings</span>
+          <span class="grimoire-chevron" aria-hidden="true">&#8963;</span>
+        </button>
+        <div class="grimoire-content" id="grimoireContent">
         <section class="settings" data-i18n-aria-label="grimoire.region" aria-label="Grimoire settings">
           <h2 data-i18n="grimoire.title">Grimoire settings</h2>
           <div class="setting-grid">
@@ -381,7 +387,8 @@
           </div>
         </section>
 
-        <output class="status" id="statusText" aria-live="polite" data-i18n="status.buttonMode">Button mode: draw a closed circle, then press Activate.</output>
+          <output class="status" id="statusText" aria-live="polite" data-i18n="status.buttonMode">Button mode: draw a closed circle, then press Activate.</output>
+        </div>
       </footer>
     </main>
     <dialog class="symbol-search-dialog" id="symbolSearchDialog" aria-labelledby="symbolSearchTitle">

@@ -2,7 +2,7 @@ import {
   DEFAULT_LOCALE,
   resolveLocale,
   translate,
-} from "./i18n.mjs?v=20260809-photo-import-v3";
+} from "./i18n.mjs?v=20260809-responsive-v4";
 
 let currentLocale = DEFAULT_LOCALE;
 

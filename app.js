@@ -4,12 +4,12 @@ import {
   SYMBOL_AUDIT,
   SYMBOL_BOARD_ASSET,
   SYMBOL_PATHS,
-} from "./symbol-catalog.mjs?v=20260809-photo-import-v3";
-import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260809-photo-import-v3";
-import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260809-photo-import-v3";
+} from "./symbol-catalog.mjs?v=20260809-handoff-layout-v2";
+import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260809-handoff-layout-v2";
+import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260809-handoff-layout-v2";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260809-photo-import-v3";
-import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260809-photo-import-v3";
+import { getLocale, t } from "./site-i18n.mjs?v=20260809-responsive-v4";
+import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260809-handoff-layout-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
   createUserGuide,
@@ -17,21 +17,21 @@ import {
   loadUserGuides,
   MAX_USER_GUIDES,
   saveUserGuides,
-} from "./guide-storage.mjs?v=20260809-photo-import-v3";
+} from "./guide-storage.mjs?v=20260809-handoff-layout-v2";
 import {
   createSpell,
   deleteMySpell,
   loadMySpells,
   saveMySpells,
 } from "./spell-library.mjs";
-import { classifySymbolDragGesture } from "./symbol-drag-gesture.mjs?v=20260809-photo-import-v3";
+import { classifySymbolDragGesture } from "./symbol-drag-gesture.mjs?v=20260809-handoff-layout-v2";
 import { parseRecipeParams } from "./recipe-link.mjs";
 import {
   buildCommunityComposeUrl,
   decodeCircleShare,
   fitCircleShare,
   parseCircleShare,
-} from "./circle-share.mjs?v=20260809-photo-import-v3";
+} from "./circle-share.mjs?v=20260809-handoff-layout-v2";
 import {
   combinedSelectionBounds,
   canDropGlyph,
@@ -49,29 +49,30 @@ import {
   shouldDeferTouchTool,
   topmostSelectableIndexAtPoint,
   translateSelectedActions,
-} from "./symbol-interactions.mjs?v=20260809-photo-import-v3";
-import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260809-photo-import-v3";
+} from "./symbol-interactions.mjs?v=20260809-handoff-layout-v2";
+import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260809-handoff-layout-v2";
 import {
   SPOILER_MAX_CHAPTER,
   clampSpoilerChapter,
   isSymbolVisibleAtChapter,
   readSpoilerChapter,
   writeSpoilerChapter,
-} from "./symbol-chapters.mjs?v=20260809-photo-import-v3";
-import { analyzeStrokeMatch } from "./stroke-matcher.mjs?v=20260809-photo-import-v3";
+} from "./symbol-chapters.mjs?v=20260809-handoff-layout-v2";
+import { analyzeStrokeMatch } from "./stroke-matcher.mjs?v=20260809-handoff-layout-v2";
 import {
   collectPracticeAttempts,
   reconcilePracticeStartIndex,
   updatePracticeDiagnostic,
-} from "./practice-session.mjs?v=20260809-photo-import-v3";
-import { analyzePhoto } from "./photo-import.mjs?v=20260809-photo-import-v3";
+} from "./practice-session.mjs?v=20260809-handoff-layout-v2";
+import { analyzePhoto } from "./photo-import.mjs?v=20260809-handoff-layout-v2";
 import {
   mapPhotoAnalysis,
   selectPhotoCandidate,
   sourceCropForAnalysis,
-} from "./photo-placement.mjs?v=20260809-photo-import-v3";
-import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260809-photo-import-v3";
-import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260809-photo-import-v3";
+} from "./photo-placement.mjs?v=20260809-handoff-layout-v2";
+import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260809-handoff-layout-v2";
+import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260809-handoff-layout-v2";
+import { assessFreehandBoundary, recognizedMaterialLabel } from "./drawing-recognition.mjs";
 
 export const CENTRAL_SIGIL_STROKE_WIDTH = 6.4365;
 
@@ -293,6 +294,9 @@ const zoomInButton = document.querySelector("#zoomInButton");
 const closedSealInput = document.querySelector("#closedSealInput");
 const autoInput = document.querySelector("#autoInput");
 const measureInput = document.querySelector("#measureInput");
+const grimoirePanel = document.querySelector("#grimoirePanel");
+const grimoireToggle = document.querySelector("#grimoireToggle");
+const grimoireContent = document.querySelector("#grimoireContent");
 const readButton = document.querySelector("#readButton");
 const activateButton = document.querySelector("#activateButton");
 const undoButton = document.querySelector("#undoButton");
@@ -436,6 +440,21 @@ const DRAWING_LIMIT_MARGIN_CELLS = 8;
 const CENTRAL_SIGIL_RADIAL = 0.48;
 const SIGN_INNER_RADIAL = 0.52;
 const SIGN_OUTER_RADIAL = 1.22;
+const compactGrimoireMedia = window.matchMedia("(max-width: 1180px)");
+let preferredGrimoireOpen = localStorage.getItem("whaGrimoireOpen") === "true";
+
+function setGrimoireOpen(open, { persist = true } = {}) {
+  preferredGrimoireOpen = Boolean(open);
+  if (persist) {
+    localStorage.setItem("whaGrimoireOpen", String(preferredGrimoireOpen));
+  }
+  const expanded = !compactGrimoireMedia.matches || preferredGrimoireOpen;
+  grimoirePanel?.classList.toggle("is-open", expanded);
+  grimoireToggle?.setAttribute("aria-expanded", String(expanded));
+  if (grimoireContent) {
+    grimoireContent.inert = compactGrimoireMedia.matches && !expanded;
+  }
+}
 
 function setStatus(text) {
   statusText.classList.remove("has-list");
@@ -1781,32 +1800,11 @@ function isFreehandClosedSeal(action) {
 }
 
 function isFreehandBoundaryLike(action) {
-  if (action.type !== "free" || action.points.length < 24) {
-    return false;
-  }
+  return action.type === "free" && assessFreehandBoundary(action.points).closed;
+}
 
-  const bounds = actionBounds(action);
-  const first = action.points[0];
-  const last = action.points[action.points.length - 1];
-  const closingDistance = distance(first, last);
-  const size = Math.max(bounds.width, bounds.height);
-  const ratio = Math.min(bounds.width, bounds.height) / Math.max(1, size);
-  const center = actionCenter(action);
-  const radii = action.points.map((point) => distance(point, center));
-  const averageRadius = radii.reduce((total, value) => total + value, 0) / radii.length;
-  const radiusVariance = radii.reduce((total, value) => total + Math.abs(value - averageRadius), 0) / Math.max(1, averageRadius * radii.length);
-  let area = 0;
-  let perimeter = 0;
-  for (let index = 0; index < action.points.length; index += 1) {
-    const current = action.points[index];
-    const next = action.points[(index + 1) % action.points.length];
-    area += current.x * next.y - next.x * current.y;
-    perimeter += distance(current, next);
-  }
-  const circularity = perimeter > 0 ? (4 * Math.PI * Math.abs(area / 2)) / (perimeter * perimeter) : 0;
-
-  const closingLimit = Math.max(22, size * 0.12);
-  return size >= 80 && ratio >= 0.42 && circularity >= 0.34 && radiusVariance <= 0.78 && closingDistance <= closingLimit && closingDistance <= averageRadius * 0.42;
+function isFreehandBoundaryCandidate(action) {
+  return action.type === "free" && assessFreehandBoundary(action.points).candidate;
 }
 
 function drawActivation(width, height) {
@@ -7068,8 +7066,11 @@ function commitAction(action) {
     action.element = "Structure";
     action.seal = true;
     action.boundary = true;
-  } else if (action.type === "free" && isFreehandBoundaryLike(action)) {
-    action.boundary = false;
+  } else if (isFreehandBoundaryCandidate(action)) {
+    action.label = "Sceau incomplet";
+    action.element = "Structure";
+    action.boundary = true;
+    action.seal = false;
   }
 
   recordHistory();
@@ -8796,6 +8797,9 @@ function updateUsedList() {
   const inferredSigns = freeSignGlyphs();
   const inferredSignActions = new Set(inferredSigns.flatMap((sign) => sign.sourceActions || [sign.sourceAction]));
   for (const action of state.actions) {
+    if (action.boundary && !action.seal) {
+      continue;
+    }
     if (centralFree.has(action) || inferredSignActions.has(action)) {
       continue;
     }
@@ -8823,6 +8827,11 @@ function updateUsedList() {
   for (const [name, count] of [...counts.entries()].sort()) {
     const item = document.createElement("li");
     item.textContent = `${name} x${count}`;
+    usedList.append(item);
+  }
+  if (counts.size === 0) {
+    const item = document.createElement("li");
+    item.textContent = t("details.noMarks");
     usedList.append(item);
   }
 }
@@ -8853,7 +8862,7 @@ function spellMetrics(model = signModel()) {
   }
 
   const symbolCharge = allGlyphs.reduce((total, action) => total + action.charge, 0);
-  const symbolQuality = glyphs.length > 0 ? Math.max(...glyphs.map((glyph) => glyph.quality || 100)) : 100;
+  const symbolQuality = glyphs.length > 0 ? Math.max(...glyphs.map((glyph) => glyph.quality || 100)) : 0;
   const repetitionBonus = (model.sigilCounts.Repetition || 0) * 2200;
   const levitationBonus = model.hasLevitation ? 1200 : 0;
   const bindBonus = model.hasBind ? 900 : 0;
@@ -8870,7 +8879,7 @@ function spellMetrics(model = signModel()) {
   const rawEnergyPenalty = model.ringOnly ? 42 : model.rawEnergy ? 20 : 0;
   const stability = Math.max(0, Math.min(100, (model.hasBoundary ? 46 : 0) + model.stabilizerScore + (glyphs.length > 0 ? 10 : 0) + geometryStability + (model.hasConvergence ? 8 : 0) + supportStabilityBonus(model) - model.freePenalty - rawEnergyPenalty));
   return {
-    element: effectiveElement(model)?.name || "Aucun",
+    element: glyphs.length > 0 ? effectiveElement(model)?.name || "Aucun" : "Aucun",
     duration,
     force,
     quality,
@@ -8882,8 +8891,11 @@ function spellMetrics(model = signModel()) {
 function updateSpellState() {
   const metrics = spellMetrics();
   const model = signModel();
-  spellElement.textContent = materialPresentationDisplayName(runtimeMaterialPresentation(model))
-    || elementDisplayName(metrics.element);
+  spellElement.textContent = recognizedMaterialLabel({
+    sigilCount: model.sigils.length,
+    presentationLabel: materialPresentationDisplayName(runtimeMaterialPresentation(model)),
+    noneLabel: t("common.none"),
+  });
   spellQuality.textContent = `${metrics.quality}%`;
   spellDuration.textContent = `${Math.round(metrics.duration / 1000)}s`;
   spellStability.textContent = `${metrics.stability}%`;
@@ -9554,6 +9566,14 @@ measureInput?.addEventListener("change", () => {
   localStorage.setItem("whaShowMeasure", String(state.showMeasure));
   setStatus(t(state.showMeasure ? "status.measureShown" : "status.measureHidden"));
   render();
+});
+
+grimoireToggle?.addEventListener("click", () => {
+  setGrimoireOpen(grimoireToggle.getAttribute("aria-expanded") !== "true");
+});
+
+compactGrimoireMedia.addEventListener?.("change", () => {
+  setGrimoireOpen(preferredGrimoireOpen, { persist: false });
 });
 
 readButton.addEventListener("click", analyzeSpell);
@@ -10420,6 +10440,7 @@ updateSpellState();
 if (measureInput) {
   measureInput.checked = state.showMeasure;
 }
+setGrimoireOpen(preferredGrimoireOpen, { persist: false });
 close3dView();
 setSymbolDrawer(false);
 setSupportDrawer(false);
