@@ -49,6 +49,8 @@ test("la boite de dialogue affiche le recadrage corrige et chaque region une foi
   assert.match(css, /data-tier="high"/);
   assert.match(css, /\.photo-region-select/);
   assert.match(css, /\.photo-dialog-actions > button/);
+  assert.match(css, /\.photo-dialog-actions > form\s*\{[^}]*flex:/s);
+  assert.match(css, /\.photo-dialog-actions > form \.dialog-close\s*\{[^}]*width:\s*100%/s);
 });
 
 test("le guide photo conserve le raster corrige sans ajouter d'actions", async () => {

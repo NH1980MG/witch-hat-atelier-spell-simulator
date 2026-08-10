@@ -20,6 +20,19 @@ test("base sigils compose before signs and supports", () => {
   assert.equal(recipe.materialProfile.family, "mud");
   assert.ok(recipe.ruleIds.includes("material.mix.eau+terre"));
   assert.ok(recipe.effectPlan.pipeline[0].includes("mud"));
+  assert.equal(recipe.manifestationPlan.material.id, "mud");
+  assert.ok(Object.isFrozen(recipe.manifestationPlan));
+});
+
+test("recipes synthesize one primary manifestation instead of stacked operations", () => {
+  const mud = composeSpellRecipe({ sigils: ["Eau", "Terre"], signs: ["Crush", "Colonne"] });
+  const mist = composeSpellRecipe({ sigils: ["Eau", "Vent"], signs: ["Convergence", "Lancement"] });
+  const suspendedWater = composeSpellRecipe({ sigils: ["Eau"], signs: ["Levitation"] });
+
+  assert.equal(mud.manifestationPlan.id, "mud.dense-projection");
+  assert.equal(mist.manifestationPlan.id, "mist.pressurized-jet");
+  assert.equal(suspendedWater.manifestationPlan.id, "water.suspended-mass");
+  assert.ok(mud.manifestationPlan.consumedOperations.includes("state.crush"));
 });
 
 test("element order does not change identity", () => {

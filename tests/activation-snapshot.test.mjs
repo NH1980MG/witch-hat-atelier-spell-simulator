@@ -12,6 +12,7 @@ test("activation captures an immutable recipe snapshot", () => {
   const activation = app.match(/function activateCircle\(\) \{([\s\S]*?)\n\}/)?.[1] || "";
   assert.match(activation, /snapshot:\s*createActivationSnapshot/);
   assert.match(activation, /materialPresentation:\s*runtimeMaterialPresentation\(model\)/);
+  assert.match(app, /manifestationPlan/);
 });
 
 test("3D rebuilding uses the active snapshot", () => {

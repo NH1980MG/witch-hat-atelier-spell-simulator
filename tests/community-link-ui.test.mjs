@@ -16,3 +16,26 @@ test("the workshop exposes a translated community publishing action", async () =
   assert.equal(i18n.split('"commands.publishCommunity"').length - 1, 2);
   assert.equal(i18n.split('"status.communityCircleLoaded"').length - 1, 2);
 });
+
+test("every public simulator page links to the local suggestion page", async () => {
+  const pages = await Promise.all([
+    "index.html",
+    "bibliotheque.html",
+    "tutoriel.html",
+    "fonctionnement.html",
+    "parametres.html",
+  ].map(async (name) => [name, await readFile(new URL(`../${name}`, import.meta.url), "utf8")]));
+  const i18n = await readFile(new URL("../i18n.mjs", import.meta.url), "utf8");
+
+  for (const [name, html] of pages) {
+    assert.match(
+      html,
+      /href="suggestions\.html"[^>]*data-i18n-aria-label="nav\.openSuggestions"/,
+      `${name} should expose the Suggestions tab`,
+    );
+    assert.doesNotMatch(html, /circle-commons-atelier[^"']+\/suggestions/);
+    assert.match(html, /data-i18n="nav\.suggestions"/);
+  }
+  assert.equal(i18n.split('"nav.suggestions"').length - 1, 2);
+  assert.equal(i18n.split('"nav.openSuggestions"').length - 1, 2);
+});

@@ -9,6 +9,7 @@ const pages = [
   ["tutoriel.html", `${baseUrl}tutoriel.html`],
   ["parametres.html", `${baseUrl}parametres.html`],
   ["fonctionnement.html", `${baseUrl}fonctionnement.html`],
+  ["suggestions.html", `${baseUrl}suggestions.html`],
 ];
 
 for (const [file, canonicalUrl] of pages) {

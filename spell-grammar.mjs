@@ -4,8 +4,9 @@ import {
   normalizeSpellGeometry,
   selectPrimarySigil,
 } from "./spell-model.mjs";
-import { composeElementalMixture, INDEXED_ELEMENTAL_MIXTURES } from "./elemental-mixtures.mjs?v=20260809-handoff-layout-v2";
+import { composeElementalMixture, INDEXED_ELEMENTAL_MIXTURES } from "./elemental-mixtures.mjs?v=20260809-photo-import-v3";
 import { composeSupportPlan } from "./support-policy.mjs";
+import { synthesizeManifestation } from "./manifestation-synthesis.mjs";
 
 const profile = (value) => Object.freeze(value);
 
@@ -511,6 +512,15 @@ export function composeSpellRecipe({
     ...buildEffectPlan({ axes, material, sigilCounts: sigilCountObject, signCounts: signCountObject, direction, supportId, geometry: normalizedGeometry, elementalMixture, primaryName }),
     supportPlan,
   };
+  const manifestationPlan = synthesizeManifestation({
+    materialProfile: material,
+    elementalMixture,
+    operations,
+    axes,
+    geometry: normalizedGeometry || {},
+    supportPlan,
+    fidelity,
+  });
 
   return {
     id,
@@ -535,6 +545,7 @@ export function composeSpellRecipe({
     direction,
     supportId,
     supportPlan,
+    manifestationPlan,
     identity,
     effectPlan,
   };
@@ -580,7 +591,7 @@ export function validateSpellMatrix() {
             throw new Error(`Identifiant de variante duplique: ${recipe.id}`);
           }
           ids.add(recipe.id);
-          plans.add(JSON.stringify({ effectPlan: recipe.effectPlan, supportPlan: recipe.supportPlan }));
+          plans.add(JSON.stringify({ effectPlan: recipe.effectPlan, supportPlan: recipe.supportPlan, manifestationPlan: recipe.manifestationPlan }));
           if (recipe.warnings.length > 0) warningRecipes += 1;
           if (recipe.confidence === "interpretation prudente") interpretedRecipes += 1;
         }
