@@ -1,5 +1,5 @@
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
-import { buildRecipeHref } from "./recipe-link.mjs";
+import { buildRecipeHref } from "./recipe-link.mjs?v=20260811-exact-schematic-v1";
 import { t } from "./site-i18n.mjs?v=20260811-scalewolf-v1";
 
 const byId = new Map(LIBRARY_CIRCLES.map((circle) => [circle.id, circle]));
@@ -19,7 +19,7 @@ function renderActions() {
       card.append(panel);
     }
     const link = panel.querySelector("a");
-    link.href = buildRecipeHref(circle.preview);
+    link.href = buildRecipeHref({ ...circle.preview, libraryId: circle.id });
     link.textContent = t("library.preview3d");
     link.setAttribute("aria-label", t("library.preview3dNamed", { name: circle.name }));
     panel.querySelector("small").textContent = t("library.previewNote");

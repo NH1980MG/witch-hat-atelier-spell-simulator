@@ -81,6 +81,24 @@ test("parseRecipeParams defaults support to none and activate to false", () => {
   assert.equal(parsed.activate, false);
 });
 
+test("library links preserve one validated exact schematic id", () => {
+  const href = buildRecipeHref({
+    sigils: ["Lumiere"],
+    signs: ["Dissimulation", "Enveloppe"],
+    libraryId: "light-reducing-spell",
+    activate: true,
+  });
+  const url = new URL(href, "https://example.test/");
+  assert.equal(url.searchParams.get("library"), "light-reducing-spell");
+  const parsed = parseRecipeParams(url.search, { ...allowed, libraryIds: ["light-reducing-spell"] });
+  assert.equal(parsed.libraryId, "light-reducing-spell");
+  const rejected = parseRecipeParams("?sigils=Lumiere&library=../../secret", {
+    ...allowed,
+    libraryIds: ["light-reducing-spell"],
+  });
+  assert.equal(rejected.libraryId, null);
+});
+
 test("every matrix sigil and sign is accepted by the parser", () => {
   const sigilParsed = parseRecipeParams(`?sigils=${MATRIX_SIGIL_NAMES.join(",")}`, allowed);
   assert.deepEqual([...sigilParsed.sigils], [...MATRIX_SIGIL_NAMES.slice(0, RECIPE_LINK_LIMITS.maxSigils)]);
