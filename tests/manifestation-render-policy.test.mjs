@@ -36,6 +36,12 @@ test("the scalewolf family renders a creature instead of the generic floating or
   assert.match(creatureRenderer, /scalewolf-body/);
   assert.match(creatureRenderer, /scalewolf-head/);
   assert.match(creatureRenderer, /scalewolf-tail/);
+  assert.match(creatureRenderer, /scalewolf-neck/);
+  assert.match(creatureRenderer, /scalewolf-haunch/);
+  assert.match(creatureRenderer, /scalewolf-lower-leg/);
+  assert.match(creatureRenderer, /scalewolf-nose/);
+  assert.match(creatureRenderer, /TubeGeometry/);
+  assert.match(creatureRenderer, /createScalewolfMotionProfile/);
 
   const rebuild = app.match(/function rebuildThreeSpell\(\) \{([\s\S]*?)\n\}/)?.[1] || "";
   assert.match(rebuild, /addDecorativeCreatureEffect3d/);

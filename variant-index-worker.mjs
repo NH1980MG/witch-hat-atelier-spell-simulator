@@ -1,4 +1,4 @@
-import { buildVariantIndex, getVariantDetail, queryVariants } from "./variant-catalog.mjs";
+import { buildVariantIndex, getVariantDetail, queryVariants } from "./variant-catalog.mjs?v=20260811-scalewolf-v2";
 
 let records = null;
 

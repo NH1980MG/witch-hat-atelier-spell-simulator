@@ -77,6 +77,7 @@ import {
 import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260809-handoff-layout-v2";
 import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260809-handoff-layout-v2";
 import { assessFreehandBoundary, recognizedMaterialLabel } from "./drawing-recognition.mjs";
+import { createScalewolfMotionProfile } from "./decorative-creature-profile.mjs?v=20260811-scalewolf-v2";
 
 export const CENTRAL_SIGIL_STROKE_WIDTH = 6.4365;
 
@@ -4139,98 +4140,169 @@ function manifestationConsumes(plan, operation) {
   return Boolean(plan?.consumedOperations?.some((entry) => entry.endsWith(`.${operation}`)));
 }
 
-function addDecorativeCreatureEffect3d(group, family, auraRadius, elementColor, supportId = "none") {
+function addDecorativeCreatureEffect3d(group, family, auraRadius, elementColor, supportId = "none", recipe = null) {
   if (family !== "scalewolf") {
     return false;
   }
 
+  const profile = createScalewolfMotionProfile(recipe);
   const baseY = supportId === "shoe" ? 0.58 : THREE_LOW_EFFECT_Y;
   const creature = new THREE.Group();
   creature.name = "scalewolf-projection";
   const hideMaterial = new THREE.MeshStandardMaterial({
     color: elementColor,
     emissive: elementColor,
-    emissiveIntensity: 0.3,
-    roughness: 0.7,
+    emissiveIntensity: 0.16 + profile.aura,
+    roughness: 0.82,
     transparent: true,
-    opacity: 0.78,
+    opacity: profile.concealed ? 0.42 : 0.82,
   });
   const scaleMaterial = new THREE.MeshStandardMaterial({
-    color: 0x9fb6a2,
+    color: 0xb7c8b5,
     emissive: elementColor,
-    emissiveIntensity: 0.22,
-    roughness: 0.38,
+    emissiveIntensity: 0.24 + profile.aura,
+    roughness: 0.3,
     transparent: true,
-    opacity: 0.84,
+    opacity: profile.concealed ? 0.5 : 0.9,
   });
   const glowMaterial = new THREE.MeshBasicMaterial({ color: 0xf6ecd8, transparent: true, opacity: 0.92 });
-  const makeMesh = (name, geometry, material = hideMaterial) => {
+  const noseMaterial = new THREE.MeshStandardMaterial({ color: 0x151c1b, roughness: 0.48, transparent: true, opacity: 0.9 });
+  const makeMesh = (name, geometry, material = hideMaterial, parent = creature) => {
     const mesh = new THREE.Mesh(geometry, material.clone());
     mesh.name = name;
-    creature.add(mesh);
+    parent.add(mesh);
     return mesh;
   };
 
-  const body = makeMesh("scalewolf-body", new THREE.SphereGeometry(0.3, 18, 12));
-  body.scale.set(0.92, 0.72, 1.5);
-  body.position.set(0, 0.58, 0.02);
+  const body = makeMesh("scalewolf-body", new THREE.IcosahedronGeometry(0.34, 2));
+  body.scale.set(0.78, 0.68, 1.34);
+  body.position.set(0, 0.7, 0.04);
 
-  const chest = makeMesh("scalewolf-chest", new THREE.SphereGeometry(0.24, 16, 10));
-  chest.scale.set(1.02, 1.12, 0.82);
-  chest.position.set(0, 0.61, -0.27);
-
-  const head = makeMesh("scalewolf-head", new THREE.SphereGeometry(0.22, 16, 10));
-  head.scale.set(0.9, 0.84, 1.05);
-  head.position.set(0, 0.82, -0.52);
-
-  const muzzle = makeMesh("scalewolf-muzzle", new THREE.ConeGeometry(0.11, 0.29, 7));
-  muzzle.rotation.x = -Math.PI / 2;
-  muzzle.position.set(0, 0.76, -0.72);
+  const chest = makeMesh("scalewolf-chest", new THREE.IcosahedronGeometry(0.27, 2));
+  chest.scale.set(0.96, 1.1, 0.8);
+  chest.position.set(0, 0.72, -0.3);
 
   for (const side of [-1, 1]) {
-    const ear = makeMesh(`scalewolf-ear-${side}`, new THREE.ConeGeometry(0.085, 0.25, 5), scaleMaterial);
-    ear.position.set(side * 0.13, 1.04, -0.52);
+    const haunch = makeMesh(`scalewolf-haunch-${side}`, new THREE.IcosahedronGeometry(0.2, 1));
+    haunch.scale.set(0.78, 1.02, 0.86);
+    haunch.position.set(side * 0.15, 0.65, 0.3);
+  }
+
+  const neck = makeMesh("scalewolf-neck", new THREE.CylinderGeometry(0.16, 0.23, 0.4, 8));
+  neck.scale.x = 0.86;
+  neck.rotation.x = -0.52;
+  neck.position.set(0, 0.91, -0.39);
+
+  const headRig = new THREE.Group();
+  headRig.name = "scalewolf-head-rig";
+  headRig.position.set(0, 1.08, -0.58);
+  creature.add(headRig);
+
+  const head = makeMesh("scalewolf-head", new THREE.IcosahedronGeometry(0.22, 2), hideMaterial, headRig);
+  head.scale.set(0.78, 0.82, 1.02);
+
+  const brow = makeMesh("scalewolf-brow", new THREE.BoxGeometry(0.29, 0.055, 0.12), scaleMaterial, headRig);
+  brow.position.set(0, 0.07, -0.15);
+  brow.rotation.x = -0.16;
+
+  const muzzle = makeMesh("scalewolf-muzzle", new THREE.ConeGeometry(0.115, 0.34, 5), hideMaterial, headRig);
+  muzzle.scale.set(0.86, 1, 0.72);
+  muzzle.rotation.x = -Math.PI / 2;
+  muzzle.position.set(0, -0.06, -0.27);
+
+  const jaw = makeMesh("scalewolf-jaw", new THREE.BoxGeometry(0.15, 0.065, 0.2), hideMaterial, headRig);
+  jaw.position.set(0, -0.13, -0.24);
+  jaw.rotation.x = -0.08;
+
+  const nose = makeMesh("scalewolf-nose", new THREE.IcosahedronGeometry(0.055, 1), noseMaterial, headRig);
+  nose.scale.set(1.18, 0.76, 0.7);
+  nose.position.set(0, -0.045, -0.44);
+
+  for (const side of [-1, 1]) {
+    const ear = makeMesh(`scalewolf-ear-${side}`, new THREE.ConeGeometry(0.095, 0.29, 4), scaleMaterial, headRig);
+    ear.scale.z = 0.72;
+    ear.position.set(side * 0.13, 0.23, 0.015);
     ear.rotation.z = side * -0.14;
 
-    const eye = makeMesh(`scalewolf-eye-${side}`, new THREE.SphereGeometry(0.025, 8, 6), glowMaterial);
-    eye.position.set(side * 0.095, 0.85, -0.708);
+    const eye = makeMesh(`scalewolf-eye-${side}`, new THREE.SphereGeometry(profile.targetLock ? 0.032 : 0.025, 8, 6), glowMaterial, headRig);
+    eye.position.set(side * 0.094, 0.035, -0.193);
+
+    const cheekScale = makeMesh(`scalewolf-cheek-scale-${side}`, new THREE.ConeGeometry(0.052, 0.15, 3), scaleMaterial, headRig);
+    cheekScale.position.set(side * 0.18, -0.04, -0.04);
+    cheekScale.rotation.z = side * -Math.PI / 2;
   }
 
   const legs = [];
-  for (const z of [-0.25, 0.27]) {
+  for (const z of [-0.27, 0.27]) {
     for (const side of [-1, 1]) {
-      const leg = makeMesh(`scalewolf-leg-${side}-${z}`, new THREE.CylinderGeometry(0.055, 0.044, 0.43, 7));
-      leg.position.set(side * 0.2, 0.29, z);
-      leg.userData.stride = side * (z < 0 ? 1 : -1);
-      legs.push(leg);
+      const legRig = new THREE.Group();
+      legRig.name = `scalewolf-leg-rig-${side}-${z}`;
+      legRig.position.set(side * 0.19, 0.56, z);
+      legRig.userData.phase = side * (z < 0 ? 1 : -1);
+      creature.add(legRig);
 
-      const paw = makeMesh(`scalewolf-paw-${side}-${z}`, new THREE.BoxGeometry(0.11, 0.055, 0.17), scaleMaterial);
-      paw.position.set(side * 0.2, 0.075, z - 0.035);
+      const upperLeg = makeMesh(`scalewolf-upper-leg-${side}-${z}`, new THREE.CylinderGeometry(0.062, 0.052, 0.27, 7), hideMaterial, legRig);
+      upperLeg.position.y = -0.13;
+
+      const lowerRig = new THREE.Group();
+      lowerRig.position.y = -0.26;
+      legRig.add(lowerRig);
+      const lowerLeg = makeMesh(`scalewolf-lower-leg-${side}-${z}`, new THREE.CylinderGeometry(0.05, 0.038, 0.25, 7), scaleMaterial, lowerRig);
+      lowerLeg.position.y = -0.12;
+
+      const paw = makeMesh(`scalewolf-paw-${side}-${z}`, new THREE.BoxGeometry(0.13, 0.065, 0.2), scaleMaterial, lowerRig);
+      paw.position.set(0, -0.265, -0.045);
+      paw.rotation.x = 0.05;
+      legRig.userData.lower = lowerRig;
+      legs.push(legRig);
     }
   }
 
-  for (let index = 0; index < 6; index += 1) {
-    const dorsalScale = makeMesh(`scalewolf-scale-${index}`, new THREE.ConeGeometry(0.07, 0.18, 4), scaleMaterial);
-    dorsalScale.position.set(0, 0.87 + Math.sin((index / 5) * Math.PI) * 0.08, -0.28 + index * 0.11);
-    dorsalScale.rotation.x = -0.18 + index * 0.055;
+  for (let index = 0; index < 8; index += 1) {
+    const phase = index / 7;
+    const dorsalScale = makeMesh(`scalewolf-scale-${index}`, new THREE.ConeGeometry(0.075 - Math.abs(phase - 0.5) * 0.018, 0.2, 3), scaleMaterial);
+    dorsalScale.scale.x = 0.55;
+    dorsalScale.position.set(0, 0.94 + Math.sin(phase * Math.PI) * 0.085, -0.31 + index * 0.092);
+    dorsalScale.rotation.x = -0.12 + phase * 0.18;
   }
 
   const tail = new THREE.Group();
   tail.name = "scalewolf-tail";
-  tail.position.set(0, 0.67, 0.43);
-  tail.add(new THREE.Line(
-    new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(0, 0, 0),
-      new THREE.Vector3(0.12, 0.12, 0.2),
-      new THREE.Vector3(0.22, 0.25, 0.38),
-      new THREE.Vector3(0.16, 0.36, 0.52),
-    ]),
-    new THREE.LineBasicMaterial({ color: elementColor, transparent: true, opacity: 0.9 }),
-  ));
+  tail.position.set(0, 0.72, 0.4);
+  const tailCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(0.12, 0.08, 0.18),
+    new THREE.Vector3(0.24, 0.2, 0.34),
+    new THREE.Vector3(0.2, 0.38, 0.48),
+    new THREE.Vector3(0.06, 0.48, 0.58),
+  ]);
+  const tailMesh = makeMesh("scalewolf-tail-curve", new THREE.TubeGeometry(tailCurve, 28, 0.035, 7, false), hideMaterial, tail);
+  tailMesh.scale.set(1, 1, 1);
   creature.add(tail);
 
+  const collar = new THREE.Mesh(
+    new THREE.TorusGeometry(0.17, 0.012, 6, 28),
+    scaleMaterial.clone(),
+  );
+  collar.name = "scalewolf-collar";
+  collar.rotation.x = Math.PI / 2;
+  collar.position.set(0, 0.92, -0.43);
+  creature.add(collar);
+
+  if (profile.linked) {
+    const link = addLine([
+      new THREE.Vector3(0, 0.92, -0.43),
+      new THREE.Vector3(0, 0.48, -0.18),
+      new THREE.Vector3(0, 0.04, 0),
+    ], 0xf6ecd8, 0.55);
+    if (link) {
+      link.name = "scalewolf-link";
+      creature.add(link);
+    }
+  }
+
   const shadow = new THREE.Mesh(
-    new THREE.CircleGeometry(0.42, 40),
+    new THREE.CircleGeometry(0.44, 40),
     new THREE.MeshBasicMaterial({ color: elementColor, transparent: true, opacity: 0.14, depthWrite: false }),
   );
   shadow.rotation.x = -Math.PI / 2;
@@ -4240,17 +4312,32 @@ function addDecorativeCreatureEffect3d(group, family, auraRadius, elementColor, 
 
   creature.userData.legs = legs;
   creature.userData.tail = tail;
-  const creatureScale = Math.max(1.35, Math.min(2.6, auraRadius * 2.1));
+  creature.userData.head = headRig;
+  creature.userData.body = body;
+  creature.userData.profile = profile;
+  const creatureScale = Math.max(1.25, Math.min(2.45, auraRadius * 1.8)) * profile.focus * profile.powerScale;
   addAnimatedObject(group, creature, (object, elapsed) => {
     const progress = easeOutCubic(spellProgress3d(elapsed));
     const reveal = 0.18 + progress * 0.82;
-    object.scale.setScalar(creatureScale * reveal);
-    object.position.set(0, baseY + Math.sin(elapsed * 3.2) * 0.018, -auraRadius * (0.1 + progress * 0.52));
+    const pulse = 1 + Math.sin(elapsed * 2.4) * profile.pulse;
+    object.scale.setScalar(creatureScale * reveal * pulse);
+    const bob = profile.brace ? 0 : Math.sin(elapsed * profile.pace * 2) * 0.012;
+    object.position.set(
+      0,
+      baseY + profile.supportLift + profile.hover * progress - profile.crouch + bob,
+      -auraRadius * (0.08 + progress * (0.34 + profile.lunge * 0.42)) * profile.reach,
+    );
+    object.rotation.y = elapsed * profile.spin * 0.28;
     for (const leg of object.userData.legs) {
-      leg.rotation.x = Math.sin(elapsed * 5.2) * 0.22 * leg.userData.stride;
+      const stride = Math.sin(elapsed * profile.pace + leg.userData.phase * Math.PI * 0.5) * profile.stride;
+      leg.rotation.x = stride;
+      leg.userData.lower.rotation.x = Math.max(0, -stride) * 0.7 + (profile.brace ? -0.1 : 0);
     }
-    object.userData.tail.rotation.y = Math.sin(elapsed * 2.7) * 0.34;
-    object.userData.tail.rotation.z = Math.sin(elapsed * 1.8) * 0.12;
+    object.userData.head.rotation.y = profile.targetLock ? 0 : Math.sin(elapsed * 1.15) * 0.1;
+    object.userData.head.rotation.x = profile.brace ? 0.08 : Math.sin(elapsed * 1.7) * 0.025;
+    object.userData.body.rotation.x = profile.crouch * 0.35;
+    object.userData.tail.rotation.y = Math.sin(elapsed * (1.8 + profile.pace * 0.18)) * (profile.brace ? 0.12 : 0.38);
+    object.userData.tail.rotation.z = 0.16 + Math.sin(elapsed * 1.45) * 0.14;
   });
   return true;
 }
@@ -4741,6 +4828,7 @@ function rebuildThreeSpell() {
     auraRadius,
     elementColor,
     supportId,
+    recipe,
   );
   addShoeSupportEffects3d(group, supportProp, recipe.supportPlan, runtimeElementName, elementColor);
   if (!manifestationPlan) {
@@ -5041,6 +5129,7 @@ function close3dView() {
   view3dPanel.hidden = true;
   cancelAnimationFrame(threeView.animationFrame);
   clearActiveManifestation("close");
+  render();
 }
 
 function setSymbolDrawer(open) {
