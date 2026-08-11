@@ -25,7 +25,7 @@ import {
   saveMySpells,
 } from "./spell-library.mjs";
 import { classifySymbolDragGesture } from "./symbol-drag-gesture.mjs?v=20260809-handoff-layout-v2";
-import { parseRecipeParams } from "./recipe-link.mjs";
+import { parseRecipeParams } from "./recipe-link.mjs?v=20260811-exact-schematic-v1";
 import {
   buildCommunityComposeUrl,
   decodeCircleShare,
@@ -78,6 +78,8 @@ import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260809-handoff-lay
 import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260809-handoff-layout-v2";
 import { assessFreehandBoundary, recognizedMaterialLabel } from "./drawing-recognition.mjs";
 import { createScalewolfMotionProfile } from "./decorative-creature-profile.mjs?v=20260811-scalewolf-v2";
+
+const libraryCircleById = new Map(LIBRARY_CIRCLES.map((circle) => [circle.id, circle]));
 
 export const CENTRAL_SIGIL_STROKE_WIDTH = 6.4365;
 
@@ -410,6 +412,7 @@ const state = {
   undoStack: [],
   redoStack: [],
   activeGuide: null,
+  librarySchematicId: null,
   guideVisible: localStorage.getItem("whaGuideVisible") !== "false",
   guideOpacity: Math.max(10, Math.min(70, Number(localStorage.getItem("whaGuideOpacity") || 28))),
   userGuides: loadUserGuides(localStorage),
@@ -3190,6 +3193,27 @@ function makeParchmentBase3d(auraRadius, supportId = "none") {
   return group;
 }
 
+function makeLibrarySchematic3d(id, auraRadius, supportId = "none") {
+  if (!libraryCircleById.has(id)) return null;
+  const texture = new THREE.TextureLoader().load(guideAssetPath(id));
+  if ("colorSpace" in texture && THREE.SRGBColorSpace) texture.colorSpace = THREE.SRGBColorSpace;
+  const plane = new THREE.Mesh(
+    new THREE.PlaneGeometry(auraRadius * 2, auraRadius * 2),
+    new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      opacity: 0.98,
+      blending: THREE.MultiplyBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    }),
+  );
+  plane.name = "library-schematic";
+  plane.rotation.x = -Math.PI / 2;
+  plane.position.y = supportId === "shoe" ? THREE_SHOE_INK_Y + 0.004 : THREE_INK_Y + 0.004;
+  return plane;
+}
+
 function makeSupportProp3d(supportId, auraRadius) {
   if (supportId === "none") {
     return null;
@@ -4903,7 +4927,10 @@ function rebuildThreeSpell() {
   const supportProp = makeSupportProp3d(supportId, auraRadius);
   const sealCarrier = new THREE.Group();
   sealCarrier.add(makeParchmentBase3d(auraRadius, supportId));
+  const librarySchematic = makeLibrarySchematic3d(state.activeSpell.librarySchematicId, auraRadius, supportId);
+  if (librarySchematic) sealCarrier.add(librarySchematic);
   for (const action of state.activeSpell.actions) {
+    if (librarySchematic && action.librarySynthetic) continue;
     const color = action.seal ? elementColor : new THREE.Color(colors.paper);
     const opacity = action.seal ? 0.96 : 0.82;
     for (const linePoints of actionLines3d(action, bounds, scale, supportId)) {
@@ -4920,9 +4947,11 @@ function rebuildThreeSpell() {
   } else {
     group.add(sealCarrier);
   }
-  sealCarrier.add(circleLine(auraRadius, shoeMode ? THREE_SHOE_INK_Y : THREE_INK_Y, elementColor, 0.95, 192));
-  sealCarrier.add(circleLine(auraRadius * 1.16, shoeMode ? THREE_SHOE_INK_Y + 0.006 : THREE_INK_Y + 0.006, elementColor, 0.5, 192));
-  sealCarrier.add(circleLine(auraRadius * 1.35, shoeMode ? THREE_SHOE_INK_Y + 0.011 : THREE_INK_Y + 0.011, elementColor, 0.28, 192));
+  if (!librarySchematic) {
+    sealCarrier.add(circleLine(auraRadius, shoeMode ? THREE_SHOE_INK_Y : THREE_INK_Y, elementColor, 0.95, 192));
+    sealCarrier.add(circleLine(auraRadius * 1.16, shoeMode ? THREE_SHOE_INK_Y + 0.006 : THREE_INK_Y + 0.006, elementColor, 0.5, 192));
+    sealCarrier.add(circleLine(auraRadius * 1.35, shoeMode ? THREE_SHOE_INK_Y + 0.011 : THREE_INK_Y + 0.011, elementColor, 0.28, 192));
+  }
   const manifestationStartIndex = group.children.length;
   if (materialPresentation?.kind === "elemental-mixture") {
     addElementalMixtureEffect3d(group, materialPresentation, auraRadius, elementColor, supportId);
@@ -7445,6 +7474,17 @@ function drawActiveGuide(width, height) {
   ctx.restore();
 }
 
+function drawLoadedLibrarySchematic(width, height) {
+  if (!state.librarySchematicId) return;
+  const image = libraryGuideImage(state.librarySchematicId);
+  if (!image.complete || image.naturalWidth <= 0) return;
+  const bounds = centeredRasterGuideBounds(image, width, height);
+  ctx.save();
+  ctx.globalCompositeOperation = "multiply";
+  ctx.drawImage(image, bounds.left, bounds.top, bounds.width, bounds.height);
+  ctx.restore();
+}
+
 function drawSelectedGuide(width, height) {
   if (state.exporting || state.tool !== "select" || !state.guideVisible || !state.guideSelected) {
     return;
@@ -7493,7 +7533,10 @@ function render() {
 
   drawActiveGuide(width, height);
 
+  drawLoadedLibrarySchematic(width, height);
+
   for (const action of state.actions) {
+    if (state.librarySchematicId && action.librarySynthetic) continue;
     drawAction(action);
   }
 
@@ -7603,6 +7646,7 @@ function recordHistory() {
 
 function restoreActions(snapshot) {
   state.actions = cloneActions(snapshot);
+  state.librarySchematicId = null;
   state.practiceStartIndex = reconcilePracticeStartIndex(state.practiceStartIndex, state.actions.length);
   state.activeSpell = null;
   state.activation = null;
@@ -9207,6 +9251,7 @@ function loadMySpell(id) {
   }
   recordHistory();
   state.actions = structuredClone(spell.actions);
+  state.librarySchematicId = null;
   state.activeSpell = null;
   state.pendingSpell = null;
   state.strokeSize = spell.stroke;
@@ -9880,6 +9925,7 @@ function activateCircle() {
       effects: [...model.effectNames],
       recipeId: model.recipe.id,
       recipeLabel: model.recipe.label,
+      librarySchematicId: state.librarySchematicId,
     }),
   };
   state.activeSpell = null;
@@ -9917,6 +9963,7 @@ function clearCanvas() {
   }
   cancelAnimationFrame(state.animationFrame);
   state.actions = [];
+  state.librarySchematicId = null;
   state.currentAction = null;
   state.preview = null;
   state.deferredTouchTool = null;
@@ -11034,6 +11081,7 @@ function loadRecipeFromUrl() {
   const recipe = parseRecipeParams(window.location.search, {
     sigilNames: elements.filter((element) => (element.kind || "sigil") === "sigil").map((element) => element.name),
     signNames: elements.filter((element) => element.kind === "sign").map((element) => element.name),
+    libraryIds: LIBRARY_CIRCLES.map((circle) => circle.id),
   });
   if (!recipe) {
     return false;
@@ -11042,6 +11090,7 @@ function loadRecipeFromUrl() {
 
   recordHistory();
   state.actions = [];
+  state.librarySchematicId = recipe.libraryId;
   state.currentAction = null;
   state.activeSpell = null;
   state.activation = null;
@@ -11063,6 +11112,7 @@ function loadRecipeFromUrl() {
     cx: centerX,
     cy: centerY,
     radius: ringRadius,
+    librarySynthetic: Boolean(recipe.libraryId),
   });
   state.circleCenter = { x: centerX, y: centerY };
 
@@ -11080,7 +11130,7 @@ function loadRecipeFromUrl() {
         y: centerY + Math.sin(angle) * clusterRadius,
       };
     }
-    state.actions.push(createGlyphAction(element, point, recipe.sigils.length > 1 ? 20 : 30));
+    state.actions.push({ ...createGlyphAction(element, point, recipe.sigils.length > 1 ? 20 : 30), librarySynthetic: Boolean(recipe.libraryId) });
   });
 
   const signAngles = { 1: [-90], 2: [-150, -30], 3: [-90, -210, -330] };
@@ -11096,10 +11146,11 @@ function loadRecipeFromUrl() {
       x: centerX + Math.cos(angle) * orbit,
       y: centerY + Math.sin(angle) * orbit,
     };
-    state.actions.push(createGlyphAction(element, point, 18));
+    state.actions.push({ ...createGlyphAction(element, point, 18), librarySynthetic: Boolean(recipe.libraryId) });
   });
 
   state.supportId = recipe.supportId === "shoe" ? "shoe" : "none";
+  if (recipe.libraryId) libraryGuideImage(recipe.libraryId);
 
   renderSupportList();
   updateUsedList();
