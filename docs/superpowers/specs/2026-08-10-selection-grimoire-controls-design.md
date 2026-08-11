@@ -28,4 +28,3 @@ selected.
 Saved circles keep their existing action width and color fields. Older saved
 spells containing intensity continue to load, but intensity no longer controls
 the interface or spell strength.
-
