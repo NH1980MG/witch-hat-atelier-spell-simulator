@@ -41,6 +41,9 @@ test("fidelity details are bilingual", () => {
     "details.fidelity.experimental",
     "details.ruleSources",
     "details.assumptions",
+    "details.architecture",
+    "details.symbolArchitecture",
+    "details.finalEffect",
   ]) {
     assert.notEqual(translate("en", key), key);
     assert.notEqual(translate("fr", key), key);

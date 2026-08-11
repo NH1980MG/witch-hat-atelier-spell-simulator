@@ -57,6 +57,24 @@ test("mixture details retain their components and elemental fidelity", () => {
   assert.equal(detail.elementalMixture.fidelity, "inferred");
 });
 
+test("variant details explain every symbol contribution in the spell architecture", () => {
+  const record = records.find(({ sigils, signs }) =>
+    sigils.includes("Eau") &&
+    sigils.includes("Terre") &&
+    signs.includes("Colonne") &&
+    signs.includes("Crush")
+  );
+  const detail = getVariantDetail(record);
+  const expectedSymbols = detail.sigils.length + detail.signs.length;
+
+  assert.equal(detail.architecture.symbols.length, expectedSymbols);
+  assert.ok(detail.architecture.symbols.every((entry) => entry.explanation && entry.effectContribution));
+  assert.ok(detail.architecture.symbols.some((entry) => entry.name === "Eau" && entry.kind === "sigil"));
+  assert.ok(detail.architecture.symbols.some((entry) => entry.name === "Crush" && entry.consumed));
+  assert.ok(detail.architecture.stages.some((stage) => stage.id === "material"));
+  assert.match(detail.architecture.finalEffect, /Projection de boue dense|Dense mud projection/);
+});
+
 test("every record opens a deterministic documented detail", () => {
   for (const record of records) {
     const detail = getVariantDetail(record);

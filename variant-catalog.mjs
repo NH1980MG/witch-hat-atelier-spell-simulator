@@ -315,6 +315,7 @@ export function getVariantDetail(record) {
     mechanics: [...recipe.mechanics],
     combinedEffects: [...recipe.combinedEffects],
     combinationIds: recipe.combinations.map(({ id }) => id),
+    architecture: recipe.architecture,
     ignoredSigns: [...recipe.ignoredSigns],
     warnings: [...recipe.warnings],
     supportPlan: recipe.supportPlan,

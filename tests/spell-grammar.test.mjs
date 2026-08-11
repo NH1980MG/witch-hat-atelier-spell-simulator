@@ -49,6 +49,38 @@ test("the opening petrification field requires the complete ritual seal pattern"
   assert.ok(completeSeal.manifestationPlan.consumedOperations.includes("state.still"));
 });
 
+test("recipes explain the role of every recognized symbol in the final architecture", () => {
+  const recipe = composeSpellRecipe({
+    sigils: ["Eau", "Terre"],
+    signs: ["Convergence", "Crush", "Region"],
+    geometry: {
+      balance: 0.82,
+      pressure: 0.34,
+      spin: 0.12,
+      reach: 0.9,
+      connectedCount: 3,
+      ignoredCount: 1,
+      circleCount: 2,
+      nestedCircleCount: 1,
+    },
+  });
+
+  assert.equal(recipe.architecture.symbols.length, 5);
+  assert.deepEqual(
+    recipe.architecture.symbols.map((entry) => entry.name).sort(),
+    ["Convergence", "Crush", "Eau", "Region", "Terre"],
+  );
+  assert.equal(recipe.architecture.symbols.filter((entry) => entry.kind === "sigil").length, 2);
+  assert.equal(recipe.architecture.symbols.filter((entry) => entry.kind === "sign").length, 3);
+  assert.ok(recipe.architecture.symbols.every((entry) => entry.explanation && entry.effectContribution));
+  assert.ok(recipe.architecture.symbols.find((entry) => entry.name === "Crush").consumed);
+  assert.ok(recipe.architecture.stages.some((stage) => stage.id === "material"));
+  assert.ok(recipe.architecture.stages.some((stage) => stage.id === "geometry"));
+  assert.match(recipe.architecture.finalEffect, /Projection de boue dense|Dense mud projection/);
+  assert.ok(Object.isFrozen(recipe.architecture));
+  assert.ok(Object.isFrozen(recipe.architecture.symbols[0]));
+});
+
 test("element order does not change identity", () => {
   const left = composeSpellRecipe({ sigils: ["Eau", "Terre"], signs: ["Colonne"] });
   const right = composeSpellRecipe({ sigils: ["Terre", "Eau"], signs: ["Colonne"] });
