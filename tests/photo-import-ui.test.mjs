@@ -69,7 +69,7 @@ test("les chaines de l'import photo existent dans les deux locales", async () =>
   for (const key of [
     "photo.toggle", "photo.previewTitle", "photo.recreate", "photo.guide", "photo.cancel",
     "photo.result.ring", "photo.result.noRing", "photo.result.accepted",
-    "photo.result.ambiguous", "photo.result.possible", "photo.result.unreadable", "photo.result.choose",
+    "photo.result.ambiguous", "photo.result.possible", "photo.result.confirmed", "photo.result.unreadable", "photo.result.choose",
     "photo.status.imported", "photo.status.guideSaved", "photo.status.guideUnsaved",
     "photo.status.nothing", "photo.status.error",
   ]) {
@@ -80,9 +80,17 @@ test("les chaines de l'import photo existent dans les deux locales", async () =>
 
 test("les candidats incertains ne sont pas affiches comme des sorts reconnus", async () => {
   const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
-  assert.match(source, /region\.status === "accepted" \? region\.candidates\?\.\[0\] : null/);
+  assert.match(source, /function photoRegionCandidate\(region\)/);
+  assert.match(source, /region\?\.status === "ambiguous" && typeof region\.selectedName === "string"/);
   assert.match(source, /t\("photo\.result\.possible"\)/);
   assert.match(source, /const bestCandidate = region\.candidates\?\.\[0\]/);
+});
+
+test("une confirmation ambiguë rafraichit et conserve le choix dans la boite photo", async () => {
+  const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
+  assert.match(source, /t\(manuallyConfirmed \? "photo\.result\.confirmed"/);
+  assert.match(source, /select\.value = region\.selectedName \|\| ""/);
+  assert.match(source, /selectPhotoCandidate\(analysis, index, select\.value\);\s*describePhotoAnalysis\(analysis\);/);
 });
 
 test("les chaines francaises de l'import photo restent sans accents", async () => {
