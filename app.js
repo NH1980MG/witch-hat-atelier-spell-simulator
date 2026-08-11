@@ -25,7 +25,7 @@ import {
   saveMySpells,
 } from "./spell-library.mjs";
 import { classifySymbolDragGesture } from "./symbol-drag-gesture.mjs?v=20260809-handoff-layout-v2";
-import { parseRecipeParams } from "./recipe-link.mjs";
+import { parseRecipeParams } from "./recipe-link.mjs?v=20260811-exact-schematic-v1";
 import {
   buildCommunityComposeUrl,
   decodeCircleShare,
@@ -69,14 +69,24 @@ import {
 } from "./practice-session.mjs?v=20260809-handoff-layout-v2";
 import { analyzePhoto } from "./photo-import.mjs?v=20260809-handoff-layout-v2";
 import {
+  createPhotoRegionFromBounds,
   mapPhotoAnalysis,
-  selectPhotoCandidate,
+  selectPhotoSymbol,
+  setPhotoRegionBounds,
+  setPhotoRegionPosition,
   sourceCropForAnalysis,
-} from "./photo-placement.mjs?v=20260809-handoff-layout-v2";
+} from "./photo-placement.mjs?v=20260811-photo-edit-v1";
 import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260809-handoff-layout-v2";
 import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260809-handoff-layout-v2";
 import { assessFreehandBoundary, recognizedMaterialLabel } from "./drawing-recognition.mjs";
 import { createScalewolfMotionProfile } from "./decorative-creature-profile.mjs?v=20260811-scalewolf-v2";
+import {
+  applySpellImpact,
+  computeSceneScale,
+  spellInfluenceProfile,
+} from "./environment-interactions.mjs";
+
+const libraryCircleById = new Map(LIBRARY_CIRCLES.map((circle) => [circle.id, circle]));
 
 export const CENTRAL_SIGIL_STROKE_WIDTH = 6.4365;
 
@@ -324,6 +334,7 @@ const photoImportButton = document.querySelector("#photoImportButton");
 const photoFileInput = document.querySelector("#photoFileInput");
 const photoImportDialog = document.querySelector("#photoImportDialog");
 const photoPreviewImage = document.querySelector("#photoPreviewImage");
+const photoPreviewOverlay = document.querySelector("#photoPreviewOverlay");
 const photoImportResults = document.querySelector("#photoImportResults");
 const photoRecreateButton = document.querySelector("#photoRecreateButton");
 const photoGuideButton = document.querySelector("#photoGuideButton");
@@ -409,6 +420,7 @@ const state = {
   undoStack: [],
   redoStack: [],
   activeGuide: null,
+  librarySchematicId: null,
   guideVisible: localStorage.getItem("whaGuideVisible") !== "false",
   guideOpacity: Math.max(10, Math.min(70, Number(localStorage.getItem("whaGuideOpacity") || 28))),
   userGuides: loadUserGuides(localStorage),
@@ -437,6 +449,10 @@ const threeView = {
   spellGroup: null,
   environmentGroup: null,
   environment: null,
+  environmentScale: 1,
+  environmentTargets: [],
+  selectedSpell: false,
+  spellDrag: null,
   animationFrame: 0,
   lastRenderAt: 0,
 };
@@ -2319,6 +2335,50 @@ function makePointedHat(x, z, scale = 1) {
   return group;
 }
 
+function markInteractiveTarget(group, target) {
+  group.userData.interactiveTarget = {
+    radius: 0.5,
+    mass: 100,
+    resistance: 0.5,
+    anchored: false,
+    ...target,
+  };
+  group.userData.basePosition = group.position.clone();
+  group.userData.baseRotation = group.rotation.clone();
+  return group;
+}
+
+function collectEnvironmentTargets() {
+  threeView.environmentTargets = [];
+  threeView.environmentGroup?.traverse((object) => {
+    if (object.userData?.interactiveTarget) {
+      threeView.environmentTargets.push(object);
+    }
+  });
+}
+
+function resetTargetPose(target) {
+  if (!target?.userData?.basePosition || !target.userData?.baseRotation) return;
+  target.position.copy(target.userData.basePosition);
+  target.rotation.copy(target.userData.baseRotation);
+}
+
+function animateEnvironmentTargets() {
+  const elapsed = performance.now() / 1000;
+  for (const target of threeView.environmentTargets) {
+    const impact = target.userData.impact;
+    if (!impact) continue;
+    resetTargetPose(target);
+    const pulse = Math.sin(elapsed * (impact.state === "torn" ? 2.2 : 7.5));
+    target.rotation.x += impact.tilt * pulse;
+    target.rotation.z += impact.tilt * 0.65 * Math.cos(elapsed * 6.2);
+    target.position.x += impact.direction.x * impact.offset * (impact.state === "torn" ? Math.min(1, impact.age || 0.8) : 0.22 * pulse);
+    target.position.z += impact.direction.z * impact.offset * (impact.state === "torn" ? Math.min(1, impact.age || 0.8) : 0.22 * pulse);
+    target.position.y += impact.state === "lifted" ? Math.abs(pulse) * impact.offset : 0;
+    impact.age = Math.min(1, (impact.age || 0) + 0.018);
+  }
+}
+
 function makeInkWell(x, z) {
   const group = new THREE.Group();
   const glass = new THREE.MeshStandardMaterial({ color: 0x1c1c22, roughness: 0.35, metalness: 0.08 });
@@ -2605,22 +2665,22 @@ function makeDeskScene() {
   group.add(makeHangingHerbs(1.15, 4.72, -6.0));
   group.add(makeHangingScrollCluster(-5.85, 3.42, -6.0));
   group.add(makeHangingScrollCluster(5.85, 3.42, -6.0));
-  group.add(makeOpenBook(0, 2.35, Math.PI));
-  group.add(makeBookStack(-3.0, 2.0, 5));
-  group.add(makeBookStack(3.1, 1.95, 4));
+  group.add(markInteractiveTarget(makeOpenBook(0, 2.35, Math.PI), { kind: "book", mass: 2, resistance: 0.22, anchored: false, radius: 0.65 }));
+  group.add(markInteractiveTarget(makeBookStack(-3.0, 2.0, 5), { kind: "book", mass: 4, resistance: 0.26, anchored: false, radius: 0.48 }));
+  group.add(markInteractiveTarget(makeBookStack(3.1, 1.95, 4), { kind: "book", mass: 3, resistance: 0.24, anchored: false, radius: 0.45 }));
   group.add(makeQuillCup(2.45, -2.1));
   group.add(makeInkWell(2.0, -2.03));
-  group.add(makePointedHat(-2.9, -1.1, 0.82));
+  group.add(markInteractiveTarget(makePointedHat(-2.9, -1.1, 0.82), { kind: "hat", mass: 1, resistance: 0.16, anchored: false, radius: 0.48 }));
   group.add(makeAtelierLantern(0.95, -2.32));
-  group.add(makeDeskPlant(-1.85, -2.25));
-  group.add(makeDeskPlant(1.82, 2.1));
-  group.add(makeBottle(-2.9, -2.2, 0x377da4, 0.52));
-  group.add(makeBottle(-2.5, -2.1, 0x5c8b62, 0.42));
-  group.add(makeBottle(3.0, -2.25, 0xa94a38, 0.5));
-  group.add(makeCandle(-3.3, -1.85, 0.52));
-  group.add(makeCandle(3.55, -1.85, 0.44));
-  group.add(makeCrystalCluster(-3.55, 1.0));
-  group.add(makeCrystalCluster(3.55, 1.0));
+  group.add(markInteractiveTarget(makeDeskPlant(-1.85, -2.25), { kind: "plant", mass: 3, resistance: 0.25, anchored: false, radius: 0.38 }));
+  group.add(markInteractiveTarget(makeDeskPlant(1.82, 2.1), { kind: "plant", mass: 3, resistance: 0.25, anchored: false, radius: 0.38 }));
+  group.add(markInteractiveTarget(makeBottle(-2.9, -2.2, 0x377da4, 0.52), { kind: "bottle", mass: 2, resistance: 0.35, anchored: false, radius: 0.22 }));
+  group.add(markInteractiveTarget(makeBottle(-2.5, -2.1, 0x5c8b62, 0.42), { kind: "bottle", mass: 2, resistance: 0.35, anchored: false, radius: 0.22 }));
+  group.add(markInteractiveTarget(makeBottle(3.0, -2.25, 0xa94a38, 0.5), { kind: "bottle", mass: 2, resistance: 0.35, anchored: false, radius: 0.22 }));
+  group.add(markInteractiveTarget(makeCandle(-3.3, -1.85, 0.52), { kind: "candle", mass: 1, resistance: 0.18, anchored: false, radius: 0.2 }));
+  group.add(markInteractiveTarget(makeCandle(3.55, -1.85, 0.44), { kind: "candle", mass: 1, resistance: 0.18, anchored: false, radius: 0.2 }));
+  group.add(markInteractiveTarget(makeCrystalCluster(-3.55, 1.0), { kind: "stone", mass: 25, resistance: 0.7, anchored: false, radius: 0.34 }));
+  group.add(markInteractiveTarget(makeCrystalCluster(3.55, 1.0), { kind: "stone", mass: 25, resistance: 0.7, anchored: false, radius: 0.34 }));
   group.add(makeScroll(-2.3, 0.95, -0.5));
   group.add(makeScroll(2.25, 0.85, 0.4));
 
@@ -2790,7 +2850,7 @@ function makeFlowerPatch(x, z, color = 0xd6b04a) {
   return group;
 }
 
-function makeExteriorScene() {
+function makeExteriorScene(sceneScale = 1) {
   const group = new THREE.Group();
   const grass = new THREE.Mesh(new THREE.PlaneGeometry(34, 28), new THREE.MeshStandardMaterial({ color: 0x506b39, roughness: 0.95 }));
   grass.rotation.x = -Math.PI / 2;
@@ -2814,11 +2874,11 @@ function makeExteriorScene() {
     group.add(stone);
   }
 
-  group.add(makeAtelierBuilding(-6.2, -5.4, 1.35));
-  group.add(makeAtelierBuilding(5.3, -5.6, 1.05));
-  group.add(makeAtelierBuilding(-8.2, -2.9, 0.8));
-  group.add(makeAtelierBuilding(8.0, -2.6, 0.92));
-  group.add(makeAtelierBuilding(-4.8, 6.3, 0.72));
+  group.add(markInteractiveTarget(makeAtelierBuilding(-6.2, -5.4, 1.35 * sceneScale), { kind: "house", mass: 900, resistance: 0.86, anchored: true, radius: 1.9 * sceneScale }));
+  group.add(markInteractiveTarget(makeAtelierBuilding(5.3, -5.6, 1.05 * sceneScale), { kind: "house", mass: 650, resistance: 0.74, anchored: true, radius: 1.5 * sceneScale }));
+  group.add(markInteractiveTarget(makeAtelierBuilding(-8.2, -2.9, 0.8 * sceneScale), { kind: "light-house", mass: 180, resistance: 0.34, anchored: false, radius: 1.2 * sceneScale }));
+  group.add(markInteractiveTarget(makeAtelierBuilding(8.0, -2.6, 0.92 * sceneScale), { kind: "light-house", mass: 220, resistance: 0.4, anchored: false, radius: 1.25 * sceneScale }));
+  group.add(markInteractiveTarget(makeAtelierBuilding(-4.8, 6.3, 0.72 * sceneScale), { kind: "light-house", mass: 160, resistance: 0.32, anchored: false, radius: 1.05 * sceneScale }));
   group.add(makeAtelierLantern(-2.8, 4.4));
   group.add(makeAtelierLantern(2.8, 4.4));
   group.add(makeAtelierLantern(-0.4, 5.8));
@@ -2834,11 +2894,11 @@ function makeExteriorScene() {
 
   for (let index = 0; index < 24; index += 1) {
     const side = index % 2 ? 1 : -1;
-    group.add(makeTree(side * (6.6 + (index % 5) * 0.75), -1.8 + Math.floor(index / 2) * 0.62, 0.75 + (index % 4) * 0.12));
+    group.add(markInteractiveTarget(makeTree(side * (6.6 + (index % 5) * 0.75), -1.8 + Math.floor(index / 2) * 0.62, 0.75 + (index % 4) * 0.12), { kind: "tree", mass: 95, resistance: 0.42, anchored: true, radius: 0.5 }));
   }
   for (let index = 0; index < 16; index += 1) {
     const side = index % 2 ? 1 : -1;
-    group.add(makeBroadleafTree(side * (8.0 + (index % 4) * 0.92), -4.8 + Math.floor(index / 2) * 1.12, 0.92 + (index % 3) * 0.16));
+    group.add(markInteractiveTarget(makeBroadleafTree(side * (8.0 + (index % 4) * 0.92), -4.8 + Math.floor(index / 2) * 1.12, 0.92 + (index % 3) * 0.16), { kind: "tree", mass: 140, resistance: 0.5, anchored: true, radius: 0.7 }));
   }
 
   for (const data of [
@@ -2855,7 +2915,7 @@ function makeExteriorScene() {
   for (let index = 0; index < 34; index += 1) {
     const angle = (index / 34) * Math.PI * 2;
     const radius = 6.0 + (index % 6) * 0.55;
-    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.12 + (index % 4) * 0.035), new THREE.MeshStandardMaterial({ color: 0x8b806d, roughness: 0.96 }));
+    const rock = markInteractiveTarget(new THREE.Mesh(new THREE.DodecahedronGeometry(0.12 + (index % 4) * 0.035), new THREE.MeshStandardMaterial({ color: 0x8b806d, roughness: 0.96 })), { kind: "stone", mass: 70, resistance: 0.78, anchored: false, radius: 0.18 });
     rock.position.set(Math.cos(angle) * radius, 0.08, Math.sin(angle) * radius);
     group.add(rock);
   }
@@ -2930,17 +2990,19 @@ function applySoftShadows(group) {
   });
 }
 
-function useThreeEnvironment(mode) {
-  if (threeView.environment === mode && threeView.environmentGroup) {
+function useThreeEnvironment(mode, sceneScale = 1) {
+  if (threeView.environment === mode && Math.abs(threeView.environmentScale - sceneScale) < 0.001 && threeView.environmentGroup) {
     return;
   }
   if (threeView.environmentGroup) {
     threeView.scene.remove(threeView.environmentGroup);
   }
   threeView.environment = mode;
-  threeView.environmentGroup = mode === "exterior" ? makeExteriorScene() : makeDeskScene();
+  threeView.environmentScale = sceneScale;
+  threeView.environmentGroup = mode === "exterior" ? makeExteriorScene(sceneScale) : makeDeskScene();
   applySoftShadows(threeView.environmentGroup);
   threeView.scene.add(threeView.environmentGroup);
+  collectEnvironmentTargets();
   if (mode === "exterior") {
     threeView.scene.background = new THREE.Color(0xb8d0d2);
     threeView.scene.fog = new THREE.Fog(0xb8d0d2, 11, 34);
@@ -3016,7 +3078,7 @@ function initThreeView() {
   coolFill.position.set(5, 3.5, -4);
   threeView.scene.add(coolFill);
 
-  useThreeEnvironment("interior");
+  useThreeEnvironment("interior", 1);
 }
 
 function pointToThree(point, bounds, scale, lift = 0.08) {
@@ -3187,6 +3249,31 @@ function makeParchmentBase3d(auraRadius, supportId = "none") {
   }
 
   return group;
+}
+
+function makeLibrarySchematic3d(id, auraRadius, supportId = "none") {
+  if (!libraryCircleById.has(id)) {
+    return null;
+  }
+  const texture = new THREE.TextureLoader().load(guideAssetPath(id));
+  if ("colorSpace" in texture && THREE.SRGBColorSpace) {
+    texture.colorSpace = THREE.SRGBColorSpace;
+  }
+  const plane = new THREE.Mesh(
+    new THREE.PlaneGeometry(auraRadius * 2, auraRadius * 2),
+    new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      opacity: 0.98,
+      blending: THREE.MultiplyBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    }),
+  );
+  plane.name = "library-schematic";
+  plane.rotation.x = -Math.PI / 2;
+  plane.position.y = supportId === "shoe" ? THREE_SHOE_INK_Y + 0.004 : THREE_INK_Y + 0.004;
+  return plane;
 }
 
 function makeSupportProp3d(supportId, auraRadius) {
@@ -4766,8 +4853,9 @@ function rebuildThreeSpell() {
     return;
   }
 
+  const targetSize = clampCircleDiameterMeters(state.activeSpell.diameter || estimatedCircleDiameterMeters(bounds)) || 0.8;
   const environment = preferredThreeEnvironment(bounds);
-  useThreeEnvironment(environment);
+  useThreeEnvironment(environment, environment === "exterior" ? computeSceneScale(targetSize) : 1);
 
   clearActiveManifestation("replace", false);
 
@@ -4780,7 +4868,6 @@ function rebuildThreeSpell() {
   const group = new THREE.Group();
   const supportId = state.activeSpell.supportId || "none";
   const shoeMode = supportId === "shoe";
-  const targetSize = clampCircleDiameterMeters(state.activeSpell.diameter || estimatedCircleDiameterMeters(bounds)) || (environment === "exterior" ? MAX_CIRCLE_DIAMETER_M : 0.8);
   const scale = targetSize / Math.max(bounds.width, bounds.height, 1);
   const elementColor = new THREE.Color(materialPresentation?.color || element.color);
   const auraRadius = Math.max(MIN_CIRCLE_DIAMETER_M * 0.5, state.activeSpell.radius * scale * 0.95);
@@ -4794,7 +4881,14 @@ function rebuildThreeSpell() {
   const supportProp = makeSupportProp3d(supportId, auraRadius);
   const sealCarrier = new THREE.Group();
   sealCarrier.add(makeParchmentBase3d(auraRadius, supportId));
+  const librarySchematic = makeLibrarySchematic3d(state.activeSpell.librarySchematicId, auraRadius, supportId);
+  if (librarySchematic) {
+    sealCarrier.add(librarySchematic);
+  }
   for (const action of state.activeSpell.actions) {
+    if (librarySchematic && action.librarySynthetic) {
+      continue;
+    }
     const color = action.seal ? elementColor : new THREE.Color(colors.paper);
     const opacity = action.seal ? 0.96 : 0.82;
     for (const linePoints of actionLines3d(action, bounds, scale, supportId)) {
@@ -4811,9 +4905,11 @@ function rebuildThreeSpell() {
   } else {
     group.add(sealCarrier);
   }
-  sealCarrier.add(circleLine(auraRadius, shoeMode ? THREE_SHOE_INK_Y : THREE_INK_Y, elementColor, 0.95, 192));
-  sealCarrier.add(circleLine(auraRadius * 1.16, shoeMode ? THREE_SHOE_INK_Y + 0.006 : THREE_INK_Y + 0.006, elementColor, 0.5, 192));
-  sealCarrier.add(circleLine(auraRadius * 1.35, shoeMode ? THREE_SHOE_INK_Y + 0.011 : THREE_INK_Y + 0.011, elementColor, 0.28, 192));
+  if (!librarySchematic) {
+    sealCarrier.add(circleLine(auraRadius, shoeMode ? THREE_SHOE_INK_Y : THREE_INK_Y, elementColor, 0.95, 192));
+    sealCarrier.add(circleLine(auraRadius * 1.16, shoeMode ? THREE_SHOE_INK_Y + 0.006 : THREE_INK_Y + 0.006, elementColor, 0.5, 192));
+    sealCarrier.add(circleLine(auraRadius * 1.35, shoeMode ? THREE_SHOE_INK_Y + 0.011 : THREE_INK_Y + 0.011, elementColor, 0.28, 192));
+  }
   const manifestationStartIndex = group.children.length;
   if (materialPresentation?.kind === "elemental-mixture") {
     addElementalMixtureEffect3d(group, materialPresentation, auraRadius, elementColor, supportId);
@@ -5088,10 +5184,125 @@ function clearActiveManifestation(reason = "manual", clearSpell = true) {
     group.userData.animators = [];
     threeView.spellGroup = null;
   }
+  threeView.selectedSpell = false;
+  threeView.spellDrag = null;
+  if (threeView.controls) {
+    threeView.controls.enabled = true;
+  }
   if (clearSpell) {
     state.activeSpell = null;
   }
   return reason;
+}
+
+const threePointer = new THREE.Vector2();
+const threeRaycaster = new THREE.Raycaster();
+const threeGroundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+
+function updateThreePointer(event) {
+  const rect = spell3dCanvas.getBoundingClientRect();
+  threePointer.x = ((event.clientX - rect.left) / Math.max(1, rect.width)) * 2 - 1;
+  threePointer.y = -(((event.clientY - rect.top) / Math.max(1, rect.height)) * 2 - 1);
+  threeRaycaster.setFromCamera(threePointer, threeView.camera);
+}
+
+function spellGroundPoint(event) {
+  updateThreePointer(event);
+  const point = new THREE.Vector3();
+  return threeRaycaster.ray.intersectPlane(threeGroundPlane, point) ? point : null;
+}
+
+function hitActiveSpell(event) {
+  if (!threeView.spellGroup || !threeView.camera) return false;
+  updateThreePointer(event);
+  return threeRaycaster.intersectObject(threeView.spellGroup, true).length > 0;
+}
+
+function currentSpellInfluenceProfile() {
+  if (!state.activeSpell) return null;
+  return spellInfluenceProfile({
+    diameter: state.activeSpell.diameter,
+    force: spellMetrics(state.activeSpell.model).force,
+    effects: state.activeSpell.effects,
+    recipe: state.activeSpell.recipe,
+  });
+}
+
+function applySpellToEnvironment() {
+  const profile = currentSpellInfluenceProfile();
+  if (!profile || !threeView.spellGroup) return;
+  const spellPosition = threeView.spellGroup.position;
+  for (const target of threeView.environmentTargets) {
+    const base = target.userData.basePosition || target.position;
+    const radius = target.userData.interactiveTarget?.radius || 0.4;
+    const distance = Math.hypot(base.x - spellPosition.x, base.z - spellPosition.z);
+    if (distance > profile.diameter * 0.75 + radius) continue;
+    const impact = applySpellImpact(target.userData.interactiveTarget, profile);
+    const direction = new THREE.Vector3(base.x - spellPosition.x, 0, base.z - spellPosition.z);
+    if (direction.lengthSq() < 0.001) direction.set(1, 0, 0);
+    direction.normalize();
+    target.userData.impact = {
+      ...impact,
+      age: 0,
+      direction: { x: direction.x, z: direction.z },
+    };
+  }
+}
+
+function onSpell3dPointerDown(event) {
+  if (view3dPanel.hidden || !threeView.spellGroup || !hitActiveSpell(event)) {
+    return;
+  }
+  event.preventDefault();
+  state.activePointers?.clear?.();
+  state.threeSpellSelected = true;
+  const ground = spellGroundPoint(event);
+  threeView.selectedSpell = true;
+  threeView.controls.enabled = false;
+  spell3dCanvas.setPointerCapture?.(event.pointerId);
+  threeView.spellDrag = {
+    pointerId: event.pointerId,
+    mode: event.shiftKey || event.button === 2 ? "rotate" : "move",
+    startX: event.clientX,
+    startPosition: threeView.spellGroup.position.clone(),
+    startRotationY: threeView.spellGroup.rotation.y,
+    startGround: ground,
+  };
+}
+
+function onSpell3dPointerMove(event) {
+  const drag = threeView.spellDrag;
+  if (!drag || drag.pointerId !== event.pointerId || !threeView.spellGroup) return;
+  event.preventDefault();
+  if (drag.mode === "rotate") {
+    threeView.spellGroup.rotation.y = drag.startRotationY + (event.clientX - drag.startX) * 0.012;
+    return;
+  }
+  const ground = spellGroundPoint(event);
+  if (!ground || !drag.startGround) return;
+  threeView.spellGroup.position.set(
+    drag.startPosition.x + ground.x - drag.startGround.x,
+    drag.startPosition.y,
+    drag.startPosition.z + ground.z - drag.startGround.z,
+  );
+}
+
+function finishSpell3dDrag(event) {
+  const drag = threeView.spellDrag;
+  if (!drag || (event?.pointerId !== undefined && drag.pointerId !== event.pointerId)) return;
+  threeView.spellDrag = null;
+  threeView.controls.enabled = true;
+  if (spell3dCanvas.hasPointerCapture?.(drag.pointerId)) {
+    spell3dCanvas.releasePointerCapture(drag.pointerId);
+  }
+  applySpellToEnvironment();
+}
+
+function rotateSelectedSpell3d(amount) {
+  if (!threeView.selectedSpell || !threeView.spellGroup) return false;
+  threeView.spellGroup.rotation.y += amount;
+  applySpellToEnvironment();
+  return true;
 }
 
 function renderThreeView(timestamp = performance.now()) {
@@ -5109,6 +5320,7 @@ function renderThreeView(timestamp = performance.now()) {
     setStatus(t("status.spellDissipated"));
   }
   animateThreeSpell();
+  animateEnvironmentTargets();
   threeView.controls.update();
   threeView.renderer.render(threeView.scene, threeView.camera);
 }
@@ -7288,6 +7500,21 @@ function drawActiveGuide(width, height) {
   ctx.restore();
 }
 
+function drawLoadedLibrarySchematic(width, height) {
+  if (!state.librarySchematicId) {
+    return;
+  }
+  const image = libraryGuideImage(state.librarySchematicId);
+  if (!image.complete || image.naturalWidth <= 0) {
+    return;
+  }
+  const bounds = centeredRasterGuideBounds(image, width, height);
+  ctx.save();
+  ctx.globalCompositeOperation = "multiply";
+  ctx.drawImage(image, bounds.left, bounds.top, bounds.width, bounds.height);
+  ctx.restore();
+}
+
 function drawSelectedGuide(width, height) {
   if (state.exporting || state.tool !== "select" || !state.guideVisible || !state.guideSelected) {
     return;
@@ -7336,7 +7563,12 @@ function render() {
 
   drawActiveGuide(width, height);
 
+  drawLoadedLibrarySchematic(width, height);
+
   for (const action of state.actions) {
+    if (state.librarySchematicId && action.librarySynthetic) {
+      continue;
+    }
     drawAction(action);
   }
 
@@ -7446,6 +7678,7 @@ function recordHistory() {
 
 function restoreActions(snapshot) {
   state.actions = cloneActions(snapshot);
+  state.librarySchematicId = null;
   state.practiceStartIndex = reconcilePracticeStartIndex(state.practiceStartIndex, state.actions.length);
   state.activeSpell = null;
   state.activation = null;
@@ -8922,7 +9155,9 @@ function renderSupportList() {
 }
 
 function guideAssetPath(id) {
-  return `assets/library-schematics/${id}.png`;
+  const circle = libraryCircleById.get(id);
+  const extension = circle?.assetKind === "generated-recipe" ? "svg" : "png";
+  return `assets/library-schematics/${id}.${extension}`;
 }
 
 function selectGuide(source, id) {
@@ -9050,6 +9285,7 @@ function loadMySpell(id) {
   }
   recordHistory();
   state.actions = structuredClone(spell.actions);
+  state.librarySchematicId = null;
   state.activeSpell = null;
   state.pendingSpell = null;
   state.strokeSize = spell.stroke;
@@ -9080,10 +9316,19 @@ function renderGuideLists() {
     button.className = `guide-card${active ? " is-active" : ""}`;
     button.type = "button";
     button.setAttribute("aria-pressed", String(active));
-    button.innerHTML = `
-      <img src="${guideAssetPath(guide.id)}" alt="${guide.alt[getLocale()] || guide.alt.en}">
-      <span class="guide-card-name">${guide.name}</span>
-    `;
+    const image = document.createElement("img");
+    image.src = guideAssetPath(guide.id);
+    image.alt = guide.alt[getLocale()] || guide.alt.en;
+    const name = document.createElement("span");
+    name.className = "guide-card-name";
+    name.textContent = guide.name;
+    button.append(image, name);
+    if (guide.effect) {
+      const effect = document.createElement("small");
+      effect.className = "guide-card-effect";
+      effect.textContent = guide.effect;
+      button.append(effect);
+    }
     button.addEventListener("click", () => selectGuide("library", guide.id));
     guideLibraryList.append(button);
   }
@@ -9723,6 +9968,7 @@ function activateCircle() {
       effects: [...model.effectNames],
       recipeId: model.recipe.id,
       recipeLabel: model.recipe.label,
+      librarySchematicId: state.librarySchematicId,
     }),
   };
   state.activeSpell = null;
@@ -9760,6 +10006,7 @@ function clearCanvas() {
   }
   cancelAnimationFrame(state.animationFrame);
   state.actions = [];
+  state.librarySchematicId = null;
   state.currentAction = null;
   state.preview = null;
   state.deferredTouchTool = null;
@@ -10131,6 +10378,13 @@ function confirmSymbolSearch(position = symbolSearchActiveIndex) {
   if (!element) {
     return;
   }
+  if (photoEditRegionIndex !== null && pendingPhotoImport?.analysis) {
+    selectPhotoSymbol(pendingPhotoImport.analysis, photoEditRegionIndex, element);
+    photoEditRegionIndex = null;
+    symbolSearchDialog.close();
+    refreshPhotoImportEditor();
+    return;
+  }
   symbolSearchDialog.close();
   armSymbol(element);
 }
@@ -10144,6 +10398,18 @@ function openSymbolSearch() {
   // click, and the record's own origin+recency match makes a stale one inert
   // anyway. Kept because opening search is a natural "fresh start" point.
   state.suppressNextDrawerClick = null;
+  photoEditRegionIndex = null;
+  symbolSearchInput.value = "";
+  renderSymbolSearchResults();
+  symbolSearchDialog.showModal();
+  symbolSearchInput.focus();
+}
+
+function openPhotoRegionSearch(regionIndex) {
+  if (!pendingPhotoImport?.analysis || !symbolSearchDialog || symbolSearchDialog.open) {
+    return;
+  }
+  photoEditRegionIndex = regionIndex;
   symbolSearchInput.value = "";
   renderSymbolSearchResults();
   symbolSearchDialog.showModal();
@@ -10163,6 +10429,10 @@ symbolSearchDialog?.addEventListener("click", (event) => {
   if (!clientPointInsideRect(event.clientX, event.clientY, box)) {
     symbolSearchDialog.close();
   }
+});
+
+symbolSearchDialog?.addEventListener("close", () => {
+  photoEditRegionIndex = null;
 });
 
 symbolSearchInput?.addEventListener("input", renderSymbolSearchResults);
@@ -10300,6 +10570,9 @@ practiceTargetSelect?.addEventListener("change", () => {
 practiceVerifyButton?.addEventListener("click", verifyPracticeStroke);
 
 let pendingPhotoImport = null;
+let photoEditRegionIndex = null;
+let photoSelectedRegionIndex = null;
+let photoRegionDrag = null;
 
 function photoScoreTier(score) {
   if (score >= 70) return "high";
@@ -10334,6 +10607,199 @@ function drawDetectionOverlay(context, analysis, cropBounds, scaleX = 1, scaleY 
   context.restore();
 }
 
+function photoRegionCropBounds(region, pending = pendingPhotoImport) {
+  if (!region || !pending) return null;
+  const left = (region.left - pending.cropBounds.left) * pending.overlayScaleX;
+  const top = (region.top - pending.cropBounds.top) * pending.overlayScaleY;
+  const width = region.width * pending.overlayScaleX;
+  const height = region.height * pending.overlayScaleY;
+  return { left, top, width, height };
+}
+
+function photoCropToStyle(bounds, pending = pendingPhotoImport) {
+  if (!bounds || !pending?.cropWidth || !pending?.cropHeight) return null;
+  return {
+    left: `${(bounds.left / pending.cropWidth) * 100}%`,
+    top: `${(bounds.top / pending.cropHeight) * 100}%`,
+    width: `${(bounds.width / pending.cropWidth) * 100}%`,
+    height: `${(bounds.height / pending.cropHeight) * 100}%`,
+  };
+}
+
+function applyPhotoRegionBoxStyle(box, region, pending = pendingPhotoImport) {
+  const style = photoCropToStyle(photoRegionCropBounds(region, pending), pending);
+  if (!style) return;
+  Object.assign(box.style, style);
+}
+
+function photoEventToAnalysisPoint(event, pending = pendingPhotoImport) {
+  if (!photoPreviewOverlay || !pending) return null;
+  const rect = photoPreviewOverlay.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return null;
+  const cropX = ((event.clientX - rect.left) / rect.width) * pending.cropWidth;
+  const cropY = ((event.clientY - rect.top) / rect.height) * pending.cropHeight;
+  return {
+    x: cropX / pending.overlayScaleX + pending.cropBounds.left,
+    y: cropY / pending.overlayScaleY + pending.cropBounds.top,
+  };
+}
+
+function renderPhotoRegionOverlay(pending = pendingPhotoImport) {
+  if (!photoPreviewOverlay) return;
+  photoPreviewOverlay.replaceChildren();
+  if (!pending?.analysis) return;
+  for (const [index, region] of (pending.analysis.regions || []).entries()) {
+    const box = document.createElement("button");
+    box.type = "button";
+    box.className = "photo-region-box";
+    box.dataset.index = String(index);
+    box.dataset.status = region.status;
+    box.setAttribute("aria-pressed", index === photoSelectedRegionIndex ? "true" : "false");
+    box.setAttribute("aria-label", `${t("photo.result.position")} ${index + 1}`);
+    applyPhotoRegionBoxStyle(box, region, pending);
+    box.addEventListener("pointerdown", (event) => startPhotoRegionDrag(event, index, "move"));
+    box.addEventListener("dblclick", () => openPhotoRegionSearch(index));
+    for (const handle of ["nw", "ne", "sw", "se"]) {
+      const grip = document.createElement("span");
+      grip.className = "photo-region-handle";
+      grip.dataset.handle = handle;
+      grip.setAttribute("aria-hidden", "true");
+      grip.addEventListener("pointerdown", (event) => startPhotoRegionDrag(event, index, handle));
+      box.append(grip);
+    }
+    photoPreviewOverlay.append(box);
+  }
+}
+
+function refreshPhotoImportEditor() {
+  if (!pendingPhotoImport?.analysis) return;
+  renderPhotoPreview(pendingPhotoImport);
+  renderPhotoRegionOverlay(pendingPhotoImport);
+  describePhotoAnalysis(pendingPhotoImport.analysis);
+  updatePhotoRecreateAvailability();
+}
+
+function startPhotoRegionDrag(event, regionIndex, mode) {
+  if (!pendingPhotoImport?.analysis) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const point = photoEventToAnalysisPoint(event);
+  const region = pendingPhotoImport.analysis.regions?.[regionIndex];
+  if (!point || !region) return;
+  photoSelectedRegionIndex = regionIndex;
+  photoRegionDrag = {
+    kind: "region",
+    mode,
+    pointerId: event.pointerId,
+    startPoint: point,
+    startBounds: {
+      left: region.left,
+      top: region.top,
+      right: region.right,
+      bottom: region.bottom,
+      width: region.width,
+      height: region.height,
+    },
+  };
+  photoPreviewOverlay?.setPointerCapture?.(event.pointerId);
+  renderPhotoRegionOverlay(pendingPhotoImport);
+}
+
+function boundsForPhotoDrag(drag, point) {
+  const dx = point.x - drag.startPoint.x;
+  const dy = point.y - drag.startPoint.y;
+  const start = drag.startBounds;
+  if (drag.mode === "move") {
+    return {
+      left: start.left + dx,
+      top: start.top + dy,
+      width: start.width,
+      height: start.height,
+    };
+  }
+  const next = {
+    left: start.left,
+    top: start.top,
+    right: start.right,
+    bottom: start.bottom,
+  };
+  if (drag.mode.includes("w")) next.left = start.left + dx;
+  if (drag.mode.includes("e")) next.right = start.right + dx;
+  if (drag.mode.includes("n")) next.top = start.top + dy;
+  if (drag.mode.includes("s")) next.bottom = start.bottom + dy;
+  return next;
+}
+
+function updatePhotoRegionDrag(event) {
+  if (!photoRegionDrag || !pendingPhotoImport?.analysis) return;
+  const point = photoEventToAnalysisPoint(event);
+  if (!point) return;
+  event.preventDefault();
+  if (photoRegionDrag.kind === "create") {
+    const style = photoCropToStyle(photoRegionCropBounds({
+      left: Math.min(photoRegionDrag.startPoint.x, point.x),
+      top: Math.min(photoRegionDrag.startPoint.y, point.y),
+      width: Math.abs(point.x - photoRegionDrag.startPoint.x),
+      height: Math.abs(point.y - photoRegionDrag.startPoint.y),
+    }));
+    if (style && photoRegionDrag.preview) Object.assign(photoRegionDrag.preview.style, style);
+    photoRegionDrag.lastPoint = point;
+    return;
+  }
+  setPhotoRegionBounds(
+    pendingPhotoImport.analysis,
+    photoSelectedRegionIndex,
+    boundsForPhotoDrag(photoRegionDrag, point),
+  );
+  const box = photoPreviewOverlay?.querySelector(`.photo-region-box[data-index="${photoSelectedRegionIndex}"]`);
+  if (box) applyPhotoRegionBoxStyle(box, pendingPhotoImport.analysis.regions[photoSelectedRegionIndex]);
+}
+
+function finishPhotoRegionDrag(event) {
+  if (!photoRegionDrag || !pendingPhotoImport?.analysis) return;
+  event.preventDefault();
+  const drag = photoRegionDrag;
+  photoRegionDrag = null;
+  photoPreviewOverlay?.releasePointerCapture?.(event.pointerId);
+  if (drag.kind === "create") {
+    drag.preview?.remove();
+    const end = drag.lastPoint || photoEventToAnalysisPoint(event) || drag.startPoint;
+    const width = Math.abs(end.x - drag.startPoint.x);
+    const height = Math.abs(end.y - drag.startPoint.y);
+    if (Math.max(width, height) >= 6) {
+      const index = createPhotoRegionFromBounds(pendingPhotoImport.analysis, {
+        left: drag.startPoint.x,
+        top: drag.startPoint.y,
+        width: end.x - drag.startPoint.x,
+        height: end.y - drag.startPoint.y,
+      });
+      photoSelectedRegionIndex = index;
+      refreshPhotoImportEditor();
+      openPhotoRegionSearch(index);
+      return;
+    }
+  }
+  refreshPhotoImportEditor();
+}
+
+function startPhotoRegionCreate(event) {
+  if (!pendingPhotoImport?.analysis || event.button !== 2) return;
+  const point = photoEventToAnalysisPoint(event);
+  if (!point) return;
+  event.preventDefault();
+  const preview = document.createElement("span");
+  preview.className = "photo-region-box photo-region-box-draft";
+  photoPreviewOverlay?.append(preview);
+  photoRegionDrag = {
+    kind: "create",
+    pointerId: event.pointerId,
+    startPoint: point,
+    lastPoint: point,
+    preview,
+  };
+  photoPreviewOverlay?.setPointerCapture?.(event.pointerId);
+}
+
 function renderPhotoPreview(pending) {
   if (!photoPreviewImage) return;
   const preview = document.createElement("canvas");
@@ -10349,6 +10815,7 @@ function renderPhotoPreview(pending) {
     pending.overlayScaleY,
   );
   photoPreviewImage.src = preview.toDataURL("image/png");
+  renderPhotoRegionOverlay(pending);
 }
 
 function encodePhotoGuideRaster(canvas) {
@@ -10356,8 +10823,15 @@ function encodePhotoGuideRaster(canvas) {
   return webp.startsWith("data:image/webp") ? webp : canvas.toDataURL("image/png");
 }
 
+function photoRegionCandidate(region) {
+  if (region?.selectedCandidate && region.selectedName === region.selectedCandidate.name) {
+    return region.selectedCandidate;
+  }
+  return region?.candidates?.[0] || null;
+}
+
 function photoRegionIcon(region) {
-  const candidate = region.candidates?.[0];
+  const candidate = photoRegionCandidate(region);
   const element = elements.find((entry) => entry.name === candidate?.name);
   return element ? elementIconMarkup(element) : "?";
 }
@@ -10391,7 +10865,7 @@ function describePhotoAnalysis(analysis) {
     photoImportResults.append(item);
   }
   for (const [index, region] of (analysis.regions || []).entries()) {
-    const candidate = region.candidates?.[0];
+    const candidate = photoRegionCandidate(region);
     const element = elements.find((entry) => entry.name === candidate?.name);
     const item = document.createElement("li");
     item.className = "photo-import-row";
@@ -10419,28 +10893,48 @@ function describePhotoAnalysis(analysis) {
     fill.dataset.tier = photoScoreTier(candidate?.score || 0);
     meter.append(fill);
     item.append(icon, copy, score, meter);
-    if (region.status === "ambiguous") {
-      const select = document.createElement("select");
-      select.className = "photo-region-select";
-      select.dataset.photoRegion = String(index);
-      select.setAttribute("aria-labelledby", label.id);
-      const ignore = document.createElement("option");
-      ignore.value = "";
-      ignore.textContent = t("photo.result.choose");
-      select.append(ignore);
-      for (const optionCandidate of region.candidates.slice(0, 3)) {
-        const option = document.createElement("option");
-        option.value = optionCandidate.name;
-        const optionElement = elements.find((entry) => entry.name === optionCandidate.name);
-        option.textContent = `${optionElement ? elementDisplayName(optionElement) : optionCandidate.name} (${optionCandidate.score}%)`;
-        select.append(option);
-      }
-      select.addEventListener("change", () => {
-        selectPhotoCandidate(analysis, index, select.value);
+
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.className = "photo-region-edit";
+    editButton.textContent = t("photo.result.change");
+    editButton.addEventListener("click", () => openPhotoRegionSearch(index));
+    item.append(editButton);
+
+    const position = document.createElement("div");
+    position.className = "photo-region-position";
+    const positionTitle = document.createElement("span");
+    positionTitle.textContent = t("photo.result.position");
+    position.append(positionTitle);
+    for (const [axis, key] of [["x", "photo.result.x"], ["y", "photo.result.y"]]) {
+      const field = document.createElement("label");
+      field.className = "photo-region-position-field";
+      const fieldLabel = document.createElement("span");
+      fieldLabel.textContent = t(key);
+      const input = document.createElement("input");
+      input.type = "range";
+      input.min = "-50";
+      input.max = "50";
+      input.step = "1";
+      input.value = String(Math.round((region[axis === "x" ? "offsetX" : "offsetY"] || 0) * 100));
+      input.setAttribute("aria-label", `${t("photo.result.position")} ${t(key)}`);
+      const value = document.createElement("output");
+      value.textContent = `${input.value}%`;
+      input.addEventListener("input", () => {
+        value.textContent = `${input.value}%`;
+        setPhotoRegionPosition(
+          analysis,
+          index,
+          axis === "x" ? Number(input.value) / 100 : region.offsetX || 0,
+          axis === "y" ? Number(input.value) / 100 : region.offsetY || 0,
+        );
+        renderPhotoRegionOverlay(pendingPhotoImport);
         updatePhotoRecreateAvailability();
       });
-      item.append(select);
+      field.append(fieldLabel, input, value);
+      position.append(field);
     }
+    item.append(position);
     photoImportResults.append(item);
   }
   const listedUnreadable = (analysis.regions || []).filter(({ status }) => status === "unreadable").length;
@@ -10639,8 +11133,16 @@ photoFileInput?.addEventListener("change", () => {
 });
 photoRecreateButton?.addEventListener("click", recreatePhotoImport);
 photoGuideButton?.addEventListener("click", savePhotoAsGuide);
+photoPreviewOverlay?.addEventListener("pointerdown", startPhotoRegionCreate);
+photoPreviewOverlay?.addEventListener("pointermove", updatePhotoRegionDrag);
+photoPreviewOverlay?.addEventListener("pointerup", finishPhotoRegionDrag);
+photoPreviewOverlay?.addEventListener("pointercancel", finishPhotoRegionDrag);
+photoPreviewOverlay?.addEventListener("contextmenu", (event) => event.preventDefault());
 photoImportDialog?.addEventListener("close", () => {
   pendingPhotoImport = null;
+  photoSelectedRegionIndex = null;
+  photoRegionDrag = null;
+  photoPreviewOverlay?.replaceChildren();
 });
 
 symbolSearchInput?.addEventListener("keydown", (event) => {
@@ -10695,6 +11197,16 @@ function duplicateSelectedActions() {
 }
 
 document.addEventListener("keydown", (event) => {
+  if (!view3dPanel.hidden && !event.metaKey && !event.ctrlKey && !event.altKey) {
+    if (event.key.toLowerCase() === "q" && rotateSelectedSpell3d(-0.16)) {
+      event.preventDefault();
+      return;
+    }
+    if (event.key.toLowerCase() === "e" && rotateSelectedSpell3d(0.16)) {
+      event.preventDefault();
+      return;
+    }
+  }
   const target = event.target;
   const { command, preventDefault } = resolveKeyCommand(event, {
     isTyping: target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement,
@@ -10794,6 +11306,15 @@ canvas.addEventListener("contextmenu", (event) => {
 canvas.addEventListener("pointerdown", onPointerDown);
 canvas.addEventListener("pointermove", onPointerMove);
 canvas.addEventListener("pointerup", onPointerUp);
+spell3dCanvas?.addEventListener("pointerdown", onSpell3dPointerDown);
+spell3dCanvas?.addEventListener("pointermove", onSpell3dPointerMove);
+spell3dCanvas?.addEventListener("pointerup", finishSpell3dDrag);
+spell3dCanvas?.addEventListener("pointercancel", finishSpell3dDrag);
+spell3dCanvas?.addEventListener("contextmenu", (event) => {
+  if (threeView.selectedSpell || hitActiveSpell(event)) {
+    event.preventDefault();
+  }
+});
 window.addEventListener("pointermove", (event) => {
   if (state.ghostOwner !== "armed") {
     return; // a live drag owns positioning through moveSymbolDrag
@@ -10826,6 +11347,7 @@ function loadRecipeFromUrl() {
   const recipe = parseRecipeParams(window.location.search, {
     sigilNames: elements.filter((element) => (element.kind || "sigil") === "sigil").map((element) => element.name),
     signNames: elements.filter((element) => element.kind === "sign").map((element) => element.name),
+    libraryIds: LIBRARY_CIRCLES.map((circle) => circle.id),
   });
   if (!recipe) {
     return false;
@@ -10834,6 +11356,7 @@ function loadRecipeFromUrl() {
 
   recordHistory();
   state.actions = [];
+  state.librarySchematicId = recipe.libraryId;
   state.currentAction = null;
   state.activeSpell = null;
   state.activation = null;
@@ -10855,6 +11378,7 @@ function loadRecipeFromUrl() {
     cx: centerX,
     cy: centerY,
     radius: ringRadius,
+    librarySynthetic: Boolean(recipe.libraryId),
   });
   state.circleCenter = { x: centerX, y: centerY };
 
@@ -10872,7 +11396,10 @@ function loadRecipeFromUrl() {
         y: centerY + Math.sin(angle) * clusterRadius,
       };
     }
-    state.actions.push(createGlyphAction(element, point, recipe.sigils.length > 1 ? 20 : 30));
+    state.actions.push({
+      ...createGlyphAction(element, point, recipe.sigils.length > 1 ? 20 : 30),
+      librarySynthetic: Boolean(recipe.libraryId),
+    });
   });
 
   const signAngles = { 1: [-90], 2: [-150, -30], 3: [-90, -210, -330] };
@@ -10888,10 +11415,16 @@ function loadRecipeFromUrl() {
       x: centerX + Math.cos(angle) * orbit,
       y: centerY + Math.sin(angle) * orbit,
     };
-    state.actions.push(createGlyphAction(element, point, 18));
+    state.actions.push({
+      ...createGlyphAction(element, point, 18),
+      librarySynthetic: Boolean(recipe.libraryId),
+    });
   });
 
   state.supportId = recipe.supportId === "shoe" ? "shoe" : "none";
+  if (recipe.libraryId) {
+    libraryGuideImage(recipe.libraryId);
+  }
 
   renderSupportList();
   updateUsedList();

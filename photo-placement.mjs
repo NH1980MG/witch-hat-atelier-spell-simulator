@@ -28,13 +28,16 @@ function analysisRings(analysis) {
 
 function selectedCandidate(region) {
   const candidates = Array.isArray(region?.candidates) ? region.candidates : [];
+  if (region?.selectedCandidate && region.selectedName === region.selectedCandidate.name) {
+    return region.selectedCandidate;
+  }
+  if (region?.status === "ambiguous" && typeof region.selectedName === "string") {
+    return candidates.find((candidate) => candidate.name === region.selectedName) || null;
+  }
   if (region?.status === "accepted") {
     return candidates[0] || null;
   }
-  if (region?.status !== "ambiguous" || typeof region.selectedName !== "string") {
-    return null;
-  }
-  return candidates.find((candidate) => candidate.name === region.selectedName) || null;
+  return null;
 }
 
 export function selectPhotoCandidate(analysis, regionIndex, selectedName) {
@@ -45,6 +48,96 @@ export function selectPhotoCandidate(analysis, regionIndex, selectedName) {
   const candidate = (region.candidates || []).find(({ name }) => name === selectedName);
   region.selectedName = candidate?.name || null;
   return region.selectedName;
+}
+
+export function selectPhotoSymbol(analysis, regionIndex, element) {
+  const region = analysis?.regions?.[regionIndex];
+  if (!region || !element?.name) {
+    return null;
+  }
+  const candidate = (region.candidates || []).find(({ name }) => name === element.name);
+  region.selectedName = element.name;
+  region.selectedCandidate = candidate || {
+    name: element.name,
+    score: 0,
+    rotation: 0,
+  };
+  return region.selectedName;
+}
+
+export function setPhotoRegionPosition(analysis, regionIndex, offsetX, offsetY) {
+  const region = analysis?.regions?.[regionIndex];
+  if (!region) {
+    return null;
+  }
+  const clampOffset = (value) => Math.max(-0.5, Math.min(0.5, Number(value) || 0));
+  region.offsetX = clampOffset(offsetX);
+  region.offsetY = clampOffset(offsetY);
+  return { x: region.offsetX, y: region.offsetY };
+}
+
+function analysisLimit(analysis, axis) {
+  const fallback = axis === "x" ? analysis?.cropBounds?.width : analysis?.cropBounds?.height;
+  const direct = axis === "x" ? analysis?.imageWidth : analysis?.imageHeight;
+  return Math.max(1, Number(direct) || Number(fallback) || 1);
+}
+
+function normalizePhotoRegionBounds(analysis, bounds) {
+  const imageWidth = analysisLimit(analysis, "x");
+  const imageHeight = analysisLimit(analysis, "y");
+  const rawLeft = Number(bounds?.left) || 0;
+  const rawTop = Number(bounds?.top) || 0;
+  const rawRight = finite(bounds?.right) ? Number(bounds.right) : rawLeft + (Number(bounds?.width) || 0);
+  const rawBottom = finite(bounds?.bottom) ? Number(bounds.bottom) : rawTop + (Number(bounds?.height) || 0);
+  const minSize = 4;
+  const left = Math.max(0, Math.min(imageWidth - minSize, Math.min(rawLeft, rawRight)));
+  const top = Math.max(0, Math.min(imageHeight - minSize, Math.min(rawTop, rawBottom)));
+  const right = Math.max(left + minSize, Math.min(imageWidth, Math.max(rawLeft, rawRight)));
+  const bottom = Math.max(top + minSize, Math.min(imageHeight, Math.max(rawTop, rawBottom)));
+  const width = right - left;
+  const height = bottom - top;
+  return {
+    left,
+    top,
+    right,
+    bottom,
+    width,
+    height,
+    cx: left + width / 2,
+    cy: top + height / 2,
+    size: Math.max(width, height),
+  };
+}
+
+export function setPhotoRegionBounds(analysis, regionIndex, bounds) {
+  const region = analysis?.regions?.[regionIndex];
+  if (!region) {
+    return null;
+  }
+  const normalized = normalizePhotoRegionBounds(analysis, bounds);
+  Object.assign(region, normalized, { offsetX: 0, offsetY: 0 });
+  return normalized;
+}
+
+export function createPhotoRegionFromBounds(analysis, bounds) {
+  if (!analysis) {
+    return -1;
+  }
+  if (!Array.isArray(analysis.regions)) {
+    analysis.regions = [];
+  }
+  const normalized = normalizePhotoRegionBounds(analysis, bounds);
+  analysis.regions.push({
+    status: "ambiguous",
+    candidates: [],
+    selectedName: null,
+    selectedCandidate: null,
+    userCreated: true,
+    offsetX: 0,
+    offsetY: 0,
+    ...normalized,
+  });
+  return analysis.regions.length - 1;
 }
 
 function importableRegions(analysis) {
@@ -149,7 +242,10 @@ export function mapPhotoAnalysis(analysis, target) {
     rotation: finite(candidate.rotation) ? candidate.rotation : 0,
     candidates: region.candidates || [candidate],
     status: region.status || "accepted",
-    ...mapPoint(region.cx, region.cy),
+    ...mapPoint(
+      region.cx + (finite(region.offsetX) ? region.offsetX * sourceWidth : 0),
+      region.cy + (finite(region.offsetY) ? region.offsetY * sourceHeight : 0),
+    ),
     size: (region.size * scale) / 2,
     width: (finite(region.width) ? region.width : region.size) * scale,
     height: (finite(region.height) ? region.height : region.size) * scale,

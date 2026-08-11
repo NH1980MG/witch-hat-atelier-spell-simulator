@@ -21,7 +21,7 @@ test("l'atelier importe l'analyse photo", async () => {
   const photoSource = await readFile(new URL("../photo-import.mjs", import.meta.url), "utf8");
   assert.match(source, /import \{ analyzePhoto \} from "\.\/photo-import\.mjs\?v=20260809-handoff-layout-v2"/);
   assert.match(source, /from "\.\/guide-storage\.mjs\?v=20260809-handoff-layout-v2"/);
-  assert.match(source, /mapPhotoAnalysis,\s+selectPhotoCandidate,\s+sourceCropForAnalysis,\s+\} from "\.\/photo-placement\.mjs\?v=20260809-handoff-layout-v2"/);
+  assert.match(source, /createPhotoRegionFromBounds,\s+mapPhotoAnalysis,\s+selectPhotoSymbol,\s+setPhotoRegionBounds,\s+setPhotoRegionPosition,\s+sourceCropForAnalysis,\s+\} from "\.\/photo-placement\.mjs\?v=20260811-photo-edit-v1"/);
   assert.match(source, /createImageBitmap/);
   assert.match(source, /recreatePhotoImport/);
   assert.match(source, /savePhotoAsGuide/);
@@ -37,9 +37,16 @@ test("la boite de dialogue affiche le recadrage corrige et chaque region une foi
   assert.match(source, /analysis\.cropBounds/);
   assert.match(source, /context\.translate\(-cropBounds\.left, -cropBounds\.top\)/);
   assert.match(source, /for \(const region of analysis\.regions \|\| \[\]\)/);
-  assert.match(source, /select\.dataset\.photoRegion/);
-  assert.match(source, /select\.setAttribute\("aria-labelledby", label\.id\)/);
-  assert.match(source, /region\.candidates\.slice\(0, 3\)/);
+  assert.match(source, /photoPreviewOverlay/);
+  assert.match(source, /renderPhotoRegionOverlay/);
+  assert.match(source, /startPhotoRegionDrag/);
+  assert.match(source, /createPhotoRegionFromBounds/);
+  assert.match(source, /setPhotoRegionBounds/);
+  assert.match(source, /openPhotoRegionSearch\(index\)/);
+  assert.match(source, /selectPhotoSymbol\(pendingPhotoImport\.analysis, photoEditRegionIndex, element\)/);
+  assert.match(source, /setPhotoRegionPosition\(/);
+  assert.match(source, /photo-region-edit/);
+  assert.match(source, /photo-region-position/);
   assert.match(source, /photoScoreTier/);
   assert.match(source, /photo-import-row/);
   assert.match(source, /photo-import-meter/);
@@ -47,7 +54,11 @@ test("la boite de dialogue affiche le recadrage corrige et chaque region une foi
   assert.match(css, /\.photo-import-row/);
   assert.match(css, /\.photo-import-meter/);
   assert.match(css, /data-tier="high"/);
-  assert.match(css, /\.photo-region-select/);
+  assert.match(css, /\.photo-preview-overlay/);
+  assert.match(css, /\.photo-region-box/);
+  assert.match(css, /\.photo-region-handle/);
+  assert.match(css, /\.photo-region-edit/);
+  assert.match(css, /\.photo-region-position/);
   assert.match(css, /\.photo-dialog-actions > button/);
   assert.match(css, /\.photo-dialog-actions > form\s*\{[^}]*flex:/s);
   assert.match(css, /\.photo-dialog-actions > form \.dialog-close\s*\{[^}]*width:\s*100%/s);
@@ -70,12 +81,21 @@ test("les chaines de l'import photo existent dans les deux locales", async () =>
     "photo.toggle", "photo.previewTitle", "photo.recreate", "photo.guide", "photo.cancel",
     "photo.result.ring", "photo.result.noRing", "photo.result.accepted",
     "photo.result.ambiguous", "photo.result.unreadable", "photo.result.choose",
+    "photo.result.change", "photo.result.position", "photo.result.x", "photo.result.y",
     "photo.status.imported", "photo.status.guideSaved", "photo.status.guideUnsaved",
     "photo.status.nothing", "photo.status.error",
   ]) {
     const occurrences = source.split(`"${key}"`).length - 1;
     assert.equal(occurrences, 2, `${key} doit exister en fr et en`);
   }
+});
+
+test("la detection conserve le candidat visible et reste modifiable", async () => {
+  const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
+  assert.match(source, /return region\?\.candidates\?\.\[0\] \|\| null/);
+  assert.match(source, /label\.textContent = element \? elementDisplayName\(element\) : candidate\?\.name/);
+  assert.doesNotMatch(source, /photo\.result\.possible/);
+  assert.doesNotMatch(source, /photo\.result\.confirmed/);
 });
 
 test("les chaines francaises de l'import photo restent sans accents", async () => {
