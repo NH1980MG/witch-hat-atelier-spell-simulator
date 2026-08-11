@@ -6,6 +6,10 @@ const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
 const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 const palette = await readFile(new URL("../symbol-palette-data.mjs", import.meta.url), "utf8");
 
+test("l'application ne redeclare pas ses constantes de module", () => {
+  assert.equal(app.match(/const libraryCircleById =/g)?.length, 1);
+});
+
 test("the app shares the canonical primary-sigil decision", () => {
   assert.match(app, /from "\.\/spell-model\.mjs"/);
   const primary = app.match(/function primaryElementNameFromModel\(model\) \{([\s\S]*?)\n\}/)?.[1] || "";

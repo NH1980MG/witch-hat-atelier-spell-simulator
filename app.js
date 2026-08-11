@@ -89,8 +89,6 @@ import {
 
 const libraryCircleById = new Map(LIBRARY_CIRCLES.map((circle) => [circle.id, circle]));
 
-const libraryCircleById = new Map(LIBRARY_CIRCLES.map((circle) => [circle.id, circle]));
-
 export const CENTRAL_SIGIL_STROKE_WIDTH = 6.4365;
 
 const colors = {
