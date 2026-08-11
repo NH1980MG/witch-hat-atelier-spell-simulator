@@ -10142,10 +10142,21 @@ function encodePhotoGuideRaster(canvas) {
   return webp.startsWith("data:image/webp") ? webp : canvas.toDataURL("image/png");
 }
 
+function photoRegionCandidate(region) {
+  const candidates = Array.isArray(region?.candidates) ? region.candidates : [];
+  if (region?.status === "accepted") {
+    return candidates[0] || null;
+  }
+  if (region?.status === "ambiguous" && typeof region.selectedName === "string") {
+    return candidates.find(({ name }) => name === region.selectedName) || null;
+  }
+  return null;
+}
+
 function photoRegionIcon(region) {
   // An ambiguous score is only a suggestion. Do not make a guessed glyph look
   // like a recognition result before the user confirms it.
-  const candidate = region.status === "accepted" ? region.candidates?.[0] : null;
+  const candidate = photoRegionCandidate(region);
   const element = elements.find((entry) => entry.name === candidate?.name);
   return element ? elementIconMarkup(element) : "?";
 }
@@ -10180,7 +10191,8 @@ function describePhotoAnalysis(analysis) {
   }
   for (const [index, region] of (analysis.regions || []).entries()) {
     const bestCandidate = region.candidates?.[0];
-    const candidate = region.status === "accepted" ? bestCandidate : null;
+    const candidate = photoRegionCandidate(region);
+    const manuallyConfirmed = region.status === "ambiguous" && Boolean(candidate);
     const element = elements.find((entry) => entry.name === candidate?.name);
     const item = document.createElement("li");
     item.className = "photo-import-row";
@@ -10200,7 +10212,7 @@ function describePhotoAnalysis(analysis) {
         : t("photo.result.unreadable");
     const stateLabel = document.createElement("span");
     stateLabel.className = "photo-region-state";
-    stateLabel.textContent = t(`photo.result.${region.status}`);
+    stateLabel.textContent = t(manuallyConfirmed ? "photo.result.confirmed" : `photo.result.${region.status}`);
     copy.append(label, stateLabel);
     const score = document.createElement("span");
     score.className = "photo-import-score";
@@ -10230,6 +10242,12 @@ function describePhotoAnalysis(analysis) {
       }
       select.addEventListener("change", () => {
         selectPhotoCandidate(analysis, index, select.value);
+        updatePhotoRecreateAvailability();
+      });
+      select.value = region.selectedName || "";
+      select.addEventListener("change", () => {
+        selectPhotoCandidate(analysis, index, select.value);
+        describePhotoAnalysis(analysis);
         updatePhotoRecreateAvailability();
       });
       item.append(select);
