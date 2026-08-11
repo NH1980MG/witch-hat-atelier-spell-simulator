@@ -368,6 +368,9 @@ const galleryToggleButton = document.querySelector("#galleryToggleButton");
 const galleryDrawer = document.querySelector("#galleryDrawer");
 const closeGalleryButton = document.querySelector("#closeGalleryButton");
 const publishGalleryButton = document.querySelector("#publishGalleryButton");
+const galleryFeed = document.querySelector("#galleryFeed");
+const galleryRefreshButton = document.querySelector("#galleryRefreshButton");
+const gallerySortButtons = [...document.querySelectorAll("[data-gallery-sort]")];
 const guideLibraryTab = document.querySelector("#guideLibraryTab");
 const guidePersonalTab = document.querySelector("#guidePersonalTab");
 const guideSpellsTab = document.querySelector("#guideSpellsTab");
@@ -387,6 +390,11 @@ const symbolSearchDialog = document.getElementById("symbolSearchDialog");
 const symbolSearchInput = document.getElementById("symbolSearchInput");
 const symbolSearchResults = document.getElementById("symbolSearchResults");
 const symbolSearchStatus = document.getElementById("symbolSearchStatus");
+
+let galleryPosts = [];
+let gallerySort = "newest";
+let galleryLoaded = false;
+let galleryRequest = 0;
 
 const state = {
   tool: "free",
@@ -5493,6 +5501,150 @@ function setGuideDrawer(open) {
 
 function setGalleryDrawer(open) {
   setOpenDrawer(open ? "gallery" : null);
+  if (open && !galleryLoaded) void loadGalleryPosts();
+}
+
+function galleryCommunityUrl() {
+  return (galleryDrawer?.dataset.communityUrl || "https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site").replace(/\/$/, "");
+}
+
+function renderGalleryMessage(key) {
+  if (!galleryFeed) return;
+  galleryFeed.replaceChildren();
+  const message = document.createElement("p");
+  message.className = "gallery-feed-message";
+  message.textContent = t(key);
+  galleryFeed.append(message);
+}
+
+function galleryMediaUrl(previewKey) {
+  const path = String(previewKey).split("/").map(encodeURIComponent).join("/");
+  return `${galleryCommunityUrl()}/api/media/${path}`;
+}
+
+function createGalleryPreview(post) {
+  const frame = document.createElement("div");
+  frame.className = "gallery-feed-preview";
+  if (post.previewKey) {
+    const image = document.createElement("img");
+    image.src = galleryMediaUrl(post.previewKey);
+    image.alt = post.title || "Circle preview";
+    image.loading = "lazy";
+    image.decoding = "async";
+    frame.append(image);
+    return frame;
+  }
+
+  const hasCircle = Array.isArray(post.circle?.actions) && post.circle.actions.length > 0;
+  frame.classList.add(hasCircle ? "is-generated" : "is-empty");
+  const mark = document.createElement("span");
+  mark.textContent = hasCircle ? "◇" : t("gallery.noCircle");
+  frame.append(mark);
+  return frame;
+}
+
+function renderGalleryPosts(posts = galleryPosts) {
+  if (!galleryFeed) return;
+  galleryFeed.replaceChildren();
+  if (posts.length === 0) {
+    renderGalleryMessage("gallery.empty");
+    return;
+  }
+
+  const baseUrl = galleryCommunityUrl();
+  const dateFormatter = new Intl.DateTimeFormat(getLocale(), { dateStyle: "medium" });
+  for (const post of posts) {
+    const card = document.createElement("article");
+    card.className = "gallery-feed-card";
+    card.append(createGalleryPreview(post));
+
+    const copy = document.createElement("div");
+    copy.className = "gallery-feed-copy";
+    const kicker = document.createElement("p");
+    kicker.className = "gallery-feed-kicker";
+    const createdAt = new Date(post.createdAt);
+    kicker.textContent = `${String(post.language || "en").toUpperCase()} · ${Number.isNaN(createdAt.getTime()) ? "" : dateFormatter.format(createdAt)}`;
+
+    const heading = document.createElement("h3");
+    const link = document.createElement("a");
+    link.href = `${baseUrl}/posts/${encodeURIComponent(post.id)}`;
+    link.textContent = post.title || "Circle field note";
+    link.target = "_blank";
+    link.rel = "noopener";
+    heading.append(link);
+
+    const author = document.createElement("p");
+    author.className = "gallery-feed-author";
+    author.textContent = t("gallery.by", { name: post.authorName || "Circle maker" });
+    const body = document.createElement("p");
+    body.className = "gallery-feed-body";
+    body.textContent = post.body || "";
+    copy.append(kicker, heading, author, body);
+
+    if (Array.isArray(post.tags) && post.tags.length > 0) {
+      const tags = document.createElement("ul");
+      tags.className = "gallery-feed-tags";
+      for (const tag of post.tags.slice(0, 3)) {
+        const item = document.createElement("li");
+        item.textContent = `#${tag}`;
+        tags.append(item);
+      }
+      copy.append(tags);
+    }
+
+    const footer = document.createElement("footer");
+    footer.className = "gallery-feed-stats";
+    for (const [key, value] of [
+      ["gallery.views", post.viewCount],
+      ["gallery.appreciations", post.reactionCount],
+      ["gallery.notes", post.commentCount],
+    ]) {
+      const stat = document.createElement("span");
+      stat.textContent = t(key, { count: Number(value) || 0 });
+      footer.append(stat);
+    }
+    const open = document.createElement("a");
+    open.href = link.href;
+    open.target = "_blank";
+    open.rel = "noopener";
+    open.textContent = `${t("gallery.openPost")} →`;
+    footer.append(open);
+    copy.append(footer);
+    card.append(copy);
+    galleryFeed.append(card);
+  }
+}
+
+async function loadGalleryPosts(sort = gallerySort) {
+  if (!galleryFeed) return;
+  gallerySort = sort === "appreciated" ? "appreciated" : "newest";
+  gallerySortButtons.forEach((button) => {
+    const active = button.dataset.gallerySort === gallerySort;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  const requestId = ++galleryRequest;
+  galleryFeed.setAttribute("aria-busy", "true");
+  renderGalleryMessage("gallery.loading");
+  try {
+    const response = await fetch(`${galleryCommunityUrl()}/api/posts?sort=${encodeURIComponent(gallerySort)}`, {
+      headers: { accept: "application/json" },
+      mode: "cors",
+    });
+    if (!response.ok) throw new Error(`Gallery request failed: ${response.status}`);
+    const result = await response.json();
+    if (requestId !== galleryRequest) return;
+    galleryPosts = Array.isArray(result.posts) ? result.posts : [];
+    galleryLoaded = true;
+    renderGalleryPosts();
+  } catch (error) {
+    if (requestId !== galleryRequest) return;
+    console.error(error);
+    galleryLoaded = false;
+    renderGalleryMessage("gallery.error");
+  } finally {
+    if (requestId === galleryRequest) galleryFeed.setAttribute("aria-busy", "false");
+  }
 }
 
 function setOpenDrawer(drawer) {
@@ -10595,6 +10747,8 @@ guideToggleButton?.addEventListener("click", () => setGuideDrawer(true));
 closeGuidesButton?.addEventListener("click", () => setGuideDrawer(false));
 galleryToggleButton?.addEventListener("click", () => setGalleryDrawer(true));
 closeGalleryButton?.addEventListener("click", () => setGalleryDrawer(false));
+galleryRefreshButton?.addEventListener("click", () => loadGalleryPosts());
+gallerySortButtons.forEach((button) => button.addEventListener("click", () => loadGalleryPosts(button.dataset.gallerySort)));
 guideLibraryTab?.addEventListener("click", () => setGuideTab("library"));
 guidePersonalTab?.addEventListener("click", () => setGuideTab("personal"));
 guideSpellsTab?.addEventListener("click", () => setGuideTab("spells"));
@@ -11756,6 +11910,7 @@ window.addEventListener("wha:localechange", () => {
   updateUsedList();
   updateSpellState();
   syncSelectionGrimoire();
+  if (galleryLoaded) renderGalleryPosts();
   if (state.actions.length > 0) {
     analyzeSpell();
   } else {

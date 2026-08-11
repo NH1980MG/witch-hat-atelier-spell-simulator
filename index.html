@@ -231,7 +231,7 @@
           <div class="ink-list" id="inkList"></div>
         </aside>
 
-        <aside class="sidebar gallery-drawer" id="galleryDrawer" data-i18n-aria-label="drawer.galleryChoice" aria-label="Circle gallery" aria-hidden="true">
+        <aside class="sidebar gallery-drawer" id="galleryDrawer" data-community-url="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site" data-i18n-aria-label="drawer.galleryChoice" aria-label="Circle gallery" aria-hidden="true">
           <div class="panel-heading">
             <div>
               <h2 data-i18n="drawer.gallery">Gallery</h2>
@@ -240,9 +240,15 @@
             <button class="drawer-close" id="closeGalleryButton" type="button" data-i18n-aria-label="drawer.closeGallery" aria-label="Close gallery">&times;</button>
           </div>
           <div class="gallery-actions">
-            <a class="gallery-link" href="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site/gallery" data-i18n="drawer.openGallery">Open gallery</a>
+            <a class="gallery-link" href="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site/gallery" data-i18n="drawer.openGallery">Open full gallery</a>
             <button id="publishGalleryButton" type="button" data-i18n="drawer.addCurrentCircle">Add current circle</button>
           </div>
+          <div class="gallery-feed-toolbar" role="group" data-i18n-aria-label="gallery.sortLabel" aria-label="Sort public circles">
+            <button class="is-active" type="button" data-gallery-sort="newest" aria-pressed="true" data-i18n="gallery.newest">Newest</button>
+            <button type="button" data-gallery-sort="appreciated" aria-pressed="false" data-i18n="gallery.appreciated">Most appreciated</button>
+            <button id="galleryRefreshButton" type="button" data-i18n="gallery.refresh">Refresh</button>
+          </div>
+          <div class="gallery-feed" id="galleryFeed" aria-live="polite" aria-busy="false"></div>
           <p class="gallery-note" data-i18n="drawer.gallerySignIn">Sign in on Circle Commons when you publish to keep the circle in your account.</p>
         </aside>
 

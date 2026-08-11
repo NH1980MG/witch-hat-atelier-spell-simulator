@@ -5,9 +5,16 @@ import { buildCommunityComposeUrl } from "../circle-share.mjs";
 
 test("the workshop exposes a gallery drawer and current-circle action", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
   assert.match(html, /id="galleryToggleButton"/);
   assert.match(html, /id="publishGalleryButton"/);
+  assert.match(html, /id="galleryFeed"/);
+  assert.match(html, /data-gallery-sort="newest"/);
+  assert.match(html, /data-gallery-sort="appreciated"/);
   assert.match(html, /data-i18n="drawer\.gallery"/);
+  assert.match(app, /function loadGalleryPosts/);
+  assert.match(app, /\/api\/posts\?sort=/);
+  assert.match(app, /function renderGalleryPosts/);
 });
 
 test("gallery publication keeps the handoff opaque", () => {
