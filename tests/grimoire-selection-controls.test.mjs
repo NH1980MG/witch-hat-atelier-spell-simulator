@@ -35,10 +35,13 @@ test("l'echelle est relative a la selection et reste le zoom sans selection", ()
 });
 
 test("la rotation rapide est disponible pres de la selection", () => {
-  for (const id of ["selectionRotationDock", "rotateSelectionQuarterLeftButton", "rotateSelectionQuarterRightButton"]) {
+  for (const id of ["selectionRotationDock", "selectionRotationValue", "rotateSelectionQuarterLeftButton", "rotateSelectionQuarterRightButton"]) {
     assert.match(html, new RegExp(`id=["']${id}["']`));
     assert.match(app, new RegExp(`const ${id} = document\\.querySelector\\("#${id}"\\)`));
   }
+  assert.match(html, /id=["']selectionRotationValue["'][^>]*>0deg</);
+  assert.match(app, /function selectionRotationDegrees\(/);
+  assert.match(app, /selectionRotationValue\.textContent = `\$\{selectionRotationDegrees\(indices\)\}deg`/);
   assert.match(app, /function syncSelectionRotationDock\(/);
   assert.match(app, /rotateSelectionQuarterLeftButton\?\.addEventListener\("click", \(\) => rotateSelection\(-SELECTION_QUARTER_TURN\)\)/);
   assert.match(app, /rotateSelectionQuarterRightButton\?\.addEventListener\("click", \(\) => rotateSelection\(SELECTION_QUARTER_TURN\)\)/);

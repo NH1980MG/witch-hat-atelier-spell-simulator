@@ -36,7 +36,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260811-scalewolf-v1">
+    <link rel="stylesheet" href="styles.css?v=20260811-rotation-state-v1">
     <script type="importmap">
       {
         "imports": {
@@ -47,7 +47,7 @@
     </script>
     <script type="module" src="site-i18n.mjs?v=20260811-scalewolf-v1"></script>
     <script type="module" src="site-nav.mjs?v=20260810-workshop-menu-v1"></script>
-    <script type="module" src="app.js?v=20260811-exact-schematic-v1"></script>
+    <script type="module" src="app.js?v=20260811-rotation-state-v1"></script>
   </head>
   <body class="simulator-page">
     <main class="app-shell">
@@ -139,6 +139,7 @@
           <canvas id="magicCanvas" data-i18n-aria-label="atelier.parchment" aria-label="Drawing parchment"></canvas>
           <div id="selectionRotationDock" class="selection-rotation-dock" hidden>
             <button id="rotateSelectionQuarterLeftButton" type="button" data-i18n-aria-label="tool.rotateQuarterLeft" data-i18n-title="tool.rotateQuarterLeft" aria-label="Rotate selection 90 degrees counterclockwise" title="Rotate selection 90 degrees counterclockwise">-90</button>
+            <output id="selectionRotationValue" class="selection-rotation-value" aria-live="polite">0deg</output>
             <button id="rotateSelectionQuarterRightButton" type="button" data-i18n-aria-label="tool.rotateQuarterRight" data-i18n-title="tool.rotateQuarterRight" aria-label="Rotate selection 90 degrees clockwise" title="Rotate selection 90 degrees clockwise">+90</button>
           </div>
           <div id="selectionContextMenu" class="selection-context-menu" role="menu" data-i18n-aria-label="selectionMenu.label" aria-label="Selected object actions" hidden>

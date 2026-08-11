@@ -355,6 +355,7 @@ const duplicateSelectionButton = document.querySelector("#duplicateSelectionButt
 const rotateSelectionLeftButton = document.querySelector("#rotateSelectionLeftButton");
 const rotateSelectionRightButton = document.querySelector("#rotateSelectionRightButton");
 const selectionRotationDock = document.querySelector("#selectionRotationDock");
+const selectionRotationValue = document.querySelector("#selectionRotationValue");
 const rotateSelectionQuarterLeftButton = document.querySelector("#rotateSelectionQuarterLeftButton");
 const rotateSelectionQuarterRightButton = document.querySelector("#rotateSelectionQuarterRightButton");
 const alignmentToggleButton = document.querySelector("#alignmentToggleButton");
@@ -7315,16 +7316,33 @@ function closeSelectionContextMenu() {
   }
 }
 
+function selectionRotationDegrees(indices) {
+  const rotations = indices
+    .map((index) => state.actions[index]?.rotation || 0)
+    .filter((rotation) => Number.isFinite(rotation));
+  if (rotations.length === 0) {
+    return 0;
+  }
+  const sin = rotations.reduce((total, rotation) => total + Math.sin(rotation), 0);
+  const cos = rotations.reduce((total, rotation) => total + Math.cos(rotation), 0);
+  const degrees = Math.round(Math.atan2(sin, cos) * 180 / Math.PI);
+  return ((degrees % 360) + 360) % 360;
+}
+
 function syncSelectionRotationDock() {
   if (!selectionRotationDock) {
     return;
   }
+  const indices = normalizeSelection();
   const bounds = selectionBounds();
-  if (!bounds || normalizeSelection().length === 0) {
+  if (!bounds || indices.length === 0) {
     selectionRotationDock.hidden = true;
     return;
   }
   selectionRotationDock.hidden = false;
+  if (selectionRotationValue) {
+    selectionRotationValue.textContent = `${selectionRotationDegrees(indices)}deg`;
+  }
   const scale = viewScale();
   const left = state.panX + (bounds.left + bounds.width / 2) * scale;
   const top = state.panY + Math.max(8, bounds.top * scale - 44);
