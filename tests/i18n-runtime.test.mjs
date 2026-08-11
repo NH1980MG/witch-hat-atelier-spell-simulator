@@ -6,8 +6,8 @@ import { catalogKeys, translate } from "../i18n.mjs";
 const appSource = await readFile(new URL("../app.js", import.meta.url), "utf8");
 const siteI18nSource = await readFile(new URL("../site-i18n.mjs", import.meta.url), "utf8");
 const publicPages = ["index.html", "bibliotheque.html", "tutoriel.html", "parametres.html", "fonctionnement.html"];
-const sharedRevision = "20260810-grimoire-v1";
-const styleRevision = "20260810-guide-scroll-v1";
+const sharedRevision = "20260811-library-preview-v1";
+const styleRevision = "20260811-library-preview-v1";
 
 test("the language controller imports the current catalog revision", () => {
   assert.match(siteI18nSource, new RegExp(`from "\\./i18n\\.mjs\\?v=${sharedRevision}"`));
@@ -63,6 +63,7 @@ test("context menu actions are bilingual", () => {
   for (const key of [
     "selectionMenu.label",
     "selectionMenu.select",
+    "selectionMenu.search",
     "selectionMenu.duplicate",
     "selectionMenu.delete",
     "selectionMenu.front",

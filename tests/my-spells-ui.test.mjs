@@ -28,6 +28,15 @@ test("app.js branche la bibliotheque de sorts", async () => {
   assert.match(source, /recordHistory\(\);/);
 });
 
+test("un sort enregistre peut servir de guide sans remplacer le dessin", async () => {
+  const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
+  assert.match(source, /function activeVectorGuide\(\)/);
+  assert.match(source, /state\.activeGuide\.source === "spell"/);
+  assert.match(source, /selectGuide\("spell", spell\.id\)/);
+  assert.match(source, /guideButton\.dataset\.guideAction = "use"/);
+  assert.match(source, /loadButton\.dataset\.guideAction = "load"/);
+});
+
 test("le chargement restaure actions et reglages", async () => {
   const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
   const loadBlock = source.slice(source.indexOf("function loadMySpell"));

@@ -424,7 +424,7 @@ input:focus-visible {
 
 .view3d-panel {
   position: fixed;
-  z-index: 20;
+  z-index: 120;
   inset: 0;
   width: 100vw;
   height: 100vh;
@@ -2186,6 +2186,40 @@ input:focus-visible {
   line-height: 1.2;
   text-align: center;
   overflow-wrap: anywhere;
+}
+
+.circle-card-preview {
+  display: grid;
+  align-self: end;
+  gap: 6px;
+  width: 100%;
+}
+
+.circle-card-preview .circle-preview-action {
+  display: grid;
+  place-items: center;
+  min-height: 42px;
+  border: 1px solid var(--edge);
+  border-radius: 7px;
+  padding: 7px 9px;
+  background: var(--button);
+  color: var(--ink);
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  text-decoration: none;
+}
+
+.circle-card-preview .circle-preview-action:hover,
+.circle-card-preview .circle-preview-action:focus-visible {
+  background: var(--button-active);
+}
+
+.circle-card-preview .circle-preview-note {
+  color: rgba(82, 65, 44, 0.78);
+  font-size: 0.64rem;
+  font-weight: 400;
 }
 
 .library-card {

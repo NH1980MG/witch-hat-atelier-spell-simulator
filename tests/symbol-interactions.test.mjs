@@ -8,6 +8,7 @@ import {
   combinedSelectionBounds,
   glyphResizeHandleAtPoint,
   guideResizeHandleAtPoint,
+  isDoubleTap,
   isSelectableAction,
   planDuplication,
   reorderSelectedActions,
@@ -26,6 +27,13 @@ import {
   topmostGlyphIndexAtPoint,
   translateSelectedActions,
 } from "../symbol-interactions.mjs";
+
+test("isDoubleTap accepts two nearby touch taps and rejects slow or distant taps", () => {
+  const first = { time: 1000, x: 40, y: 50 };
+  assert.equal(isDoubleTap(first, { time: 1260, x: 46, y: 54 }), true);
+  assert.equal(isDoubleTap(first, { time: 1500, x: 46, y: 54 }), false);
+  assert.equal(isDoubleTap(first, { time: 1260, x: 90, y: 90 }), false);
+});
 
 test("styleSelectedActions modifie seulement le style de la selection", () => {
   const source = [

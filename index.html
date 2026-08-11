@@ -36,7 +36,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260810-guide-scroll-v1">
+    <link rel="stylesheet" href="styles.css?v=20260811-library-preview-v1">
     <script type="importmap">
       {
         "imports": {
@@ -45,9 +45,9 @@
         }
       }
     </script>
-    <script type="module" src="site-i18n.mjs?v=20260810-grimoire-v1"></script>
+    <script type="module" src="site-i18n.mjs?v=20260811-library-preview-v1"></script>
     <script type="module" src="site-nav.mjs?v=20260810-workshop-menu-v1"></script>
-    <script type="module" src="app.js?v=20260810-grimoire-v1"></script>
+    <script type="module" src="app.js?v=20260811-library-preview-v1"></script>
   </head>
   <body class="simulator-page">
     <main class="app-shell">
@@ -56,7 +56,7 @@
           <img class="brand-logo-image" src="assets/brand/atelier-mark.svg?v=2" alt="" aria-hidden="true">
           <h1>Witch Hat Atelier Spell Simulator</h1>
         </a>
-        <a class="community-profile-pill" href="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site/account" data-i18n-aria-label="nav.openProfile" data-i18n-title="nav.profile">
+        <a class="community-profile-pill" href="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site/sign-in?return_to=%2Fauth%2Freturn-to-simulator" data-i18n-aria-label="nav.openProfile" data-i18n-title="nav.profile">
           <span class="community-profile-dot" aria-hidden="true"></span>
           <span data-i18n="nav.profile">Circle Commons profile</span>
         </a>
@@ -133,6 +133,7 @@
           <canvas id="magicCanvas" data-i18n-aria-label="atelier.parchment" aria-label="Drawing parchment"></canvas>
           <div id="selectionContextMenu" class="selection-context-menu" role="menu" data-i18n-aria-label="selectionMenu.label" aria-label="Selected object actions" hidden>
             <button type="button" role="menuitem" data-selection-action="select" data-i18n="selectionMenu.select">Select</button>
+            <button type="button" role="menuitem" data-selection-action="search" data-i18n="selectionMenu.search">Search symbols</button>
             <button type="button" role="menuitem" data-selection-action="duplicate" data-i18n="selectionMenu.duplicate">Duplicate</button>
             <button type="button" role="menuitem" data-selection-action="front" data-i18n="selectionMenu.front">Bring to front</button>
             <button type="button" role="menuitem" data-selection-action="back" data-i18n="selectionMenu.back">Send to back</button>

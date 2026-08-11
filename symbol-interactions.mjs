@@ -424,6 +424,12 @@ export function shouldArmLongPress(pointerType, button, activePointerCount) {
   return pointerType === "touch" && button === 0 && activePointerCount === 1;
 }
 
+export function isDoubleTap(previous, current, maxDelay = 360, maxDistance = 24) {
+  if (!previous || !current) return false;
+  const delay = current.time - previous.time;
+  return delay >= 0 && delay <= maxDelay && Math.hypot(current.x - previous.x, current.y - previous.y) <= maxDistance;
+}
+
 export function shouldDeferTouchTool(pointerType, tool) {
   return pointerType === "touch" && ["glyph", "eraser"].includes(tool);
 }

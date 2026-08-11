@@ -34,4 +34,5 @@ test("the menu stylesheet preserves a visible rail and a bounded open panel", as
   assert.match(css, /\.workshop-menu-toggle[\s\S]*?width:\s*56px/);
   assert.match(css, /\.workshop-menu\.is-open[\s\S]*?width:\s*min\(280px/);
   assert.match(css, /\.workshop-menu-panel[\s\S]*?max-width:\s*calc\(100vw\s*-\s*24px\)/);
+  assert.match(css, /\.view3d-panel[\s\S]*?z-index:\s*120/);
 });

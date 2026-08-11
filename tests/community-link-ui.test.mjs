@@ -66,7 +66,7 @@ test("every public simulator page exposes independent Circle Commons account and
     assert.match(html, /data-i18n="nav\.charter"/);
     assert.match(
       html,
-      /href="https:\/\/circle-commons-atelier\.hwl-brothers-5311\.chatgpt\.site\/account"[^>]*data-i18n-aria-label="nav\.openProfile"/,
+      /href="https:\/\/circle-commons-atelier\.hwl-brothers-5311\.chatgpt\.site\/sign-in\?return_to=%2Fauth%2Freturn-to-simulator"[^>]*data-i18n-aria-label="nav\.openProfile"/,
       `${name} should expose the Circle Commons profile pill`,
     );
     assert.match(html, /data-i18n="nav\.profile"/);
