@@ -8,7 +8,7 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260809-handoff-layout-v2";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260809-handoff-layout-v2";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260810-grimoire-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260811-library-preview-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260809-handoff-layout-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -38,6 +38,7 @@ import {
   clampGlyphCenter,
   cloneActions,
   guideResizeHandleAtPoint,
+  isDoubleTap,
   isSelectableAction,
   planDuplication,
   reorderSelectedActions,
@@ -51,7 +52,7 @@ import {
   styleSelectedActions,
   topmostSelectableIndexAtPoint,
   translateSelectedActions,
-} from "./symbol-interactions.mjs?v=20260810-grimoire-v1";
+} from "./symbol-interactions.mjs?v=20260811-library-preview-v1";
 import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260809-handoff-layout-v2";
 import {
   SPOILER_MAX_CHAPTER,
@@ -7003,7 +7004,7 @@ function activeGuideBaseBounds(width, height) {
       height: guideHeight,
     };
   }
-  const guide = state.userGuides.find((item) => item.id === state.activeGuide.id);
+  const guide = activeVectorGuide();
   if (guide?.raster) {
     return centeredRasterGuideBounds(guide.raster, width, height);
   }
@@ -7020,6 +7021,14 @@ function activeGuideBaseBounds(width, height) {
     width: bounds.width + padding * 2,
     height: bounds.height + padding * 2,
   };
+}
+
+function activeVectorGuide() {
+  if (!state.activeGuide) return null;
+  if (state.activeGuide.source === "spell") {
+    return state.mySpells.find((item) => item.id === state.activeGuide.id) || null;
+  }
+  return state.userGuides.find((item) => item.id === state.activeGuide.id) || null;
 }
 
 function activeGuideBounds(width, height) {
@@ -7045,7 +7054,7 @@ function drawActiveGuide(width, height) {
       ctx.drawImage(image, scaledBounds.left, scaledBounds.top, scaledBounds.width, scaledBounds.height);
     }
   } else {
-    const guide = state.userGuides.find((item) => item.id === state.activeGuide.id);
+    const guide = activeVectorGuide();
     if (guide?.raster) {
       const image = personalGuideImage(guide);
       if (image?.complete && image.naturalWidth > 0) {
@@ -7965,6 +7974,8 @@ function cancelLongPress() {
   state.longPress = null;
 }
 
+let lastTouchTap = null;
+
 function armLongPress(event, point) {
   if (!shouldArmLongPress(event.pointerType, event.button, state.activePointers.size)) {
     return;
@@ -8022,6 +8033,34 @@ function onPointerDown(event) {
     canvas.setPointerCapture(event.pointerId);
     beginRightSelection(event, clampPointToDrawingLimit(rawPoint));
     return;
+  }
+  if (event.pointerType === "touch" && event.button === 0 && state.activePointers.size === 0) {
+    const screen = screenPointFromEvent(event);
+    const tap = { time: performance.now(), x: screen.x, y: screen.y };
+    if (isDoubleTap(lastTouchTap, tap)) {
+      lastTouchTap = null;
+      event.preventDefault();
+      cancelLongPress();
+      state.pointerDown = false;
+      state.start = null;
+      state.currentAction = null;
+      state.preview = null;
+      const point = clampPointToDrawingLimit(pointFromEvent(event));
+      const index = topmostSelectableIndexAtPoint(state.actions, point);
+      if (index >= 0) {
+        setTool("select");
+        state.guideSelected = false;
+        state.selectedActionIndices = [index];
+        updateSelectionControls();
+        setSelectionStatus();
+        render();
+        openSelectionContextMenu(event);
+      } else {
+        openSymbolSearch();
+      }
+      return;
+    }
+    lastTouchTap = tap;
   }
   state.activePointers.set(event.pointerId, screenPointFromEvent(event));
   canvas.setPointerCapture(event.pointerId);
@@ -8727,7 +8766,8 @@ function renderSpellList() {
     const useButton = document.createElement("button");
     useButton.type = "button";
     useButton.innerHTML = `<span class="guide-card-preview" aria-hidden="true">&#9672;</span><span class="guide-card-name">${spell.name}</span>`;
-    useButton.addEventListener("click", () => loadMySpell(spell.id));
+    useButton.dataset.guideAction = "use";
+    useButton.addEventListener("click", () => selectGuide("spell", spell.id));
     const meta = document.createElement("p");
     meta.className = "guide-card-meta";
     meta.textContent = t("spells.meta", {
@@ -8736,8 +8776,14 @@ function renderSpellList() {
     });
     const actions = document.createElement("div");
     actions.className = "guide-card-actions";
+    const guideButton = document.createElement("button");
+    guideButton.type = "button";
+    guideButton.dataset.guideAction = "use";
+    guideButton.textContent = t("spells.use");
+    guideButton.addEventListener("click", () => selectGuide("spell", spell.id));
     const loadButton = document.createElement("button");
     loadButton.type = "button";
+    loadButton.dataset.guideAction = "load";
     loadButton.textContent = t("spells.load");
     loadButton.addEventListener("click", () => loadMySpell(spell.id));
     const deleteButton = document.createElement("button");
@@ -8745,7 +8791,7 @@ function renderSpellList() {
     deleteButton.textContent = t("spells.delete");
     deleteButton.setAttribute("aria-label", t("spells.deleteNamed", { name: spell.name }));
     deleteButton.addEventListener("click", () => removeMySpell(spell.id));
-    actions.append(loadButton, deleteButton);
+    actions.append(guideButton, loadButton, deleteButton);
     card.append(useButton, meta, actions);
     guideSpellsList.append(card);
   }
@@ -9404,6 +9450,14 @@ function activateCircle() {
   }
 
   const model = signModel();
+  if (model.ringOnly) {
+    state.activation = null;
+    state.activeSpell = null;
+    updateSpellState();
+    setStatus(t("status.activationNeedsSigil"));
+    render();
+    return;
+  }
   const element = effectiveElement(model);
   if (!element) {
     state.activation = null;
@@ -10491,7 +10545,9 @@ selectionContextMenu?.addEventListener("click", (event) => {
   }
   const action = button.dataset.selectionAction;
   closeSelectionContextMenu();
-  if (action === "duplicate") {
+  if (action === "search") {
+    openSymbolSearch();
+  } else if (action === "duplicate") {
     duplicateSelectedActions();
   } else if (action === "delete") {
     deleteSelectedActions();

@@ -37,6 +37,13 @@ test("every entry has bilingual accessible text and fidelity", () => {
   }
 });
 
+test("every reference card has a safe simulator reconstruction", () => {
+  for (const circle of LIBRARY_CIRCLES) {
+    assert.ok(circle.preview?.sigils?.length > 0, circle.id);
+    assert.equal(circle.preview.activate, true, circle.id);
+  }
+});
+
 test("the public library renders all schematics as local accessible images", async () => {
   const html = await readFile(new URL("../bibliotheque.html", import.meta.url), "utf8");
   const cards = [...html.matchAll(/<article class="circle-card">([\s\S]*?)<\/article>/g)];
@@ -51,4 +58,5 @@ test("the public library renders all schematics as local accessible images", asy
     assert.match(image[0], /data-i18n-alt="library\.circleAlt"/);
     assert.match(card, /data-i18n="library\.fidelity\.reference"/);
   }
+  assert.match(html, /library-schematic-preview\.mjs/);
 });

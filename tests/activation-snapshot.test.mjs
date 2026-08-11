@@ -41,3 +41,9 @@ test("the persistent aura uses the frozen mixture color", () => {
   assert.match(aura, /state\.activeSpell\.materialPresentation\?\.color/);
   assert.doesNotMatch(aura, /glow\.addColorStop\(0, element\.color\)/);
 });
+
+test("a ring without a sigil never invents a luminous material effect", () => {
+  const activation = app.match(/function activateCircle\(\) \{([\s\S]*?)\n\}/)?.[1] || "";
+  assert.match(activation, /if \(model\.ringOnly\)/);
+  assert.match(activation, /status\.activationNeedsSigil/);
+});
