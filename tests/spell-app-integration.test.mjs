@@ -34,6 +34,7 @@ test("runtime presentation keeps elemental mixtures composed", () => {
 
   const reading = app.match(/function analyzeSpell\(\) \{([\s\S]*?)\n\}/)?.[1] || "";
   assert.match(reading, /status\.reading[\s\S]*localizedRecipeLabel\(model\.recipe\)/);
+  assert.match(reading, /localizedArchitectureStatusLines\(model\.recipe/);
   assert.doesNotMatch(reading, /getLocale\(\) === "fr" \? spell/);
 });
 
@@ -53,10 +54,13 @@ test("shoe summaries receive the composed recipe during model construction", () 
 });
 
 test("the details drawer exposes structured fidelity information", () => {
-  for (const id of ["fidelityLevel", "fidelityRules", "fidelityWarnings"]) {
+  for (const id of ["fidelityLevel", "fidelityRules", "fidelityWarnings", "architectureStages", "architectureSymbols"]) {
     assert.match(html, new RegExp(`id=["']${id}["']`));
     assert.match(app, new RegExp(`#${id}`));
   }
+  assert.match(html, /data-i18n=["']details\.architecture["']/);
+  assert.match(html, /data-i18n=["']details\.symbolArchitecture["']/);
+  assert.match(app, /updateArchitectureDetails\(model\.recipe\)/);
 });
 
 test("selection state supports multiple drawing actions", () => {

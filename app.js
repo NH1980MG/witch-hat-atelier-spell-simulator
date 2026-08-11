@@ -301,6 +301,8 @@ const spellSupport = document.querySelector("#spellSupport");
 const fidelityLevel = document.querySelector("#fidelityLevel");
 const fidelityRules = document.querySelector("#fidelityRules");
 const fidelityWarnings = document.querySelector("#fidelityWarnings");
+const architectureStages = document.querySelector("#architectureStages");
+const architectureSymbols = document.querySelector("#architectureSymbols");
 const strokeInput = document.querySelector("#strokeInput");
 const inkColorInput = document.querySelector("#inkColorInput");
 const selectionScaleInput = document.querySelector("#selectionScaleInput");
@@ -9802,6 +9804,7 @@ function updateSpellState() {
   spellDiameter.title = sizeIssue ? `Cercle ${sizeIssue.label} pour etre active. ${sizeIssue.limit}.` : "";
   spellSupport.textContent = supportDisplayName(currentSupport(), true);
   updateFidelityDetails(model.recipe);
+  updateArchitectureDetails(model.recipe);
   updateSupportSelection();
 }
 
@@ -9812,6 +9815,48 @@ function replaceList(list, values, fallback) {
     item.textContent = value;
     list.append(item);
   }
+}
+
+function architectureStatusLabel(status) {
+  return t(`details.architectureStatus.${status || "active"}`);
+}
+
+function architectureSymbolLine(entry) {
+  const name = elementDisplayName(entry.name);
+  const count = entry.count > 1 ? ` x${entry.count}` : "";
+  const role = entry.kind === "sigil" ? t("symbols.category.sigil") : t(`explorer.role.${entry.role}`) || entry.role;
+  const consumed = entry.consumed ? t("details.consumed") : t("details.secondaryLayer");
+  return `${name}${count} - ${role} - ${architectureStatusLabel(entry.status)} - ${consumed}: ${entry.effectContribution || entry.explanation}`;
+}
+
+function localizedArchitectureStatusLines(recipe, limit = 5) {
+  const architecture = recipe?.architecture;
+  if (!architecture) return [];
+  const symbolLines = (architecture.symbols || [])
+    .slice(0, limit)
+    .map(architectureSymbolLine);
+  return [
+    ...(architecture.finalEffect ? [t("details.finalEffect", { effect: architecture.finalEffect })] : []),
+    ...symbolLines,
+  ];
+}
+
+function updateArchitectureDetails(recipe) {
+  if (!architectureStages || !architectureSymbols) return;
+  const architecture = recipe?.architecture;
+  replaceList(
+    architectureStages,
+    [
+      ...(architecture?.stages || []).map((stage) => `${stage.label}: ${stage.explanation}`),
+      ...(architecture?.finalEffect ? [t("details.finalEffect", { effect: architecture.finalEffect })] : []),
+    ],
+    t("details.noArchitecture"),
+  );
+  replaceList(
+    architectureSymbols,
+    (architecture?.symbols || []).map(architectureSymbolLine),
+    t("details.noArchitecture"),
+  );
 }
 
 function updateFidelityDetails(recipe) {
@@ -9936,6 +9981,7 @@ function analyzeSpell() {
     t("status.rotationReach", { rotation: Math.round(Math.abs(model.geometry.spin) * 100), reach: Math.round(model.geometry.reach * 100) }),
     ...(model.ignoredMarkCount > 0 ? [t("status.outsideRing", { count: model.ignoredMarkCount })] : []),
     t("status.confidence", { value: getLocale() === "fr" ? model.recipe.confidence : model.recipe.fidelity }),
+    ...localizedArchitectureStatusLines(model.recipe, 4),
     ...(getLocale() === "fr" ? model.recipe.mechanics.slice(0, 4) : model.recipe.ruleIds.slice(0, 4).map((id) => t("status.ruleApplied", { id }))),
     ...localizedRecipeWarnings(model.recipe),
     t("status.precision", { value: Math.round(symbolQuality) }),

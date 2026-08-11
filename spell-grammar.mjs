@@ -182,6 +182,12 @@ function addUnique(list, value) {
   }
 }
 
+function freezeDeep(value) {
+  if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
+  for (const child of Object.values(value)) freezeDeep(child);
+  return Object.freeze(value);
+}
+
 function formLabel(material, operations) {
   const has = (operation) => operations.includes(operation);
   if (has("orb") && has("rain")) return `pluie de ${material.noun} contenue`;
@@ -349,6 +355,148 @@ function buildEffectPlan({ axes, material, sigilCounts, signCounts, direction, s
       ...geometryParameters,
     },
   };
+}
+
+function roleLabel(role) {
+  return {
+    form: "forme",
+    motion: "mouvement",
+    scope: "zone",
+    supply: "alimentation",
+    state: "etat",
+    target: "cible",
+    relation: "relation",
+    power: "puissance",
+  }[role] || role;
+}
+
+function operationConsumed(manifestationPlan, role, operation) {
+  const key = `${role}.${operation}`;
+  return Array.isArray(manifestationPlan?.consumedOperations) && manifestationPlan.consumedOperations.includes(key);
+}
+
+function buildSymbolArchitecture({
+  axes,
+  material,
+  orderedSigils,
+  signCounts,
+  ignoredSigns,
+  uncertainSigns,
+  elementalMixture,
+  normalizedGeometry,
+  supportPlan,
+  manifestationPlan,
+  activeRitualId,
+}) {
+  const symbols = [];
+  const consumedOperations = new Set(manifestationPlan?.consumedOperations || []);
+  const uncertain = new Set(uncertainSigns);
+  const ignored = new Set(ignoredSigns);
+
+  for (const [name, count] of orderedSigils) {
+    const profile = SIGIL_PROFILES[name];
+    if (!profile) continue;
+    const isPrimary = material?.family === profile.family || elementalMixture?.elements?.includes(name);
+    symbols.push(freezeDeep({
+      name,
+      kind: "sigil",
+      count,
+      role: "material",
+      operation: profile.family,
+      status: isPrimary ? "active" : "secondary",
+      consumed: true,
+      confidence: profile.fidelity || "documented",
+      explanation: `${name} fournit la matiere active: ${profile.noun}.`,
+      effectContribution: isPrimary
+        ? `Base du sort: ${profile.mechanic}.`
+        : `Matiere secondaire: ${profile.mechanic}.`,
+    }));
+  }
+
+  for (const role of ROLE_KEYS) {
+    for (const entry of axes[role]) {
+      symbols.push(freezeDeep({
+        name: entry.name,
+        kind: "sign",
+        count: entry.count,
+        role,
+        operation: entry.operation,
+        status: ignored.has(entry.name) ? "ignored" : uncertain.has(entry.name) ? "uncertain" : "active",
+        consumed: operationConsumed(manifestationPlan, role, entry.operation),
+        confidence: entry.fidelity,
+        inverted: entry.inverted,
+        explanation: `${entry.name} agit comme signe de ${roleLabel(role)}: ${entry.mechanic}.`,
+        effectContribution: consumedOperations.has(`${role}.${entry.operation}`)
+          ? `Fusionne dans la manifestation principale ${manifestationPlan?.labelFr || manifestationPlan?.id || "finale"}.`
+          : `Reste une couche secondaire ${entry.effect}.`,
+      }));
+    }
+  }
+
+  for (const [name, count] of [...signCounts.entries()].filter(([name]) => ignored.has(name))) {
+    if (symbols.some((entry) => entry.name === name && entry.kind === "sign")) continue;
+    symbols.push(freezeDeep({
+      name,
+      kind: "sign",
+      count,
+      role: "ignored",
+      operation: "ignored",
+      status: "ignored",
+      consumed: false,
+      confidence: "inferred",
+      explanation: `${name} est detecte mais ne correspond pas a la matiere active.`,
+      effectContribution: "Il est conserve dans l'explication mais ne modifie pas l'effet final.",
+    }));
+  }
+
+  const stages = [
+    freezeDeep({
+      id: "material",
+      label: "Matiere",
+      explanation: elementalMixture
+        ? `Les sigils se combinent en ${elementalMixture.materialProfile.noun}.`
+        : `La matiere active est ${material?.noun || "energie brute"}.`,
+    }),
+    ...ROLE_KEYS
+      .filter((role) => axes[role].length > 0)
+      .map((role) => freezeDeep({
+        id: role,
+        label: roleLabel(role),
+        explanation: axes[role]
+          .map((entry) => `${entry.name}${entry.count > 1 ? ` x${entry.count}` : ""} -> ${entry.operation}`)
+          .join(", "),
+      })),
+  ];
+
+  if (normalizedGeometry) {
+    stages.push(freezeDeep({
+      id: "geometry",
+      label: "Geometrie",
+      explanation: `Equilibre ${Math.round(normalizedGeometry.balance * 100)}%, pression ${Math.round(normalizedGeometry.pressure * 100)}%, rotation ${Math.round(normalizedGeometry.spin * 100)}%, portee ${Math.round(normalizedGeometry.reach * 100)}%.`,
+    }));
+  }
+
+  stages.push(freezeDeep({
+    id: "support",
+    label: "Support",
+    explanation: `Support ${supportPlan.supportId || "none"}: ${supportPlan.mode || "paper-origin"}.`,
+  }));
+
+  if (activeRitualId) {
+    stages.push(freezeDeep({
+      id: "ritual",
+      label: "Rituel complet",
+      explanation: `Le patron ${activeRitualId} debloque une manifestation speciale documentee.`,
+    }));
+  }
+
+  return freezeDeep({
+    symbols,
+    stages,
+    finalEffect: manifestationPlan?.labelFr || manifestationPlan?.labelEn || manifestationPlan?.id || "effet indetermine",
+    consumedOperations: [...consumedOperations].sort(),
+    secondaryOperations: [...(manifestationPlan?.secondaryOperations || [])].sort(),
+  });
 }
 
 export function composeSpellRecipe({
@@ -601,6 +749,19 @@ export function composeSpellRecipe({
     fidelity,
     ritualId: activeRitualId,
   });
+  const architecture = buildSymbolArchitecture({
+    axes,
+    material,
+    orderedSigils,
+    signCounts,
+    ignoredSigns,
+    uncertainSigns,
+    elementalMixture,
+    normalizedGeometry,
+    supportPlan,
+    manifestationPlan,
+    activeRitualId,
+  });
 
   return {
     id,
@@ -628,6 +789,7 @@ export function composeSpellRecipe({
     supportId,
     supportPlan,
     manifestationPlan,
+    architecture,
     identity,
     effectPlan,
   };
