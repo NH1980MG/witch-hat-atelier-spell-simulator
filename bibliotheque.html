@@ -35,6 +35,7 @@
     </script>
     <link rel="stylesheet" href="styles.css?v=20260809-responsive-v4">
     <script type="module" src="site-i18n.mjs?v=20260809-responsive-v4"></script>
+    <script type="module" src="site-nav.mjs?v=20260810-workshop-menu-v1"></script>
     <script type="module" src="library-explorer.mjs?v=20260809-handoff-layout-v2"></script>
   </head>
   <body>
@@ -44,32 +45,27 @@
           <img class="brand-logo-image" src="assets/brand/atelier-mark.svg?v=2" alt="" aria-hidden="true">
           <h1 data-i18n="library.heading">Magic-circle library</h1>
         </a>
-        <nav class="header-nav" data-i18n-aria-label="nav.secondary" aria-label="Secondary navigation">
-          <a class="header-link" href="index.html" data-i18n-aria-label="nav.openWorkshop" data-i18n-title="nav.workshop" aria-label="Return to the simulator" title="Workshop">
-            <span aria-hidden="true">&#8592;</span>
-            <span data-i18n="nav.workshop">Workshop</span>
-          </a>
-          <a class="header-link" href="tutoriel.html" data-i18n-aria-label="nav.openTutorial" data-i18n-title="nav.tutorial" aria-label="Open the tutorial" title="Tutorial">
-            <span aria-hidden="true">?</span>
-            <span data-i18n="nav.tutorial">Tutorial</span>
-          </a>
-          <a class="header-link" href="fonctionnement.html" data-i18n-aria-label="nav.openHowItWorks" data-i18n-title="nav.howItWorks" aria-label="Learn how the simulator works" title="How it works">
-            <span aria-hidden="true">i</span>
-            <span data-i18n="nav.howItWorks">How it works</span>
-          </a>
-          <a class="header-link" href="suggestions.html" data-i18n-aria-label="nav.openSuggestions" data-i18n-title="nav.suggestions" aria-label="Open the suggestion register" title="Suggestions">
-            <span aria-hidden="true">+</span>
-            <span data-i18n="nav.suggestions">Suggestions</span>
-          </a>
-          <a class="header-link" href="parametres.html" data-i18n-aria-label="nav.openSettings" data-i18n-title="nav.settings" aria-label="Open settings" title="Settings">
-            <span aria-hidden="true">&#9881;</span>
-            <span data-i18n="nav.settings">Settings</span>
-          </a>
-          <div class="language-switcher" role="group" data-i18n-aria-label="language.label">
-            <button type="button" data-locale="en" aria-pressed="true" data-i18n-aria-label="language.english">EN</button>
-            <button type="button" data-locale="fr" aria-pressed="false" data-i18n-aria-label="language.french">FR</button>
+        <aside class="workshop-menu" data-workshop-menu>
+          <button class="workshop-menu-toggle" id="workshopMenuToggle" type="button" aria-controls="workshopMenuPanel" aria-expanded="false" data-i18n-aria-label="nav.openMenu" data-i18n-title="nav.menu" aria-label="Open the workshop menu" title="Workshop menu">
+            <img src="assets/brand/atelier-mark.svg?v=2" alt="" aria-hidden="true">
+            <span class="workshop-menu-toggle-label" data-i18n="nav.menu">Workshop menu</span>
+            <span class="workshop-menu-toggle-chevron" aria-hidden="true">&#8964;</span>
+          </button>
+          <div class="workshop-menu-panel" id="workshopMenuPanel" role="dialog" data-i18n-aria-label="nav.secondary" aria-label="Secondary navigation" aria-hidden="true" hidden>
+            <div class="workshop-menu-heading" data-i18n="nav.menu">Workshop menu</div>
+            <nav class="workshop-menu-links" data-i18n-aria-label="nav.secondary" aria-label="Secondary navigation">
+              <a class="header-link" href="index.html" data-i18n-aria-label="nav.openWorkshop" data-i18n-title="nav.workshop"><span aria-hidden="true">&#8592;</span><span data-i18n="nav.workshop">Workshop</span></a>
+              <a class="header-link" href="tutoriel.html" data-i18n-aria-label="nav.openTutorial" data-i18n-title="nav.tutorial"><span aria-hidden="true">?</span><span data-i18n="nav.tutorial">Tutorial</span></a>
+              <a class="header-link" href="fonctionnement.html" data-i18n-aria-label="nav.openHowItWorks" data-i18n-title="nav.howItWorks"><span aria-hidden="true">i</span><span data-i18n="nav.howItWorks">How it works</span></a>
+              <a class="header-link" href="suggestions.html" data-i18n-aria-label="nav.openSuggestions" data-i18n-title="nav.suggestions"><span aria-hidden="true">+</span><span data-i18n="nav.suggestions">Suggestions</span></a>
+              <a class="header-link" href="parametres.html" data-i18n-aria-label="nav.openSettings" data-i18n-title="nav.settings"><span aria-hidden="true">&#9881;</span><span data-i18n="nav.settings">Settings</span></a>
+            </nav>
+            <div class="language-switcher" role="group" data-i18n-aria-label="language.label">
+              <button type="button" data-locale="en" aria-pressed="true" data-i18n-aria-label="language.english">EN</button>
+              <button type="button" data-locale="fr" aria-pressed="false" data-i18n-aria-label="language.french">FR</button>
+            </div>
           </div>
-        </nav>
+        </aside>
       </header>
 
       <div class="wiki-layout">
