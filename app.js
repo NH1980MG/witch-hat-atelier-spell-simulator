@@ -10240,10 +10240,6 @@ function describePhotoAnalysis(analysis) {
         option.textContent = `${optionElement ? elementDisplayName(optionElement) : optionCandidate.name} (${optionCandidate.score}%)`;
         select.append(option);
       }
-      select.addEventListener("change", () => {
-        selectPhotoCandidate(analysis, index, select.value);
-        updatePhotoRecreateAvailability();
-      });
       select.value = region.selectedName || "";
       select.addEventListener("change", () => {
         selectPhotoCandidate(analysis, index, select.value);
