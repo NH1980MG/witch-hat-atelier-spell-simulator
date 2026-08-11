@@ -148,6 +148,16 @@ function searchScore(record, search) {
   return total;
 }
 
+function exactMaterialPriority(record, requested) {
+  if (record.sigils.length !== 1) return 1;
+  const sigil = record.sigils[0];
+  if (requested.sigil !== "all") return sigil === requested.sigil ? 0 : 1;
+  const query = normalizeSearchText(requested.search);
+  if (!query) return 1;
+  const exactNames = [sigil, ENGLISH_ELEMENT_NAMES[sigil]].map(normalizeSearchText);
+  return exactNames.includes(query) ? 0 : 1;
+}
+
 function materialDescriptor(sigils) {
   const recipe = composeSpellRecipe({ sigils, signs: [], supportId: "none", direction: "vers le haut" });
   return Object.freeze({
@@ -317,11 +327,13 @@ export function queryVariants(records, state = DEFAULT_EXPLORER_STATE) {
     if (requested.effect !== "all" && normalizeSearchText(record.effectCategory) !== normalizeSearchText(requested.effect)) continue;
     const score = searchScore(record, requested.search);
     if (score < 0) continue;
-    ranked.push({ record, score });
+    ranked.push({ record, score, materialPriority: exactMaterialPriority(record, requested) });
   }
 
   const compareName = (left, right) => `${left.sigils.join("|")}|${left.signs.join("|")}|${left.supportId}`.localeCompare(`${right.sigils.join("|")}|${right.signs.join("|")}|${right.supportId}`, "en");
   ranked.sort((left, right) => {
+    const materialPriority = left.materialPriority - right.materialPriority;
+    if (materialPriority) return materialPriority;
     if (requested.sort === "id") return left.record.id.localeCompare(right.record.id);
     if (requested.sort === "fidelity") return FIDELITY_ORDER[left.record.fidelity] - FIDELITY_ORDER[right.record.fidelity] || compareName(left.record, right.record);
     if (requested.sort === "name") return compareName(left.record, right.record);

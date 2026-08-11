@@ -25,4 +25,5 @@ test("timeout, replacement, and view close use the cleanup path", () => {
   assert.match(rebuild, /clearActiveManifestation\("replace", false\)/);
   assert.match(render, /clearActiveManifestation\("timeout"\)/);
   assert.match(close, /clearActiveManifestation\("close"\)/);
+  assert.match(close, /clearActiveManifestation\("close"\);\s*render\(\);/);
 });
