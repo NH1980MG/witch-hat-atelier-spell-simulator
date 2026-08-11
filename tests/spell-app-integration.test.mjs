@@ -117,6 +117,15 @@ test("air creation and movement use distinct 3D layers", () => {
   assert.match(app, /movesAir/);
 });
 
+test("circle drawing geometry is passed into composed spell recipes", () => {
+  assert.match(app, /function analyzeCircleGeometry\(/);
+  assert.match(app, /nestedCircleCount/);
+  assert.match(app, /semicircleCount/);
+  assert.match(app, /joinableSemicircleCount/);
+  assert.match(app, /const circleGeometry = analyzeCircleGeometry\(\{[\s\S]*rings[\s\S]*closedCircles[\s\S]*freeSeals[\s\S]*hasBoundary/);
+  assert.match(app, /geometry:\s*\{\s*\.\.\.geometry,\s*\.\.\.circleGeometry\s*\}/);
+});
+
 test("radial is described as unresolved in both interface languages", () => {
   assert.match(app, /englishSignMeanings\[element\.name\]/);
   assert.match(app, /\bRadial:\s*["']Function unresolved/);

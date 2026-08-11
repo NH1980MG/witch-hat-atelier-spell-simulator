@@ -41,12 +41,31 @@ test("activation snapshots are detached and immutable", () => {
 });
 
 test("geometry normalization preserves semantic precision", () => {
-  assert.deepEqual(normalizeSpellGeometry({ balance: 0.834, pressure: 0.166, spin: 2, reach: -1, connectedCount: 2.8, ignoredCount: -2 }), {
+  assert.deepEqual(normalizeSpellGeometry({
+    balance: 0.834,
+    pressure: 0.166,
+    spin: 2,
+    reach: -1,
+    connectedCount: 2.8,
+    ignoredCount: -2,
+    circleCount: 3.9,
+    ringCount: 2.1,
+    nestedCircleCount: 1.8,
+    semicircleCount: 2.4,
+    joinableSemicircleCount: 1.2,
+    circleCompleteness: 1.4,
+  }), {
     balance: 0.834,
     pressure: 0.166,
     spin: 1,
     reach: 0,
     connectedCount: 2,
     ignoredCount: 0,
+    circleCount: 3,
+    ringCount: 2,
+    nestedCircleCount: 1,
+    semicircleCount: 2,
+    joinableSemicircleCount: 1,
+    circleCompleteness: 1,
   });
 });

@@ -38,6 +38,12 @@ export function normalizeSpellGeometry(geometry = {}) {
     reach: clamp(geometry.reach, 0, 1, 1),
     connectedCount: Math.max(0, Math.floor(Number(geometry.connectedCount) || 0)),
     ignoredCount: Math.max(0, Math.floor(Number(geometry.ignoredCount) || 0)),
+    circleCount: Math.max(0, Math.floor(Number(geometry.circleCount) || 0)),
+    ringCount: Math.max(0, Math.floor(Number(geometry.ringCount) || 0)),
+    nestedCircleCount: Math.max(0, Math.floor(Number(geometry.nestedCircleCount) || 0)),
+    semicircleCount: Math.max(0, Math.floor(Number(geometry.semicircleCount) || 0)),
+    joinableSemicircleCount: Math.max(0, Math.floor(Number(geometry.joinableSemicircleCount) || 0)),
+    circleCompleteness: clamp(geometry.circleCompleteness, 0, 1, 1),
   };
 }
 

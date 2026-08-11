@@ -254,6 +254,16 @@ function buildEffectPlan({ axes, material, sigilCounts, signCounts, direction, s
   }, { createsAir: false, movesAir: false });
   const stateLoad = axes.state.reduce((total, entry) => total + entry.count, 0);
   const relationLoad = axes.relation.reduce((total, entry) => total + entry.count, 0);
+  const circleCount = geometry?.circleCount ?? 0;
+  const ringCount = geometry?.ringCount ?? 0;
+  const nestedCircleCount = geometry?.nestedCircleCount ?? 0;
+  const semicircleCount = geometry?.semicircleCount ?? 0;
+  const joinableSemicircleCount = geometry?.joinableSemicircleCount ?? 0;
+  const circleCompleteness = geometry?.circleCompleteness ?? 1;
+  const circleContainment = nestedCircleCount * 0.18 + ringCount * 0.08;
+  const circleStability = circleCount * 0.08 + nestedCircleCount * 0.12 + joinableSemicircleCount * 0.04;
+  const circleFocus = nestedCircleCount * 0.06;
+  const incompleteCirclePenalty = semicircleCount > joinableSemicircleCount ? 0.08 : 0;
   const geometryParameters = {
     balance: round(geometry?.balance ?? 1),
     pressure: round(geometry?.pressure ?? 0),
@@ -261,10 +271,23 @@ function buildEffectPlan({ axes, material, sigilCounts, signCounts, direction, s
     reach: round(geometry?.reach ?? 1),
     connectedSigns: geometry?.connectedCount ?? signTotal,
     ignoredMarks: geometry?.ignoredCount ?? 0,
+    circleCount,
+    ringCount,
+    nestedCircleCount,
+    semicircleCount,
+    joinableSemicircleCount,
+    circleCompleteness: round(circleCompleteness),
   };
 
   if (geometry) {
     pipeline.push(`geometrie:equilibre-${geometryParameters.balance}+rotation-${geometryParameters.spin}+portee-${geometryParameters.reach}`);
+    if (nestedCircleCount > 0) {
+      pipeline.push(`geometrie:cercles-internes-${nestedCircleCount}+confinement-${round(circleContainment)}`);
+    }
+    if (semicircleCount > 0) {
+      const activationMode = joinableSemicircleCount >= 2 ? "jonction-demi-cercles" : "anneau-incomplet";
+      pipeline.push(`activation:${activationMode}+completude-${geometryParameters.circleCompleteness}`);
+    }
   }
 
   return {
@@ -290,12 +313,12 @@ function buildEffectPlan({ axes, material, sigilCounts, signCounts, direction, s
       signTotal,
       sigilTotal,
       density: round(1 + signTotal * 0.08 + inward * 0.12 + count("solidify") * 0.18),
-      spread: round(Math.max(0.25, 1 + outward * 0.16 + count("dispersion") * 0.34 - count("focus") * 0.28 - containment * 0.12)),
-      focus: round(1 + inward * 0.2 + targeting * 0.16 - count("dispersion") * 0.18),
+      spread: round(Math.max(0.25, 1 + outward * 0.16 + count("dispersion") * 0.34 - count("focus") * 0.28 - containment * 0.12 - circleContainment * 0.4 + incompleteCirclePenalty)),
+      focus: round(1 + inward * 0.2 + targeting * 0.16 - count("dispersion") * 0.18 + circleFocus),
       lift: round(lift * 0.38 + count("column") * 0.16),
       speed: round(0.72 + count("bolt") * 0.42 + count("column") * 0.2 + count("pull") * 0.16 - count("still") * 0.55),
-      containment: round(containment * 0.32),
-      stability: round(1 + count("strengthen") * 0.22 + count("solidify") * 0.18 + count("bind") * 0.16 + count("still") * 0.28 - count("crush") * 0.14),
+      containment: round(containment * 0.32 + circleContainment),
+      stability: round(1 + count("strengthen") * 0.22 + count("solidify") * 0.18 + count("bind") * 0.16 + count("still") * 0.28 - count("crush") * 0.14 + circleStability - incompleteCirclePenalty),
       stateLoad,
       relationLoad,
       repetition: sigilCounts.Repetition || 0,
@@ -462,6 +485,20 @@ export function composeSpellRecipe({
   }
   if (normalizedGeometry?.ignoredCount > 0) {
     warnings.push(`${normalizedGeometry.ignoredCount} marque(s) hors de l'anneau ou sans connexion ont ete ignorees.`);
+  }
+  if (normalizedGeometry?.nestedCircleCount > 0) {
+    mechanics.push(`Cercles internes x${normalizedGeometry.nestedCircleCount}: confinement et stabilisation de l'effet sans puissance brute ajoutee.`);
+    ruleIds.add("geometry.nested-circles");
+  }
+  if (normalizedGeometry?.semicircleCount > 0) {
+    if (normalizedGeometry.joinableSemicircleCount >= 2) {
+      warnings.push(`${normalizedGeometry.joinableSemicircleCount} demi-cercles detectes: activation attendue par jonction des moities.`);
+      ruleIds.add("geometry.joinable-semicircles");
+    } else {
+      warnings.push("Anneau incomplet detecte: le sort reste prepare et ne s'active pas pleinement sans fermeture.");
+      ruleIds.add("geometry.incomplete-ring");
+    }
+    fidelity = worstFidelity(fidelity, "inferred");
   }
   if (geometry?.directionalCount > 0 && normalizedGeometry.balance < 0.72) {
     warnings.push(`Signes directionnels desequilibres: la manifestation derive sous une pression de ${Math.round(normalizedGeometry.pressure * 100)}%.`);

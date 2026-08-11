@@ -6264,6 +6264,45 @@ function analyzeSignGeometry(signs, ignoredCount = 0) {
   };
 }
 
+function isCircleInsideBounds(action, bounds) {
+  if (!bounds || !Number.isFinite(action?.cx) || !Number.isFinite(action?.cy) || !Number.isFinite(action?.radius)) {
+    return false;
+  }
+  const maxBoundaryDiameter = Math.max(bounds.width, bounds.height);
+  return action.cx > bounds.left
+    && action.cx < bounds.right
+    && action.cy > bounds.top
+    && action.cy < bounds.bottom
+    && action.radius * 2 < maxBoundaryDiameter * 0.92;
+}
+
+function isSealInsideBounds(action, bounds) {
+  if (!bounds) return false;
+  const sealBounds = actionBounds(action);
+  return sealBounds.left > bounds.left
+    && sealBounds.right < bounds.right
+    && sealBounds.top > bounds.top
+    && sealBounds.bottom < bounds.bottom
+    && boundsArea(sealBounds) < boundsArea(bounds) * 0.85;
+}
+
+function analyzeCircleGeometry({ rings = [], closedCircles = [], openCircles = [], freeSeals = [], boundary = null, hasBoundary = false } = {}) {
+  const nestedClosedCircles = closedCircles.filter((action) => isCircleInsideBounds(action, boundary));
+  const nestedFreeSeals = freeSeals.filter((action) => isSealInsideBounds(action, boundary));
+  const ringLayers = rings.length * 3;
+  const nestedRingLayers = rings.length * 2;
+  const semicircleCount = openCircles.length;
+
+  return {
+    circleCount: closedCircles.length + ringLayers + freeSeals.length,
+    ringCount: rings.length,
+    nestedCircleCount: nestedClosedCircles.length + nestedFreeSeals.length + nestedRingLayers,
+    semicircleCount,
+    joinableSemicircleCount: semicircleCount >= 2 ? semicircleCount : 0,
+    circleCompleteness: hasBoundary ? 1 : semicircleCount > 0 ? 0.5 : 1,
+  };
+}
+
 function hasElementGlyph() {
   return elementGlyphs().length > 0;
 }
@@ -6287,11 +6326,20 @@ function signModel() {
   const rings = state.actions.filter((action) => action.type === "ring");
   const spirals = state.actions.filter((action) => action.type === "spiral");
   const closedCircles = state.actions.filter((action) => action.type === "circle" && action.closed);
+  const openCircles = state.actions.filter((action) => action.type === "circle" && !action.closed);
   const freeSeals = state.actions.filter((action) => action.seal);
   const freeMarks = state.actions.filter((action) => action.type === "free" && !action.boundary && !action.seal);
   const hasBoundary = hasSpellBoundary();
   const ignoredMarkCount = disconnectedGlyphs.length + disconnectedFreeActionCount(boundary);
   const geometry = analyzeSignGeometry(signs, ignoredMarkCount);
+  const circleGeometry = analyzeCircleGeometry({
+    rings,
+    closedCircles,
+    openCircles,
+    freeSeals,
+    boundary,
+    hasBoundary,
+  });
   const rawEnergy = hasBoundary && sigils.length === 0;
   const ringOnly = rawEnergy && signs.length === 0;
   const hasColumn = signCounts.Colonne > 0;
@@ -6396,7 +6444,7 @@ function signModel() {
     direction: directionName(rays, signs, geometry),
     supportId: currentSupport().id,
     invertedSigns: signs.filter((glyph) => glyph.inverted).map((glyph) => glyph.element),
-    geometry,
+    geometry: { ...geometry, ...circleGeometry },
   });
   if (ringOnly && !effectNames.includes("decharge brute")) {
     effectNames.push("decharge brute");

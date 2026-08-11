@@ -158,6 +158,65 @@ test("convergence concentrates matter without adding elemental power", () => {
   assert.equal(focused.effectPlan.powerModifier, 1);
 });
 
+test("internal circles contain and stabilize without adding raw power", () => {
+  const base = composeSpellRecipe({
+    sigils: ["Eau"],
+    signs: ["Dispersion"],
+    geometry: { balance: 1, pressure: 0, spin: 0, reach: 1, connectedCount: 1, ignoredCount: 0 },
+  });
+  const nested = composeSpellRecipe({
+    sigils: ["Eau"],
+    signs: ["Dispersion"],
+    geometry: {
+      balance: 1,
+      pressure: 0,
+      spin: 0,
+      reach: 1,
+      connectedCount: 1,
+      ignoredCount: 0,
+      circleCount: 3,
+      ringCount: 1,
+      nestedCircleCount: 2,
+      circleCompleteness: 1,
+    },
+  });
+
+  assert.notEqual(base.id, nested.id);
+  assert.equal(nested.effectPlan.powerModifier, 1);
+  assert.equal(nested.effectPlan.parameters.circleCount, 3);
+  assert.equal(nested.effectPlan.parameters.nestedCircleCount, 2);
+  assert.ok(nested.effectPlan.parameters.containment > base.effectPlan.parameters.containment);
+  assert.ok(nested.effectPlan.parameters.stability > base.effectPlan.parameters.stability);
+  assert.ok(nested.effectPlan.parameters.focus > base.effectPlan.parameters.focus);
+  assert.ok(nested.effectPlan.parameters.spread < base.effectPlan.parameters.spread);
+  assert.ok(nested.effectPlan.pipeline.some((stage) => stage.includes("cercles-internes-2")));
+});
+
+test("semicircles mark prepared joinable spells without changing raw power", () => {
+  const recipe = composeSpellRecipe({
+    sigils: ["Vent"],
+    signs: ["Levitation"],
+    geometry: {
+      balance: 1,
+      pressure: 0,
+      spin: 0,
+      reach: 1,
+      connectedCount: 1,
+      ignoredCount: 0,
+      semicircleCount: 2,
+      joinableSemicircleCount: 2,
+      circleCompleteness: 0.5,
+    },
+  });
+
+  assert.equal(recipe.effectPlan.powerModifier, 1);
+  assert.equal(recipe.effectPlan.parameters.semicircleCount, 2);
+  assert.equal(recipe.effectPlan.parameters.joinableSemicircleCount, 2);
+  assert.equal(recipe.effectPlan.parameters.circleCompleteness, 0.5);
+  assert.ok(recipe.effectPlan.pipeline.some((stage) => stage.includes("activation:jonction-demi-cercles")));
+  assert.ok(recipe.warnings.some((warning) => /demi-cercles.*jonction/i.test(warning)));
+});
+
 test("air creation and air movement remain separate capabilities", () => {
   assert.deepEqual(SIGIL_PROFILES.Aeriforme.capabilities, { createsAir: true, movesAir: false });
   assert.deepEqual(SIGIL_PROFILES.Vent.capabilities, { createsAir: false, movesAir: true });
