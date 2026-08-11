@@ -1,6 +1,6 @@
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import { buildRecipeHref } from "./recipe-link.mjs";
-import { t } from "./site-i18n.mjs?v=20260811-library-preview-v1";
+import { t } from "./site-i18n.mjs?v=20260811-scalewolf-v1";
 
 const byId = new Map(LIBRARY_CIRCLES.map((circle) => [circle.id, circle]));
 
