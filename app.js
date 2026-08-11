@@ -10143,7 +10143,9 @@ function encodePhotoGuideRaster(canvas) {
 }
 
 function photoRegionIcon(region) {
-  const candidate = region.candidates?.[0];
+  // An ambiguous score is only a suggestion. Do not make a guessed glyph look
+  // like a recognition result before the user confirms it.
+  const candidate = region.status === "accepted" ? region.candidates?.[0] : null;
   const element = elements.find((entry) => entry.name === candidate?.name);
   return element ? elementIconMarkup(element) : "?";
 }
@@ -10177,7 +10179,8 @@ function describePhotoAnalysis(analysis) {
     photoImportResults.append(item);
   }
   for (const [index, region] of (analysis.regions || []).entries()) {
-    const candidate = region.candidates?.[0];
+    const bestCandidate = region.candidates?.[0];
+    const candidate = region.status === "accepted" ? bestCandidate : null;
     const element = elements.find((entry) => entry.name === candidate?.name);
     const item = document.createElement("li");
     item.className = "photo-import-row";
@@ -10190,19 +10193,23 @@ function describePhotoAnalysis(analysis) {
     copy.className = "photo-region-copy";
     const label = document.createElement("strong");
     label.id = `photo-region-label-${index}`;
-    label.textContent = element ? elementDisplayName(element) : candidate?.name || t("photo.result.unreadable");
+    label.textContent = element
+      ? elementDisplayName(element)
+      : region.status === "ambiguous"
+        ? t("photo.result.possible")
+        : t("photo.result.unreadable");
     const stateLabel = document.createElement("span");
     stateLabel.className = "photo-region-state";
     stateLabel.textContent = t(`photo.result.${region.status}`);
     copy.append(label, stateLabel);
     const score = document.createElement("span");
     score.className = "photo-import-score";
-    score.textContent = candidate ? `${candidate.score}%` : "-";
+    score.textContent = bestCandidate ? `${bestCandidate.score}%` : "-";
     const meter = document.createElement("span");
     meter.className = "photo-import-meter";
     const fill = document.createElement("span");
-    fill.style.width = `${Math.min(100, Math.max(0, candidate?.score || 0))}%`;
-    fill.dataset.tier = photoScoreTier(candidate?.score || 0);
+    fill.style.width = `${Math.min(100, Math.max(0, bestCandidate?.score || 0))}%`;
+    fill.dataset.tier = photoScoreTier(bestCandidate?.score || 0);
     meter.append(fill);
     item.append(icon, copy, score, meter);
     if (region.status === "ambiguous") {
