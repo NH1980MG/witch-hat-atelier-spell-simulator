@@ -21,7 +21,7 @@ test("l'atelier importe l'analyse photo", async () => {
   const photoSource = await readFile(new URL("../photo-import.mjs", import.meta.url), "utf8");
   assert.match(source, /import \{ analyzePhoto \} from "\.\/photo-import\.mjs\?v=20260809-handoff-layout-v2"/);
   assert.match(source, /from "\.\/guide-storage\.mjs\?v=20260809-handoff-layout-v2"/);
-  assert.match(source, /mapPhotoAnalysis,\s+selectPhotoSymbol,\s+setPhotoRegionPosition,\s+sourceCropForAnalysis,\s+\} from "\.\/photo-placement\.mjs\?v=20260811-photo-edit-v1"/);
+  assert.match(source, /createPhotoRegionFromBounds,\s+mapPhotoAnalysis,\s+selectPhotoSymbol,\s+setPhotoRegionBounds,\s+setPhotoRegionPosition,\s+sourceCropForAnalysis,\s+\} from "\.\/photo-placement\.mjs\?v=20260811-photo-edit-v1"/);
   assert.match(source, /createImageBitmap/);
   assert.match(source, /recreatePhotoImport/);
   assert.match(source, /savePhotoAsGuide/);
@@ -37,6 +37,11 @@ test("la boite de dialogue affiche le recadrage corrige et chaque region une foi
   assert.match(source, /analysis\.cropBounds/);
   assert.match(source, /context\.translate\(-cropBounds\.left, -cropBounds\.top\)/);
   assert.match(source, /for \(const region of analysis\.regions \|\| \[\]\)/);
+  assert.match(source, /photoPreviewOverlay/);
+  assert.match(source, /renderPhotoRegionOverlay/);
+  assert.match(source, /startPhotoRegionDrag/);
+  assert.match(source, /createPhotoRegionFromBounds/);
+  assert.match(source, /setPhotoRegionBounds/);
   assert.match(source, /openPhotoRegionSearch\(index\)/);
   assert.match(source, /selectPhotoSymbol\(pendingPhotoImport\.analysis, photoEditRegionIndex, element\)/);
   assert.match(source, /setPhotoRegionPosition\(/);
@@ -49,6 +54,9 @@ test("la boite de dialogue affiche le recadrage corrige et chaque region une foi
   assert.match(css, /\.photo-import-row/);
   assert.match(css, /\.photo-import-meter/);
   assert.match(css, /data-tier="high"/);
+  assert.match(css, /\.photo-preview-overlay/);
+  assert.match(css, /\.photo-region-box/);
+  assert.match(css, /\.photo-region-handle/);
   assert.match(css, /\.photo-region-edit/);
   assert.match(css, /\.photo-region-position/);
   assert.match(css, /\.photo-dialog-actions > button/);

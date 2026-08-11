@@ -125,6 +125,21 @@ test("an exact material is ranked before mixtures and related sigils", () => {
   assert.ok(filtered.records.every(({ sigils }) => sigils.length === 1 && sigils[0] === "Eau"));
 });
 
+test("an exact material is ranked before mixtures and related sigils", () => {
+  for (const [search, expected] of [["earth", "Terre"], ["wind", "Vent"]]) {
+    const result = queryVariants(records, { ...DEFAULT_EXPLORER_STATE, search });
+    assert.equal(result.records[0].sigils.length, 1, `${search} should start with one material`);
+    assert.equal(result.records[0].sigils[0], expected);
+  }
+
+  const filtered = queryVariants(records, {
+    ...DEFAULT_EXPLORER_STATE,
+    sigil: "Eau",
+    sort: "id",
+  });
+  assert.ok(filtered.records.every(({ sigils }) => sigils.length === 1 && sigils[0] === "Eau"));
+});
+
 test("URL state round-trips and sanitizes invalid values", () => {
   const state = parseExplorerState(new URLSearchParams("q=water+orb&sigil=Eau&support=shoe&page=3&sort=fidelity"));
   assert.equal(state.search, "water orb");

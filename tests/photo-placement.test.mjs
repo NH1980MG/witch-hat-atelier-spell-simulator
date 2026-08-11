@@ -3,8 +3,10 @@ import assert from "node:assert/strict";
 import {
   mapPhotoAnalysis,
   photoContentBounds,
+  createPhotoRegionFromBounds,
   selectPhotoCandidate,
   selectPhotoSymbol,
+  setPhotoRegionBounds,
   setPhotoRegionPosition,
   sourceCropForAnalysis,
 } from "../photo-placement.mjs";
@@ -288,4 +290,130 @@ test("mapping preserves detected complete ritual seal patterns", () => {
     cy: 50,
     radius: 50,
   }]);
+});
+
+test("photo import can replace a detected symbol and adjust its position", () => {
+  const analysis = {
+    rings: [],
+    regions: [{
+      status: "accepted",
+      candidates: [{ name: "Eau", score: 78 }],
+      cx: 50,
+      cy: 50,
+      size: 20,
+      left: 40,
+      top: 40,
+      right: 60,
+      bottom: 60,
+    }],
+  };
+  const target = { left: 0, top: 0, width: 100, height: 100 };
+
+  selectPhotoSymbol(analysis, 0, { name: "Vent" });
+  setPhotoRegionPosition(analysis, 0, 0.25, -0.2);
+
+  assert.equal(analysis.regions[0].selectedName, "Vent");
+  assert.deepEqual(analysis.regions[0].offsetX, 0.25);
+  assert.deepEqual(analysis.regions[0].offsetY, -0.2);
+  assert.equal(mapPhotoAnalysis(analysis, target).symbols[0].name, "Vent");
+  assert.ok(mapPhotoAnalysis(analysis, target).symbols[0].cx > 50);
+  assert.ok(mapPhotoAnalysis(analysis, target).symbols[0].cy < 50);
+});
+
+test("photo import can move and resize a detected symbol frame", () => {
+  const analysis = {
+    imageWidth: 160,
+    imageHeight: 120,
+    rings: [],
+    regions: [{
+      status: "accepted",
+      candidates: [{ name: "Eau", score: 78 }],
+      cx: 50,
+      cy: 50,
+      size: 20,
+      left: 40,
+      top: 40,
+      right: 60,
+      bottom: 60,
+      width: 20,
+      height: 20,
+    }],
+  };
+
+  const bounds = setPhotoRegionBounds(analysis, 0, {
+    left: 25,
+    top: 30,
+    width: 50,
+    height: 30,
+  });
+
+  assert.deepEqual(bounds, {
+    left: 25,
+    top: 30,
+    right: 75,
+    bottom: 60,
+    width: 50,
+    height: 30,
+    cx: 50,
+    cy: 45,
+    size: 50,
+  });
+  assert.deepEqual(analysis.regions[0], {
+    status: "accepted",
+    candidates: [{ name: "Eau", score: 78 }],
+    offsetX: 0,
+    offsetY: 0,
+    cx: 50,
+    cy: 45,
+    size: 50,
+    left: 25,
+    top: 30,
+    right: 75,
+    bottom: 60,
+    width: 50,
+    height: 30,
+  });
+});
+
+test("photo import can create a selectable symbol frame from a right-click selection", () => {
+  const analysis = {
+    imageWidth: 160,
+    imageHeight: 120,
+    rings: [],
+    regions: [],
+  };
+
+  const index = createPhotoRegionFromBounds(analysis, {
+    left: 120,
+    top: 100,
+    width: -40,
+    height: -30,
+  });
+
+  assert.equal(index, 0);
+  assert.deepEqual(analysis.regions[0], {
+    status: "ambiguous",
+    candidates: [],
+    selectedName: null,
+    selectedCandidate: null,
+    userCreated: true,
+    offsetX: 0,
+    offsetY: 0,
+    cx: 100,
+    cy: 85,
+    size: 40,
+    left: 80,
+    top: 70,
+    right: 120,
+    bottom: 100,
+    width: 40,
+    height: 30,
+  });
+
+  selectPhotoSymbol(analysis, index, { name: "Vent" });
+  setPhotoRegionBounds(analysis, index, { left: 10, top: 12, width: 28, height: 28 });
+
+  assert.equal(analysis.regions[0].selectedName, "Vent");
+  assert.equal(mapPhotoAnalysis(analysis, { left: 0, top: 0, width: 100, height: 100 }).symbols[0].name, "Vent");
+  assert.equal(analysis.regions[0].left, 10);
 });

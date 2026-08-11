@@ -5,8 +5,9 @@ the visual grammar of *Witch Hat Atelier*. Draw a closed ring, place a central
 sigil and modifier signs, read the result, then activate a live Three.js scene.
 
 The public site is designed as both a workshop and a small wiki. Its library
-contains 33 tightly cropped reference circles and a searchable catalog of 65,601
-deterministic, support-aware variants:
+contains 33 tightly cropped reference circles, 50 generated community recipe
+circles, and a searchable catalog of 65,601 deterministic, support-aware
+variants:
 
 ```text
 40 * 41 / 2 = 820 unordered sign pairs with repetition
@@ -122,16 +123,17 @@ semantic checks passing.
 - `elemental-mixtures.mjs`: finite base-element profiles and runtime dominance.
 - `variant-catalog.mjs`, `variant-index-worker.mjs`: 65,601-variant searchable index built from the 65,600-recipe matrix plus one structured ritual.
 - `support-policy.mjs`, `support-geometry.mjs`: support limits and 3D placement.
-- `assets/library-schematics/`: 33 local PNG crops containing only the named reference circles.
+- `assets/library-schematics/`: 33 local PNG crops containing only the named reference circles, plus 50 original generated SVG community recipe schematics.
 - `docs/`: architecture, fidelity, QA, release and research provenance notes.
 
 ## Public Release Policy
 
-The public build contains original simulator artwork plus 33 spell-circle crops
-from archived Witch Hat Atelier Wiki gallery captures supplied for this fan
-project. Full screenshots, surrounding wiki text, and manga/anime panels are not
-included. Three.js is vendored under `vendor/three/` with its MIT license and no
-runtime CDN dependency.
+The public build contains original simulator artwork, 50 generated community
+recipe schematics, and 33 spell-circle crops from archived Witch Hat Atelier
+Wiki gallery captures supplied for this fan project. Full screenshots,
+surrounding wiki text, and manga/anime panels are not included. Three.js is
+vendored under `vendor/three/` with its MIT license and no runtime CDN
+dependency.
 
 This is an unofficial fan project. *Witch Hat Atelier* and related names belong
 to their respective rights holders.

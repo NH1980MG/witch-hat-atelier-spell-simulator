@@ -80,6 +80,70 @@ export function setPhotoRegionPosition(analysis, regionIndex, offsetX, offsetY) 
   return { x: region.offsetX, y: region.offsetY };
 }
 
+function analysisLimit(analysis, axis) {
+  const fallback = axis === "x" ? analysis?.cropBounds?.width : analysis?.cropBounds?.height;
+  const direct = axis === "x" ? analysis?.imageWidth : analysis?.imageHeight;
+  return Math.max(1, Number(direct) || Number(fallback) || 1);
+}
+
+function normalizePhotoRegionBounds(analysis, bounds) {
+  const imageWidth = analysisLimit(analysis, "x");
+  const imageHeight = analysisLimit(analysis, "y");
+  const rawLeft = Number(bounds?.left) || 0;
+  const rawTop = Number(bounds?.top) || 0;
+  const rawRight = finite(bounds?.right) ? Number(bounds.right) : rawLeft + (Number(bounds?.width) || 0);
+  const rawBottom = finite(bounds?.bottom) ? Number(bounds.bottom) : rawTop + (Number(bounds?.height) || 0);
+  const minSize = 4;
+  const left = Math.max(0, Math.min(imageWidth - minSize, Math.min(rawLeft, rawRight)));
+  const top = Math.max(0, Math.min(imageHeight - minSize, Math.min(rawTop, rawBottom)));
+  const right = Math.max(left + minSize, Math.min(imageWidth, Math.max(rawLeft, rawRight)));
+  const bottom = Math.max(top + minSize, Math.min(imageHeight, Math.max(rawTop, rawBottom)));
+  const width = right - left;
+  const height = bottom - top;
+  return {
+    left,
+    top,
+    right,
+    bottom,
+    width,
+    height,
+    cx: left + width / 2,
+    cy: top + height / 2,
+    size: Math.max(width, height),
+  };
+}
+
+export function setPhotoRegionBounds(analysis, regionIndex, bounds) {
+  const region = analysis?.regions?.[regionIndex];
+  if (!region) {
+    return null;
+  }
+  const normalized = normalizePhotoRegionBounds(analysis, bounds);
+  Object.assign(region, normalized, { offsetX: 0, offsetY: 0 });
+  return normalized;
+}
+
+export function createPhotoRegionFromBounds(analysis, bounds) {
+  if (!analysis) {
+    return -1;
+  }
+  if (!Array.isArray(analysis.regions)) {
+    analysis.regions = [];
+  }
+  const normalized = normalizePhotoRegionBounds(analysis, bounds);
+  analysis.regions.push({
+    status: "ambiguous",
+    candidates: [],
+    selectedName: null,
+    selectedCandidate: null,
+    userCreated: true,
+    offsetX: 0,
+    offsetY: 0,
+    ...normalized,
+  });
+  return analysis.regions.length - 1;
+}
+
 function importableRegions(analysis) {
   if (Array.isArray(analysis?.regions)) {
     return analysis.regions

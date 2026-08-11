@@ -170,7 +170,10 @@
 
         <dialog id="photoImportDialog" class="photo-dialog" data-i18n-aria-label="photo.previewTitle" aria-label="Photo import">
           <h2 data-i18n="photo.previewTitle">Photo import</h2>
-          <div class="photo-preview-frame"><img id="photoPreviewImage" alt=""></div>
+          <div class="photo-preview-frame" id="photoPreviewFrame">
+            <img id="photoPreviewImage" alt="">
+            <div class="photo-preview-overlay" id="photoPreviewOverlay" aria-hidden="false"></div>
+          </div>
           <ul id="photoImportResults" class="photo-import-results"></ul>
           <div class="photo-dialog-actions">
             <button id="photoRecreateButton" type="button" data-i18n="photo.recreate">Recreate in the simulator</button>
