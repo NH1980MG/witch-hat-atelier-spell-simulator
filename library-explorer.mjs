@@ -15,7 +15,7 @@ import {
   parseExplorerState,
   queryVariants,
   serializeExplorerState,
-} from "./variant-catalog.mjs?v=20260809-photo-import-v3";
+} from "./variant-catalog.mjs?v=20260811-scalewolf-v2";
 
 import { dailyPick } from "./daily-spell.mjs";
 
@@ -269,7 +269,7 @@ if (!form) {
   nextButton.addEventListener("click", () => { state.page += 1; requestQuery(); });
 
   try {
-    worker = new Worker(new URL("./variant-index-worker.mjs", import.meta.url), { type: "module" });
+    worker = new Worker(new URL("./variant-index-worker.mjs?v=20260811-scalewolf-v2", import.meta.url), { type: "module" });
     worker.addEventListener("message", ({ data }) => {
       if (data.type === "ready") requestQuery();
       if (data.type === "results") renderResults(data.payload);
