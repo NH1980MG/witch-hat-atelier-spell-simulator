@@ -102,6 +102,27 @@ export const MATRIX_SIGIL_NAMES = Object.freeze(Object.keys(SIGIL_PROFILES));
 
 export const MATRIX_SIGN_NAMES = Object.freeze(Object.keys(SIGN_PROFILES));
 
+export const RITUAL_PROFILES = Object.freeze({
+  "opening-petrification": profile({
+    id: "opening-petrification",
+    patternId: "opening-petrification-seal",
+    label: "sceau de petrification du debut",
+    requiredSigils: Object.freeze(["Terre"]),
+    requiredSigns: Object.freeze(["Solidification", "Immobilite"]),
+    fidelity: "documented",
+    mechanic: "demande le patron ancien complet avec anneaux concentriques, verrou central, modules lateraux et signes de stase repetes",
+  }),
+});
+
+export const STRUCTURED_RITUAL_VARIANTS = Object.freeze([
+  Object.freeze({
+    ritualId: "opening-petrification",
+    sigils: Object.freeze(["Terre"]),
+    signs: Object.freeze(["Solidification", "Immobilite"]),
+    supportId: "none",
+  }),
+]);
+
 const ROLE_KEYS = Object.freeze(["form", "motion", "scope", "supply", "state", "target", "relation", "power"]);
 const FIDELITY_RANK = Object.freeze({ documented: 0, inferred: 1, experimental: 2 });
 
@@ -337,6 +358,7 @@ export function composeSpellRecipe({
   supportId = "none",
   invertedSigns = [],
   geometry = null,
+  ritualId = null,
 } = {}) {
   const sigilCounts = countNames(sigils);
   const signCounts = countNames(signs);
@@ -419,6 +441,25 @@ export function composeSpellRecipe({
   }
   if (orderedSigils.length > 1) {
     mechanics.push(`Matiere composee: ${orderedSigils.map(([name, count]) => `${name}${count > 1 ? ` x${count}` : ""}`).join(" + ")}.`);
+  }
+
+  const ritualProfile = ritualId ? RITUAL_PROFILES[ritualId] : null;
+  let activeRitualId = null;
+  if (ritualId && !ritualProfile) {
+    warnings.push(`Rituel inconnu ignore: ${ritualId}.`);
+    fidelity = worstFidelity(fidelity, "experimental");
+  } else if (ritualProfile) {
+    const missingSigils = ritualProfile.requiredSigils.filter((name) => !sigilCounts.has(name));
+    const missingSigns = ritualProfile.requiredSigns.filter((name) => !signCounts.has(name));
+    if (missingSigils.length === 0 && missingSigns.length === 0) {
+      activeRitualId = ritualProfile.id;
+      ruleIds.add(`ritual.${ritualProfile.id}`);
+      mechanics.push(`Rituel ${ritualProfile.label}: ${ritualProfile.mechanic}.`);
+      fidelity = worstFidelity(fidelity, ritualProfile.fidelity);
+    } else {
+      warnings.push(`Rituel ${ritualProfile.label} incomplet: ${[...missingSigils, ...missingSigns].join(", ")} manquant(s).`);
+      fidelity = worstFidelity(fidelity, "inferred");
+    }
   }
 
   const operations = Object.fromEntries(ROLE_KEYS.map((role) => [role, axes[role].map((entry) => entry.operation)]));
@@ -543,6 +584,7 @@ export function composeSpellRecipe({
     direction,
     supportId,
     geometry: normalizedGeometry || {},
+    ritualId: activeRitualId,
   });
   const id = `spell-v2-${hashSpellIdentity(identity)}`;
   const effectPlan = {
@@ -557,6 +599,7 @@ export function composeSpellRecipe({
     geometry: normalizedGeometry || {},
     supportPlan,
     fidelity,
+    ritualId: activeRitualId,
   });
 
   return {
@@ -579,6 +622,8 @@ export function composeSpellRecipe({
     confidence,
     fidelity,
     ruleIds: [...ruleIds].sort(),
+    ritualId: activeRitualId,
+    ritual: activeRitualId ? ritualProfile : null,
     direction,
     supportId,
     supportPlan,

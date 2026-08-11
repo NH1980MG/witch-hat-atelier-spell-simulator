@@ -62,14 +62,15 @@ export function fitCircleShare(circle, targetCanvas) {
 function parseAction(value, glyphNames) {
   if (!isRecord(value) || !ACTION_TYPES.has(value.type)) throw new TypeError("Unsupported circle action");
   const width = optionalPositive(value.width, 2, "stroke width");
+  const ritualFields = parseRitualFields(value);
   if (value.type === "free") {
     if (!Array.isArray(value.points) || value.points.length < 2 || value.points.length > 2000) {
       throw new TypeError("Freehand points are invalid");
     }
-    return { type: "free", width, points: value.points.map(parsePoint) };
+    return { type: "free", width, points: value.points.map(parsePoint), ...ritualFields };
   }
   if (value.type === "ray") {
-    return { type: "ray", cx: finite(value.cx), cy: finite(value.cy), x: finite(value.x), y: finite(value.y), width };
+    return { type: "ray", cx: finite(value.cx), cy: finite(value.cy), x: finite(value.x), y: finite(value.y), width, ...ritualFields };
   }
   if (value.type === "glyph") {
     const element = text(value.element, 80, "Glyph element");
@@ -82,6 +83,7 @@ function parseAction(value, glyphNames) {
       ...parsePoint(value),
       size: positive(value.size, "glyph size"),
       rotation: value.rotation === undefined ? 0 : finite(value.rotation),
+      ...ritualFields,
     };
   }
   const result = {
@@ -90,10 +92,18 @@ function parseAction(value, glyphNames) {
     cy: finite(value.cy),
     radius: positive(value.radius, "radius"),
     width,
+    ...ritualFields,
   };
   if (value.type === "circle") result.closed = value.closed !== false;
   if (value.type === "spiral") result.turns = optionalPositive(value.turns, 3, "spiral turns");
   return result;
+}
+
+function parseRitualFields(value) {
+  const fields = {};
+  if (value.ritualId === "opening-petrification") fields.ritualId = "opening-petrification";
+  if (value.sealPatternId === "opening-petrification-seal") fields.sealPatternId = "opening-petrification-seal";
+  return fields;
 }
 
 function parseCanvas(value) {

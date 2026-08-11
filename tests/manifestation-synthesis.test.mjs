@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { synthesizeManifestation } from "../manifestation-synthesis.mjs";
 
-function plan({ family = "water", phase = "liquid", elements = [], operations = {}, geometry = {}, supportPlan = null, fidelity = "documented" } = {}) {
+function plan({ family = "water", phase = "liquid", elements = [], operations = {}, geometry = {}, supportPlan = null, fidelity = "documented", ritualId = null } = {}) {
   return synthesizeManifestation({
     materialProfile: { family, phase, noun: family },
     elementalMixture: elements.length ? {
@@ -19,6 +19,7 @@ function plan({ family = "water", phase = "liquid", elements = [], operations = 
     geometry: { balance: 1, pressure: 0, spin: 0, reach: 1, ...geometry },
     supportPlan: supportPlan ?? { supportId: "none", mode: "surface-manifestation", fidelity: "documented" },
     fidelity,
+    ritualId,
   });
 }
 
@@ -91,6 +92,7 @@ test("earth, solidification, and stillness produce the opening petrification fie
     family: "earth",
     phase: "solid",
     operations: { state: ["solidify", "still"] },
+    ritualId: "opening-petrification",
   });
 
   assert.equal(result.id, "ancient.petrification-field");
@@ -101,6 +103,16 @@ test("earth, solidification, and stillness produce the opening petrification fie
   assert.equal(result.motion.id, "surface-lock");
   assert.ok(result.consumedOperations.includes("state.solidify"));
   assert.ok(result.consumedOperations.includes("state.still"));
+});
+
+test("earth, solidification, and stillness stay generic without the complete ritual pattern", () => {
+  const result = plan({
+    family: "earth",
+    phase: "solid",
+    operations: { state: ["solidify", "still"] },
+  });
+
+  assert.notEqual(result.id, "ancient.petrification-field");
 });
 
 test("generic synthesis preserves independent relation layers", () => {

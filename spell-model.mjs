@@ -54,6 +54,7 @@ export function canonicalSpellIdentity({
   direction = "contenu",
   supportId = "none",
   geometry = {},
+  ritualId = null,
   rulesVersion = 2,
 } = {}) {
   if (!SUPPORTED_SUPPORT_IDS.includes(supportId)) {
@@ -67,6 +68,7 @@ export function canonicalSpellIdentity({
     invertedSigns: [...new Set(invertedSigns)].sort((left, right) => left.localeCompare(right, "fr")),
     direction: String(direction || "contenu"),
     supportId,
+    ritualId: ritualId ? String(ritualId) : null,
     geometry: normalizeSpellGeometry(geometry),
   });
 }

@@ -67,7 +67,7 @@ if (!form) {
     document.querySelector("#dailySpellMeta").textContent =
       `${pick.recipeId} · ${t(`library.fidelity.${pick.fidelity}`)}`;
     document.querySelector("#dailySpellLink").href =
-      buildRecipeHref({ sigils: [...pick.sigils], signs: [...pick.signs], supportId: pick.supportId, activate: true });
+      buildRecipeHref({ sigils: [...pick.sigils], signs: [...pick.signs], supportId: pick.supportId, ritualId: pick.ritualId, activate: true });
   }
 
   function option(select, value, label) {
@@ -152,7 +152,7 @@ if (!form) {
       button.addEventListener("click", () => requestDetail(record));
       const loadLink = document.createElement("a");
       loadLink.className = "variant-action";
-      loadLink.href = buildRecipeHref({ sigils: record.sigils, signs: record.signs, supportId: record.supportId, activate: true });
+      loadLink.href = buildRecipeHref({ sigils: record.sigils, signs: record.signs, supportId: record.supportId, ritualId: record.ritualId, activate: true });
       loadLink.textContent = t("explorer.loadInAtelier");
       actions.append(button, loadLink);
       article.append(heading, meta, plan, actions);
@@ -223,7 +223,7 @@ if (!form) {
     );
     const loadLink = document.createElement("a");
     loadLink.className = "variant-dialog-action";
-    loadLink.href = buildRecipeHref({ sigils: detail.sigils, signs: detail.signs, supportId: detail.supportId, activate: true });
+    loadLink.href = buildRecipeHref({ sigils: detail.sigils, signs: detail.signs, supportId: detail.supportId, ritualId: detail.ritualId, activate: true });
     loadLink.textContent = t("explorer.loadInAtelier");
     dialogBody.replaceChildren(list, loadLink);
   }

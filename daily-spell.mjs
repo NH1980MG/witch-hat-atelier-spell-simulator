@@ -4,7 +4,7 @@
 // buildVariantIndex() (support x materiau x paire de signes) ; le test
 // daily-spell epingle cette correspondance contre l'index complet.
 
-import { MATRIX_SIGN_NAMES, composeSpellRecipe } from "./spell-grammar.mjs";
+import { MATRIX_SIGN_NAMES, STRUCTURED_RITUAL_VARIANTS, composeSpellRecipe } from "./spell-grammar.mjs";
 import { MATERIAL_SIGNATURES, VARIANT_SUPPORTS } from "./variant-catalog.mjs";
 
 export function dailyDateKey(date = new Date()) {
@@ -31,6 +31,10 @@ export function dailyPairCount() {
 }
 
 export function dailyVariantTotal() {
+  return baseMatrixTotal() + STRUCTURED_RITUAL_VARIANTS.length;
+}
+
+function baseMatrixTotal() {
   return VARIANT_SUPPORTS.length * MATERIAL_SIGNATURES.length * dailyPairCount();
 }
 
@@ -44,6 +48,26 @@ export function dailyPick(date = new Date()) {
   const dateKey = dailyDateKey(date);
   const flatIndex = dailyFlatIndex(dateKey);
   const pairCount = dailyPairCount();
+  if (flatIndex >= baseMatrixTotal()) {
+    const ritual = STRUCTURED_RITUAL_VARIANTS[flatIndex - baseMatrixTotal()];
+    const recipe = composeSpellRecipe({
+      sigils: [...ritual.sigils],
+      signs: [...ritual.signs],
+      supportId: ritual.supportId,
+      direction: "vers le haut",
+      ritualId: ritual.ritualId,
+    });
+    return Object.freeze({
+      dateKey,
+      flatIndex,
+      sigils: Object.freeze([...ritual.sigils]),
+      signs: Object.freeze([...ritual.signs]),
+      supportId: ritual.supportId,
+      ritualId: ritual.ritualId,
+      recipeId: recipe.id,
+      fidelity: recipe.fidelity,
+    });
+  }
   const pairIndex = flatIndex % pairCount;
   const materialIndex = Math.floor(flatIndex / pairCount) % MATERIAL_SIGNATURES.length;
   const supportIndex = Math.floor(flatIndex / (pairCount * MATERIAL_SIGNATURES.length));
@@ -64,6 +88,7 @@ export function dailyPick(date = new Date()) {
     sigils: Object.freeze(sigils),
     signs: Object.freeze(signs),
     supportId,
+    ritualId: null,
     recipeId: recipe.id,
     fidelity: recipe.fidelity,
   });

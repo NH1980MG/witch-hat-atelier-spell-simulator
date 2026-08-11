@@ -5,25 +5,28 @@ the visual grammar of *Witch Hat Atelier*. Draw a closed ring, place a central
 sigil and modifier signs, read the result, then activate a live Three.js scene.
 
 The public site is designed as both a workshop and a small wiki. Its library
-contains 33 tightly cropped reference circles and a searchable catalog of exactly
-65,600 deterministic, support-aware recipes:
+contains 33 tightly cropped reference circles and a searchable catalog of 65,601
+deterministic, support-aware variants:
 
 ```text
 40 * 41 / 2 = 820 unordered sign pairs with repetition
 29 single sigils + 11 balanced base-element mixtures = 40 material signatures
 40 material signatures * 820 pairs = 32,800 recipes
-32,800 recipes * 2 support modes = 65,600 variants
+32,800 recipes * 2 support modes = 65,600 regular matrix variants
+65,600 regular matrix variants + 1 complete structured ritual seal = 65,601 indexed variants
 ```
 
 The two support modes are paper only and a small paper fixed under a shoe. This
 count is a simulator validation matrix, not a claim that the manga names 65,600
-spells. The 11 indexed mixtures use only Feu, Eau, Terre and Vent; their pair
-and triple interpretations are inferred, and the four-element mixture is
-experimental, not manga-confirmed. Arbitrary repeated base sigils are evaluated
-at runtime as dominance and intensity rather than exhaustively indexed. Three-
-sign, linked, nested and arbitrary freehand variants also remain outside the
-finite public matrix. Every profiled sigil available in the editor is included
-in this public contract.
+spells. One extra structured entry is indexed for the complete opening
+petrification seal because its effect requires the full patron rather than a
+simple Terre + Solidification + Immobilite equivalent. The 11 indexed mixtures
+use only Feu, Eau, Terre and Vent; their pair and triple interpretations are
+inferred, and the four-element mixture is experimental, not manga-confirmed.
+Arbitrary repeated base sigils are evaluated at runtime as dominance and
+intensity rather than exhaustively indexed. Three-sign, linked, nested and
+arbitrary freehand variants also remain outside the finite public matrix. Every
+profiled sigil available in the editor is included in this public contract.
 
 ## Features
 
@@ -117,7 +120,7 @@ semantic checks passing.
 - `symbol-catalog.mjs`: shared vector drawings for the editor and renderer.
 - `spell-grammar.mjs`, `spell-model.mjs`: deterministic mechanics and snapshots.
 - `elemental-mixtures.mjs`: finite base-element profiles and runtime dominance.
-- `variant-catalog.mjs`, `variant-index-worker.mjs`: 65,600-recipe index.
+- `variant-catalog.mjs`, `variant-index-worker.mjs`: 65,601-variant searchable index built from the 65,600-recipe matrix plus one structured ritual.
 - `support-policy.mjs`, `support-geometry.mjs`: support limits and 3D placement.
 - `assets/library-schematics/`: 33 local PNG crops containing only the named reference circles.
 - `docs/`: architecture, fidelity, QA, release and research provenance notes.

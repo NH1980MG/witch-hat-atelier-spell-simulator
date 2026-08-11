@@ -32,6 +32,7 @@ export function synthesizeManifestation({
   geometry = {},
   supportPlan = {},
   fidelity = "documented",
+  ritualId = null,
 } = {}) {
   const normalizedOperations = normalizeOperations(operations, axes);
   const has = (operation) => ROLE_ORDER.some((role) => normalizedOperations[role].includes(operation));
@@ -46,7 +47,7 @@ export function synthesizeManifestation({
   if (has("pull") && has("push")) warnings.push("opposed-motion");
   if (normalizedGeometry.balance < 0.72) warnings.push("directional-imbalance");
 
-  const selected = selectSpecialization({ family, phase, elements, has, geometry: normalizedGeometry });
+  const selected = selectSpecialization({ family, phase, elements, has, geometry: normalizedGeometry, ritualId });
   const consumedOperations = operationIds(normalizedOperations)
     .filter((entry) => PRIMARY_ROLES.has(entry.split(".", 1)[0]));
   const secondaryOperations = operationIds(normalizedOperations)
@@ -104,10 +105,10 @@ export function synthesizeManifestation({
   });
 }
 
-function selectSpecialization({ family, phase, elements, has, geometry }) {
+function selectSpecialization({ family, phase, elements, has, geometry, ritualId }) {
   const includes = (name) => elements.includes(name);
 
-  if (family === "earth" && has("solidify") && has("still")) {
+  if (ritualId === "opening-petrification" && family === "earth" && has("solidify") && has("still")) {
     return specialization(
       "ancient.petrification-field",
       "petrified-stone",
