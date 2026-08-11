@@ -109,6 +109,7 @@ test("mapping fits complete extents in the target without stretching", () => {
   assert.deepEqual(mapped, {
     rings: [{ cx: 110, cy: 70, radius: 50 }],
     symbols: [],
+    patterns: [],
   });
 });
 
@@ -166,6 +167,7 @@ test("mapping recreates accepted and explicitly confirmed candidates only", () =
   }, { left: 0, top: 0, width: 110, height: 75 });
 
   assert.deepEqual(mapped.rings, []);
+  assert.deepEqual(mapped.patterns, []);
   assert.deepEqual(mapped.symbols.map(({ name, score }) => ({ name, score })), [
     { name: "Eau", score: 78 },
     { name: "Feu", score: 49 },
@@ -195,7 +197,7 @@ test("mapping returns no output when nothing is accepted or confirmed", () => {
       cy: 10,
       size: 10,
     }],
-  }, { left: 0, top: 0, width: 100, height: 100 }), { rings: [], symbols: [] });
+  }, { left: 0, top: 0, width: 100, height: 100 }), { rings: [], symbols: [], patterns: [] });
 });
 
 test("candidate selection mutates pending analysis and updates placement", () => {
@@ -217,7 +219,7 @@ test("candidate selection mutates pending analysis and updates placement", () =>
   };
   const target = { left: 0, top: 0, width: 100, height: 100 };
 
-  assert.deepEqual(mapPhotoAnalysis(pending.analysis, target), { rings: [], symbols: [] });
+  assert.deepEqual(mapPhotoAnalysis(pending.analysis, target), { rings: [], symbols: [], patterns: [] });
 
   selectPhotoCandidate(pending.analysis, 0, "Feu");
 
@@ -231,7 +233,7 @@ test("candidate selection mutates pending analysis and updates placement", () =>
   selectPhotoCandidate(pending.analysis, 0, "");
 
   assert.equal(pending.analysis.regions[0].selectedName, null);
-  assert.deepEqual(mapPhotoAnalysis(pending.analysis, target), { rings: [], symbols: [] });
+  assert.deepEqual(mapPhotoAnalysis(pending.analysis, target), { rings: [], symbols: [], patterns: [] });
 });
 
 test("photo import can replace a detected symbol and adjust its position", () => {
@@ -260,4 +262,30 @@ test("photo import can replace a detected symbol and adjust its position", () =>
   assert.equal(mapPhotoAnalysis(analysis, target).symbols[0].name, "Vent");
   assert.ok(mapPhotoAnalysis(analysis, target).symbols[0].cx > 50);
   assert.ok(mapPhotoAnalysis(analysis, target).symbols[0].cy < 50);
+});
+
+test("mapping preserves detected complete ritual seal patterns", () => {
+  const mapped = mapPhotoAnalysis({
+    rings: [],
+    regions: [],
+    sealPatterns: [{
+      id: "opening-petrification-seal",
+      ritualId: "opening-petrification",
+      score: 91,
+      cx: 100,
+      cy: 100,
+      radius: 80,
+    }],
+  }, { left: 0, top: 0, width: 200, height: 100 });
+
+  assert.deepEqual(mapped.rings, []);
+  assert.deepEqual(mapped.symbols, []);
+  assert.deepEqual(mapped.patterns, [{
+    id: "opening-petrification-seal",
+    ritualId: "opening-petrification",
+    score: 91,
+    cx: 100,
+    cy: 50,
+    radius: 50,
+  }]);
 });

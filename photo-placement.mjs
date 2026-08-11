@@ -26,6 +26,10 @@ function analysisRings(analysis) {
   return analysis?.ring ? [analysis.ring] : [];
 }
 
+function analysisPatterns(analysis) {
+  return Array.isArray(analysis?.sealPatterns) ? analysis.sealPatterns : [];
+}
+
 function selectedCandidate(region) {
   const candidates = Array.isArray(region?.candidates) ? region.candidates : [];
   if (region?.selectedCandidate && region.selectedName === region.selectedCandidate.name) {
@@ -137,6 +141,18 @@ export function photoContentBounds(analysis) {
     const bound = regionBounds(region);
     if (bound) bounds.push(bound);
   }
+  for (const pattern of analysisPatterns(analysis)) {
+    if (finite(pattern?.cx) && finite(pattern?.cy) && finite(pattern?.radius) && pattern.radius >= 0) {
+      bounds.push({
+        left: pattern.cx - pattern.radius,
+        top: pattern.cy - pattern.radius,
+        right: pattern.cx + pattern.radius,
+        bottom: pattern.cy + pattern.radius,
+      });
+    } else if (pattern?.bounds && [pattern.bounds.left, pattern.bounds.top, pattern.bounds.right, pattern.bounds.bottom].every(finite)) {
+      bounds.push(pattern.bounds);
+    }
+  }
   if (bounds.length === 0) {
     return null;
   }
@@ -152,7 +168,7 @@ export function mapPhotoAnalysis(analysis, target) {
   const targetWidth = Number(target?.width) || 0;
   const targetHeight = Number(target?.height) || 0;
   if (!source || targetWidth <= 0 || targetHeight <= 0) {
-    return { rings: [], symbols: [] };
+    return { rings: [], symbols: [], patterns: [] };
   }
   const sourceWidth = Math.max(1, source.width);
   const sourceHeight = Math.max(1, source.height);
@@ -186,5 +202,14 @@ export function mapPhotoAnalysis(analysis, target) {
     width: (finite(region.width) ? region.width : region.size) * scale,
     height: (finite(region.height) ? region.height : region.size) * scale,
   }));
-  return { rings, symbols };
+  const patterns = analysisPatterns(analysis)
+    .filter((pattern) => finite(pattern?.cx) && finite(pattern?.cy) && finite(pattern?.radius) && pattern.radius >= 0)
+    .map((pattern) => ({
+      id: pattern.id,
+      ritualId: pattern.ritualId,
+      score: pattern.score,
+      ...mapPoint(pattern.cx, pattern.cy),
+      radius: pattern.radius * scale,
+    }));
+  return { rings, symbols, patterns };
 }

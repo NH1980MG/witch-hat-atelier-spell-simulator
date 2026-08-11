@@ -20,6 +20,7 @@ test("le tirage est identique a l'entree de meme rang dans l'index complet", () 
     assert.deepEqual([...pick.sigils], [...record.sigils], `${dateKey}: sigils`);
     assert.deepEqual([...pick.signs], [...record.signs], `${dateKey}: signes`);
     assert.equal(pick.supportId, record.supportId, `${dateKey}: support`);
+    assert.equal(pick.ritualId || null, record.ritualId || null, `${dateKey}: rituel`);
     assert.equal(pick.recipeId, record.id, `${dateKey}: id de recette`);
   }
 });
