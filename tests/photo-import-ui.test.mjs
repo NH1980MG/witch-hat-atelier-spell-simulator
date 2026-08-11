@@ -91,6 +91,7 @@ test("une confirmation ambiguë rafraichit et conserve le choix dans la boite ph
   assert.match(source, /t\(manuallyConfirmed \? "photo\.result\.confirmed"/);
   assert.match(source, /select\.value = region\.selectedName \|\| ""/);
   assert.match(source, /selectPhotoCandidate\(analysis, index, select\.value\);\s*describePhotoAnalysis\(analysis\);/);
+  assert.equal((source.match(/selectPhotoCandidate\(analysis, index, select\.value\)/g) || []).length, 1);
 });
 
 test("les chaines francaises de l'import photo restent sans accents", async () => {
