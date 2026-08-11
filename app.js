@@ -4346,6 +4346,11 @@ function addManifestationPlanEffect3d(group, plan, auraRadius, elementColor, sup
   if (!plan) return;
   const baseY = supportId === "shoe" ? THREE_SHOE_INK_Y + 0.012 : THREE_LOW_EFFECT_Y + 0.018;
 
+  if (plan.id === "ancient.petrification-field") {
+    addOpeningPetrificationEffect3d(group, plan, auraRadius, elementColor, baseY);
+    return;
+  }
+
   if (plan.id === "mud.dense-projection") {
     const material = new THREE.MeshStandardMaterial({ color: elementColor, roughness: 0.96, transparent: true, opacity: 0.7 });
     const projection = new THREE.Mesh(new THREE.CylinderGeometry(auraRadius * 0.16, auraRadius * 0.38, 1.5, 32), material);
@@ -4396,6 +4401,109 @@ function addManifestationPlanEffect3d(group, plan, auraRadius, elementColor, sup
       });
     }
   }
+}
+
+function addOpeningPetrificationEffect3d(group, plan, auraRadius, elementColor, baseY) {
+  const stoneColor = new THREE.Color(0xb8b0a0).lerp(elementColor, 0.12);
+  const crystalColor = new THREE.Color(0xd6d2c6).lerp(elementColor, 0.22);
+  const crustMaterial = new THREE.MeshStandardMaterial({
+    color: stoneColor,
+    roughness: 0.96,
+    transparent: true,
+    opacity: 0.62,
+    side: THREE.DoubleSide,
+  });
+  const crystalMaterial = new THREE.MeshPhysicalMaterial({
+    color: crystalColor,
+    roughness: 0.34,
+    transmission: 0.12,
+    transparent: true,
+    opacity: 0.76,
+  });
+  const stasisMaterial = new THREE.LineBasicMaterial({
+    color: 0xf6ecd8,
+    transparent: true,
+    opacity: 0.48,
+  });
+
+  const crust = new THREE.Mesh(new THREE.CircleGeometry(auraRadius * 1.52, 12), crustMaterial.clone());
+  crust.name = "petrification-surface-crust";
+  crust.rotation.x = -Math.PI / 2;
+  crust.position.y = baseY + 0.003;
+  crust.scale.z = 0.58;
+  addAnimatedObject(group, crust, (object, elapsed) => {
+    const progress = easeOutCubic(spellProgress3d(elapsed));
+    const pulse = 1 + Math.sin(elapsed * 1.3) * 0.015;
+    object.scale.set((0.22 + progress * 0.9) * pulse, 1, (0.14 + progress * 0.48) * pulse);
+    object.material.opacity = 0.18 + progress * 0.46;
+  });
+
+  for (let index = 0; index < 16; index += 1) {
+    const angle = (index / 16) * Math.PI * 2;
+    const inner = auraRadius * (0.18 + (index % 4) * 0.07);
+    const outer = auraRadius * (0.72 + (index % 5) * 0.1);
+    const crack = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(Math.cos(angle) * inner, baseY + 0.011, Math.sin(angle) * inner * 0.62),
+        new THREE.Vector3(Math.cos(angle + Math.sin(index) * 0.18) * outer, baseY + 0.012, Math.sin(angle + Math.cos(index) * 0.15) * outer * 0.62),
+      ]),
+      stasisMaterial.clone(),
+    );
+    crack.name = `petrification-radial-crack-${index}`;
+    addAnimatedObject(group, crack, (object, elapsed) => {
+      const progress = spellProgress3d(elapsed);
+      object.material.opacity = Math.max(0.08, 0.46 * Math.min(1, progress + index * 0.025));
+    });
+  }
+
+  for (let index = 0; index < 12; index += 1) {
+    const angle = (index / 12) * Math.PI * 2 + (index % 2) * 0.12;
+    const radius = auraRadius * (0.36 + (index % 4) * 0.16);
+    const crystal = new THREE.Mesh(
+      new THREE.ConeGeometry(auraRadius * (0.035 + (index % 3) * 0.008), auraRadius * (0.42 + (index % 4) * 0.08), 5),
+      crystalMaterial.clone(),
+    );
+    crystal.name = `petrification-locking-crystal-${index}`;
+    crystal.position.set(Math.cos(angle) * radius, baseY + auraRadius * 0.1, Math.sin(angle) * radius * 0.62);
+    crystal.rotation.set(0.18 + (index % 3) * 0.08, angle, (index % 2 ? -1 : 1) * 0.18);
+    addAnimatedObject(group, crystal, (object, elapsed) => {
+      const progress = easeOutCubic(Math.min(1, spellProgress3d(elapsed) + index * 0.035));
+      object.scale.set(0.42 + progress * 0.58, 0.08 + progress * 0.92, 0.42 + progress * 0.58);
+      object.position.y = baseY + auraRadius * (0.06 + progress * (0.17 + (index % 4) * 0.018));
+      object.material.opacity = 0.38 + progress * 0.34;
+    });
+  }
+
+  const frozenTarget = new THREE.Group();
+  frozenTarget.name = "petrification-frozen-target";
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(auraRadius * 0.06, auraRadius * 0.085, auraRadius * 0.5, 7), crustMaterial.clone());
+  body.position.y = auraRadius * 0.25;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(auraRadius * 0.09, 12, 8), crustMaterial.clone());
+  head.position.y = auraRadius * 0.57;
+  const lockedBook = new THREE.Mesh(new THREE.BoxGeometry(auraRadius * 0.42, auraRadius * 0.035, auraRadius * 0.28), crustMaterial.clone());
+  lockedBook.position.set(auraRadius * 0.22, auraRadius * 0.14, auraRadius * 0.08);
+  lockedBook.rotation.y = -0.32;
+  frozenTarget.add(body, head, lockedBook);
+  frozenTarget.position.set(auraRadius * 0.72, baseY + 0.01, -auraRadius * 0.34);
+  frozenTarget.rotation.y = -0.45;
+  addAnimatedObject(group, frozenTarget, (object, elapsed) => {
+    const progress = easeOutCubic(spellProgress3d(elapsed));
+    object.scale.setScalar(0.18 + progress * 0.82);
+    object.position.y = baseY + 0.01 + progress * auraRadius * 0.05;
+  });
+
+  for (let index = 0; index < 3; index += 1) {
+    const ring = circleLine(auraRadius * (0.56 + index * 0.22), baseY + 0.045 + index * auraRadius * 0.1, 0xf6ecd8, 0.35, 120);
+    ring.name = `petrification-stasis-ring-${index}`;
+    addAnimatedObject(group, ring, (object, elapsed) => {
+      const progress = spellProgress3d(elapsed);
+      object.rotation.y = elapsed * (0.08 + index * 0.025);
+      object.scale.setScalar(0.82 + easeOutCubic(progress) * 0.22);
+      object.material.opacity = 0.18 + Math.sin(elapsed * 1.4 + index) * 0.04;
+    });
+  }
+
+  group.userData.freezeAfter = Math.min(group.userData.freezeAfter || Infinity, 2.2);
 }
 
 function addRecipeGrammarEffects3d(group, model, auraRadius, elementColor, supportId = "none") {

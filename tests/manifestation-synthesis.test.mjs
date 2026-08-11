@@ -86,6 +86,23 @@ test("water and levitation produce a growing suspended mass", () => {
   assert.equal(result.lifecycle.stop, "dispose");
 });
 
+test("earth, solidification, and stillness produce the opening petrification field", () => {
+  const result = plan({
+    family: "earth",
+    phase: "solid",
+    operations: { state: ["solidify", "still"] },
+  });
+
+  assert.equal(result.id, "ancient.petrification-field");
+  assert.equal(result.labelEn, "Forbidden petrification field");
+  assert.equal(result.labelFr, "Champ de petrification interdit");
+  assert.equal(result.material.id, "petrified-stone");
+  assert.equal(result.form.id, "locking-crystal-field");
+  assert.equal(result.motion.id, "surface-lock");
+  assert.ok(result.consumedOperations.includes("state.solidify"));
+  assert.ok(result.consumedOperations.includes("state.still"));
+});
+
 test("generic synthesis preserves independent relation layers", () => {
   const result = plan({
     family: "light",

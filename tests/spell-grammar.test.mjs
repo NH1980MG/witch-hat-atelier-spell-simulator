@@ -28,11 +28,14 @@ test("recipes synthesize one primary manifestation instead of stacked operations
   const mud = composeSpellRecipe({ sigils: ["Eau", "Terre"], signs: ["Crush", "Colonne"] });
   const mist = composeSpellRecipe({ sigils: ["Eau", "Vent"], signs: ["Convergence", "Lancement"] });
   const suspendedWater = composeSpellRecipe({ sigils: ["Eau"], signs: ["Levitation"] });
+  const openingPetrification = composeSpellRecipe({ sigils: ["Terre"], signs: ["Solidification", "Immobilite"] });
 
   assert.equal(mud.manifestationPlan.id, "mud.dense-projection");
   assert.equal(mist.manifestationPlan.id, "mist.pressurized-jet");
   assert.equal(suspendedWater.manifestationPlan.id, "water.suspended-mass");
+  assert.equal(openingPetrification.manifestationPlan.id, "ancient.petrification-field");
   assert.ok(mud.manifestationPlan.consumedOperations.includes("state.crush"));
+  assert.ok(openingPetrification.manifestationPlan.consumedOperations.includes("state.still"));
 });
 
 test("element order does not change identity", () => {

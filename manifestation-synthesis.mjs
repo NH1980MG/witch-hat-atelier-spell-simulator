@@ -21,6 +21,7 @@ const MATERIAL_LABELS = Object.freeze({
   air: ["Air", "Air"],
   light: ["Light", "Lumiere"],
   "raw-energy": ["Raw energy", "Energie brute"],
+  "petrified-stone": ["Forbidden petrification field", "Champ de petrification interdit"],
 });
 
 export function synthesizeManifestation({
@@ -106,6 +107,17 @@ export function synthesizeManifestation({
 function selectSpecialization({ family, phase, elements, has, geometry }) {
   const includes = (name) => elements.includes(name);
 
+  if (family === "earth" && has("solidify") && has("still")) {
+    return specialization(
+      "ancient.petrification-field",
+      "petrified-stone",
+      "mineral-lock",
+      "locking-crystal-field",
+      "surface-lock",
+      MATERIAL_LABELS["petrified-stone"],
+      { density: 3.4, particles: 144, fidelity: "documented" },
+    );
+  }
   if ((family === "mud" || family === "moving-mud" || (includes("water") && includes("earth"))) && has("crush")) {
     return specialization("mud.dense-projection", "mud", "slurry", "column", "project", ["Dense mud projection", "Projection de boue dense"], { density: 1.35, particles: 96 });
   }
