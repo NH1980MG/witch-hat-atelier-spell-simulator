@@ -17,7 +17,7 @@ test("la page expose un seul tiroir de symboles sans les anciens outils de taill
   assert.doesNotMatch(html, /id=["'](?:shrinkSelectionButton|growSelectionButton)["']/);
   assert.doesNotMatch(html, /id=["']placement(?:ToggleButton|Drawer|List)["']/);
   assert.doesNotMatch(html, /id=["']closePlacementButton["']/);
-  assert.match(html, /styles\.css\?v=20260811-library-preview-v1/);
+  assert.match(html, /styles\.css\?v=20260811-scalewolf-v1/);
   assert.match(html, /app\.js\?v=\d{8}-[^"']+/);
 });
 

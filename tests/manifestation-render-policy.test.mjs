@@ -29,3 +29,16 @@ test("2D overlays also suppress consumed sign layers", () => {
   assert.match(draw, /renderOperation\("lift"\)/);
   assert.match(draw, /renderOperation\("crush"\)/);
 });
+
+test("the scalewolf family renders a creature instead of the generic floating orb", () => {
+  const creatureRenderer = app.match(/function addDecorativeCreatureEffect3d\([\s\S]*?\n\}/)?.[0] || "";
+  assert.match(creatureRenderer, /family !== "scalewolf"/);
+  assert.match(creatureRenderer, /scalewolf-body/);
+  assert.match(creatureRenderer, /scalewolf-head/);
+  assert.match(creatureRenderer, /scalewolf-tail/);
+
+  const rebuild = app.match(/function rebuildThreeSpell\(\) \{([\s\S]*?)\n\}/)?.[1] || "";
+  assert.match(rebuild, /addDecorativeCreatureEffect3d/);
+  assert.match(rebuild, /if \(decorativeCreatureRendered\)/);
+  assert.match(rebuild, /else if \(!floatingCore\)/);
+});
