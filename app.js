@@ -49,6 +49,7 @@ import {
   selectableIndicesInRect,
   shouldArmLongPress,
   shouldDeferTouchTool,
+  snapDeltaForSelection,
   styleSelectedActions,
   topmostSelectableIndexAtPoint,
   translateSelectedActions,
@@ -351,6 +352,11 @@ const closeSupportButton = document.querySelector("#closeSupportButton");
 const duplicateSelectionButton = document.querySelector("#duplicateSelectionButton");
 const rotateSelectionLeftButton = document.querySelector("#rotateSelectionLeftButton");
 const rotateSelectionRightButton = document.querySelector("#rotateSelectionRightButton");
+const selectionRotationDock = document.querySelector("#selectionRotationDock");
+const rotateSelectionQuarterLeftButton = document.querySelector("#rotateSelectionQuarterLeftButton");
+const rotateSelectionQuarterRightButton = document.querySelector("#rotateSelectionQuarterRightButton");
+const alignmentToggleButton = document.querySelector("#alignmentToggleButton");
+const toolbarCompactButton = document.querySelector("#toolbarCompactButton");
 const selectionContextMenu = document.querySelector("#selectionContextMenu");
 const guideToggleButton = document.querySelector("#guideToggleButton");
 const guideDrawer = document.querySelector("#guideDrawer");
@@ -393,6 +399,8 @@ const state = {
   panX: 0,
   panY: 0,
   showMeasure: localStorage.getItem("whaShowMeasure") !== "false",
+  alignmentAssist: localStorage.getItem("whaAlignmentAssist") === "true",
+  toolbarCompact: localStorage.getItem("whaToolbarCompact") === "true",
   closedSeal: true,
   autoActivation: false,
   actions: [],
@@ -7296,12 +7304,30 @@ function clearSelection() {
   state.rightSelection = null;
   closeSelectionContextMenu();
   syncSelectionGrimoire();
+  syncSelectionRotationDock();
 }
 
 function closeSelectionContextMenu() {
   if (selectionContextMenu) {
     selectionContextMenu.hidden = true;
   }
+}
+
+function syncSelectionRotationDock() {
+  if (!selectionRotationDock) {
+    return;
+  }
+  const bounds = selectionBounds();
+  if (!bounds || normalizeSelection().length === 0) {
+    selectionRotationDock.hidden = true;
+    return;
+  }
+  selectionRotationDock.hidden = false;
+  const scale = viewScale();
+  const left = state.panX + (bounds.left + bounds.width / 2) * scale;
+  const top = state.panY + Math.max(8, bounds.top * scale - 44);
+  selectionRotationDock.style.left = `${left}px`;
+  selectionRotationDock.style.top = `${top}px`;
 }
 
 function openSelectionContextMenu(event) {
@@ -7343,6 +7369,7 @@ function updateSelectionControls() {
     rotateSelectionRightButton.disabled = !hasSelection;
   }
   syncSelectionGrimoire();
+  syncSelectionRotationDock();
 }
 
 function relativeScaleLabel(ratio) {
@@ -8353,10 +8380,24 @@ function moveRightSelection(event) {
       bottom: point.y,
     });
   } else if (drag.mode === "move") {
-    const delta = clampSelectionDelta(
+    const clamped = clampSelectionDelta(
       drag.bounds,
       point.x - drag.start.x,
       point.y - drag.start.y,
+    );
+    const { width, height } = canvasSize();
+    const delta = snapDeltaForSelection(
+      drag.snapshot,
+      state.selectedActionIndices,
+      clamped.dx,
+      clamped.dy,
+      {
+        enabled: state.alignmentAssist,
+        gridSize: 34,
+        canvasWidth: width,
+        canvasHeight: height,
+        threshold: 6 / Math.max(0.1, viewScale()),
+      },
     );
     state.actions = translateSelectedActions(
       drag.snapshot,
@@ -8550,6 +8591,7 @@ function pasteSelection() {
 }
 
 const SELECTION_ROTATE_STEP = Math.PI / 12; // 15 degres
+const SELECTION_QUARTER_TURN = Math.PI / 2;
 
 function rotateSelection(angleDelta) {
   const indices = normalizeSelection();
@@ -8926,11 +8968,48 @@ function onCanvasWheel(event) {
 
 function updateToolButtons() {
   for (const button of toolButtons) {
+    if (!button.dataset.tool) {
+      continue;
+    }
     const isActive = button.dataset.tool === state.tool;
     button.classList.toggle("is-active", isActive);
     button.setAttribute("aria-pressed", String(isActive));
   }
   canvas.classList.toggle("is-select-tool", state.tool === "select");
+}
+
+function syncWorkspaceModes() {
+  document.body.classList.toggle("alignment-assist-on", state.alignmentAssist);
+  document.body.classList.toggle("toolbar-compact", state.toolbarCompact);
+  if (alignmentToggleButton) {
+    alignmentToggleButton.classList.toggle("is-active", state.alignmentAssist);
+    alignmentToggleButton.setAttribute("aria-pressed", String(state.alignmentAssist));
+    const key = state.alignmentAssist ? "tool.alignOn" : "tool.alignOff";
+    alignmentToggleButton.setAttribute("aria-label", t(key));
+    alignmentToggleButton.title = t(key);
+  }
+  if (toolbarCompactButton) {
+    toolbarCompactButton.classList.toggle("is-active", state.toolbarCompact);
+    toolbarCompactButton.setAttribute("aria-pressed", String(state.toolbarCompact));
+    const key = state.toolbarCompact ? "tool.expandToolbar" : "tool.compactToolbar";
+    toolbarCompactButton.setAttribute("aria-label", t(key));
+    toolbarCompactButton.title = t(key);
+  }
+}
+
+function toggleAlignmentAssist() {
+  state.alignmentAssist = !state.alignmentAssist;
+  localStorage.setItem("whaAlignmentAssist", String(state.alignmentAssist));
+  syncWorkspaceModes();
+  setStatus(t(state.alignmentAssist ? "status.alignmentOn" : "status.alignmentOff"));
+  render();
+}
+
+function toggleToolbarCompact() {
+  state.toolbarCompact = !state.toolbarCompact;
+  localStorage.setItem("whaToolbarCompact", String(state.toolbarCompact));
+  syncWorkspaceModes();
+  setStatus(t(state.toolbarCompact ? "status.toolbarCompact" : "status.toolbarExpanded"));
 }
 
 function elementIconMarkup(element) {
@@ -10335,6 +10414,9 @@ function loadCommunityCircleFromUrl() {
 
 for (const button of toolButtons) {
   button.addEventListener("click", () => {
+    if (!button.dataset.tool) {
+      return;
+    }
     // The glyph button arms rather than merely selecting. A bare
     // setTool("glyph") leaves ghostOwner null, which renderGhost reads as "no
     // preview" and the Escape chain reads as "not armed" - so the tool would
@@ -10478,6 +10560,10 @@ clearGuideButton?.addEventListener("click", () => {
 duplicateSelectionButton?.addEventListener("click", () => duplicateSelectedActions());
 rotateSelectionLeftButton?.addEventListener("click", () => rotateSelection(-SELECTION_ROTATE_STEP));
 rotateSelectionRightButton?.addEventListener("click", () => rotateSelection(SELECTION_ROTATE_STEP));
+rotateSelectionQuarterLeftButton?.addEventListener("click", () => rotateSelection(-SELECTION_QUARTER_TURN));
+rotateSelectionQuarterRightButton?.addEventListener("click", () => rotateSelection(SELECTION_QUARTER_TURN));
+alignmentToggleButton?.addEventListener("click", toggleAlignmentAssist);
+toolbarCompactButton?.addEventListener("click", toggleToolbarCompact);
 
 // Derived, never mirrored. A boolean field would have to be synchronized on
 // every close path, and a stale true suppresses Escape permanently and
@@ -11713,6 +11799,7 @@ renderInkList();
 renderSupportList();
 renderGuideLists();
 updateToolButtons();
+syncWorkspaceModes();
 updateSelectionControls();
 updateUsedList();
 updateSpellState();

@@ -74,6 +74,25 @@ test("context menu actions are bilingual", () => {
   }
 });
 
+test("alignment and compact toolbar controls are bilingual", () => {
+  for (const key of [
+    "tool.align",
+    "tool.alignOn",
+    "tool.alignOff",
+    "tool.compactToolbar",
+    "tool.expandToolbar",
+    "tool.rotateQuarterLeft",
+    "tool.rotateQuarterRight",
+    "status.alignmentOn",
+    "status.alignmentOff",
+    "status.toolbarCompact",
+    "status.toolbarExpanded",
+  ]) {
+    assert.notEqual(translate("en", key), key);
+    assert.notEqual(translate("fr", key), key);
+  }
+});
+
 test("the complete how-it-works topics are bilingual", () => {
   const keys = [
     "how.drawing.tools",
