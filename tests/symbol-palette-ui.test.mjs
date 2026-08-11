@@ -19,7 +19,7 @@ test("la page expose un seul tiroir de symboles sans les anciens outils de taill
   assert.doesNotMatch(html, /id=["'](?:shrinkSelectionButton|growSelectionButton)["']/);
   assert.doesNotMatch(html, /id=["']placement(?:ToggleButton|Drawer|List)["']/);
   assert.doesNotMatch(html, /id=["']closePlacementButton["']/);
-  assert.match(html, /styles\.css\?v=20260811-rotation-state-v1/);
+  assert.match(html, /styles\.css\?v=20260811-canvas-square-v1/);
   assert.match(html, /app\.js\?v=\d{8}-[^"']+/);
 });
 

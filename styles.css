@@ -383,6 +383,8 @@ input:focus-visible {
 
 .canvas-wrap {
   position: relative;
+  display: grid;
+  place-items: center;
   min-height: 0;
   background: var(--paper);
   overflow: auto;
@@ -585,8 +587,8 @@ input:focus-visible {
   display: block;
   width: var(--canvas-size);
   height: var(--canvas-size);
-  min-width: 100%;
-  min-height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   cursor: crosshair;
   touch-action: none;
   user-select: none;
