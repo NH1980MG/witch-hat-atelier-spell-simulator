@@ -40,6 +40,19 @@ test("parseRecipeParams round-trips a built href", () => {
   assert.deepEqual([...parsed.signs], ["Pluie", "Pluie"]);
   assert.equal(parsed.supportId, "shoe");
   assert.equal(parsed.activate, true);
+  assert.equal(parsed.ritualId, null);
+});
+
+test("recipe links can preserve the exact opening petrification ritual", () => {
+  const href = buildRecipeHref({
+    sigils: ["Terre"],
+    signs: ["Solidification", "Immobilite"],
+    ritualId: "opening-petrification",
+    activate: true,
+  });
+  const parsed = parseRecipeParams(new URL(href, "https://example.test/").search, allowed);
+
+  assert.equal(parsed.ritualId, "opening-petrification");
 });
 
 test("parseRecipeParams returns null without a valid sigil", () => {
@@ -123,13 +136,14 @@ test("explorer links recompose the exact same recipe in the atelier", () => {
   assert.ok(samples.every(Boolean));
   for (const record of samples) {
     const detail = getVariantDetail(record);
-    const href = buildRecipeHref({ sigils: detail.sigils, signs: detail.signs, supportId: detail.supportId, activate: true });
+    const href = buildRecipeHref({ sigils: detail.sigils, signs: detail.signs, supportId: detail.supportId, ritualId: detail.ritualId, activate: true });
     const parsed = parseRecipeParams(new URL(href, "https://example.test/").search, allowed);
     const recomposed = composeSpellRecipe({
       sigils: [...parsed.sigils],
       signs: [...parsed.signs],
       supportId: parsed.supportId,
       direction: "vers le haut",
+      ritualId: parsed.ritualId,
     });
     assert.equal(recomposed.id, record.id, `recipe identity mismatch for ${record.id}`);
   }

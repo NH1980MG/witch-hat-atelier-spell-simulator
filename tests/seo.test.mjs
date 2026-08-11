@@ -28,13 +28,13 @@ test("the workshop and library publish valid JSON-LD types", async () => {
   const workshop = await readFile(new URL("../index.html", import.meta.url), "utf8");
   const library = await readFile(new URL("../bibliotheque.html", import.meta.url), "utf8");
   assert.match(workshop, /"@type":\s*"WebApplication"/);
-  assert.match(workshop, /65,600 deterministic variants/);
+  assert.match(workshop, /65,601 deterministic variants/);
   assert.doesNotMatch(workshop, /38,532/);
   assert.match(library, /"@type":\s*"CollectionPage"/);
-  assert.match(library, /<meta name="description" content="Search 65,600 support-aware spell recipes/);
-  assert.match(library, /<meta property="og:description" content="Explore a bilingual wiki[^\n]+65,600 searchable spell variants/);
-  assert.match(library, /"numberOfItems":\s*65600/);
-  assert.match(library, /65,600 deterministic magic-circle variants/);
+  assert.match(library, /<meta name="description" content="Search 65,601 support-aware spell variants/);
+  assert.match(library, /<meta property="og:description" content="Explore a bilingual wiki[^\n]+65,601 searchable spell variants/);
+  assert.match(library, /"numberOfItems":\s*65601/);
+  assert.match(library, /65,601 deterministic magic-circle variants/);
   assert.doesNotMatch(library, /38,532/);
 });
 

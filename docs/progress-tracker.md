@@ -24,6 +24,9 @@ remaining large `app.js` sections.
   29 single sigils and 11 balanced Feu/Eau/Terre/Vent
   mixtures; repeated base sigils are evaluated at runtime as dominance and
   intensity instead of exhaustively indexed.
+- Variant explorer now exposes 65,601 entries by adding the complete opening
+  petrification ritual seal as a structured variant that is distinct from the
+  regular 65,600-recipe matrix.
 - Community mechanics audit added with explicit documented, inferred and
   experimental levels. Radial no longer invents a power reduction,
   Convergence concentrates without adding power, Viseur contributes direction,

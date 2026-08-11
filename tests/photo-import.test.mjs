@@ -77,6 +77,85 @@ function inkDisc(photo, cx, cy, radius) {
   }
 }
 
+function inkLine(photo, ax, ay, bx, by, radius = 1.4) {
+  const length = Math.hypot(bx - ax, by - ay);
+  const steps = Math.max(1, Math.ceil(length * 1.6));
+  for (let index = 0; index <= steps; index += 1) {
+    const t = index / steps;
+    inkDisc(photo, Math.round(ax + (bx - ax) * t), Math.round(ay + (by - ay) * t), radius);
+  }
+}
+
+function inkCircleOutline(photo, cx, cy, radius, thickness = 2.2) {
+  for (let angle = 0; angle < Math.PI * 2; angle += 0.004) {
+    inkDisc(photo, Math.round(cx + radius * Math.cos(angle)), Math.round(cy + radius * Math.sin(angle)), thickness);
+  }
+}
+
+function inkDiamond(photo, cx, cy, radius, thickness = 1.4) {
+  const points = [
+    [cx, cy - radius],
+    [cx + radius, cy],
+    [cx, cy + radius],
+    [cx - radius, cy],
+  ];
+  for (let index = 0; index < points.length; index += 1) {
+    const [ax, ay] = points[index];
+    const [bx, by] = points[(index + 1) % points.length];
+    inkLine(photo, ax, ay, bx, by, thickness);
+  }
+}
+
+function inkOpeningPetrificationSeal(photo) {
+  const cx = photo.width / 2;
+  const cy = photo.height / 2;
+  inkCircleOutline(photo, cx, cy, 235, 2.2);
+  inkCircleOutline(photo, cx, cy, 216, 1.6);
+  inkCircleOutline(photo, cx, cy, 90, 1.7);
+  inkCircleOutline(photo, cx, cy, 67, 1.4);
+  inkCircleOutline(photo, cx, cy, 38, 1.2);
+  inkDiamond(photo, cx, cy, 62);
+  inkDiamond(photo, cx, cy, 38);
+  inkDiamond(photo, cx, cy, 18);
+  for (let index = 0; index < 8; index += 1) {
+    const angle = (index / 8) * Math.PI * 2;
+    const outer = 205;
+    const inner = 130;
+    inkLine(
+      photo,
+      cx + Math.cos(angle) * inner,
+      cy + Math.sin(angle) * inner,
+      cx + Math.cos(angle) * outer,
+      cy + Math.sin(angle) * outer,
+      1.2,
+    );
+  }
+  for (let index = 0; index < 12; index += 1) {
+    const angle = (index / 12) * Math.PI * 2 + 0.12;
+    const r = 155 + (index % 2) * 26;
+    const x = cx + Math.cos(angle) * r;
+    const y = cy + Math.sin(angle) * r;
+    inkLine(photo, x - 12, y - 8, x + 12, y + 8, 1.1);
+    inkLine(photo, x - 6, y + 11, x + 6, y - 11, 1.1);
+  }
+  for (let index = 0; index < 6; index += 1) {
+    const angle = (index / 6) * Math.PI * 2;
+    const x = cx + Math.cos(angle) * 188;
+    const y = cy + Math.sin(angle) * 188;
+    inkCircleOutline(photo, x, y, 22, 1.3);
+    inkCircleOutline(photo, x, y, 10, 1);
+    inkLine(photo, x, y - 18, x, y + 18, 1);
+  }
+  for (let index = 0; index < 4; index += 1) {
+    const angle = Math.PI / 4 + (index / 4) * Math.PI * 2;
+    const x = cx + Math.cos(angle) * 112;
+    const y = cy + Math.sin(angle) * 112;
+    inkLine(photo, x - 18, y, x + 18, y, 1);
+    inkLine(photo, x, y - 18, x, y + 18, 1);
+    inkLine(photo, x - 12, y + 12, x + 12, y - 12, 1);
+  }
+}
+
 // Dessine un glyphe du catalogue dans la photo a la position/taille voulue.
 function inkGlyph(photo, name, left, top, boxSize) {
   const scale = boxSize / 48;
@@ -228,6 +307,19 @@ test("un anneau reste detecte quand des traits occupent son interieur", () => {
 
   const result = analyzePhoto(photo, SYMBOL_PATHS);
   assert.ok(result.rings.some((ring) => ring.radius > 100), "l'anneau exterieur doit survivre au contenu imbrique");
+});
+
+test("le sceau de petrification du debut est reconnu comme patron complet", () => {
+  const photo = blankPhoto(560, 560);
+  inkOpeningPetrificationSeal(photo);
+
+  const result = analyzePhoto(photo, SYMBOL_PATHS);
+
+  assert.ok(result.rings.some((ring) => ring.radius > 220), "l'anneau externe doit etre conserve");
+  assert.ok(result.sealPatterns?.some((pattern) => pattern.id === "opening-petrification-seal"), JSON.stringify(result.sealPatterns));
+  const pattern = result.sealPatterns.find(({ id }) => id === "opening-petrification-seal");
+  assert.equal(pattern.ritualId, "opening-petrification");
+  assert.ok(pattern.score >= 84, `score trop faible: ${pattern.score}`);
 });
 
 test("un glyphe photographie est reconnu comme le bon symbole", () => {

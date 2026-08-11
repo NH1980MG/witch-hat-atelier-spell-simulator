@@ -652,6 +652,153 @@ function componentNearErasedRing(component, ring) {
   return farthestRadius >= ring.radius - allowance;
 }
 
+function cropCenter(cropBounds, width, height) {
+  const crop = cropBounds || { left: 0, top: 0, width, height };
+  return {
+    cx: crop.left + crop.width / 2,
+    cy: crop.top + crop.height / 2,
+    span: Math.max(crop.width, crop.height, 1),
+    aspect: crop.width / Math.max(1, crop.height),
+  };
+}
+
+function hasInkNear(mask, width, height, x, y, tolerance) {
+  const left = Math.max(0, Math.floor(x - tolerance));
+  const right = Math.min(width - 1, Math.ceil(x + tolerance));
+  const top = Math.max(0, Math.floor(y - tolerance));
+  const bottom = Math.min(height - 1, Math.ceil(y + tolerance));
+  const toleranceSquared = tolerance * tolerance;
+  for (let yy = top; yy <= bottom; yy += 1) {
+    for (let xx = left; xx <= right; xx += 1) {
+      if (mask[yy * width + xx] && (xx - x) ** 2 + (yy - y) ** 2 <= toleranceSquared) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function circularCoverage(mask, width, height, cx, cy, radius, tolerance) {
+  const samples = 180;
+  let hits = 0;
+  for (let sample = 0; sample < samples; sample += 1) {
+    const angle = (sample / samples) * Math.PI * 2;
+    if (hasInkNear(
+      mask,
+      width,
+      height,
+      cx + Math.cos(angle) * radius,
+      cy + Math.sin(angle) * radius,
+      tolerance,
+    )) {
+      hits += 1;
+    }
+  }
+  return hits / samples;
+}
+
+function annularDensity(mask, width, height, cx, cy, minRadius, maxRadius, startAngle = 0, endAngle = Math.PI * 2) {
+  let ink = 0;
+  let total = 0;
+  const left = Math.max(0, Math.floor(cx - maxRadius));
+  const right = Math.min(width - 1, Math.ceil(cx + maxRadius));
+  const top = Math.max(0, Math.floor(cy - maxRadius));
+  const bottom = Math.min(height - 1, Math.ceil(cy + maxRadius));
+  const twoPi = Math.PI * 2;
+  const normalizedStart = ((startAngle % twoPi) + twoPi) % twoPi;
+  const normalizedEnd = ((endAngle % twoPi) + twoPi) % twoPi;
+  const inArc = (angle) => (
+    normalizedStart <= normalizedEnd
+      ? angle >= normalizedStart && angle <= normalizedEnd
+      : angle >= normalizedStart || angle <= normalizedEnd
+  );
+  for (let y = top; y <= bottom; y += 1) {
+    for (let x = left; x <= right; x += 1) {
+      const distance = Math.hypot(x - cx, y - cy);
+      if (distance < minRadius || distance > maxRadius) continue;
+      if (endAngle - startAngle < twoPi - 0.001) {
+        const angle = (Math.atan2(y - cy, x - cx) + twoPi) % twoPi;
+        if (!inArc(angle)) continue;
+      }
+      total += 1;
+      ink += mask[y * width + x];
+    }
+  }
+  return total ? ink / total : 0;
+}
+
+function sectorPresence(mask, width, height, cx, cy, radius, sectorCount, tolerance) {
+  let present = 0;
+  for (let index = 0; index < sectorCount; index += 1) {
+    const angle = (index / sectorCount) * Math.PI * 2;
+    const start = angle - Math.PI / sectorCount;
+    const end = angle + Math.PI / sectorCount;
+    const density = annularDensity(mask, width, height, cx, cy, radius * 0.72, radius * 0.98, start, end);
+    if (density > 0.006 || hasInkNear(mask, width, height, cx + Math.cos(angle) * radius * 0.84, cy + Math.sin(angle) * radius * 0.84, tolerance * 3)) {
+      present += 1;
+    }
+  }
+  return present / sectorCount;
+}
+
+function detectOpeningPetrificationSeal(mask, width, height, cropBounds, rings) {
+  const { cx, cy, span, aspect } = cropCenter(cropBounds, width, height);
+  if (aspect < 0.78 || aspect > 1.28 || span < Math.min(width, height) * 0.45) {
+    return null;
+  }
+  const outerRadius = rings[0]?.radius || span * 0.47;
+  if (outerRadius < Math.min(width, height) * 0.22) {
+    return null;
+  }
+  const tolerance = Math.max(3, outerRadius * 0.018);
+  const outerCoverage = Math.max(
+    circularCoverage(mask, width, height, cx, cy, outerRadius, tolerance * 1.35),
+    circularCoverage(mask, width, height, cx, cy, span * 0.47, tolerance * 1.35),
+  );
+  const middleCoverage = Math.max(
+    circularCoverage(mask, width, height, cx, cy, outerRadius * 0.34, tolerance),
+    circularCoverage(mask, width, height, cx, cy, outerRadius * 0.42, tolerance),
+  );
+  const innerCoverage = circularCoverage(mask, width, height, cx, cy, outerRadius * 0.16, tolerance);
+  const centralDensity = annularDensity(mask, width, height, cx, cy, 0, outerRadius * 0.22);
+  const modulePresence = sectorPresence(mask, width, height, cx, cy, outerRadius * 0.78, 6, tolerance);
+  const panelDensity = annularDensity(mask, width, height, cx, cy, outerRadius * 0.48, outerRadius * 0.92);
+  const radialBand = annularDensity(mask, width, height, cx, cy, outerRadius * 0.22, outerRadius * 0.58);
+  const ringCountScore = Math.min(1, (Number(outerCoverage > 0.55) + Number(middleCoverage > 0.42) + Number(innerCoverage > 0.28) + Math.min(rings.length, 2)) / 4);
+  const score = Math.round(
+    outerCoverage * 28
+    + ringCountScore * 18
+    + Math.min(1, centralDensity / 0.035) * 20
+    + modulePresence * 18
+    + Math.min(1, panelDensity / 0.028) * 10
+    + Math.min(1, radialBand / 0.025) * 6
+  );
+  if (score < 72 || outerCoverage < 0.45 || centralDensity < 0.018 || modulePresence < 0.34) {
+    return null;
+  }
+  return {
+    id: "opening-petrification-seal",
+    ritualId: "opening-petrification",
+    label: "Opening petrification seal",
+    score,
+    cx,
+    cy,
+    radius: outerRadius,
+    bounds: {
+      left: cx - outerRadius,
+      top: cy - outerRadius,
+      right: cx + outerRadius,
+      bottom: cy + outerRadius,
+    },
+    features: {
+      outerCoverage: Math.round(outerCoverage * 100),
+      middleCoverage: Math.round(middleCoverage * 100),
+      innerCoverage: Math.round(innerCoverage * 100),
+      modulePresence: Math.round(modulePresence * 100),
+    },
+  };
+}
+
 export function analyzePhoto(imageData, symbolPaths) {
   const { width, height } = imageData;
   const mask = toInkMask(imageData);
@@ -682,6 +829,7 @@ export function analyzePhoto(imageData, symbolPaths) {
     }
   }
   rings.sort((a, b) => b.radius - a.radius);
+  const sealPatterns = [detectOpeningPetrificationSeal(mask, width, height, cropBounds, rings)].filter(Boolean);
   const glyphMask = eraseDetectedRings(mask, width, height, rings);
   const residualComponents = connectedComponents(glyphMask, width, height, { minSize });
   const glyphComponents = residualComponents.components.filter((component) => {
@@ -739,6 +887,7 @@ export function analyzePhoto(imageData, symbolPaths) {
   return {
     rings,
     ring: rings[0] || null,
+    sealPatterns,
     regions,
     symbols,
     ignored,

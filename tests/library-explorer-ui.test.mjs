@@ -24,12 +24,12 @@ test("the explorer has accessible search filters results pagination and details"
   assert.match(html, /library-explorer\.mjs/);
 });
 
-test("the library advertises the 65,600-variant explorer in both locales", () => {
-  assert.match(html, /Explore 65,600 variants/);
-  assert.equal(translate("en", "explorer.title"), "Explore 65,600 variants");
-  assert.equal(translate("fr", "explorer.title"), "Explorer 65 600 variantes");
-  assert.match(translate("en", "explorer.empty"), /65,600/);
-  assert.match(translate("fr", "explorer.empty"), /65 600/);
+test("the library advertises the 65,601-variant explorer in both locales", () => {
+  assert.match(html, /Explore 65,601 variants/);
+  assert.equal(translate("en", "explorer.title"), "Explore 65,601 variants");
+  assert.equal(translate("fr", "explorer.title"), "Explorer 65 601 variantes");
+  assert.match(translate("en", "explorer.empty"), /65,601/);
+  assert.match(translate("fr", "explorer.empty"), /65 601/);
   assert.match(translate("en", "explorer.description"), /29 profiled central sigils/);
   assert.match(translate("en", "explorer.description"), /40 signs/);
   assert.match(translate("fr", "explorer.description"), /29 sigils centraux profiles/);

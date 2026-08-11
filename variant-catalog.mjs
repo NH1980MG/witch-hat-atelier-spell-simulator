@@ -1,7 +1,9 @@
 import {
   MATRIX_SIGIL_NAMES,
   MATRIX_SIGN_NAMES,
+  RITUAL_PROFILES,
   SIGN_PROFILES,
+  STRUCTURED_RITUAL_VARIANTS,
   composeSpellRecipe,
 } from "./spell-grammar.mjs?v=20260809-photo-import-v3";
 import { INDEXED_ELEMENTAL_MIXTURES } from "./elemental-mixtures.mjs";
@@ -135,6 +137,7 @@ function searchScore(record, search) {
     SUPPORT_SEARCH_TOKENS[record.supportId],
     FIDELITY_SEARCH_TOKENS[record.fidelity],
     searchTokens([record.effectCategory]),
+    record.ritualSearchTokens || Object.freeze([]),
   ];
   let total = 0;
   for (const query of queries) {
@@ -204,12 +207,14 @@ function compactRecord(values) {
 export function buildVariantIndex() {
   const records = [];
   const materials = MATERIAL_SIGNATURES.map(materialDescriptor);
+  const materialBySignature = new Map(materials.map((material) => [material.sigils.join("\u0000"), material]));
   const signPairs = [];
   for (let first = 0; first < MATRIX_SIGN_NAMES.length; first += 1) {
     for (let second = first; second < MATRIX_SIGN_NAMES.length; second += 1) {
       signPairs.push(signPairDescriptor(MATRIX_SIGN_NAMES[first], MATRIX_SIGN_NAMES[second]));
     }
   }
+  const signPairBySignature = new Map(signPairs.map((signPair) => [signPair.signs.join("\u0000"), signPair]));
   for (const supportId of SUPPORTS) {
     for (const material of materials) {
       for (const signPair of signPairs) {
@@ -226,6 +231,37 @@ export function buildVariantIndex() {
       }
     }
   }
+  for (const ritualVariant of STRUCTURED_RITUAL_VARIANTS) {
+    const material = materialBySignature.get(ritualVariant.sigils.join("\u0000")) || materialDescriptor(ritualVariant.sigils);
+    const signPair = signPairBySignature.get(ritualVariant.signs.join("\u0000"))
+      || signPairDescriptor(ritualVariant.signs[0], ritualVariant.signs[1]);
+    const recipe = composeSpellRecipe({
+      sigils: material.sigils,
+      signs: signPair.signs,
+      supportId: ritualVariant.supportId,
+      direction: "vers le haut",
+      ritualId: ritualVariant.ritualId,
+    });
+    const ritual = RITUAL_PROFILES[ritualVariant.ritualId];
+    records.push(compactRecord({
+      id: recipe.id,
+      material,
+      signPair,
+      supportId: ritualVariant.supportId,
+      ritualId: ritualVariant.ritualId,
+      ritualSearchTokens: searchTokens([
+        ritual?.label,
+        ritual?.id,
+        ritual?.patternId,
+        recipe.manifestationPlan.labelEn,
+        recipe.manifestationPlan.labelFr,
+        "opening petrification ancient forbidden ritual complete seal",
+      ]),
+      fidelity: recipe.fidelity,
+      warningCount: recipe.warnings.length,
+      effectCategory: "ritual",
+    }));
+  }
   return Object.freeze(records);
 }
 
@@ -235,6 +271,7 @@ function resultRecord(record) {
     signs: record.signs,
     supportId: record.supportId,
     direction: "vers le haut",
+    ritualId: record.ritualId || null,
   });
   return Object.freeze({
     id: record.id,
@@ -242,6 +279,7 @@ function resultRecord(record) {
     sigil: record.sigil,
     signs: record.signs,
     supportId: record.supportId,
+    ritualId: record.ritualId || null,
     fidelity: record.fidelity,
     warningCount: record.warningCount,
     effectCategory: record.effectCategory,
@@ -256,6 +294,7 @@ export function getVariantDetail(record) {
     signs: [...record.signs],
     supportId: record.supportId,
     direction: "vers le haut",
+    ritualId: record.ritualId || null,
   });
   if (recipe.id !== record.id) throw new Error(`Variant identity mismatch: ${record.id}`);
   return Object.freeze({
@@ -264,6 +303,8 @@ export function getVariantDetail(record) {
     sigils: [...record.sigils],
     signs: [...record.signs],
     supportId: recipe.supportId,
+    ritualId: recipe.ritualId,
+    ritual: recipe.ritual,
     label: recipe.label,
     fidelity: recipe.fidelity,
     confidence: recipe.confidence,

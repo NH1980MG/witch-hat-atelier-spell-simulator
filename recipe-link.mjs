@@ -34,6 +34,9 @@ export function buildRecipeHref(recipe = {}, base = "index.html") {
   if (libraryId) {
     params.set("library", libraryId);
   }
+  if (recipe.ritualId) {
+    params.set("ritual", String(recipe.ritualId));
+  }
   return `${base}?${params.toString()}`;
 }
 
@@ -57,11 +60,13 @@ export function parseRecipeParams(search, { sigilNames = [], signNames = [], lib
   const activate = ["1", "true"].includes(String(params.get("activate") || "").toLowerCase());
   const requestedLibraryId = cleanLibraryId(params.get("library"));
   const libraryId = new Set(libraryIds).has(requestedLibraryId) ? requestedLibraryId : null;
+  const ritualId = params.get("ritual") === "opening-petrification" ? "opening-petrification" : null;
   return Object.freeze({
     sigils: Object.freeze(sigils),
     signs: Object.freeze(signs),
     supportId,
     activate,
     libraryId,
+    ritualId,
   });
 }

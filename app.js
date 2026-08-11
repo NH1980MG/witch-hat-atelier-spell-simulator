@@ -6467,6 +6467,7 @@ function signModel() {
   if (hasPull && spirals.length > 0) addCombinedEffect("aspiration tournante");
   if (hasEnlarge && hasNearbyTarget) addCombinedEffect("agrandissement proche");
   if (hasEnlarge && hasCarrierTarget) addCombinedEffect("agrandissement du support");
+  const ritualId = state.actions.find((action) => action.ritualId)?.ritualId || null;
   const recipe = composeSpellRecipe({
     sigils: sigils.map((glyph) => glyph.element),
     signs: signs.map((glyph) => glyph.element),
@@ -6474,6 +6475,7 @@ function signModel() {
     supportId: currentSupport().id,
     invertedSigns: signs.filter((glyph) => glyph.inverted).map((glyph) => glyph.element),
     geometry: { ...geometry, ...circleGeometry },
+    ritualId,
   });
   if (ringOnly && !effectNames.includes("decharge brute")) {
     effectNames.push("decharge brute");
@@ -10019,6 +10021,8 @@ function shareableAction(action) {
   };
   if (action.type === "circle") shared.closed = action.closed !== false;
   if (action.type === "spiral") shared.turns = action.turns;
+  if (action.ritualId) shared.ritualId = action.ritualId;
+  if (action.sealPatternId) shared.sealPatternId = action.sealPatternId;
   return shared;
 }
 
@@ -10601,7 +10605,7 @@ function photoRegionIcon(region) {
 function updatePhotoRecreateAvailability() {
   if (!pendingPhotoImport || !photoRecreateButton) return;
   const mapped = mapPhotoAnalysis(pendingPhotoImport.analysis, { left: 0, top: 0, width: 1, height: 1 });
-  photoRecreateButton.disabled = mapped.rings.length === 0 && mapped.symbols.length === 0;
+  photoRecreateButton.disabled = mapped.rings.length === 0 && mapped.symbols.length === 0 && mapped.patterns.length === 0;
 }
 
 function describePhotoAnalysis(analysis) {
@@ -10609,6 +10613,28 @@ function describePhotoAnalysis(analysis) {
     return;
   }
   photoImportResults.replaceChildren();
+  for (const pattern of (analysis.sealPatterns || [])) {
+    const item = document.createElement("li");
+    item.className = "photo-import-row";
+    item.dataset.status = "accepted";
+    const icon = document.createElement("span");
+    icon.className = "photo-import-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = "◎";
+    const copy = document.createElement("span");
+    copy.className = "photo-region-copy";
+    const label = document.createElement("strong");
+    label.textContent = t("photo.result.openingPetrification");
+    const stateLabel = document.createElement("span");
+    stateLabel.className = "photo-region-state";
+    stateLabel.textContent = t("photo.result.accepted");
+    copy.append(label, stateLabel);
+    const score = document.createElement("span");
+    score.className = "photo-import-score";
+    score.textContent = `${pattern.score}%`;
+    item.append(icon, copy, score);
+    photoImportResults.append(item);
+  }
   if (photoAnalysisRings(analysis).length > 0) {
     const item = document.createElement("li");
     item.className = "photo-import-row";
@@ -10787,50 +10813,126 @@ function photoPlacementTarget() {
   };
 }
 
+function circleImportAction({ cx, cy, radius, boundary = false, ritualId = null, sealPatternId = null, widthScale = 1 }) {
+  const center = { x: cx, y: cy };
+  return {
+    type: "circle",
+    label: labels.circle,
+    element: "Structure",
+    charge: 0,
+    color: state.drawingColor,
+    width: Math.max(1, lineWidth() * widthScale),
+    cx: center.x,
+    cy: center.y,
+    radius: Math.min(radius, maxRadiusInsideDrawingLimit(center)),
+    closed: true,
+    boundary,
+    ritualId,
+    sealPatternId,
+  };
+}
+
+function openingPetrificationPatternActions(pattern) {
+  const actions = [];
+  const { cx, cy, radius } = pattern;
+  const sealPatternId = pattern.id || "opening-petrification-seal";
+  const ritualId = pattern.ritualId || "opening-petrification";
+  const addCircle = (ratio, options = {}) => {
+    actions.push(circleImportAction({
+      cx,
+      cy,
+      radius: radius * ratio,
+      boundary: options.boundary || false,
+      ritualId: options.ritual ? ritualId : null,
+      sealPatternId,
+      widthScale: options.widthScale || 0.82,
+    }));
+  };
+  addCircle(1, { boundary: true, ritual: true, widthScale: 1 });
+  addCircle(0.91);
+  addCircle(0.44);
+  addCircle(0.35);
+  addCircle(0.2);
+  const glyphSize = Math.max(16, radius * 0.12);
+  const central = elements.find((entry) => entry.name === "Terre");
+  if (central) {
+    const action = createGlyphAction(central, { x: cx, y: cy }, radius * 0.22);
+    action.ritualId = ritualId;
+    action.sealPatternId = sealPatternId;
+    actions.push(action);
+  }
+  const placements = [
+    ["Solidification", 0, 0.68, -Math.PI / 2],
+    ["Immobilite", Math.PI, 0.68, Math.PI / 2],
+    ["Cible", Math.PI / 2, 0.78, 0],
+    ["Cible", -Math.PI / 2, 0.78, Math.PI],
+    ["Region", Math.PI / 4, 0.64, Math.PI / 4],
+    ["Region", (Math.PI * 3) / 4, 0.64, (Math.PI * 3) / 4],
+    ["Region", (-Math.PI * 3) / 4, 0.64, (-Math.PI * 3) / 4],
+    ["Region", -Math.PI / 4, 0.64, -Math.PI / 4],
+    ["Viseur", 0, 0.38, 0],
+    ["Viseur", Math.PI / 2, 0.38, Math.PI / 2],
+    ["Viseur", Math.PI, 0.38, Math.PI],
+    ["Viseur", -Math.PI / 2, 0.38, -Math.PI / 2],
+  ];
+  for (const [name, angle, distance, rotation] of placements) {
+    const element = elements.find((entry) => entry.name === name);
+    if (!element) continue;
+    const action = createGlyphAction(element, {
+      x: cx + Math.cos(angle) * radius * distance,
+      y: cy + Math.sin(angle) * radius * distance,
+    }, glyphSize);
+    action.rotation = rotation;
+    action.ritualId = ritualId;
+    action.sealPatternId = sealPatternId;
+    actions.push(action);
+  }
+  return actions;
+}
+
 function recreatePhotoImport() {
   const pending = pendingPhotoImport;
   if (!pending) {
     return;
   }
   const mapped = mapPhotoAnalysis(pending.analysis, photoPlacementTarget());
-  if (mapped.rings.length === 0 && mapped.symbols.length === 0) return;
+  if (mapped.rings.length === 0 && mapped.symbols.length === 0 && mapped.patterns.length === 0) return;
   recordHistory();
-  for (const [index, ring] of mapped.rings.entries()) {
-    const ringCenter = { x: ring.cx, y: ring.cy };
-    const radius = Math.min(ring.radius, maxRadiusInsideDrawingLimit(ringCenter));
-    const ringAction = {
-      type: "circle",
-      label: labels.circle,
-      element: "Structure",
-      charge: 0,
-      color: state.drawingColor,
-      width: lineWidth(),
-      cx: ringCenter.x,
-      cy: ringCenter.y,
-      radius,
-      closed: true,
-      boundary: true,
-    };
-    state.actions.push(ringAction);
-    if (index === 0) state.circleCenter = { x: ringCenter.x, y: ringCenter.y };
-  }
-  for (const symbol of mapped.symbols) {
-    const element = elements.find((entry) => entry.name === symbol.name);
-    if (!element) {
-      continue;
+  if (mapped.patterns.length > 0) {
+    for (const pattern of mapped.patterns) {
+      const actions = openingPetrificationPatternActions(pattern);
+      state.actions.push(...actions);
+      state.circleCenter = { x: pattern.cx, y: pattern.cy };
     }
-    const point = { x: symbol.cx, y: symbol.cy };
-    const size = Math.max(1, symbol.size);
-    const glyphAction = createGlyphAction(element, point, size);
-    glyphAction.rotation = Number.isFinite(symbol.rotation) ? symbol.rotation : 0;
-    state.actions.push(glyphAction);
+  } else {
+    for (const [index, ring] of mapped.rings.entries()) {
+      const ringAction = circleImportAction({
+        cx: ring.cx,
+        cy: ring.cy,
+        radius: ring.radius,
+        boundary: true,
+      });
+      state.actions.push(ringAction);
+      if (index === 0) state.circleCenter = { x: ring.cx, y: ring.cy };
+    }
+    for (const symbol of mapped.symbols) {
+      const element = elements.find((entry) => entry.name === symbol.name);
+      if (!element) {
+        continue;
+      }
+      const point = { x: symbol.cx, y: symbol.cy };
+      const size = Math.max(1, symbol.size);
+      const glyphAction = createGlyphAction(element, point, size);
+      glyphAction.rotation = Number.isFinite(symbol.rotation) ? symbol.rotation : 0;
+      state.actions.push(glyphAction);
+    }
   }
   pendingPhotoImport = null;
   photoImportDialog?.close();
   render();
   setStatus(t("photo.status.imported", {
     count: mapped.symbols.length,
-    ring: mapped.rings.length,
+    ring: mapped.rings.length + mapped.patterns.length,
   }));
 }
 
@@ -11102,52 +11204,69 @@ function loadRecipeFromUrl() {
   const targetDiameterM = 0.25;
   const ringRadius = (targetDiameterM / MIN_CIRCLE_DIAMETER_M) * BASE_GRID_STEP / 2;
 
-  state.actions.push({
-    type: "ring",
-    label: labels.ring,
-    element: "Structure",
-    charge: 0,
-    color: state.drawingColor,
-    width: lineWidth(),
-    cx: centerX,
-    cy: centerY,
-    radius: ringRadius,
-    librarySynthetic: Boolean(recipe.libraryId),
-  });
-  state.circleCenter = { x: centerX, y: centerY };
+  if (recipe.ritualId === "opening-petrification") {
+    state.actions.push(...openingPetrificationPatternActions({
+      id: "opening-petrification-seal",
+      ritualId: "opening-petrification",
+      cx: centerX,
+      cy: centerY,
+      radius: ringRadius * 1.65,
+    }));
+    state.circleCenter = { x: centerX, y: centerY };
+  } else {
+    state.actions.push({
+      type: "ring",
+      label: labels.ring,
+      element: "Structure",
+      charge: 0,
+      color: state.drawingColor,
+      width: lineWidth(),
+      cx: centerX,
+      cy: centerY,
+      radius: ringRadius,
+      librarySynthetic: Boolean(recipe.libraryId),
+    });
+    state.circleCenter = { x: centerX, y: centerY };
 
-  recipe.sigils.forEach((name, index) => {
-    const element = elements.find((item) => item.name === name);
-    if (!element) {
-      return;
-    }
-    let point = { x: centerX, y: centerY };
-    if (recipe.sigils.length > 1) {
-      const angle = -Math.PI / 2 + (index * 2 * Math.PI) / recipe.sigils.length;
-      const clusterRadius = 24;
-      point = {
-        x: centerX + Math.cos(angle) * clusterRadius,
-        y: centerY + Math.sin(angle) * clusterRadius,
+    recipe.sigils.forEach((name, index) => {
+      const element = elements.find((item) => item.name === name);
+      if (!element) {
+        return;
+      }
+      let point = { x: centerX, y: centerY };
+      if (recipe.sigils.length > 1) {
+        const angle = -Math.PI / 2 + (index * 2 * Math.PI) / recipe.sigils.length;
+        const clusterRadius = 24;
+        point = {
+          x: centerX + Math.cos(angle) * clusterRadius,
+          y: centerY + Math.sin(angle) * clusterRadius,
+        };
+      }
+      state.actions.push({
+        ...createGlyphAction(element, point, recipe.sigils.length > 1 ? 20 : 30),
+        librarySynthetic: Boolean(recipe.libraryId),
+      });
+    });
+
+    const signAngles = { 1: [-90], 2: [-150, -30], 3: [-90, -210, -330] };
+    const angles = signAngles[recipe.signs.length] || [];
+    recipe.signs.forEach((name, index) => {
+      const element = elements.find((item) => item.name === name);
+      if (!element) {
+        return;
+      }
+      const angle = ((angles[index] ?? -90) * Math.PI) / 180;
+      const orbit = ringRadius * 0.82;
+      const point = {
+        x: centerX + Math.cos(angle) * orbit,
+        y: centerY + Math.sin(angle) * orbit,
       };
-    }
-    state.actions.push({ ...createGlyphAction(element, point, recipe.sigils.length > 1 ? 20 : 30), librarySynthetic: Boolean(recipe.libraryId) });
-  });
-
-  const signAngles = { 1: [-90], 2: [-150, -30], 3: [-90, -210, -330] };
-  const angles = signAngles[recipe.signs.length] || [];
-  recipe.signs.forEach((name, index) => {
-    const element = elements.find((item) => item.name === name);
-    if (!element) {
-      return;
-    }
-    const angle = ((angles[index] ?? -90) * Math.PI) / 180;
-    const orbit = ringRadius * 0.82;
-    const point = {
-      x: centerX + Math.cos(angle) * orbit,
-      y: centerY + Math.sin(angle) * orbit,
-    };
-    state.actions.push({ ...createGlyphAction(element, point, 18), librarySynthetic: Boolean(recipe.libraryId) });
-  });
+      state.actions.push({
+        ...createGlyphAction(element, point, 18),
+        librarySynthetic: Boolean(recipe.libraryId),
+      });
+    });
+  }
 
   state.supportId = recipe.supportId === "shoe" ? "shoe" : "none";
   if (recipe.libraryId) libraryGuideImage(recipe.libraryId);

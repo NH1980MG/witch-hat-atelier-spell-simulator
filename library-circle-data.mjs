@@ -78,6 +78,10 @@ const previews = Object.freeze({
   "ancient-light-beacon": [["Lumiere"], ["Colonne", "Lancement"]],
 });
 
+const previewRituals = Object.freeze({
+  petrification: "opening-petrification",
+});
+
 export const LIBRARY_CIRCLES = Object.freeze(entries.map(([id, name, category], index) => Object.freeze({
   id,
   name,
@@ -94,5 +98,6 @@ export const LIBRARY_CIRCLES = Object.freeze(entries.map(([id, name, category], 
     signs: Object.freeze([...previews[id][1]]),
     supportId: "none",
     activate: true,
+    ritualId: previewRituals[id] || null,
   }),
 })));
