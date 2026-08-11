@@ -96,7 +96,13 @@
             <canvas id="spell3dCanvas" data-i18n-aria-label="atelier.canvas3d" aria-label="Magic circle in 3D"></canvas>
           </div>
           <div class="floating-tools" data-i18n-aria-label="atelier.drawingTools" aria-label="Drawing tools">
-            <button class="tool-button" id="selectToolButton" data-tool="select" type="button" data-i18n-aria-label="tool.select" data-i18n-title="tool.select" aria-label="Select and move a symbol" title="Select and move a symbol">
+            <button class="tool-button toolbar-keep" id="toolbarCompactButton" type="button" aria-pressed="false" data-i18n-aria-label="tool.compactToolbar" data-i18n-title="tool.compactToolbar" aria-label="Reduce toolbar" title="Reduce toolbar">
+              <span aria-hidden="true">&#8942;</span>
+            </button>
+            <button class="tool-button toolbar-keep" id="alignmentToggleButton" type="button" aria-pressed="false" data-i18n-aria-label="tool.align" data-i18n-title="tool.align" aria-label="Alignment assist" title="Alignment assist">
+              <span aria-hidden="true">#</span>
+            </button>
+            <button class="tool-button toolbar-keep" id="selectToolButton" data-tool="select" type="button" data-i18n-aria-label="tool.select" data-i18n-title="tool.select" aria-label="Select and move a symbol" title="Select and move a symbol">
               <span aria-hidden="true">&#8598;</span>
             </button>
             <button class="tool-button is-active" data-tool="free" type="button" data-i18n-aria-label="tool.pen" data-i18n-title="tool.pen" aria-label="Pen" title="Pen">
@@ -131,6 +137,10 @@
             </button>
           </div>
           <canvas id="magicCanvas" data-i18n-aria-label="atelier.parchment" aria-label="Drawing parchment"></canvas>
+          <div id="selectionRotationDock" class="selection-rotation-dock" hidden>
+            <button id="rotateSelectionQuarterLeftButton" type="button" data-i18n-aria-label="tool.rotateQuarterLeft" data-i18n-title="tool.rotateQuarterLeft" aria-label="Rotate selection 90 degrees counterclockwise" title="Rotate selection 90 degrees counterclockwise">-90</button>
+            <button id="rotateSelectionQuarterRightButton" type="button" data-i18n-aria-label="tool.rotateQuarterRight" data-i18n-title="tool.rotateQuarterRight" aria-label="Rotate selection 90 degrees clockwise" title="Rotate selection 90 degrees clockwise">+90</button>
+          </div>
           <div id="selectionContextMenu" class="selection-context-menu" role="menu" data-i18n-aria-label="selectionMenu.label" aria-label="Selected object actions" hidden>
             <button type="button" role="menuitem" data-selection-action="select" data-i18n="selectionMenu.select">Select</button>
             <button type="button" role="menuitem" data-selection-action="search" data-i18n="selectionMenu.search">Search symbols</button>

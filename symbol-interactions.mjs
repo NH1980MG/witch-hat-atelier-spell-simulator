@@ -283,6 +283,57 @@ export function translateSelectedActions(actions, indices, dx, dy) {
   });
 }
 
+function snapOneAxis(value, targets, threshold) {
+  let closest = value;
+  let closestDistance = Infinity;
+  for (const target of targets) {
+    const distance = Math.abs(target - value);
+    if (distance < closestDistance) {
+      closest = target;
+      closestDistance = distance;
+    }
+  }
+  return closestDistance <= threshold ? closest : value;
+}
+
+export function snapDeltaForSelection(actions, indices, dx, dy, {
+  enabled = false,
+  gridSize = 34,
+  canvasWidth = 0,
+  canvasHeight = 0,
+  threshold = 6,
+} = {}) {
+  if (!enabled) {
+    return { dx, dy, snappedX: false, snappedY: false };
+  }
+  const bounds = combinedSelectionBounds(actions, indices);
+  if (!bounds) {
+    return { dx, dy, snappedX: false, snappedY: false };
+  }
+  const centerX = bounds.left + bounds.width / 2;
+  const centerY = bounds.top + bounds.height / 2;
+  const targetsX = [];
+  const targetsY = [];
+
+  if (Number.isFinite(gridSize) && gridSize > 0) {
+    for (let x = 0; x <= canvasWidth; x += gridSize) targetsX.push(x);
+    for (let y = 0; y <= canvasHeight; y += gridSize) targetsY.push(y);
+  }
+  if (canvasWidth > 0) targetsX.push(canvasWidth / 2);
+  if (canvasHeight > 0) targetsY.push(canvasHeight / 2);
+
+  const nextX = centerX + dx;
+  const nextY = centerY + dy;
+  const snappedCenterX = snapOneAxis(nextX, targetsX, threshold);
+  const snappedCenterY = snapOneAxis(nextY, targetsY, threshold);
+  return {
+    dx: stableCoordinate(snappedCenterX - centerX),
+    dy: stableCoordinate(snappedCenterY - centerY),
+    snappedX: snappedCenterX !== nextX,
+    snappedY: snappedCenterY !== nextY,
+  };
+}
+
 export function planDuplication(actions, indices, dx, dy) {
   const ordered = [...indices].sort((a, b) => a - b);
   if (ordered.length === 0 || (dx === 0 && dy === 0)) {

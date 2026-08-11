@@ -34,6 +34,16 @@ test("l'echelle est relative a la selection et reste le zoom sans selection", ()
   assert.match(app, /setCanvasScaleAround/);
 });
 
+test("la rotation rapide est disponible pres de la selection", () => {
+  for (const id of ["selectionRotationDock", "rotateSelectionQuarterLeftButton", "rotateSelectionQuarterRightButton"]) {
+    assert.match(html, new RegExp(`id=["']${id}["']`));
+    assert.match(app, new RegExp(`const ${id} = document\\.querySelector\\("#${id}"\\)`));
+  }
+  assert.match(app, /function syncSelectionRotationDock\(/);
+  assert.match(app, /rotateSelectionQuarterLeftButton\?\.addEventListener\("click", \(\) => rotateSelection\(-SELECTION_QUARTER_TURN\)\)/);
+  assert.match(app, /rotateSelectionQuarterRightButton\?\.addEventListener\("click", \(\) => rotateSelection\(SELECTION_QUARTER_TURN\)\)/);
+});
+
 test("la puissance est derivee du diametre", () => {
   assert.match(app, /function diameterPowerLevel\(/);
   const metrics = app.match(/function spellMetrics\([\s\S]*?\n\}/)?.[0] || "";
@@ -42,7 +52,7 @@ test("la puissance est derivee du diametre", () => {
 });
 
 test("les libelles de couleur et d'echelle relative existent dans les deux langues", () => {
-  for (const key of ["grimoire.inkColor", "grimoire.objectScale", "status.selectionStyleUpdated"]) {
+  for (const key of ["grimoire.inkColor", "grimoire.objectScale", "status.selectionStyleUpdated", "tool.rotateQuarterLeft", "tool.rotateQuarterRight"]) {
     assert.equal(i18n.split(`"${key}"`).length - 1, 2, key);
   }
 });

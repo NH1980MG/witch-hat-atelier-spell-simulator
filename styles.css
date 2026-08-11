@@ -422,6 +422,60 @@ input:focus-visible {
   backdrop-filter: blur(10px);
 }
 
+.simulator-page.toolbar-compact .floating-tools {
+  grid-template-columns: repeat(2, 42px);
+  gap: 7px;
+  border-radius: 999px;
+  padding: 8px;
+}
+
+.simulator-page.toolbar-compact .floating-tools .tool-button:not(.toolbar-keep) {
+  display: none;
+}
+
+.tool-button.toolbar-keep {
+  border-color: rgba(36, 48, 68, 0.62);
+}
+
+.simulator-page.alignment-assist-on #magicCanvas {
+  background-image:
+    linear-gradient(rgba(199, 151, 54, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(199, 151, 54, 0.18) 1px, transparent 1px),
+    linear-gradient(rgba(36, 48, 68, 0.2) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(36, 48, 68, 0.2) 1px, transparent 1px);
+  background-size:
+    var(--grid-step) var(--grid-step),
+    var(--grid-step) var(--grid-step),
+    calc(var(--canvas-size) / 2) calc(var(--canvas-size) / 2),
+    calc(var(--canvas-size) / 2) calc(var(--canvas-size) / 2);
+}
+
+.selection-rotation-dock {
+  position: absolute;
+  z-index: 5;
+  display: inline-flex;
+  gap: 6px;
+  transform: translate(-50%, -100%);
+  border: 1px solid rgba(140, 107, 63, 0.52);
+  border-radius: 999px;
+  padding: 5px;
+  background: rgba(255, 248, 234, 0.94);
+  box-shadow: 0 10px 24px var(--shadow);
+  backdrop-filter: blur(8px);
+}
+
+.selection-rotation-dock[hidden] {
+  display: none;
+}
+
+.selection-rotation-dock button {
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
 .view3d-panel {
   position: fixed;
   z-index: 120;

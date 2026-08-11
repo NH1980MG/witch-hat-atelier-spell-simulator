@@ -22,6 +22,7 @@ import {
   selectableIndicesInRect,
   shouldArmLongPress,
   shouldDeferTouchTool,
+  snapDeltaForSelection,
   styleSelectedActions,
   topmostSelectableIndexAtPoint,
   topmostGlyphIndexAtPoint,
@@ -233,6 +234,21 @@ test("translateSelectedActions deplace uniquement les elements selectionnes", ()
   assert.deepEqual(moved[1], { type: "circle", cx: 55, cy: 50, radius: 20 });
   assert.deepEqual(moved[2], source[2]);
   assert.notEqual(moved, source);
+});
+
+test("snapDeltaForSelection aligne le centre de selection sur la grille et les axes du canevas", () => {
+  const source = [
+    { type: "circle", cx: 100, cy: 98, radius: 20 },
+  ];
+
+  assert.deepEqual(
+    snapDeltaForSelection(source, [0], 3, 4, { enabled: true, gridSize: 34, canvasWidth: 340, canvasHeight: 340, threshold: 6 }),
+    { dx: 2, dy: 4, snappedX: true, snappedY: false },
+  );
+  assert.deepEqual(
+    snapDeltaForSelection(source, [0], 3, 4, { enabled: false, gridSize: 34, canvasWidth: 340, canvasHeight: 340, threshold: 6 }),
+    { dx: 3, dy: 4, snappedX: false, snappedY: false },
+  );
 });
 
 test("scaleSelectedActions conserve la disposition relative autour du coin oppose", () => {

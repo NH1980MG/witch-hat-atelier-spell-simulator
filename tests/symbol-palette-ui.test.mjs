@@ -11,6 +11,8 @@ test("la page expose un seul tiroir de symboles sans les anciens outils de taill
     "closeSymbolsButton",
     "symbolDragGhost",
     "selectToolButton",
+    "alignmentToggleButton",
+    "toolbarCompactButton",
   ]) {
     assert.match(html, new RegExp("id=[\\\"']" + id + "[\\\"']"));
   }
@@ -19,6 +21,22 @@ test("la page expose un seul tiroir de symboles sans les anciens outils de taill
   assert.doesNotMatch(html, /id=["']closePlacementButton["']/);
   assert.match(html, /styles\.css\?v=20260811-scalewolf-v1/);
   assert.match(html, /app\.js\?v=\d{8}-[^"']+/);
+});
+
+test("l'aide d'alignement et la barre reduite sont cablees dans l'atelier", async () => {
+  const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
+  const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
+
+  assert.match(app, /alignmentAssist:\s*localStorage\.getItem\("whaAlignmentAssist"\) === "true"/);
+  assert.match(app, /toolbarCompact:\s*localStorage\.getItem\("whaToolbarCompact"\) === "true"/);
+  assert.match(app, /function toggleAlignmentAssist\(/);
+  assert.match(app, /function toggleToolbarCompact\(/);
+  assert.match(app, /snapDeltaForSelection/);
+  assert.match(app, /document\.body\.classList\.toggle\("alignment-assist-on"/);
+  assert.match(app, /document\.body\.classList\.toggle\("toolbar-compact"/);
+  assert.match(css, /\.simulator-page\.alignment-assist-on #magicCanvas/);
+  assert.match(css, /\.simulator-page\.toolbar-compact \.floating-tools/);
+  assert.match(css, /\.tool-button\.toolbar-keep/);
 });
 
 test("le tiroir unique et le transport sont styles", async () => {
