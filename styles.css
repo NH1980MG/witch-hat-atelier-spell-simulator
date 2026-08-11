@@ -3061,7 +3061,7 @@ input:focus-visible {
 
 .photo-import-row {
   display: grid;
-  grid-template-columns: 1.6rem 1fr auto;
+  grid-template-columns: 1.6rem minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 0.5rem;
   border: 1px solid rgba(140, 107, 63, 0.26);
@@ -3091,15 +3091,46 @@ input:focus-visible {
   font-size: 0.78rem;
 }
 
-.photo-region-select {
-  grid-column: 2 / 4;
-  width: 100%;
+.photo-region-edit {
   min-width: 0;
+  padding: 0.3rem 0.45rem;
   border: 1px solid var(--line);
   border-radius: 7px;
   background: var(--paper);
   color: var(--ink);
-  padding: 0.42rem 0.5rem;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.photo-region-edit:hover,
+.photo-region-edit:focus-visible {
+  background: var(--paper-dark);
+}
+
+.photo-region-position {
+  grid-column: 2 / -1;
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  color: color-mix(in srgb, var(--ink) 72%, transparent);
+  font-size: 0.76rem;
+}
+
+.photo-region-position-field {
+  display: grid;
+  grid-template-columns: 4.8rem minmax(0, 1fr) 3.2rem;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.photo-region-position-field input {
+  width: 100%;
+  accent-color: var(--gold);
+}
+
+.photo-region-position-field output {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
 }
 
 .photo-import-row .photo-import-icon {
@@ -3183,7 +3214,7 @@ input:focus-visible {
   }
 
   .photo-import-row {
-    grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+    grid-template-columns: 1.5rem minmax(0, 1fr) auto auto;
   }
 
   .photo-dialog-actions {
