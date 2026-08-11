@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile, stat } from "node:fs/promises";
 import { LIBRARY_CIRCLES } from "../library-circle-data.mjs";
+import { composeSpellRecipe } from "../spell-grammar.mjs";
 
 test("the gallery keeps the 33 classified spells", () => {
   assert.equal(LIBRARY_CIRCLES.length, 33);
@@ -42,6 +43,16 @@ test("every reference card has a safe simulator reconstruction", () => {
     assert.ok(circle.preview?.sigils?.length > 0, circle.id);
     assert.equal(circle.preview.activate, true, circle.id);
   }
+});
+
+test("the opening petrification reference previews the dedicated forbidden effect", () => {
+  const petrification = LIBRARY_CIRCLES.find((circle) => circle.id === "petrification");
+  assert.ok(petrification);
+
+  const recipe = composeSpellRecipe(petrification.preview);
+
+  assert.equal(recipe.manifestationPlan.id, "ancient.petrification-field");
+  assert.equal(recipe.manifestationPlan.labelEn, "Forbidden petrification field");
 });
 
 test("the public library renders all schematics as local accessible images", async () => {

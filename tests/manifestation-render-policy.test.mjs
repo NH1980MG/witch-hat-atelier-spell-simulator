@@ -23,6 +23,14 @@ test("grammar renderer receives only independent secondary operations", () => {
   assert.match(grammar, /secondaryOperations/);
 });
 
+test("the opening petrification plan has a dedicated 3D field renderer", () => {
+  assert.match(app, /function addOpeningPetrificationEffect3d\(/);
+  assert.match(app, /plan\.id === "ancient\.petrification-field"/);
+  assert.match(app, /petrification-surface-crust/);
+  assert.match(app, /petrification-locking-crystal/);
+  assert.match(app, /petrification-frozen-target/);
+});
+
 test("2D overlays also suppress consumed sign layers", () => {
   const draw = app.match(/function drawElementEffect\([\s\S]*?\n\}/)?.[0] || "";
   assert.match(draw, /renderOperation\("column"\)/);
