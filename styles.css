@@ -136,6 +136,50 @@ input:focus-visible {
   display: block;
 }
 
+.community-profile-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(260px, 30vw);
+  min-height: 42px;
+  padding: 8px 16px;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  color: #fff4d6;
+  font-family: var(--label);
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.community-profile-pill:hover,
+.community-profile-pill:focus-visible {
+  background: rgba(199, 151, 54, 0.16);
+  color: #fff8e7;
+}
+
+.community-profile-pill:focus-visible {
+  outline: 3px solid rgba(199, 151, 54, 0.55);
+  outline-offset: 3px;
+}
+
+.community-profile-pill > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.community-profile-dot {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #86a77f;
+  box-shadow: 0 0 0 2px rgba(134, 167, 127, 0.14);
+}
+
 .workshop-menu {
   position: absolute;
   z-index: 30;
@@ -2652,6 +2696,11 @@ input:focus-visible {
     align-items: flex-start;
   }
 
+  .community-profile-pill {
+    align-self: flex-start;
+    max-width: calc(100% - 88px);
+  }
+
   .brand-logo-image {
     width: 42px;
     height: 42px;
@@ -3387,6 +3436,13 @@ input:focus-visible {
   .brand-title {
     align-items: center;
     gap: 8px;
+  }
+
+  .community-profile-pill {
+    max-width: calc(100% - 56px);
+    min-height: 40px;
+    padding: 7px 12px;
+    font-size: 0.82rem;
   }
 
   .brand-logo-image {

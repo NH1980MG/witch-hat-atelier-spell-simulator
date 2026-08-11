@@ -54,7 +54,7 @@ test("every public simulator page exposes independent Circle Commons account and
   for (const [name, html] of pages) {
     assert.match(
       html,
-      /href="https:\/\/circle-commons-atelier\.hwl-brothers-5311\.chatgpt\.site\/sign-in\?return_to=%2F"[^>]*data-i18n-aria-label="nav\.openAccount"/,
+      /href="https:\/\/circle-commons-atelier\.hwl-brothers-5311\.chatgpt\.site\/sign-in\?return_to=%2Fauth%2Freturn-to-simulator"[^>]*data-i18n-aria-label="nav\.openAccount"/,
       `${name} should expose the independent Circle Commons sign-in link`,
     );
     assert.match(
@@ -64,9 +64,17 @@ test("every public simulator page exposes independent Circle Commons account and
     );
     assert.match(html, /data-i18n="nav\.account"/);
     assert.match(html, /data-i18n="nav\.charter"/);
+    assert.match(
+      html,
+      /href="https:\/\/circle-commons-atelier\.hwl-brothers-5311\.chatgpt\.site\/account"[^>]*data-i18n-aria-label="nav\.openProfile"/,
+      `${name} should expose the Circle Commons profile pill`,
+    );
+    assert.match(html, /data-i18n="nav\.profile"/);
   }
   assert.equal(i18n.split('"nav.account"').length - 1, 2);
   assert.equal(i18n.split('"nav.openAccount"').length - 1, 2);
   assert.equal(i18n.split('"nav.charter"').length - 1, 2);
   assert.equal(i18n.split('"nav.openCharter"').length - 1, 2);
+  assert.equal(i18n.split('"nav.profile"').length - 1, 2);
+  assert.equal(i18n.split('"nav.openProfile"').length - 1, 2);
 });
