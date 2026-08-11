@@ -36,7 +36,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260809-responsive-v4">
+    <link rel="stylesheet" href="styles.css?v=20260810-guide-scroll-v1">
     <script type="importmap">
       {
         "imports": {
@@ -45,9 +45,9 @@
         }
       }
     </script>
-    <script type="module" src="site-i18n.mjs?v=20260809-responsive-v4"></script>
+    <script type="module" src="site-i18n.mjs?v=20260810-grimoire-v1"></script>
     <script type="module" src="site-nav.mjs?v=20260810-workshop-menu-v1"></script>
-    <script type="module" src="app.js?v=20260809-responsive-v4"></script>
+    <script type="module" src="app.js?v=20260810-grimoire-v1"></script>
   </head>
   <body class="simulator-page">
     <main class="app-shell">
@@ -65,21 +65,11 @@
           <div class="workshop-menu-panel" id="workshopMenuPanel" role="dialog" data-i18n-aria-label="nav.secondary" aria-label="Secondary navigation" aria-hidden="true" hidden>
             <div class="workshop-menu-heading" data-i18n="nav.menu">Workshop menu</div>
             <nav class="workshop-menu-links" data-i18n-aria-label="nav.secondary" aria-label="Secondary navigation">
-              <a class="header-link" href="bibliotheque.html" data-i18n-aria-label="nav.openLibrary" data-i18n-title="nav.library">
-                <span aria-hidden="true">&#9678;</span><span data-i18n="nav.library">Library</span>
-              </a>
-              <a class="header-link" href="tutoriel.html" data-i18n-aria-label="nav.openTutorial" data-i18n-title="nav.tutorial">
-                <span aria-hidden="true">?</span><span data-i18n="nav.tutorial">Tutorial</span>
-              </a>
-              <a class="header-link" href="fonctionnement.html" data-i18n-aria-label="nav.openHowItWorks" data-i18n-title="nav.howItWorks">
-                <span aria-hidden="true">i</span><span data-i18n="nav.howItWorks">How it works</span>
-              </a>
-              <a class="header-link" href="suggestions.html" data-i18n-aria-label="nav.openSuggestions" data-i18n-title="nav.suggestions">
-                <span aria-hidden="true">+</span><span data-i18n="nav.suggestions">Suggestions</span>
-              </a>
-              <a class="header-link" href="parametres.html" data-i18n-aria-label="nav.openSettings" data-i18n-title="nav.settings">
-                <span aria-hidden="true">&#9881;</span><span data-i18n="nav.settings">Settings</span>
-              </a>
+              <a class="header-link" href="bibliotheque.html" data-i18n-aria-label="nav.openLibrary" data-i18n-title="nav.library"><span aria-hidden="true">&#9678;</span><span data-i18n="nav.library">Library</span></a>
+              <a class="header-link" href="tutoriel.html" data-i18n-aria-label="nav.openTutorial" data-i18n-title="nav.tutorial"><span aria-hidden="true">?</span><span data-i18n="nav.tutorial">Tutorial</span></a>
+              <a class="header-link" href="fonctionnement.html" data-i18n-aria-label="nav.openHowItWorks" data-i18n-title="nav.howItWorks"><span aria-hidden="true">i</span><span data-i18n="nav.howItWorks">How it works</span></a>
+              <a class="header-link" href="suggestions.html" data-i18n-aria-label="nav.openSuggestions" data-i18n-title="nav.suggestions"><span aria-hidden="true">+</span><span data-i18n="nav.suggestions">Suggestions</span></a>
+              <a class="header-link" href="parametres.html" data-i18n-aria-label="nav.openSettings" data-i18n-title="nav.settings"><span aria-hidden="true">&#9881;</span><span data-i18n="nav.settings">Settings</span></a>
             </nav>
             <div class="language-switcher" role="group" data-i18n-aria-label="language.label">
               <button type="button" data-locale="en" aria-pressed="true" data-i18n-aria-label="language.english">EN</button>
@@ -124,12 +114,6 @@
             <button class="tool-button" data-tool="eraser" type="button" data-i18n-aria-label="tool.eraser" data-i18n-title="tool.eraser" aria-label="Scraper" title="Scraper">
               <span aria-hidden="true">&#215;</span>
             </button>
-            <button class="tool-button selection-tool" id="shrinkSelectionButton" type="button" data-i18n-aria-label="tool.shrink" data-i18n-title="tool.shrink" aria-label="Shrink selected symbol" title="Shrink selected symbol" disabled>
-              <span aria-hidden="true">&#8722;</span>
-            </button>
-            <button class="tool-button selection-tool" id="growSelectionButton" type="button" data-i18n-aria-label="tool.grow" data-i18n-title="tool.grow" aria-label="Enlarge selected symbol" title="Enlarge selected symbol" disabled>
-              <span aria-hidden="true">+</span>
-            </button>
             <button class="tool-button selection-tool" id="duplicateSelectionButton" type="button" data-i18n-aria-label="tool.duplicate" data-i18n-title="tool.duplicate" aria-label="Duplicate the selection" title="Duplicate the selection" disabled>
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="4" y="4" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
             </button>
@@ -141,6 +125,13 @@
             </button>
           </div>
           <canvas id="magicCanvas" data-i18n-aria-label="atelier.parchment" aria-label="Drawing parchment"></canvas>
+          <div id="selectionContextMenu" class="selection-context-menu" role="menu" data-i18n-aria-label="selectionMenu.label" aria-label="Selected object actions" hidden>
+            <button type="button" role="menuitem" data-selection-action="select" data-i18n="selectionMenu.select">Select</button>
+            <button type="button" role="menuitem" data-selection-action="duplicate" data-i18n="selectionMenu.duplicate">Duplicate</button>
+            <button type="button" role="menuitem" data-selection-action="front" data-i18n="selectionMenu.front">Bring to front</button>
+            <button type="button" role="menuitem" data-selection-action="back" data-i18n="selectionMenu.back">Send to back</button>
+            <button class="is-danger" type="button" role="menuitem" data-selection-action="delete" data-i18n="selectionMenu.delete">Delete</button>
+          </div>
         </div>
 
         <button class="symbol-island" id="symbolToggleButton" type="button" aria-controls="symbolDrawer" aria-expanded="false">
@@ -219,6 +210,21 @@
           <div class="ink-list" id="inkList"></div>
         </aside>
 
+        <aside class="sidebar gallery-drawer" id="galleryDrawer" data-i18n-aria-label="drawer.galleryChoice" aria-label="Circle gallery" aria-hidden="true">
+          <div class="panel-heading">
+            <div>
+              <h2 data-i18n="drawer.gallery">Gallery</h2>
+              <p data-i18n="drawer.galleryDescription">Browse public circles. Sign in on Circle Commons to keep yours.</p>
+            </div>
+            <button class="drawer-close" id="closeGalleryButton" type="button" data-i18n-aria-label="drawer.closeGallery" aria-label="Close gallery">&times;</button>
+          </div>
+          <div class="gallery-actions">
+            <a class="gallery-link" href="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site/gallery" data-i18n="drawer.openGallery">Open gallery</a>
+            <button id="publishGalleryButton" type="button" data-i18n="drawer.addCurrentCircle">Add current circle</button>
+          </div>
+          <p class="gallery-note" data-i18n="drawer.gallerySignIn">Sign in on Circle Commons when you publish to keep the circle in your account.</p>
+        </aside>
+
         <aside class="sidebar support-drawer" id="supportDrawer" data-i18n-aria-label="drawer.supportChoice" aria-label="Magic support selection" aria-hidden="true">
           <div class="panel-heading">
             <div>
@@ -260,21 +266,6 @@
           <div class="guide-list" id="guideLibraryList" role="tabpanel"></div>
           <div class="guide-list" id="guidePersonalList" role="tabpanel" hidden></div>
           <div class="guide-list" id="guideSpellsList" role="tabpanel" hidden></div>
-        </aside>
-
-        <aside class="sidebar gallery-drawer" id="galleryDrawer" data-i18n-aria-label="drawer.galleryChoice" aria-label="Circle gallery" aria-hidden="true">
-          <div class="panel-heading">
-            <div>
-              <h2 data-i18n="drawer.gallery">Gallery</h2>
-              <p data-i18n="drawer.galleryDescription">Browse public circles. Sign in on Circle Commons to keep yours.</p>
-            </div>
-            <button class="drawer-close" id="closeGalleryButton" type="button" data-i18n-aria-label="drawer.closeGallery" aria-label="Close gallery">&times;</button>
-          </div>
-          <div class="gallery-actions">
-            <a class="gallery-link" href="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site/gallery" data-i18n="drawer.openGallery">Open gallery</a>
-            <button id="publishGalleryButton" type="button" data-i18n="drawer.addCurrentCircle">Add current circle</button>
-          </div>
-          <p class="gallery-note" data-i18n="drawer.gallerySignIn">Sign in on Circle Commons when you publish to keep the circle in your account.</p>
         </aside>
 
         <dialog id="spellSaveDialog" class="photo-dialog spell-save-dialog" data-i18n-aria-label="spells.dialogTitle" aria-label="Save this spell">
@@ -360,28 +351,17 @@
           <h2 data-i18n="grimoire.title">Grimoire settings</h2>
           <div class="setting-grid">
             <label class="range-field">
-              <span data-i18n="grimoire.spellForce">Spell force</span>
-              <input id="intensityInput" type="range" min="1" max="5" value="3">
-            </label>
-            <label class="range-field">
               <span data-i18n="grimoire.stroke">Thickness</span>
-              <input id="strokeInput" type="range" min="1" max="8" value="3">
+              <input id="strokeInput" type="range" min="1" max="8" value="3" step="0.5">
             </label>
-            <div class="range-field zoom-field">
-              <span><span data-i18n="grimoire.scale">Scale</span> <strong id="canvasSizeValue">x1</strong></span>
-              <input id="canvasSizeInput" type="hidden" min="50" max="200" value="100" step="10">
-              <div class="zoom-control" data-i18n-aria-label="grimoire.scaleControl" aria-label="Scale control">
-                <button id="zoomOutButton" type="button" data-i18n-aria-label="grimoire.zoomOut" data-i18n-title="grimoire.zoomOut" aria-label="Reduce the display" title="Reduce the display">
-                  <span aria-hidden="true">&#8722;</span>
-                </button>
-                <button id="zoomResetButton" type="button" data-i18n-aria-label="grimoire.zoomReset" data-i18n-title="grimoire.zoomReset" aria-label="Return to x1" title="Return to x1">
-                  <span aria-hidden="true">=</span>
-                </button>
-                <button id="zoomInButton" type="button" data-i18n-aria-label="grimoire.zoomIn" data-i18n-title="grimoire.zoomIn" aria-label="Enlarge the display" title="Enlarge the display">
-                  <span aria-hidden="true">+</span>
-                </button>
-              </div>
-            </div>
+            <label class="range-field color-field">
+              <span data-i18n="grimoire.inkColor">Ink color</span>
+              <input id="inkColorInput" type="color" value="#201a16">
+            </label>
+            <label class="range-field scale-field">
+              <span><span id="selectionScaleLabel" data-i18n="grimoire.scale">Scale</span> <strong id="selectionScaleValue">x1</strong></span>
+              <input id="selectionScaleInput" type="range" min="-100" max="100" value="0" step="1" data-i18n-aria-label="grimoire.scaleControl" aria-label="Scale control">
+            </label>
             <label class="check-field">
               <input id="closedSealInput" type="checkbox" checked>
               <span data-i18n="grimoire.closedSeal">Draw a closed circle</span>

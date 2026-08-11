@@ -10,6 +10,7 @@ import {
   guideResizeHandleAtPoint,
   isSelectableAction,
   planDuplication,
+  reorderSelectedActions,
   resizeGuideScaleFromCorner,
   scaledGuideBounds,
   resizeGlyphFromCorner,
@@ -20,10 +21,35 @@ import {
   selectableIndicesInRect,
   shouldArmLongPress,
   shouldDeferTouchTool,
+  styleSelectedActions,
   topmostSelectableIndexAtPoint,
   topmostGlyphIndexAtPoint,
   translateSelectedActions,
 } from "../symbol-interactions.mjs";
+
+test("styleSelectedActions modifie seulement le style de la selection", () => {
+  const source = [
+    { type: "free", width: 2, color: "#201a16", points: [{ x: 1, y: 1 }] },
+    { type: "circle", width: 3, color: "#201a16", cx: 10, cy: 10, radius: 5 },
+    { type: "glyph", width: 2, color: "#201a16", x: 20, y: 20, size: 8 },
+  ];
+
+  const styled = styleSelectedActions(source, [0, 2], { width: 7, color: "#a94a38" });
+
+  assert.equal(styled[0].width, 7);
+  assert.equal(styled[0].color, "#a94a38");
+  assert.deepEqual(styled[1], source[1]);
+  assert.equal(styled[2].width, 7);
+  assert.equal(styled[2].color, "#a94a38");
+  assert.notEqual(styled, source);
+});
+
+test("styleSelectedActions refuse une epaisseur invalide", () => {
+  assert.throws(
+    () => styleSelectedActions([{ type: "circle", width: 2 }], [0], { width: 0 }),
+    /positive/,
+  );
+});
 
 test("le guide conserve son centre et ses proportions pendant le redimensionnement", () => {
   const base = { left: 20, right: 120, top: 30, bottom: 80, width: 100, height: 50 };
@@ -32,7 +58,7 @@ test("le guide conserve son centre et ses proportions pendant le redimensionneme
   assert.deepEqual(scaled, { left: -30, right: 170, top: 5, bottom: 105, width: 200, height: 100 });
   assert.equal(guideResizeHandleAtPoint(scaled, { x: 170, y: 105 }, 2), "se");
   assert.equal(resizeGuideScaleFromCorner(base, { x: 170, y: 105 }), 2);
-  assert.equal(resizeGuideScaleFromCorner(base, { x: 500, y: 500 }), 3);
+  assert.equal(resizeGuideScaleFromCorner(base, { x: 500, y: 500 }), 17.8);
 });
 
 test("les quatre poignees suivent la rotation du glyphe", () => {
@@ -47,14 +73,14 @@ test("tirer un coin redimensionne proportionnellement autour du centre", () => {
   const action = { type: "glyph", x: 50, y: 50, size: 20, rotation: 0 };
 
   assert.equal(resizeGlyphFromCorner(action, { x: 85.4, y: 85.4 }), 30);
-  assert.equal(resizeGlyphFromCorner(action, { x: 500, y: 500 }), 120);
+  assert.equal(resizeGlyphFromCorner(action, { x: 500, y: 500 }), 381.4);
   assert.equal(resizeGlyphFromCorner(action, { x: 51, y: 51 }), 12);
 });
 
-test("resizeGlyphSize applique le pas et les limites", () => {
+test("resizeGlyphSize applique le pas sans plafond superieur", () => {
   assert.equal(resizeGlyphSize(20, "grow"), 22);
   assert.equal(resizeGlyphSize(20, "shrink"), 18);
-  assert.equal(resizeGlyphSize(119, "grow"), 120);
+  assert.equal(resizeGlyphSize(120, "grow"), 132);
   assert.equal(resizeGlyphSize(12, "shrink"), 12);
 });
 
@@ -358,15 +384,33 @@ test("scaleSelectedActions met a l'echelle les traces libres, rayons et spirales
   assert.deepEqual(scaled[2], { type: "spiral", cx: 100, cy: 100, radius: 30, turns: 2 });
 });
 
-test("scaleSelectedActions borne les glyphes dans une selection mixte", () => {
+test("scaleSelectedActions ne borne pas la croissance des glyphes", () => {
   const source = [
     { type: "glyph", x: 10, y: 10, size: 100 },
     { type: "free", points: [{ x: 10, y: 10 }] },
   ];
   const scaled = scaleSelectedActions(source, [0, 1], { x: 0, y: 0 }, 2);
 
-  assert.equal(scaled[0].size, 120);
+  assert.equal(scaled[0].size, 200);
   assert.deepEqual(scaled[1].points, [{ x: 20, y: 20 }]);
+});
+
+test("reorderSelectedActions preserve l'ordre relatif au premier et arriere plan", () => {
+  const actions = [
+    { type: "free", label: "back", points: [{ x: 0, y: 0 }] },
+    { type: "glyph", label: "first", x: 10, y: 10, size: 12 },
+    { type: "circle", label: "middle", cx: 20, cy: 20, radius: 10 },
+    { type: "glyph", label: "last", x: 30, y: 30, size: 12 },
+  ];
+
+  const front = reorderSelectedActions(actions, [1, 3], "front");
+  assert.deepEqual(front.actions.map((action) => action.label), ["back", "middle", "first", "last"]);
+  assert.deepEqual(front.indices, [2, 3]);
+
+  const back = reorderSelectedActions(actions, [1, 3], "back");
+  assert.deepEqual(back.actions.map((action) => action.label), ["first", "last", "back", "middle"]);
+  assert.deepEqual(back.indices, [0, 1]);
+  assert.throws(() => reorderSelectedActions(actions, [1], "side"), /placement/);
 });
 
 test("rotateSelectedActions pivote un glyphe et sa rotation propre", () => {

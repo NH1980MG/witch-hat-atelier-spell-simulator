@@ -2,23 +2,22 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-test("la page expose un seul tiroir de symboles et les outils de taille", async () => {
+test("la page expose un seul tiroir de symboles sans les anciens outils de taille", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
   for (const id of [
     "symbolToggleButton",
     "symbolDrawer",
     "inkList",
     "closeSymbolsButton",
-    "shrinkSelectionButton",
-    "growSelectionButton",
     "symbolDragGhost",
     "selectToolButton",
   ]) {
     assert.match(html, new RegExp("id=[\\\"']" + id + "[\\\"']"));
   }
+  assert.doesNotMatch(html, /id=["'](?:shrinkSelectionButton|growSelectionButton)["']/);
   assert.doesNotMatch(html, /id=["']placement(?:ToggleButton|Drawer|List)["']/);
   assert.doesNotMatch(html, /id=["']closePlacementButton["']/);
-  assert.match(html, /styles\.css\?v=20260809-responsive-v4/);
+  assert.match(html, /styles\.css\?v=20260810-guide-scroll-v1/);
   assert.match(html, /app\.js\?v=\d{8}-[^"']+/);
 });
 
@@ -50,7 +49,7 @@ test("l'application cable la selection contextuelle et son historique", async ()
   assert.match(app, /contextmenu/);
   assert.match(app, /selectedActionIndices/);
   assert.match(app, /undoStack/);
-  assert.match(app, /resizeSelectedGlyph/);
+  assert.doesNotMatch(app, /function resizeSelectedGlyph/);
   assert.match(app, /function beginRightSelection\(/);
   assert.match(app, /function moveRightSelection\(/);
   assert.match(app, /function finishRightSelection\(/);

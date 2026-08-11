@@ -8,7 +8,7 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260809-handoff-layout-v2";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260809-handoff-layout-v2";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260809-responsive-v4";
+import { getLocale, t } from "./site-i18n.mjs?v=20260810-grimoire-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260809-handoff-layout-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -40,6 +40,7 @@ import {
   guideResizeHandleAtPoint,
   isSelectableAction,
   planDuplication,
+  reorderSelectedActions,
   resizeGuideScaleFromCorner,
   rotateSelectedActions,
   scaleSelectedActions,
@@ -47,9 +48,10 @@ import {
   selectableIndicesInRect,
   shouldArmLongPress,
   shouldDeferTouchTool,
+  styleSelectedActions,
   topmostSelectableIndexAtPoint,
   translateSelectedActions,
-} from "./symbol-interactions.mjs?v=20260809-handoff-layout-v2";
+} from "./symbol-interactions.mjs?v=20260810-grimoire-v1";
 import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260809-handoff-layout-v2";
 import {
   SPOILER_MAX_CHAPTER,
@@ -284,13 +286,11 @@ const spellSupport = document.querySelector("#spellSupport");
 const fidelityLevel = document.querySelector("#fidelityLevel");
 const fidelityRules = document.querySelector("#fidelityRules");
 const fidelityWarnings = document.querySelector("#fidelityWarnings");
-const intensityInput = document.querySelector("#intensityInput");
 const strokeInput = document.querySelector("#strokeInput");
-const canvasSizeInput = document.querySelector("#canvasSizeInput");
-const canvasSizeValue = document.querySelector("#canvasSizeValue");
-const zoomOutButton = document.querySelector("#zoomOutButton");
-const zoomResetButton = document.querySelector("#zoomResetButton");
-const zoomInButton = document.querySelector("#zoomInButton");
+const inkColorInput = document.querySelector("#inkColorInput");
+const selectionScaleInput = document.querySelector("#selectionScaleInput");
+const selectionScaleLabel = document.querySelector("#selectionScaleLabel");
+const selectionScaleValue = document.querySelector("#selectionScaleValue");
 const closedSealInput = document.querySelector("#closedSealInput");
 const autoInput = document.querySelector("#autoInput");
 const measureInput = document.querySelector("#measureInput");
@@ -333,11 +333,10 @@ const closeDetailsButton = document.querySelector("#closeDetailsButton");
 const supportToggleButton = document.querySelector("#supportToggleButton");
 const supportDrawer = document.querySelector("#supportDrawer");
 const closeSupportButton = document.querySelector("#closeSupportButton");
-const shrinkSelectionButton = document.querySelector("#shrinkSelectionButton");
-const growSelectionButton = document.querySelector("#growSelectionButton");
 const duplicateSelectionButton = document.querySelector("#duplicateSelectionButton");
 const rotateSelectionLeftButton = document.querySelector("#rotateSelectionLeftButton");
 const rotateSelectionRightButton = document.querySelector("#rotateSelectionRightButton");
+const selectionContextMenu = document.querySelector("#selectionContextMenu");
 const guideToggleButton = document.querySelector("#guideToggleButton");
 const guideDrawer = document.querySelector("#guideDrawer");
 const closeGuidesButton = document.querySelector("#closeGuidesButton");
@@ -369,8 +368,8 @@ const state = {
   tool: "free",
   element: elements[0],
   supportId: "none",
-  intensity: 3,
   strokeSize: 3,
+  drawingColor: colors.normalInk,
   canvasScale: Number(localStorage.getItem("whaCanvasScale") || 100),
   spoilerChapter: readSpoilerChapter(localStorage),
   practiceOpen: false,
@@ -393,6 +392,11 @@ const state = {
   activeSpell: null,
   recognizedSymbol: null,
   selectedActionIndices: [],
+  selectionScaleKey: null,
+  selectionScaleRatio: 1,
+  scaleGestureLast: 0,
+  scaleGestureActive: false,
+  styleGestureActive: false,
   rightSelection: null,
   symbolDrag: null,
   symbolDragIntent: null,
@@ -536,9 +540,15 @@ function displayDirection(direction) {
   return t(`direction.${keys[direction] || "contained"}`);
 }
 
+const MIN_CANVAS_SCALE = 10;
+
+function safeCanvasScale(value) {
+  const numeric = Number(value);
+  return Math.max(MIN_CANVAS_SCALE, Number.isFinite(numeric) ? numeric : 100);
+}
+
 function viewScale() {
-  const scale = Math.max(50, Math.min(200, Number(state.canvasScale) || 100));
-  return scale / 100;
+  return safeCanvasScale(state.canvasScale) / 100;
 }
 
 function zoomFactor() {
@@ -554,7 +564,7 @@ function centralSigilCanvasLineWidth(size) {
 }
 
 function lineWidth() {
-  return Math.max(1, state.strokeSize + state.intensity - 1);
+  return Math.max(1, state.strokeSize);
 }
 
 function distance(a, b) {
@@ -760,6 +770,15 @@ function estimatedCircleDiameterMeters(bounds = null) {
   }
   const drawnDiameter = Math.max(targetBounds.width, targetBounds.height);
   return Math.max(0, (drawnDiameter / BASE_GRID_STEP) * MIN_CIRCLE_DIAMETER_M);
+}
+
+function diameterPowerLevel(diameter) {
+  if (!Number.isFinite(diameter) || diameter <= 0) return 1;
+  const minimum = MIN_CIRCLE_DIAMETER_M;
+  const maximum = MAX_CIRCLE_DIAMETER_M;
+  const normalized = Math.log(Math.max(minimum, Math.min(maximum, diameter)) / minimum)
+    / Math.log(maximum / minimum);
+  return 1 + Math.max(0, Math.min(1, normalized)) * 4;
 }
 
 function isCircleTooSmall(diameter = estimatedCircleDiameterMeters()) {
@@ -972,7 +991,7 @@ function maxRadiusInsideDrawingLimit(center) {
 }
 
 function applyCanvasScale() {
-  const scale = Math.max(50, Math.min(200, Number(state.canvasScale) || 100));
+  const scale = safeCanvasScale(state.canvasScale);
   state.canvasScale = scale;
   const clamped = clampCanvasPanToLimit(state.panX, state.panY);
   state.panX = clamped.x;
@@ -981,21 +1000,10 @@ function applyCanvasScale() {
   localStorage.setItem("whaPanX", String(Math.round(state.panX)));
   localStorage.setItem("whaPanY", String(Math.round(state.panY)));
   document.documentElement.style.setProperty("--canvas-size", "100%");
-  document.documentElement.style.setProperty("--grid-step", `${Math.round(BASE_GRID_STEP * (scale / 100))}px`);
-  if (canvasSizeInput) {
-    canvasSizeInput.value = String(scale);
-  }
-  if (canvasSizeValue) {
-    canvasSizeValue.textContent = formatZoom(scale);
-  }
-  if (zoomOutButton) {
-    zoomOutButton.disabled = scale <= 50;
-  }
-  if (zoomResetButton) {
-    zoomResetButton.disabled = scale === 100;
-  }
-  if (zoomInButton) {
-    zoomInButton.disabled = scale >= 200;
+  const gridStep = Math.min(512, Math.max(4, Math.round(BASE_GRID_STEP * (scale / 100))));
+  document.documentElement.style.setProperty("--grid-step", `${gridStep}px`);
+  if (selectionScaleValue && normalizeSelection().length === 0) {
+    selectionScaleValue.textContent = formatZoom(scale);
   }
   requestAnimationFrame(resizeCanvas);
 }
@@ -1051,6 +1059,11 @@ function pointerCenter(points) {
   }), { x: 0, y: 0 });
 }
 
+function pointerDistance(points) {
+  const [first, second] = [...points.values()];
+  return first && second ? distance(first, second) : 0;
+}
+
 function beginPanGesture() {
   cancelLongPress();
   cancelSelectionDrag(true);
@@ -1060,10 +1073,19 @@ function beginPanGesture() {
   state.currentAction = null;
   state.preview = null;
   state.start = null;
+  const center = pointerCenter(state.activePointers);
+  const { width, height } = canvasSize();
+  const transform = canvasViewTransform(width, height);
   state.panGesture = {
-    center: pointerCenter(state.activePointers),
+    center,
     panX: state.panX,
     panY: state.panY,
+    pinchDistance: pointerDistance(state.activePointers),
+    canvasScale: state.canvasScale,
+    anchor: {
+      x: (center.x - transform.offsetX) / transform.scale,
+      y: (center.y - transform.offsetY) / transform.scale,
+    },
   };
   render();
 }
@@ -1073,9 +1095,18 @@ function updatePanGesture() {
     return false;
   }
   const center = pointerCenter(state.activePointers);
+  const currentDistance = pointerDistance(state.activePointers);
+  const pinchRatio = state.panGesture.pinchDistance > 0
+    ? currentDistance / state.panGesture.pinchDistance
+    : 1;
+  setCanvasScale(state.panGesture.canvasScale * pinchRatio, false);
+  const { width, height } = canvasSize();
+  const scale = viewScale();
+  const baseOffsetX = (width * (1 - scale)) / 2;
+  const baseOffsetY = (height * (1 - scale)) / 2;
   setCanvasPan(
-    state.panGesture.panX + center.x - state.panGesture.center.x,
-    state.panGesture.panY + center.y - state.panGesture.center.y,
+    center.x - baseOffsetX - state.panGesture.anchor.x * scale,
+    center.y - baseOffsetY - state.panGesture.anchor.y * scale,
   );
   return true;
 }
@@ -1311,13 +1342,25 @@ function drawGlyph(action) {
   const { x, y, size, color, rune, element } = action;
   ctx.strokeStyle = color;
   ctx.fillStyle = color;
-  ctx.lineWidth = visibleLineWidth(2);
+  ctx.lineWidth = visibleLineWidth(action.width || 2);
 
   const tintedGlyph = tintedSymbolBoardGlyph(element, color);
   if (tintedGlyph) {
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(action.rotation || 0);
+    const extra = Math.max(0, (action.width || 2) - 2) * size / 90;
+    if (extra > 0) {
+      for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 4) {
+        ctx.drawImage(
+          tintedGlyph,
+          -size + Math.cos(angle) * extra,
+          -size + Math.sin(angle) * extra,
+          size * 2,
+          size * 2,
+        );
+      }
+    }
     ctx.drawImage(tintedGlyph, -size, -size, size * 2, size * 2);
     ctx.restore();
     return;
@@ -1334,7 +1377,7 @@ function drawGlyph(action) {
     if (element === "Vent") {
       ctx.lineWidth = centralSigilCanvasLineWidth(size) / Math.max(0.01, glyphScale);
     } else {
-      ctx.lineWidth = visibleLineWidth(2) / Math.max(0.01, glyphScale);
+      ctx.lineWidth = visibleLineWidth(action.width || 2) / Math.max(0.01, glyphScale);
     }
     for (const pathData of catalogPaths) {
       ctx.stroke(new Path2D(pathData));
@@ -1731,12 +1774,12 @@ function drawAction(action, dashed = false) {
     ctx.stroke();
   } else if (action.type === "ring") {
     for (const factor of [1, 0.72, 0.46]) {
-      ctx.lineWidth = visibleLineWidth(factor === 1 ? action.width : 2);
+      ctx.lineWidth = visibleLineWidth(factor === 1 ? action.width : Math.max(1, action.width * 0.7));
       ctx.beginPath();
       ctx.arc(action.cx, action.cy, action.radius * factor, 0, Math.PI * 2);
       ctx.stroke();
     }
-    ctx.lineWidth = visibleLineWidth(2);
+    ctx.lineWidth = visibleLineWidth(Math.max(1, action.width * 0.7));
     for (let angle = 0; angle < 360; angle += 45) {
       const rad = (angle * Math.PI) / 180;
       const inner = action.radius * 0.78;
@@ -6321,7 +6364,7 @@ function drawElementEffect(width, height, progress, baseRadius, model = signMode
   const renderOperation = (operation) => !manifestationConsumes(manifestationPlan, operation);
   const center = state.circleCenter;
   const direction = directionVector(model.rays, model.signs, model.geometry);
-  const particleCount = 18 + state.intensity * 5;
+  const particleCount = 18 + Math.round(diameterPowerLevel(estimatedCircleDiameterMeters()) * 5);
   ctx.save();
 
   if (materialPresentation?.kind === "elemental-mixture") {
@@ -6661,7 +6704,30 @@ function selectionBounds(actions = state.actions, indices = state.selectedAction
 
 function clearSelection() {
   state.selectedActionIndices = [];
+  state.selectionScaleKey = null;
+  state.selectionScaleRatio = 1;
   state.rightSelection = null;
+  closeSelectionContextMenu();
+  syncSelectionGrimoire();
+}
+
+function closeSelectionContextMenu() {
+  if (selectionContextMenu) {
+    selectionContextMenu.hidden = true;
+  }
+}
+
+function openSelectionContextMenu(event) {
+  if (!selectionContextMenu || normalizeSelection().length === 0) {
+    return;
+  }
+  selectionContextMenu.hidden = false;
+  const rect = selectionContextMenu.getBoundingClientRect();
+  const left = Math.max(10, Math.min(event.clientX + 8, window.innerWidth - rect.width - 10));
+  const top = Math.max(10, Math.min(event.clientY + 8, window.innerHeight - rect.height - 10));
+  selectionContextMenu.style.left = `${left}px`;
+  selectionContextMenu.style.top = `${top}px`;
+  selectionContextMenu.querySelector("button")?.focus({ preventScroll: true });
 }
 
 function setSelectionStatus() {
@@ -6680,12 +6746,6 @@ function setSelectionStatus() {
 
 function updateSelectionControls() {
   const hasSelection = normalizeSelection().length > 0;
-  if (shrinkSelectionButton) {
-    shrinkSelectionButton.disabled = !hasSelection;
-  }
-  if (growSelectionButton) {
-    growSelectionButton.disabled = !hasSelection;
-  }
   if (duplicateSelectionButton) {
     duplicateSelectionButton.disabled = !hasSelection;
   }
@@ -6695,6 +6755,112 @@ function updateSelectionControls() {
   if (rotateSelectionRightButton) {
     rotateSelectionRightButton.disabled = !hasSelection;
   }
+  syncSelectionGrimoire();
+}
+
+function relativeScaleLabel(ratio) {
+  const percent = Math.round((ratio - 1) * 100);
+  return `${percent > 0 ? "+" : ""}${percent}%`;
+}
+
+function syncSelectionGrimoire() {
+  const indices = normalizeSelection();
+  const key = indices.length > 0 ? indices.join(",") : null;
+  if (key !== state.selectionScaleKey) {
+    state.selectionScaleKey = key;
+    state.selectionScaleRatio = 1;
+    state.scaleGestureLast = 0;
+    if (selectionScaleInput) selectionScaleInput.value = "0";
+  }
+  const selectedAction = key ? state.actions[indices[0]] : null;
+  if (!state.styleGestureActive && strokeInput) {
+    strokeInput.value = String(selectedAction?.width || state.strokeSize);
+  }
+  if (!state.styleGestureActive && inkColorInput) {
+    inkColorInput.value = /^#[0-9a-f]{6}$/i.test(selectedAction?.color || "")
+      ? selectedAction.color
+      : state.drawingColor;
+  }
+  if (selectionScaleLabel) {
+    selectionScaleLabel.textContent = t(key ? "grimoire.objectScale" : "grimoire.scale");
+  }
+  if (selectionScaleValue) {
+    selectionScaleValue.textContent = key
+      ? relativeScaleLabel(state.selectionScaleRatio)
+      : formatZoom(state.canvasScale);
+  }
+}
+
+function beginStyleGesture() {
+  if (normalizeSelection().length > 0 && !state.styleGestureActive) {
+    recordHistory();
+  }
+  state.styleGestureActive = true;
+}
+
+function endStyleGesture() {
+  state.styleGestureActive = false;
+  syncSelectionGrimoire();
+}
+
+function applySelectedStyle(style) {
+  const indices = normalizeSelection();
+  if (indices.length === 0) {
+    if (style.width !== undefined) state.strokeSize = style.width;
+    if (style.color !== undefined) state.drawingColor = style.color;
+    return;
+  }
+  if (!state.styleGestureActive) beginStyleGesture();
+  state.actions = styleSelectedActions(state.actions, indices, style);
+  state.activeSpell = null;
+  updateUsedList();
+  updateSpellState();
+  setStatus(t("status.selectionStyleUpdated", { count: indices.length }));
+  render();
+}
+
+function finishScaleGesture() {
+  state.scaleGestureActive = false;
+  state.scaleGestureLast = 0;
+  if (selectionScaleInput) selectionScaleInput.value = "0";
+  syncSelectionGrimoire();
+}
+
+function applyScaleSliderDelta(value) {
+  const next = Number(value);
+  if (!Number.isFinite(next)) return;
+  const delta = next - state.scaleGestureLast;
+  if (delta === 0) return;
+  const factor = Math.pow(1.01, delta);
+  const indices = normalizeSelection();
+  if (indices.length > 0) {
+    const bounds = selectionBounds();
+    if (!bounds) return;
+    if (!state.scaleGestureActive) {
+      recordHistory();
+      state.scaleGestureActive = true;
+    }
+    state.actions = scaleSelectedActions(
+      state.actions,
+      indices,
+      { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 },
+      factor,
+    );
+    state.selectionScaleRatio *= factor;
+    state.activeSpell = null;
+    updateUsedList();
+    updateSpellState();
+    setStatus(t("status.selectionGroupResized", { count: indices.length }));
+    render();
+  } else {
+    const rect = canvas.getBoundingClientRect();
+    setCanvasScaleAround(state.canvasScale * factor, {
+      x: rect.width / 2,
+      y: rect.height / 2,
+    });
+  }
+  state.scaleGestureLast = next;
+  syncSelectionGrimoire();
 }
 
 function selectionRotateHandle(bounds) {
@@ -6977,7 +7143,7 @@ function currentElementData() {
 function createAction(type, start, point) {
   const element = currentElementData();
   const width = lineWidth();
-  const color = colors.normalInk;
+  const color = state.drawingColor;
   const circleRadius = constrainCircleRadius(distance(start, point), start);
   const radius = circleRadius.radius;
 
@@ -7039,7 +7205,7 @@ function createAction(type, start, point) {
       cx: start.x,
       cy: start.y,
       radius,
-      turns: 2.5 + state.intensity * 0.3,
+      turns: 3.4,
       limitNotice: circleRadius.notice,
     };
   }
@@ -7116,7 +7282,7 @@ function isCompleteSeal(action) {
   return action.seal || action.type === "ring" || (action.type === "circle" && action.closed);
 }
 
-function createGlyphAction(element, point, size = 16 + state.intensity * 3) {
+function createGlyphAction(element, point, size = 25) {
   const safePoint = clampPointToDrawingLimit(point, size * 1.1);
   const boundary = primarySpellBounds();
   const center = state.circleCenter || (boundary ? {
@@ -7134,8 +7300,8 @@ function createGlyphAction(element, point, size = 16 + state.intensity * 3) {
     charge: element.charge,
     kind: element.kind || "sigil",
     category: element.category || "Sigil",
-    color: colors.normalInk,
-    width: 2,
+    color: state.drawingColor,
+    width: lineWidth(),
     x: safePoint.x,
     y: safePoint.y,
     size,
@@ -7451,6 +7617,7 @@ function renderGhost() {
 }
 
 function beginRightSelection(event, point) {
+  closeSelectionContextMenu();
   setTool("select");
   state.guideSelected = false;
   updateToolButtons();
@@ -7458,7 +7625,7 @@ function beginRightSelection(event, point) {
   const bounds = selectionBounds();
   const handle = selectionHandleAtPoint(bounds, point, 12 / Math.max(0.1, viewScale()));
   const snapshot = cloneActions(state.actions);
-  if (handle && bounds) {
+  if (event.button !== 2 && handle && bounds) {
     if (handle === "rotate") {
       const center = {
         x: bounds.left + bounds.width / 2,
@@ -7488,6 +7655,7 @@ function beginRightSelection(event, point) {
       handle,
       origin: oppositeCorner(bounds, handle),
       startCorner: draggedCorner(bounds, handle),
+      baselineScaleRatio: state.selectionScaleRatio,
       moved: false,
     };
     canvas.style.cursor = ["nw", "se"].includes(handle) ? "nwse-resize" : "nesw-resize";
@@ -7496,11 +7664,12 @@ function beginRightSelection(event, point) {
 
   const index = topmostSelectableIndexAtPoint(state.actions, point);
   if (index >= 0) {
-    if (!state.selectedActionIndices.includes(index)) {
+    const contextClick = event.button === 2;
+    if (contextClick || !state.selectedActionIndices.includes(index)) {
       state.selectedActionIndices = [index];
     }
     state.rightSelection = {
-      mode: "move",
+      mode: contextClick ? "object-pending" : "move",
       pointerId: event.pointerId,
       start: point,
       current: point,
@@ -7543,7 +7712,7 @@ function selectionScaleForPoint(drag, point) {
   const startY = drag.startCorner.y - drag.origin.y;
   const scaleX = Math.abs(startX) > 0.001 ? Math.abs((point.x - drag.origin.x) / startX) : 1;
   const scaleY = Math.abs(startY) > 0.001 ? Math.abs((point.y - drag.origin.y) / startY) : 1;
-  return Math.max(0.1, Math.min(5, Math.max(scaleX, scaleY)));
+  return Math.max(0.1, Math.max(scaleX, scaleY));
 }
 
 function moveRightSelection(event) {
@@ -7556,6 +7725,9 @@ function moveRightSelection(event) {
   const movedDistance = Math.hypot(point.x - drag.start.x, point.y - drag.start.y);
   if (drag.mode === "pending" && movedDistance > 4 / Math.max(0.1, viewScale())) {
     drag.mode = "marquee";
+  }
+  if (drag.mode === "object-pending" && movedDistance > 4 / Math.max(0.1, viewScale())) {
+    drag.mode = "move";
   }
   if (drag.mode === "marquee") {
     state.selectedActionIndices = selectableIndicesInRect(state.actions, {
@@ -7585,6 +7757,7 @@ function moveRightSelection(event) {
       drag.origin,
       scale,
     );
+    state.selectionScaleRatio = drag.baselineScaleRatio * scale;
     drag.moved = Math.abs(scale - 1) > 0.01;
   } else if (drag.mode === "rotate") {
     const angle = Math.atan2(point.y - drag.center.y, point.x - drag.center.x) - drag.startAngle;
@@ -7611,7 +7784,10 @@ function finishRightSelection(event) {
   state.rightSelection = null;
   state.pointerDown = false;
   state.start = null;
-  if (drag.mode === "pending") {
+  if (drag.mode === "object-pending") {
+    setSelectionStatus();
+    openSelectionContextMenu(event);
+  } else if (drag.mode === "pending") {
     state.selectedActionIndices = [];
     setStatus(t("status.selectionEmpty"));
   } else if (drag.mode === "marquee") {
@@ -7647,6 +7823,9 @@ function cancelRightSelection(event, restore = true) {
   }
   if (restore && drag.moved) {
     state.actions = cloneActions(drag.snapshot);
+    if (drag.mode === "resize") {
+      state.selectionScaleRatio = drag.baselineScaleRatio;
+    }
   }
   state.rightSelection = null;
   state.pointerDown = false;
@@ -7680,6 +7859,24 @@ function deleteSelectedActions() {
   updateUsedList();
   updateSpellState();
   setStatus(t("status.selectionGroupDeleted", { count: indices.length }));
+  render();
+  return true;
+}
+
+function reorderSelection(placement) {
+  const indices = normalizeSelection();
+  if (indices.length === 0) {
+    return false;
+  }
+  recordHistory();
+  const result = reorderSelectedActions(state.actions, indices, placement);
+  state.actions = result.actions;
+  state.selectedActionIndices = result.indices;
+  state.activeSpell = null;
+  updateSelectionControls();
+  updateUsedList();
+  updateSpellState();
+  setSelectionStatus();
   render();
   return true;
 }
@@ -7733,29 +7930,6 @@ function pasteSelection() {
   updateUsedList();
   updateSpellState();
   setStatus(t("status.selectionPasted", { count: pasted.length }));
-  render();
-}
-
-function resizeSelectedGlyph(direction) {
-  const indices = normalizeSelection();
-  const bounds = selectionBounds();
-  if (!bounds) {
-    setStatus(t("status.selectBeforeResize"));
-    return;
-  }
-  const factor = direction === "shrink" ? 0.9 : 1.1;
-  recordHistory();
-  state.actions = scaleSelectedActions(
-    state.actions,
-    indices,
-    { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 },
-    factor,
-  );
-  state.activeSpell = null;
-  updateSelectionControls();
-  updateUsedList();
-  updateSpellState();
-  setStatus(t("status.selectionGroupResized", { count: indices.length }));
   render();
 }
 
@@ -7908,7 +8082,7 @@ function onPointerDown(event) {
       label: labels.free,
       element: "Trace",
       charge: 0,
-      color: colors.normalInk,
+      color: state.drawingColor,
       width: lineWidth(),
       points: [point],
     };
@@ -7991,11 +8165,7 @@ function onPointerMove(event) {
     const dragY = point.y - state.start.y;
     const dragLength = Math.hypot(dragX, dragY);
     if (dragLength >= 7) {
-      const boundary = primarySpellBounds();
-      const maximumSize = boundary
-        ? Math.max(28, Math.min(120, Math.max(boundary.width, boundary.height) * 0.28))
-        : 120;
-      state.currentAction.size = Math.max(12, Math.min(maximumSize, dragLength));
+      state.currentAction.size = Math.max(12, dragLength);
       if (state.currentAction.kind === "sign" && SIGN_PROFILES[state.currentAction.element]?.radial) {
         state.currentAction.rotation = Math.atan2(dragY, dragX) + Math.PI / 2;
       }
@@ -8098,42 +8268,15 @@ function onCanvasWheel(event) {
     return;
   }
   event.preventDefault();
-  if (normalizeSelection().length > 0) {
-    // Avec une selection active, la molette (ou le pinch) redimensionne la selection
-    const bounds = selectionBounds();
-    if (!bounds) {
-      return;
-    }
-    if (!wheelScaleGestureActive) {
-      recordHistory();
-      wheelScaleGestureActive = true;
-    }
-    window.clearTimeout(wheelScaleIdleTimer);
-    wheelScaleIdleTimer = window.setTimeout(() => {
-      wheelScaleGestureActive = false;
-      refreshCircleCenter();
-      updateUsedList();
-      updateSpellState();
-      setStatus(t("status.selectionGroupResized", { count: state.selectedActionIndices.length }));
-    }, 300);
-    const unit = event.deltaMode === 1 ? 16 : 1; // Firefox rapporte parfois en lignes
-    const scale = Math.exp(-event.deltaY * unit * WHEEL_SCALE_SENSITIVITY);
-    state.actions = scaleSelectedActions(
-      state.actions,
-      state.selectedActionIndices,
-      { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 },
-      scale,
-    );
-    state.activeSpell = null;
-    render();
+  closeSelectionContextMenu();
+  if (event.ctrlKey) {
+    const unit = event.deltaMode === 1 ? 16 : 1;
+    const factor = Math.exp(-event.deltaY * unit * 0.002);
+    setCanvasScaleAround(state.canvasScale * factor, screenPointFromEvent(event));
     return;
   }
   setCanvasPan(state.panX - event.deltaX, state.panY - event.deltaY);
 }
-
-const WHEEL_SCALE_SENSITIVITY = 0.0015;
-let wheelScaleGestureActive = false;
-let wheelScaleIdleTimer = null;
 
 function updateToolButtons() {
   for (const button of toolButtons) {
@@ -8356,7 +8499,7 @@ function beginSymbolDrag(event, element, source) {
     pointerId: event.pointerId,
     element,
     source,
-    size: 16 + state.intensity * 3,
+    size: 25,
     startX: event.clientX,
     startY: event.clientY,
   };
@@ -8627,7 +8770,7 @@ function confirmSaveSpell() {
     const spell = createSpell({
       name,
       actions: state.actions,
-      intensity: state.intensity,
+      intensity: diameterPowerLevel(estimatedCircleDiameterMeters()),
       stroke: state.strokeSize,
     });
     state.mySpells = saveMySpells(localStorage, [spell, ...state.mySpells]);
@@ -8649,14 +8792,11 @@ function loadMySpell(id) {
   state.actions = structuredClone(spell.actions);
   state.activeSpell = null;
   state.pendingSpell = null;
-  state.intensity = spell.intensity;
   state.strokeSize = spell.stroke;
-  if (intensityInput) {
-    intensityInput.value = String(spell.intensity);
-  }
   if (strokeInput) {
     strokeInput.value = String(spell.stroke);
   }
+  syncSelectionGrimoire();
   render();
   setStatus(t("spells.status.loaded", { name: spell.name }));
 }
@@ -8885,7 +9025,7 @@ function spellMetrics(model = signModel()) {
   const duration = model.hasBoundary ? baseDuration + model.stabilizerScore * 90 + repetitionBonus + levitationBonus + bindBonus + strengthenBonus : 0;
   const forcePenalty = model.hasConvergence || model.hasCool ? -4 : 0;
   const rawEnergyForce = model.rawEnergy ? (model.ringOnly ? 22 : 16) : 0;
-  const force = Math.min(100, Math.round((state.intensity * 11) + symbolCharge * 6 + symbolQuality * 0.3 + model.directionScore + rawEnergyForce + (model.hasCrush ? 10 : 0) + (model.hasProjectile ? 12 : 0) + forcePenalty));
+  const force = Math.min(100, Math.round((diameterPowerLevel(diameter) * 11) + symbolCharge * 6 + symbolQuality * 0.3 + model.directionScore + rawEnergyForce + (model.hasCrush ? 10 : 0) + (model.hasProjectile ? 12 : 0) + forcePenalty));
   const quality = Math.round(symbolQuality);
   const geometryStability = Math.round(model.geometry.balance * 28) - Math.round(model.geometry.pressure * 22) - model.geometry.ignoredCount * 3;
   const rawEnergyPenalty = model.ringOnly ? 42 : model.rawEnergy ? 20 : 0;
@@ -9017,7 +9157,7 @@ function analyzeSpell() {
   const signNames = [...new Set(model.signs.map((action) => action.element))];
   const symbolCharge = model.glyphs.reduce((total, action) => total + action.charge, 0);
   const symbolQuality = Math.max(...glyphs.map((glyph) => glyph.quality || 100));
-  const power = Math.max(1, state.intensity + state.actions.length + symbolCharge);
+  const power = Math.max(1, diameterPowerLevel(metrics.diameter) + state.actions.length + symbolCharge);
   const stability = guessStability(model, power);
   const metrics = spellMetrics();
   const metricsSizeIssue = activationSizeIssue(metrics.diameter);
@@ -9534,16 +9674,22 @@ for (const button of toolButtons) {
   });
 }
 
-intensityInput.addEventListener("input", () => {
-  state.intensity = Number(intensityInput.value);
-});
-
 strokeInput.addEventListener("input", () => {
-  state.strokeSize = Number(strokeInput.value);
+  applySelectedStyle({ width: Number(strokeInput.value) });
 });
+strokeInput.addEventListener("pointerdown", beginStyleGesture);
+strokeInput.addEventListener("change", endStyleGesture);
+strokeInput.addEventListener("blur", endStyleGesture);
+
+inkColorInput?.addEventListener("input", () => {
+  applySelectedStyle({ color: inkColorInput.value });
+});
+inkColorInput?.addEventListener("pointerdown", beginStyleGesture);
+inkColorInput?.addEventListener("change", endStyleGesture);
+inkColorInput?.addEventListener("blur", endStyleGesture);
 
 function setCanvasScale(scale, announce = true) {
-  state.canvasScale = Math.max(50, Math.min(200, Number(scale) || 100));
+  state.canvasScale = safeCanvasScale(scale);
   localStorage.setItem("whaCanvasScale", String(state.canvasScale));
   applyCanvasScale();
   if (announce) {
@@ -9551,22 +9697,28 @@ function setCanvasScale(scale, announce = true) {
   }
 }
 
-canvasSizeInput?.addEventListener("input", () => {
-  setCanvasScale(canvasSizeInput.value);
-});
+function setCanvasScaleAround(scale, screenPoint) {
+  const { width, height } = canvasSize();
+  const before = canvasViewTransform(width, height);
+  const anchor = {
+    x: (screenPoint.x - before.offsetX) / before.scale,
+    y: (screenPoint.y - before.offsetY) / before.scale,
+  };
+  setCanvasScale(scale, false);
+  const nextScale = viewScale();
+  const baseOffsetX = (width * (1 - nextScale)) / 2;
+  const baseOffsetY = (height * (1 - nextScale)) / 2;
+  setCanvasPan(
+    screenPoint.x - baseOffsetX - anchor.x * nextScale,
+    screenPoint.y - baseOffsetY - anchor.y * nextScale,
+  );
+}
 
-zoomOutButton?.addEventListener("click", () => {
-  setCanvasScale(state.canvasScale - 10);
+selectionScaleInput?.addEventListener("input", () => {
+  applyScaleSliderDelta(selectionScaleInput.value);
 });
-
-zoomResetButton?.addEventListener("click", () => {
-  setCanvasScale(100, false);
-  resetCanvasPanToOrigin(true);
-});
-
-zoomInButton?.addEventListener("click", () => {
-  setCanvasScale(state.canvasScale + 10);
-});
+selectionScaleInput?.addEventListener("change", finishScaleGesture);
+selectionScaleInput?.addEventListener("blur", finishScaleGesture);
 
 closedSealInput.addEventListener("change", () => {
   state.closedSeal = closedSealInput.checked;
@@ -9646,8 +9798,6 @@ clearGuideButton?.addEventListener("click", () => {
   render();
   setStatus(t("status.guideRemoved"));
 });
-shrinkSelectionButton?.addEventListener("click", () => resizeSelectedGlyph("shrink"));
-growSelectionButton?.addEventListener("click", () => resizeSelectedGlyph("grow"));
 duplicateSelectionButton?.addEventListener("click", () => duplicateSelectedActions());
 rotateSelectionLeftButton?.addEventListener("click", () => rotateSelection(-SELECTION_ROTATE_STEP));
 rotateSelectionRightButton?.addEventListener("click", () => rotateSelection(SELECTION_ROTATE_STEP));
@@ -10130,7 +10280,7 @@ function recreatePhotoImport() {
       label: labels.circle,
       element: "Structure",
       charge: 0,
-      color: colors.normalInk,
+      color: state.drawingColor,
       width: lineWidth(),
       cx: ringCenter.x,
       cy: ringCenter.y,
@@ -10334,6 +10484,40 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+selectionContextMenu?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-selection-action]");
+  if (!button) {
+    return;
+  }
+  const action = button.dataset.selectionAction;
+  closeSelectionContextMenu();
+  if (action === "duplicate") {
+    duplicateSelectedActions();
+  } else if (action === "delete") {
+    deleteSelectedActions();
+  } else if (action === "front" || action === "back") {
+    reorderSelection(action);
+  } else {
+    setSelectionStatus();
+    render();
+  }
+});
+
+selectionContextMenu?.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    event.preventDefault();
+    event.stopPropagation();
+    closeSelectionContextMenu();
+    canvas.focus({ preventScroll: true });
+  }
+});
+
+document.addEventListener("pointerdown", (event) => {
+  if (!selectionContextMenu?.hidden && !selectionContextMenu.contains(event.target)) {
+    closeSelectionContextMenu();
+  }
+}, true);
+
 canvas.addEventListener("contextmenu", (event) => {
   event.preventDefault();
 });
@@ -10359,6 +10543,7 @@ window.addEventListener("wha:localechange", () => {
   renderGuideLists();
   updateUsedList();
   updateSpellState();
+  syncSelectionGrimoire();
   if (state.actions.length > 0) {
     analyzeSpell();
   } else {
@@ -10395,7 +10580,7 @@ function loadRecipeFromUrl() {
     label: labels.ring,
     element: "Structure",
     charge: 0,
-    color: colors.normalInk,
+    color: state.drawingColor,
     width: lineWidth(),
     cx: centerX,
     cy: centerY,

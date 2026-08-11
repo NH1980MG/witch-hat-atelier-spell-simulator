@@ -32,8 +32,8 @@ test("le chargement restaure actions et reglages", async () => {
   const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
   const loadBlock = source.slice(source.indexOf("function loadMySpell"));
   assert.match(loadBlock, /state\.actions = structuredClone\(spell\.actions\)/);
-  assert.match(loadBlock, /state\.intensity = spell\.intensity/);
   assert.match(loadBlock, /state\.strokeSize = spell\.stroke/);
+  assert.doesNotMatch(loadBlock, /intensityInput\.value/);
 });
 
 test("les cles spells existent dans les deux locales, fr sans accents", async () => {

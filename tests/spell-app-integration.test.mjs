@@ -77,6 +77,24 @@ test("right-button selection uses the full pointer lifecycle", () => {
   assert.match(app, /contextmenu[\s\S]*event\.preventDefault\(\)/);
 });
 
+test("short right-click exposes Scratch-like actions for one targeted object", () => {
+  assert.match(html, /id=["']selectionContextMenu["'][^>]+role=["']menu["']/);
+  for (const action of ["select", "duplicate", "delete", "front", "back"]) {
+    assert.match(html, new RegExp(`data-selection-action=["']${action}["']`));
+  }
+  assert.match(app, /state\.selectedActionIndices\s*=\s*\[index\]/);
+  assert.match(app, /if \(event\.button !== 2 && handle && bounds\)/);
+  assert.match(app, /openSelectionContextMenu\(/);
+  assert.match(app, /reorderSelectedActions\(/);
+});
+
+test("trackpad wheel gestures control the viewport, never selection size", () => {
+  const wheel = app.match(/function onCanvasWheel\(event\) \{([\s\S]*?)\n\}/)?.[1] || "";
+  assert.match(wheel, /event\.ctrlKey[\s\S]*setCanvasScale/);
+  assert.doesNotMatch(wheel, /scaleSelectedActions/);
+  assert.match(app, /pinchDistance/);
+});
+
 test("marquee selection is limited to drawing actions", () => {
   assert.match(app, /selectableIndicesInRect\(state\.actions/);
   assert.doesNotMatch(app, /selectableIndicesInRect\([^,]*guide/i);
