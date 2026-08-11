@@ -30,12 +30,12 @@ export function buildRecipeHref(recipe = {}, base = "index.html") {
   if (recipe.activate) {
     params.set("activate", "1");
   }
-  if (recipe.ritualId) {
-    params.set("ritual", String(recipe.ritualId));
-  }
   const libraryId = cleanLibraryId(recipe.libraryId);
   if (libraryId) {
     params.set("library", libraryId);
+  }
+  if (recipe.ritualId) {
+    params.set("ritual", String(recipe.ritualId));
   }
   return `${base}?${params.toString()}`;
 }
@@ -58,15 +58,15 @@ export function parseRecipeParams(search, { sigilNames = [], signNames = [], lib
     .slice(0, RECIPE_LINK_LIMITS.maxSigns);
   const supportId = params.get("support") === "shoe" ? "shoe" : "none";
   const activate = ["1", "true"].includes(String(params.get("activate") || "").toLowerCase());
-  const ritualId = params.get("ritual") === "opening-petrification" ? "opening-petrification" : null;
   const requestedLibraryId = cleanLibraryId(params.get("library"));
   const libraryId = new Set(libraryIds).has(requestedLibraryId) ? requestedLibraryId : null;
+  const ritualId = params.get("ritual") === "opening-petrification" ? "opening-petrification" : null;
   return Object.freeze({
     sigils: Object.freeze(sigils),
     signs: Object.freeze(signs),
     supportId,
     activate,
-    ritualId,
     libraryId,
+    ritualId,
   });
 }
