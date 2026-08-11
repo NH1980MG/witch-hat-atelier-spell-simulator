@@ -4,6 +4,8 @@ import {
   mapPhotoAnalysis,
   photoContentBounds,
   selectPhotoCandidate,
+  selectPhotoSymbol,
+  setPhotoRegionPosition,
   sourceCropForAnalysis,
 } from "../photo-placement.mjs";
 
@@ -230,4 +232,32 @@ test("candidate selection mutates pending analysis and updates placement", () =>
 
   assert.equal(pending.analysis.regions[0].selectedName, null);
   assert.deepEqual(mapPhotoAnalysis(pending.analysis, target), { rings: [], symbols: [] });
+});
+
+test("photo import can replace a detected symbol and adjust its position", () => {
+  const analysis = {
+    rings: [],
+    regions: [{
+      status: "accepted",
+      candidates: [{ name: "Eau", score: 78 }],
+      cx: 50,
+      cy: 50,
+      size: 20,
+      left: 40,
+      top: 40,
+      right: 60,
+      bottom: 60,
+    }],
+  };
+  const target = { left: 0, top: 0, width: 100, height: 100 };
+
+  selectPhotoSymbol(analysis, 0, { name: "Vent" });
+  setPhotoRegionPosition(analysis, 0, 0.25, -0.2);
+
+  assert.equal(analysis.regions[0].selectedName, "Vent");
+  assert.deepEqual(analysis.regions[0].offsetX, 0.25);
+  assert.deepEqual(analysis.regions[0].offsetY, -0.2);
+  assert.equal(mapPhotoAnalysis(analysis, target).symbols[0].name, "Vent");
+  assert.ok(mapPhotoAnalysis(analysis, target).symbols[0].cx > 50);
+  assert.ok(mapPhotoAnalysis(analysis, target).symbols[0].cy < 50);
 });

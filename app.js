@@ -70,9 +70,10 @@ import {
 import { analyzePhoto } from "./photo-import.mjs?v=20260809-handoff-layout-v2";
 import {
   mapPhotoAnalysis,
-  selectPhotoCandidate,
+  selectPhotoSymbol,
+  setPhotoRegionPosition,
   sourceCropForAnalysis,
-} from "./photo-placement.mjs?v=20260809-handoff-layout-v2";
+} from "./photo-placement.mjs?v=20260811-photo-edit-v1";
 import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260809-handoff-layout-v2";
 import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260809-handoff-layout-v2";
 import { assessFreehandBoundary, recognizedMaterialLabel } from "./drawing-recognition.mjs";
@@ -10042,6 +10043,14 @@ function confirmSymbolSearch(position = symbolSearchActiveIndex) {
   if (!element) {
     return;
   }
+  if (photoEditRegionIndex !== null && pendingPhotoImport?.analysis) {
+    selectPhotoSymbol(pendingPhotoImport.analysis, photoEditRegionIndex, element);
+    photoEditRegionIndex = null;
+    symbolSearchDialog.close();
+    describePhotoAnalysis(pendingPhotoImport.analysis);
+    updatePhotoRecreateAvailability();
+    return;
+  }
   symbolSearchDialog.close();
   armSymbol(element);
 }
@@ -10055,6 +10064,18 @@ function openSymbolSearch() {
   // click, and the record's own origin+recency match makes a stale one inert
   // anyway. Kept because opening search is a natural "fresh start" point.
   state.suppressNextDrawerClick = null;
+  photoEditRegionIndex = null;
+  symbolSearchInput.value = "";
+  renderSymbolSearchResults();
+  symbolSearchDialog.showModal();
+  symbolSearchInput.focus();
+}
+
+function openPhotoRegionSearch(regionIndex) {
+  if (!pendingPhotoImport?.analysis || !symbolSearchDialog || symbolSearchDialog.open) {
+    return;
+  }
+  photoEditRegionIndex = regionIndex;
   symbolSearchInput.value = "";
   renderSymbolSearchResults();
   symbolSearchDialog.showModal();
@@ -10074,6 +10095,10 @@ symbolSearchDialog?.addEventListener("click", (event) => {
   if (!clientPointInsideRect(event.clientX, event.clientY, box)) {
     symbolSearchDialog.close();
   }
+});
+
+symbolSearchDialog?.addEventListener("close", () => {
+  photoEditRegionIndex = null;
 });
 
 symbolSearchInput?.addEventListener("input", renderSymbolSearchResults);
@@ -10211,6 +10236,7 @@ practiceTargetSelect?.addEventListener("change", () => {
 practiceVerifyButton?.addEventListener("click", verifyPracticeStroke);
 
 let pendingPhotoImport = null;
+let photoEditRegionIndex = null;
 
 function photoScoreTier(score) {
   if (score >= 70) return "high";
@@ -10268,19 +10294,13 @@ function encodePhotoGuideRaster(canvas) {
 }
 
 function photoRegionCandidate(region) {
-  const candidates = Array.isArray(region?.candidates) ? region.candidates : [];
-  if (region?.status === "accepted") {
-    return candidates[0] || null;
+  if (region?.selectedCandidate && region.selectedName === region.selectedCandidate.name) {
+    return region.selectedCandidate;
   }
-  if (region?.status === "ambiguous" && typeof region.selectedName === "string") {
-    return candidates.find(({ name }) => name === region.selectedName) || null;
-  }
-  return null;
+  return region?.candidates?.[0] || null;
 }
 
 function photoRegionIcon(region) {
-  // An ambiguous score is only a suggestion. Do not make a guessed glyph look
-  // like a recognition result before the user confirms it.
   const candidate = photoRegionCandidate(region);
   const element = elements.find((entry) => entry.name === candidate?.name);
   return element ? elementIconMarkup(element) : "?";
@@ -10315,9 +10335,7 @@ function describePhotoAnalysis(analysis) {
     photoImportResults.append(item);
   }
   for (const [index, region] of (analysis.regions || []).entries()) {
-    const bestCandidate = region.candidates?.[0];
     const candidate = photoRegionCandidate(region);
-    const manuallyConfirmed = region.status === "ambiguous" && Boolean(candidate);
     const element = elements.find((entry) => entry.name === candidate?.name);
     const item = document.createElement("li");
     item.className = "photo-import-row";
@@ -10330,49 +10348,62 @@ function describePhotoAnalysis(analysis) {
     copy.className = "photo-region-copy";
     const label = document.createElement("strong");
     label.id = `photo-region-label-${index}`;
-    label.textContent = element
-      ? elementDisplayName(element)
-      : region.status === "ambiguous"
-        ? t("photo.result.possible")
-        : t("photo.result.unreadable");
+    label.textContent = element ? elementDisplayName(element) : candidate?.name || t("photo.result.unreadable");
     const stateLabel = document.createElement("span");
     stateLabel.className = "photo-region-state";
-    stateLabel.textContent = t(manuallyConfirmed ? "photo.result.confirmed" : `photo.result.${region.status}`);
+    stateLabel.textContent = t(`photo.result.${region.status}`);
     copy.append(label, stateLabel);
     const score = document.createElement("span");
     score.className = "photo-import-score";
-    score.textContent = bestCandidate ? `${bestCandidate.score}%` : "-";
+    score.textContent = candidate ? `${candidate.score}%` : "-";
     const meter = document.createElement("span");
     meter.className = "photo-import-meter";
     const fill = document.createElement("span");
-    fill.style.width = `${Math.min(100, Math.max(0, bestCandidate?.score || 0))}%`;
-    fill.dataset.tier = photoScoreTier(bestCandidate?.score || 0);
+    fill.style.width = `${Math.min(100, Math.max(0, candidate?.score || 0))}%`;
+    fill.dataset.tier = photoScoreTier(candidate?.score || 0);
     meter.append(fill);
     item.append(icon, copy, score, meter);
-    if (region.status === "ambiguous") {
-      const select = document.createElement("select");
-      select.className = "photo-region-select";
-      select.dataset.photoRegion = String(index);
-      select.setAttribute("aria-labelledby", label.id);
-      const ignore = document.createElement("option");
-      ignore.value = "";
-      ignore.textContent = t("photo.result.choose");
-      select.append(ignore);
-      for (const optionCandidate of region.candidates.slice(0, 3)) {
-        const option = document.createElement("option");
-        option.value = optionCandidate.name;
-        const optionElement = elements.find((entry) => entry.name === optionCandidate.name);
-        option.textContent = `${optionElement ? elementDisplayName(optionElement) : optionCandidate.name} (${optionCandidate.score}%)`;
-        select.append(option);
-      }
-      select.value = region.selectedName || "";
-      select.addEventListener("change", () => {
-        selectPhotoCandidate(analysis, index, select.value);
-        describePhotoAnalysis(analysis);
+
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.className = "photo-region-edit";
+    editButton.textContent = t("photo.result.change");
+    editButton.addEventListener("click", () => openPhotoRegionSearch(index));
+    item.append(editButton);
+
+    const position = document.createElement("div");
+    position.className = "photo-region-position";
+    const positionTitle = document.createElement("span");
+    positionTitle.textContent = t("photo.result.position");
+    position.append(positionTitle);
+    for (const [axis, key] of [["x", "photo.result.x"], ["y", "photo.result.y"]]) {
+      const field = document.createElement("label");
+      field.className = "photo-region-position-field";
+      const fieldLabel = document.createElement("span");
+      fieldLabel.textContent = t(key);
+      const input = document.createElement("input");
+      input.type = "range";
+      input.min = "-50";
+      input.max = "50";
+      input.step = "1";
+      input.value = String(Math.round((region[axis === "x" ? "offsetX" : "offsetY"] || 0) * 100));
+      input.setAttribute("aria-label", `${t("photo.result.position")} ${t(key)}`);
+      const value = document.createElement("output");
+      value.textContent = `${input.value}%`;
+      input.addEventListener("input", () => {
+        value.textContent = `${input.value}%`;
+        setPhotoRegionPosition(
+          analysis,
+          index,
+          axis === "x" ? Number(input.value) / 100 : region.offsetX || 0,
+          axis === "y" ? Number(input.value) / 100 : region.offsetY || 0,
+        );
         updatePhotoRecreateAvailability();
       });
-      item.append(select);
+      field.append(fieldLabel, input, value);
+      position.append(field);
     }
+    item.append(position);
     photoImportResults.append(item);
   }
   const listedUnreadable = (analysis.regions || []).filter(({ status }) => status === "unreadable").length;
