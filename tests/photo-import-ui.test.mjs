@@ -69,13 +69,20 @@ test("les chaines de l'import photo existent dans les deux locales", async () =>
   for (const key of [
     "photo.toggle", "photo.previewTitle", "photo.recreate", "photo.guide", "photo.cancel",
     "photo.result.ring", "photo.result.noRing", "photo.result.accepted",
-    "photo.result.ambiguous", "photo.result.unreadable", "photo.result.choose",
+    "photo.result.ambiguous", "photo.result.possible", "photo.result.unreadable", "photo.result.choose",
     "photo.status.imported", "photo.status.guideSaved", "photo.status.guideUnsaved",
     "photo.status.nothing", "photo.status.error",
   ]) {
     const occurrences = source.split(`"${key}"`).length - 1;
     assert.equal(occurrences, 2, `${key} doit exister en fr et en`);
   }
+});
+
+test("les candidats incertains ne sont pas affiches comme des sorts reconnus", async () => {
+  const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
+  assert.match(source, /region\.status === "accepted" \? region\.candidates\?\.\[0\] : null/);
+  assert.match(source, /t\("photo\.result\.possible"\)/);
+  assert.match(source, /const bestCandidate = region\.candidates\?\.\[0\]/);
 });
 
 test("les chaines francaises de l'import photo restent sans accents", async () => {
