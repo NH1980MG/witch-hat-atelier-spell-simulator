@@ -10531,6 +10531,27 @@ function currentCircleShare() {
   }, { glyphNames: new Set(elements.map((element) => element.name)) });
 }
 
+function communitySpellComponents() {
+  const model = signModel();
+  const countEntries = (glyphs) => {
+    const counts = new Map();
+    for (const glyph of glyphs) {
+      if (typeof glyph.element !== "string" || !glyph.element.trim()) continue;
+      const name = glyph.element.trim();
+      const key = name.toLocaleLowerCase("en");
+      const previous = counts.get(key);
+      counts.set(key, { name: previous?.name || name, count: (previous?.count || 0) + 1 });
+    }
+    return [...counts.values()];
+  };
+  return {
+    circleCount: Math.max(0, Math.round(model.recipe?.geometry?.circleCount ?? 0)),
+    sigils: countEntries(model.sigils),
+    signs: countEntries(model.signs),
+    source: "edited",
+  };
+}
+
 async function publishCurrentCircle() {
   const baseUrl = publishCommunityButton?.dataset.communityUrl;
   if (!baseUrl) {
@@ -10562,7 +10583,7 @@ async function publishCurrentCircle() {
     const response = await fetch(`${baseUrl}/api/handoffs`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ circle: currentCircleShare(), previewDataUrl }),
+      body: JSON.stringify({ circle: currentCircleShare(), previewDataUrl, components: communitySpellComponents() }),
     });
     const result = await response.json();
     if (!response.ok || !result.id) throw new Error(result.error || "handoff failed");
