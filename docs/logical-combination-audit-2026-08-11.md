@@ -23,9 +23,11 @@ The checked surface is:
 
 ## Summary
 
-Verdict: not every combination is fully logical yet.
+Verdict after implementation: the audited internal logic defects are resolved.
+The remaining limits are interpretation limits, not data-shape or material
+composition bugs.
 
-The exhaustive matrix has good baseline stability:
+Final verification:
 
 | Check | Result |
 | --- | --- |
@@ -34,17 +36,21 @@ The exhaustive matrix has good baseline stability:
 | Material family mismatches inside indexed matrix | 0 |
 | Missing manifestation labels | 0 |
 | Non-finite 3D numbers | 0 |
+| 3D `undefined` element metadata | 0 |
+| Free mixture-plus-non-base-sigil failures | 0 / 275 |
+| Family-gated signs falsely uncertain on compatible mixtures | 0 |
 | Unsupported ignored signs | 0 |
+| Phase-incompatible signs ignored intentionally | 7,440 |
 | Fire shoe hazard misses | 0 |
-| Distinct manifestation ids generated | 1,840 |
 
-But the audit found three logic problems:
+Resolved findings:
 
-| Priority | Problem | Count |
+| Priority | Problem | Resolution |
 | --- | --- | --- |
-| P1 | Mixed materials expose `["undefined"]` as 3D element metadata | 18,040 |
-| P1 | Free mixtures break when a non-base sigil is added | 275 / 275 stress cases |
-| P2 | Element-family signs become uncertain even when their element exists in the mixture | 1,722 |
+| P1 | Mixed materials exposed `["undefined"]` as 3D element metadata | Fixed in `0473f13` |
+| P1 | Free mixtures broke when a non-base sigil was added | Fixed in `2e5402c` |
+| P2 | Element-family signs became uncertain even when their element existed in the mixture | Fixed in `430ddf9` |
+| Regression coverage | No exhaustive guard covered all three bug classes | Added in `4f8d06e` |
 
 The indexed pure element mixtures are still logically mapped at the material
 family level:
@@ -63,59 +69,51 @@ family level:
 | `Feu + Terre + Vent` | `cendre` | OK |
 | `Feu + Eau + Terre + Vent` | `melange elementaire instable` | OK, but experimental |
 
-These rows mean the material family is right. They do not mean every downstream
-3D field, warning, or free workshop composition is right.
+These rows now mean the material family is right and the downstream
+manifestation metadata keeps the expected base element ids.
 
-## P1: Mixed Elements Lose Their Element List In 3D
+## Resolved P1: Mixed Elements Lost Their Element List In 3D
 
-`composeSpellRecipe` correctly chooses the material family, but
+Before `0473f13`, `composeSpellRecipe` correctly chose the material family, but
 `manifestation-synthesis.mjs` reads `elementalMixture.elements` as if every
 entry were an object with a `.name` field. The array actually contains strings
 such as `"Eau"` and `"Terre"`.
 
-Observed result for every indexed mixture recipe:
+Old observed result for every indexed mixture recipe:
 
 ```text
 Eau + Terre -> material family: mud
 3D material elements: ["undefined"]
 ```
 
-This affects all 18,040 public matrix recipes that use one of the 11 indexed
+This affected all 18,040 public matrix recipes that use one of the 11 indexed
 mixtures:
 
 ```text
 11 mixture signatures * 820 sign pairs * 2 supports = 18,040 recipes
 ```
 
-Impact:
-
-- The visible label can still say `Boue`.
-- The underlying 3D material metadata is wrong.
-- Any future 3D rule that checks `water`, `earth`, `fire`, or `wind` through
-  the element list can fail even when the material family is correct.
-
-Required correction:
-
-`elementNames()` should accept string entries directly:
+Current result:
 
 ```text
 ["Eau", "Terre"] -> ["eau", "terre"]
+3D undefined element metadata: 0
 ```
 
-## P1: Extra Non-Element Sigils Break Base-Element Mixtures
+## Resolved P1: Extra Non-Element Sigils Broke Base-Element Mixtures
 
-Pure `Eau + Terre` produces `boue`, but `Eau + Terre + Lumiere` currently falls
-back to a single primary sigil. This happens because `composeElementalMixture`
-rejects the whole mixture as soon as any non-base sigil is present.
+Before `2e5402c`, pure `Eau + Terre` produced `boue`, but
+`Eau + Terre + Lumiere` fell back to a single primary sigil. This happened
+because `composeElementalMixture` rejected the whole mixture as soon as any
+non-base sigil was present.
 
 The stress test checked every indexed mixture plus every non-base sigil:
 
 ```text
 11 mixtures * 25 non-base sigils = 275 free workshop cases
-275 / 275 broke the expected base mixture
 ```
 
-Examples:
+Old examples:
 
 | Input | Expected material | Current material |
 | --- | --- | --- |
@@ -131,26 +129,21 @@ Examples:
 | `Feu + Terre + Vent + Lumiere` | `cendre` plus light modifier or warning | `feu` |
 | `Feu + Eau + Terre + Vent + Lumiere` | `melange elementaire instable` plus light modifier or warning | `eau` |
 
-Impact:
+Current behavior:
 
-- User-created circles with an elemental mixture and an extra sigil can produce
-  a result that looks illogical.
-- The library matrix is safe because it indexes pure material signatures, but
-  the workshop is not safe because users can place arbitrary sigils together.
+- Base-element mixture inference ignores unrelated non-base sigils for the
+  material base.
+- Extra sigils remain visible as secondary symbols.
+- The recipe exposes `secondarySigils`.
+- Free mixture-plus-non-base-sigil failures: 0 / 275.
 
-Required correction:
+## Resolved P2: Element-Family Signs Were Too Strict On Mixtures
 
-Base-element mixture inference should ignore unrelated non-base sigils for the
-material base, then report the extra sigils as secondary, uncertain, or
-competing modifiers.
+Before `430ddf9`, some signs documented for a base family were compared only
+against the final mixture family. This made a logically compatible sign look
+uncertain.
 
-## P2: Element-Family Signs Are Too Strict On Mixtures
-
-Some signs are documented for a base family, but the current compatibility check
-only compares against the final mixture family. This makes a logically compatible
-sign look uncertain.
-
-Examples:
+Old examples:
 
 | Input | Current warning | Why this is suspect |
 | --- | --- | --- |
@@ -159,16 +152,16 @@ Examples:
 | `Eau + Vent + Aeriforme defini` | air/wind modifier is treated as uncertain on `brume` | `brume` contains `Vent` and a gas phase. |
 | `Terre + Vent + Signe de vent` | wind sign is treated as uncertain on `poussiere` | `poussiere` contains `Vent`. |
 
-The exhaustive matrix found 1,722 such cases. They do not usually break the
-final material, but they lower confidence and add misleading warnings.
+Current behavior:
 
-Required correction:
+- Family-gated signs accept an elemental mixture when the mixture contains one
+  of the required base families.
+- The warning remains when the required family is absent.
+- The sign's profile fidelity still controls final confidence; the fix does not
+  promote inferred or experimental rules to documented.
+- Family-gated signs falsely uncertain on compatible mixtures: 0.
 
-Family-gated signs should accept an elemental mixture when the mixture contains
-one of the required base families. The warning should only remain when the sign
-targets a family that is absent from the mixture.
-
-## P3: Some Signs Are Correctly Ignored, But Need Clearer User Feedback
+## Remaining Interpretation Limit: Phase-Incompatible Signs
 
 The simulator already ignores solid-only signs on gas or aerosol mixtures:
 
@@ -183,7 +176,7 @@ This is not a material bug: stretching, coiling, and entwining require a solid
 phase. The weak point is presentation. A user can read this as "the spell did
 nothing" instead of "this sign cannot act on this phase".
 
-Required correction:
+Recommended future UX improvement:
 
 Keep the ignore behavior, but surface it more strongly in the Details drawer and
 library detail page.
@@ -201,16 +194,21 @@ The audit did not flag these cases as illogical:
 
 ## Recommended Fix Order
 
-1. Fix `elementNames()` so 3D receives real element ids for all mixtures.
-2. Change `composeElementalMixture()` so non-base sigils do not cancel base
+Completed:
+
+1. Fixed `elementNames()` so 3D receives real element ids for all mixtures.
+2. Changed `composeElementalMixture()` so non-base sigils do not cancel base
    mixtures.
-3. Add regression tests for:
+3. Added regression tests for:
    - `Eau + Terre -> mud` and 3D elements `["eau", "terre"]`.
    - `Eau + Terre + Lumiere -> mud`, with `Lumiere` treated separately.
    - Every indexed mixture plus one non-base sigil still keeps its base material.
-4. Update family compatibility so signs documented for `earth`, `wind`, `water`,
-   or `fire` recognize mixtures containing those elements.
-5. Improve UI warnings for phase-incompatible signs.
+4. Updated family compatibility so signs documented for `earth`, `wind`,
+   `water`, or `fire` recognize mixtures containing those elements.
+
+Remaining follow-up:
+
+1. Improve UI warnings for phase-incompatible signs.
 
 ## Audit Commands
 
@@ -221,8 +219,8 @@ The key audit was run with `node --input-type=module` against
 ```text
 65,600 / 65,600 public matrix recipes evaluated without exception.
 0 material family mismatches inside the indexed public matrix.
-18,040 mixture recipes expose ["undefined"] as 3D element metadata.
-275 / 275 free mixture-plus-non-base-sigil stress cases break the base mixture.
-1,722 family-gated sign cases are probably too uncertain on mixtures.
+0 mixture recipes expose ["undefined"] as 3D element metadata.
+0 / 275 free mixture-plus-non-base-sigil stress cases break the base mixture.
+0 family-gated sign cases are probably too uncertain on mixtures.
 7,440 phase-incompatible sign cases are ignored intentionally.
 ```
