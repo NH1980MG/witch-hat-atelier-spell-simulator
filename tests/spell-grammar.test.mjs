@@ -24,6 +24,17 @@ test("base sigils compose before signs and supports", () => {
   assert.ok(Object.isFrozen(recipe.manifestationPlan));
 });
 
+test("indexed mixtures expose real 3D element ids", () => {
+  const recipe = composeSpellRecipe({
+    sigils: ["Eau", "Terre"],
+    signs: ["Crush", "Colonne"],
+  });
+
+  assert.equal(recipe.materialProfile.family, "mud");
+  assert.deepEqual(recipe.manifestationPlan.material.elements, ["eau", "terre"]);
+  assert.ok(!recipe.manifestationPlan.material.elements.includes("undefined"));
+});
+
 test("recipes synthesize one primary manifestation instead of stacked operations", () => {
   const mud = composeSpellRecipe({ sigils: ["Eau", "Terre"], signs: ["Crush", "Colonne"] });
   const mist = composeSpellRecipe({ sigils: ["Eau", "Vent"], signs: ["Convergence", "Lancement"] });

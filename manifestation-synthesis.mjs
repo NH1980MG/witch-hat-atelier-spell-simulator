@@ -186,9 +186,11 @@ function operationIds(operations) {
 }
 
 function elementNames(elementalMixture, materialProfile) {
-  const values = elementalMixture?.elements?.map((entry) => entry?.name) || [];
+  const values = Array.isArray(elementalMixture?.elements)
+    ? elementalMixture.elements.map((entry) => typeof entry === "string" ? entry : entry?.name)
+    : [];
   if (values.length === 0) values.push(materialProfile?.family || "raw-energy");
-  return [...new Set(values.map((value) => slug(String(value))))].sort();
+  return [...new Set(values.map((value) => slug(String(value))).filter(Boolean))].sort();
 }
 
 function normalizeGeometry(geometry) {

@@ -38,6 +38,24 @@ test("water, earth, and crush become one dense mud projection", () => {
   assert.ok(result.consumedOperations.includes("form.column"));
 });
 
+test("mixture elements can be provided as strings by the spell grammar", () => {
+  const result = synthesizeManifestation({
+    materialProfile: { family: "mud", phase: "liquid-solid", noun: "boue" },
+    elementalMixture: {
+      elements: ["Eau", "Terre"],
+      materialProfile: { family: "mud", phase: "liquid-solid", noun: "boue" },
+      fidelity: "inferred",
+    },
+    operations: { state: ["crush"], form: ["column"] },
+    axes: {},
+    geometry: { balance: 1, pressure: 0, spin: 0, reach: 1 },
+    supportPlan: { supportId: "none", mode: "paper-origin", fidelity: "documented" },
+  });
+
+  assert.deepEqual(result.material.elements, ["eau", "terre"]);
+  assert.equal(result.id, "mud.dense-projection");
+});
+
 test("water, wind, and focus become a pressurized mist jet", () => {
   const result = plan({
     family: "driven-mist",
