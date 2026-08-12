@@ -70,7 +70,9 @@ import {
 } from "./practice-session.mjs?v=20260809-handoff-layout-v2";
 import { analyzePhoto } from "./photo-import.mjs?v=20260809-handoff-layout-v2";
 import {
+  createPhotoCircleRegion,
   createPhotoRegionFromBounds,
+  createPhotoSquareRegion,
   mapPhotoAnalysis,
   selectPhotoSymbol,
   setPhotoRegionBounds,
@@ -86,8 +88,6 @@ import {
   computeSceneScale,
   spellInfluenceProfile,
 } from "./environment-interactions.mjs";
-
-const libraryCircleById = new Map(LIBRARY_CIRCLES.map((circle) => [circle.id, circle]));
 
 const libraryCircleById = new Map(LIBRARY_CIRCLES.map((circle) => [circle.id, circle]));
 
@@ -341,6 +341,8 @@ const photoImportDialog = document.querySelector("#photoImportDialog");
 const photoPreviewImage = document.querySelector("#photoPreviewImage");
 const photoPreviewOverlay = document.querySelector("#photoPreviewOverlay");
 const photoImportResults = document.querySelector("#photoImportResults");
+const photoAddCircleButton = document.querySelector("#photoAddCircleButton");
+const photoAddSquareButton = document.querySelector("#photoAddSquareButton");
 const photoRecreateButton = document.querySelector("#photoRecreateButton");
 const photoGuideButton = document.querySelector("#photoGuideButton");
 const closeSymbolsButton = document.querySelector("#closeSymbolsButton");
@@ -11268,6 +11270,20 @@ function startPhotoRegionCreate(event) {
   photoPreviewOverlay?.setPointerCapture?.(event.pointerId);
 }
 
+function addManualPhotoCircle() {
+  if (!pendingPhotoImport?.analysis) return;
+  createPhotoCircleRegion(pendingPhotoImport.analysis);
+  refreshPhotoImportEditor();
+}
+
+function addManualPhotoSquare() {
+  if (!pendingPhotoImport?.analysis) return;
+  const index = createPhotoSquareRegion(pendingPhotoImport.analysis);
+  photoSelectedRegionIndex = index;
+  refreshPhotoImportEditor();
+  openPhotoRegionSearch(index);
+}
+
 function renderPhotoPreview(pending) {
   if (!photoPreviewImage) return;
   const preview = document.createElement("canvas");
@@ -11337,17 +11353,29 @@ function describePhotoAnalysis(analysis) {
     item.append(icon, copy, score);
     photoImportResults.append(item);
   }
-  if (photoAnalysisRings(analysis).length > 0) {
-    const item = document.createElement("li");
-    item.className = "photo-import-row";
-    const icon = document.createElement("span");
-    icon.className = "photo-import-icon";
-    icon.setAttribute("aria-hidden", "true");
-    icon.textContent = "◎";
-    const label = document.createElement("span");
-    label.textContent = t("photo.result.ring");
-    item.append(icon, label);
-    photoImportResults.append(item);
+  const rings = photoAnalysisRings(analysis);
+  if (rings.length > 0) {
+    for (const [ringIndex, ring] of rings.entries()) {
+      const item = document.createElement("li");
+      item.className = "photo-import-row";
+      item.dataset.status = "accepted";
+      const icon = document.createElement("span");
+      icon.className = "photo-import-icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.textContent = "◎";
+      const copy = document.createElement("span");
+      copy.className = "photo-region-copy";
+      const label = document.createElement("strong");
+      label.textContent = t(ring.userCreated ? "photo.result.manualRing" : "photo.result.ring");
+      const stateLabel = document.createElement("span");
+      stateLabel.className = "photo-region-state";
+      stateLabel.textContent = ring.userCreated
+        ? t("photo.result.manual")
+        : `${t("photo.result.accepted")} ${ringIndex + 1}`;
+      copy.append(label, stateLabel);
+      item.append(icon, copy);
+      photoImportResults.append(item);
+    }
   } else {
     const item = document.createElement("li");
     item.className = "photo-import-ignored";
@@ -11699,6 +11727,8 @@ photoFileInput?.addEventListener("change", () => {
 });
 photoRecreateButton?.addEventListener("click", recreatePhotoImport);
 photoGuideButton?.addEventListener("click", savePhotoAsGuide);
+photoAddCircleButton?.addEventListener("click", addManualPhotoCircle);
+photoAddSquareButton?.addEventListener("click", addManualPhotoSquare);
 photoPreviewOverlay?.addEventListener("pointerdown", startPhotoRegionCreate);
 photoPreviewOverlay?.addEventListener("pointermove", updatePhotoRegionDrag);
 photoPreviewOverlay?.addEventListener("pointerup", finishPhotoRegionDrag);

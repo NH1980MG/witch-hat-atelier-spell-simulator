@@ -9,6 +9,8 @@ test("l'atelier expose l'import photo complet", async () => {
   assert.match(html, /id="photoImportDialog"/);
   assert.match(html, /id="photoPreviewImage"/);
   assert.match(html, /id="photoImportResults"/);
+  assert.match(html, /id="photoAddCircleButton"/);
+  assert.match(html, /id="photoAddSquareButton"/);
   assert.match(html, /id="photoRecreateButton"/);
   assert.match(html, /id="photoGuideButton"/);
   assert.match(html, /data-i18n="photo\.toggle"/);
@@ -21,7 +23,7 @@ test("l'atelier importe l'analyse photo", async () => {
   const photoSource = await readFile(new URL("../photo-import.mjs", import.meta.url), "utf8");
   assert.match(source, /import \{ analyzePhoto \} from "\.\/photo-import\.mjs\?v=20260809-handoff-layout-v2"/);
   assert.match(source, /from "\.\/guide-storage\.mjs\?v=20260809-handoff-layout-v2"/);
-  assert.match(source, /createPhotoRegionFromBounds,\s+mapPhotoAnalysis,\s+selectPhotoSymbol,\s+setPhotoRegionBounds,\s+setPhotoRegionPosition,\s+sourceCropForAnalysis,\s+\} from "\.\/photo-placement\.mjs\?v=20260811-photo-edit-v1"/);
+  assert.match(source, /createPhotoCircleRegion,\s+createPhotoRegionFromBounds,\s+createPhotoSquareRegion,\s+mapPhotoAnalysis,\s+selectPhotoSymbol,\s+setPhotoRegionBounds,\s+setPhotoRegionPosition,\s+sourceCropForAnalysis,\s+\} from "\.\/photo-placement\.mjs\?v=20260811-photo-edit-v1"/);
   assert.match(source, /createImageBitmap/);
   assert.match(source, /recreatePhotoImport/);
   assert.match(source, /savePhotoAsGuide/);
@@ -41,6 +43,10 @@ test("la boite de dialogue affiche le recadrage corrige et chaque region une foi
   assert.match(source, /renderPhotoRegionOverlay/);
   assert.match(source, /startPhotoRegionDrag/);
   assert.match(source, /createPhotoRegionFromBounds/);
+  assert.match(source, /createPhotoCircleRegion/);
+  assert.match(source, /createPhotoSquareRegion/);
+  assert.match(source, /addManualPhotoCircle/);
+  assert.match(source, /addManualPhotoSquare/);
   assert.match(source, /setPhotoRegionBounds/);
   assert.match(source, /openPhotoRegionSearch\(index\)/);
   assert.match(source, /selectPhotoSymbol\(pendingPhotoImport\.analysis, photoEditRegionIndex, element\)/);
@@ -53,6 +59,7 @@ test("la boite de dialogue affiche le recadrage corrige et chaque region une foi
   assert.match(source, /elementIconMarkup\(element\)/);
   assert.match(css, /\.photo-import-row/);
   assert.match(css, /\.photo-import-meter/);
+  assert.match(css, /\.photo-manual-tools/);
   assert.match(css, /data-tier="high"/);
   assert.match(css, /\.photo-preview-overlay/);
   assert.match(css, /\.photo-region-box/);
@@ -82,6 +89,7 @@ test("les chaines de l'import photo existent dans les deux locales", async () =>
     "photo.result.ring", "photo.result.noRing", "photo.result.accepted",
     "photo.result.ambiguous", "photo.result.unreadable", "photo.result.choose",
     "photo.result.change", "photo.result.position", "photo.result.x", "photo.result.y",
+    "photo.manual.circle", "photo.manual.square", "photo.manual.help",
     "photo.status.imported", "photo.status.guideSaved", "photo.status.guideUnsaved",
     "photo.status.nothing", "photo.status.error",
   ]) {

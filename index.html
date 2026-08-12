@@ -181,6 +181,11 @@
 
         <dialog id="photoImportDialog" class="photo-dialog" data-i18n-aria-label="photo.previewTitle" aria-label="Photo import">
           <h2 data-i18n="photo.previewTitle">Photo import</h2>
+          <div class="photo-manual-tools" data-i18n-aria-label="photo.manual.help" aria-label="Add missing regions manually">
+            <button id="photoAddCircleButton" type="button" data-i18n="photo.manual.circle">Add circle</button>
+            <button id="photoAddSquareButton" type="button" data-i18n="photo.manual.square">Add symbol square</button>
+            <span data-i18n="photo.manual.help">Use these when the detector misses the outer ring or a symbol frame.</span>
+          </div>
           <div class="photo-preview-frame" id="photoPreviewFrame">
             <img id="photoPreviewImage" alt="">
             <div class="photo-preview-overlay" id="photoPreviewOverlay" aria-hidden="false"></div>

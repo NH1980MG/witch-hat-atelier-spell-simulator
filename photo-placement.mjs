@@ -144,6 +144,47 @@ export function createPhotoRegionFromBounds(analysis, bounds) {
   return analysis.regions.length - 1;
 }
 
+function defaultPhotoSquareBounds(analysis) {
+  const imageWidth = analysisLimit(analysis, "x");
+  const imageHeight = analysisLimit(analysis, "y");
+  const size = Math.max(16, Math.min(imageWidth, imageHeight) * 0.5);
+  return {
+    left: imageWidth / 2 - size / 2,
+    top: imageHeight / 2 - size / 2,
+    width: size,
+    height: size,
+  };
+}
+
+export function createPhotoCircleRegion(analysis, bounds = null) {
+  if (!analysis) {
+    return -1;
+  }
+  if (!Array.isArray(analysis.rings)) {
+    analysis.rings = [];
+  }
+  const normalized = normalizePhotoRegionBounds(analysis, bounds || defaultPhotoSquareBounds(analysis));
+  const radius = Math.max(2, Math.min(normalized.width, normalized.height) / 2);
+  analysis.rings.push({
+    cx: normalized.cx,
+    cy: normalized.cy,
+    radius,
+    userCreated: true,
+  });
+  return analysis.rings.length - 1;
+}
+
+export function createPhotoSquareRegion(analysis, bounds = null) {
+  const normalized = normalizePhotoRegionBounds(analysis, bounds || defaultPhotoSquareBounds(analysis));
+  const size = Math.max(normalized.width, normalized.height);
+  return createPhotoRegionFromBounds(analysis, {
+    left: normalized.cx - size / 2,
+    top: normalized.cy - size / 2,
+    width: size,
+    height: size,
+  });
+}
+
 function importableRegions(analysis) {
   if (Array.isArray(analysis?.regions)) {
     return analysis.regions

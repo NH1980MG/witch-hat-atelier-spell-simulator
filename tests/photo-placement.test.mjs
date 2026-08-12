@@ -1,9 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  createPhotoCircleRegion,
   mapPhotoAnalysis,
   photoContentBounds,
   createPhotoRegionFromBounds,
+  createPhotoSquareRegion,
   selectPhotoCandidate,
   selectPhotoSymbol,
   setPhotoRegionBounds,
@@ -416,4 +418,34 @@ test("photo import can create a selectable symbol frame from a right-click selec
   assert.equal(analysis.regions[0].selectedName, "Vent");
   assert.equal(mapPhotoAnalysis(analysis, { left: 0, top: 0, width: 100, height: 100 }).symbols[0].name, "Vent");
   assert.equal(analysis.regions[0].left, 10);
+});
+
+test("photo import can add a manual circle and a square symbol frame", () => {
+  const analysis = {
+    imageWidth: 200,
+    imageHeight: 120,
+    rings: [],
+    regions: [],
+  };
+
+  const ringIndex = createPhotoCircleRegion(analysis);
+  const regionIndex = createPhotoSquareRegion(analysis);
+
+  assert.equal(ringIndex, 0);
+  assert.equal(regionIndex, 0);
+  assert.deepEqual(analysis.rings[0], {
+    cx: 100,
+    cy: 60,
+    radius: 30,
+    userCreated: true,
+  });
+  assert.equal(analysis.regions[0].userCreated, true);
+  assert.equal(analysis.regions[0].width, analysis.regions[0].height);
+
+  selectPhotoSymbol(analysis, regionIndex, { name: "Eau" });
+
+  const mapped = mapPhotoAnalysis(analysis, { left: 0, top: 0, width: 200, height: 120 });
+  assert.equal(mapped.rings.length, 1);
+  assert.equal(mapped.rings[0].radius, 60);
+  assert.deepEqual(mapped.symbols.map(({ name }) => name), ["Eau"]);
 });
