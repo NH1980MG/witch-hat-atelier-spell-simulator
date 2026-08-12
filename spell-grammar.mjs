@@ -125,6 +125,12 @@ export const STRUCTURED_RITUAL_VARIANTS = Object.freeze([
 
 const ROLE_KEYS = Object.freeze(["form", "motion", "scope", "supply", "state", "target", "relation", "power"]);
 const FIDELITY_RANK = Object.freeze({ documented: 0, inferred: 1, experimental: 2 });
+const BASE_FAMILY_BY_SIGIL = Object.freeze({
+  Feu: "fire",
+  Eau: "water",
+  Terre: "earth",
+  Vent: "wind",
+});
 
 function profileFidelity(sign) {
   if (sign.fidelity) return sign.fidelity;
@@ -143,6 +149,15 @@ function materialSupportsAnyPhase(material, requiredPhases) {
     ? ["energy", "liquid", "solid", "gas"]
     : String(material.phase || "").split("-").filter(Boolean);
   return requiredPhases.some((phase) => availablePhases.includes(phase));
+}
+
+function materialFamilySet(material, elementalMixture) {
+  const families = new Set([material?.family].filter(Boolean));
+  for (const name of elementalMixture?.elements || []) {
+    const family = BASE_FAMILY_BY_SIGIL[name];
+    if (family) families.add(family);
+  }
+  return families;
 }
 
 function slug(value) {
@@ -528,6 +543,7 @@ export function composeSpellRecipe({
   const secondarySigils = elementalMixture
     ? orderedSigils.map(([name]) => name).filter((name) => !mixtureBaseNames.has(name))
     : [];
+  const materialFamilies = materialFamilySet(material, elementalMixture);
   const axes = Object.fromEntries(ROLE_KEYS.map((role) => [role, []]));
   const effectNames = [];
   const mechanics = [];
@@ -563,7 +579,8 @@ export function composeSpellRecipe({
       fidelity = worstFidelity(fidelity, "inferred");
       continue;
     }
-    if (sign.families && material && !sign.families.includes(material.family)) {
+    const familyCompatible = !sign.families || sign.families.some((family) => materialFamilies.has(family));
+    if (!familyCompatible) {
       warnings.push(`${name} est documente pour ${sign.families.join("/")}; son effet sur ${material.noun} reste une interpretation.`);
       uncertainSigns.push(name);
       fidelity = worstFidelity(fidelity, "inferred");
@@ -572,7 +589,7 @@ export function composeSpellRecipe({
       warnings.push(`${name} reste experimental et n'est pas traite comme un signe ordinaire confirme.`);
       fidelity = worstFidelity(fidelity, "experimental");
     }
-    if (sign.confidence === "low") {
+    if (sign.confidence === "low" && !sign.families) {
       uncertainSigns.push(name);
     }
     if (sign.operation === "unknown-radial") {

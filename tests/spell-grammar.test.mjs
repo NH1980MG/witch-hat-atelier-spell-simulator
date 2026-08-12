@@ -224,6 +224,25 @@ test("phase-restricted signs remain ignored when no mixture phase matches", () =
   assert.ok(!steam.operations.form.includes("coil"));
 });
 
+test("earth-family signs are compatible with earth-containing mixtures", () => {
+  const recipe = composeSpellRecipe({ sigils: ["Eau", "Terre"], signs: ["Crush"] });
+
+  assert.equal(recipe.materialProfile.family, "mud");
+  assert.ok(recipe.operations.state.includes("crush"));
+  assert.ok(!recipe.uncertainSigns.includes("Crush"));
+  assert.ok(!recipe.warnings.some((warning) => /Crush est documente pour earth/i.test(warning)));
+});
+
+test("wind-family signs are compatible with wind-containing mixtures", () => {
+  const recipe = composeSpellRecipe({ sigils: ["Eau", "Vent"], signs: ["Signe de vent", "Aeriforme defini"] });
+
+  assert.equal(recipe.materialProfile.family, "driven-mist");
+  assert.ok(recipe.operations.state.includes("wind-modifier"));
+  assert.ok(recipe.operations.state.includes("define-air"));
+  assert.ok(!recipe.uncertainSigns.includes("Signe de vent"));
+  assert.ok(!recipe.uncertainSigns.includes("Aeriforme defini"));
+});
+
 test("radial stays experimental and does not invent a power change", () => {
   const base = composeSpellRecipe({ sigils: ["Feu"] });
   const radial = composeSpellRecipe({ sigils: ["Feu"], signs: ["Radial"] });
