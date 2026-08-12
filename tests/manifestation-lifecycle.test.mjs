@@ -46,3 +46,14 @@ test("timeout, replacement, and view close use the cleanup path", () => {
   assert.match(close, /clearActiveManifestation\("close"\)/);
   assert.match(close, /clearActiveManifestation\("close"\);\s*render\(\);/);
 });
+
+test("the 3D view prepares a Rapier runtime from spell forces and environment targets", () => {
+  assert.match(app, /from "\.\/rapier-physics-world\.mjs\?v=20260812-rapier-v1"/);
+  assert.match(app, /function threePhysicsTargetDescriptor\(/);
+  assert.match(app, /function rebuildThreePhysicsRuntime\(/);
+  assert.match(app, /loadRapier3dCompat\(\)/);
+  assert.match(app, /createSpellPhysicsRuntime\(RAPIER/);
+  assert.match(app, /profile\.spellForces/);
+  assert.match(app, /runtime\.applySpellForces\(profile\.spellForces\)/);
+  assert.match(app, /function syncThreePhysicsTargets\(/);
+});

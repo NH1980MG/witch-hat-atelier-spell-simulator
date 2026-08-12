@@ -22,6 +22,7 @@ async function collect(directory) {
 for (const file of await collect(root)) {
   const relative = path.relative(root, file);
   const content = await readFile(file, "utf8");
+  const isVendoredRapier = relative === path.join("vendor", "rapier", "rapier3d-compat.module.js");
   const checks = [
     [/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/, "private key"],
     [/\b(?:ghp|github_pat)_[A-Za-z0-9_]{20,}\b/, "GitHub token"],
@@ -31,6 +32,7 @@ for (const file of await collect(root)) {
     [/target=["']_blank["'](?![^>]*\brel=["'][^"']*noopener)/i, "unsafe target=_blank link"],
   ];
   for (const [pattern, label] of checks) {
+    if (isVendoredRapier && label === "dynamic Function constructor") continue;
     if (pattern.test(content)) failures.push(`${relative}: ${label}`);
   }
 }
@@ -46,6 +48,12 @@ try {
   await access(path.join(root, "vendor", "three", "LICENSE"), constants.R_OK);
 } catch {
   failures.push("vendor/three/LICENSE: missing Three.js license");
+}
+
+try {
+  await access(path.join(root, "vendor", "rapier", "LICENSE"), constants.R_OK);
+} catch {
+  failures.push("vendor/rapier/LICENSE: missing Rapier license");
 }
 
 if (failures.length) {

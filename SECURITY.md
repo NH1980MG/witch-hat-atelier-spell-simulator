@@ -19,7 +19,11 @@ For local development, use `http://127.0.0.1:8000/index.html`.
 - The simulator stores only local display preferences in `localStorage`.
 - The app does not send drawings, settings, or exported PNG files to a server.
 - The 3D runtime uses the vendored Three.js `0.165.0` modules in
-  `vendor/three/`; the browser does not execute code from a third-party CDN.
+  `vendor/three/` and the vendored Rapier `0.19.3` compatibility module in
+  `vendor/rapier/`; the browser does not execute code from a third-party CDN.
+- The security audit has one path-scoped exception for the generated
+  `new Function` helper inside `vendor/rapier/rapier3d-compat.module.js`;
+  dynamic constructors remain blocked everywhere else.
 
 ## Release Controls
 
@@ -29,8 +33,8 @@ For local development, use `http://127.0.0.1:8000/index.html`.
 - Replace or remove copied reference screenshots before publishing.
 - Keep private study material and reference-derived screenshots out of the
   public branch.
-- Keep the vendored Three.js version and its MIT license together when updating
-  the 3D runtime.
+- Keep the vendored Three.js version and MIT license, plus the vendored Rapier
+  version and Apache-2.0 license, together when updating the 3D runtime.
 - Re-run the checks listed in `docs/release-checklist.md`.
 
 ## Reporting

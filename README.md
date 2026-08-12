@@ -132,8 +132,9 @@ The public build contains original simulator artwork, 50 generated community
 recipe schematics, and 33 spell-circle crops from archived Witch Hat Atelier
 Wiki gallery captures supplied for this fan project. Full screenshots,
 surrounding wiki text, and manga/anime panels are not included. Three.js is
-vendored under `vendor/three/` with its MIT license and no runtime CDN
-dependency.
+vendored under `vendor/three/` with its MIT license, and Rapier 3D compat is
+vendored under `vendor/rapier/` with its Apache-2.0 license. The runtime has no
+CDN dependency.
 
 This is an unofficial fan project. *Witch Hat Atelier* and related names belong
 to their respective rights holders.

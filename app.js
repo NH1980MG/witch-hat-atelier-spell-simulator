@@ -88,6 +88,10 @@ import {
   computeSceneScale,
   spellInfluenceProfile,
 } from "./environment-interactions.mjs?v=20260812-spell-forces-v1";
+import {
+  createSpellPhysicsRuntime,
+  loadRapier3dCompat,
+} from "./rapier-physics-world.mjs?v=20260812-rapier-v1";
 
 const libraryCircleById = new Map(LIBRARY_CIRCLES.map((circle) => [circle.id, circle]));
 
@@ -498,6 +502,10 @@ const threeView = {
   environment: null,
   environmentScale: 1,
   environmentTargets: [],
+  physicsRuntime: null,
+  physicsTargetMap: new Map(),
+  physicsLoadToken: 0,
+  lastPhysicsAt: 0,
   selectedSpell: false,
   spellDrag: null,
   animationFrame: 0,
@@ -5370,6 +5378,7 @@ function rebuildThreeSpell() {
   threeView.spellGroup = group;
   applySoftShadows(group);
   threeView.scene.add(group);
+  void rebuildThreePhysicsRuntime();
 }
 
 function disposeObject3d(root) {
@@ -5395,6 +5404,10 @@ function disposeObject3d(root) {
 }
 
 function clearActiveManifestation(reason = "manual", clearSpell = true) {
+  threeView.physicsLoadToken += 1;
+  threeView.physicsRuntime = null;
+  threeView.physicsTargetMap = new Map();
+  threeView.lastPhysicsAt = 0;
   const group = threeView.spellGroup;
   if (group) {
     if (threeView.scene) {
@@ -5480,6 +5493,92 @@ function applySpellToEnvironment() {
       direction: { x: direction.x, z: direction.z },
     };
   }
+}
+
+function threeVectorObject(vector) {
+  return { x: vector.x, y: vector.y, z: vector.z };
+}
+
+function threePhysicsTargetDescriptor(target, index) {
+  const interactiveTarget = target.userData.interactiveTarget || {};
+  const box = new THREE.Box3().setFromObject(target);
+  const size = new THREE.Vector3();
+  const center = new THREE.Vector3();
+  box.getSize(size);
+  box.getCenter(center);
+  const id = target.userData.physicsTargetId || `${interactiveTarget.kind || "target"}-${index + 1}`;
+  target.userData.physicsTargetId = id;
+  target.userData.physicsBasePosition = target.position.clone();
+  target.userData.physicsBodyStart = center.clone();
+  return {
+    id,
+    anchored: Boolean(interactiveTarget.anchored),
+    mass: interactiveTarget.mass,
+    position: threeVectorObject(center),
+    collider: {
+      type: "cuboid",
+      halfExtents: {
+        x: Math.max(0.04, size.x * 0.5),
+        y: Math.max(0.04, size.y * 0.5),
+        z: Math.max(0.04, size.z * 0.5),
+      },
+    },
+  };
+}
+
+async function rebuildThreePhysicsRuntime() {
+  const token = threeView.physicsLoadToken + 1;
+  threeView.physicsLoadToken = token;
+  threeView.physicsRuntime = null;
+  threeView.physicsTargetMap = new Map();
+  threeView.lastPhysicsAt = 0;
+  const profile = currentSpellInfluenceProfile();
+  if (!profile?.spellForces?.length || threeView.environmentTargets.length === 0) {
+    return;
+  }
+
+  const descriptors = threeView.environmentTargets.map(threePhysicsTargetDescriptor);
+  const targetMap = new Map(threeView.environmentTargets.map((target) => [target.userData.physicsTargetId, target]));
+  try {
+    const RAPIER = await loadRapier3dCompat();
+    if (token !== threeView.physicsLoadToken) return;
+    const runtime = createSpellPhysicsRuntime(RAPIER, {
+      gravity: { x: 0, y: 0, z: 0 },
+      targets: descriptors,
+    });
+    runtime.applySpellForces(profile.spellForces);
+    threeView.physicsRuntime = runtime;
+    threeView.physicsTargetMap = targetMap;
+  } catch (error) {
+    console.warn("Rapier physics runtime unavailable", error);
+  }
+}
+
+function syncThreePhysicsTargets() {
+  const runtime = threeView.physicsRuntime;
+  if (!runtime) return;
+  for (const [id, entry] of runtime.targets) {
+    const target = threeView.physicsTargetMap.get(id);
+    const start = target?.userData?.physicsBodyStart;
+    const base = target?.userData?.physicsBasePosition;
+    const translation = entry.body.translation?.();
+    if (!target || !start || !base || !translation) continue;
+    target.position.set(
+      base.x + translation.x - start.x,
+      base.y + translation.y - start.y,
+      base.z + translation.z - start.z,
+    );
+  }
+}
+
+function stepThreePhysicsRuntime(timestamp) {
+  const runtime = threeView.physicsRuntime;
+  if (!runtime) return;
+  const now = timestamp / 1000;
+  const delta = threeView.lastPhysicsAt ? now - threeView.lastPhysicsAt : 1 / 60;
+  threeView.lastPhysicsAt = now;
+  runtime.step(delta);
+  syncThreePhysicsTargets();
 }
 
 function onSpell3dPointerDown(event) {
@@ -5571,6 +5670,7 @@ function renderThreeView(timestamp = performance.now()) {
   }
   animateThreeSpell();
   animateEnvironmentTargets();
+  stepThreePhysicsRuntime(timestamp);
   threeView.controls.update();
   threeView.renderer.render(threeView.scene, threeView.camera);
 }

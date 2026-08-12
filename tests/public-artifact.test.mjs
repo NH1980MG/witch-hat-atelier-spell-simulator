@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 
 const workflow = await readFile(new URL("../.github/workflows/pages.yml", import.meta.url), "utf8");
 const artifactValidator = await readFile(new URL("../scripts/validate-public-artifact.mjs", import.meta.url), "utf8");
+const securityAudit = await readFile(new URL("../scripts/security-audit.mjs", import.meta.url), "utf8");
 
 test("Pages validation includes security and public artifact audits", () => {
   assert.match(workflow, /node scripts\/security-audit\.mjs/);
@@ -29,4 +30,11 @@ test("the artifact audit requires every generated symbol glyph", () => {
   assert.match(artifactValidator, /assets\/brand\/atelier-mark-180\.png/);
   assert.match(artifactValidator, /assets\/brand\/atelier-mark-512\.png/);
   assert.match(artifactValidator, /assets\/brand\/atelier-mark\.svg/);
+});
+
+test("public and security audits require vendored physics runtime licenses", () => {
+  assert.match(artifactValidator, /vendor\/rapier\/LICENSE/);
+  assert.match(securityAudit, /vendor", "rapier", "LICENSE"/);
+  assert.match(securityAudit, /relative === path\.join\("vendor", "rapier", "rapier3d-compat\.module\.js"\)/);
+  assert.match(securityAudit, /isVendoredRapier && label === "dynamic Function constructor"/);
 });

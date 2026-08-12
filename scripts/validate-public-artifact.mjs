@@ -22,6 +22,7 @@ const required = [
   "assets/brand/atelier-mark-512.png",
   "assets/brand/atelier-mark.svg",
   "vendor/three/LICENSE",
+  "vendor/rapier/LICENSE",
   ...Object.values(SYMBOL_BOARD_ASSET).filter(Boolean),
 ];
 const forbiddenNames = [/^Witch hat$/i, /^research$/i, /^references?$/i, /^screenshots?$/i];
