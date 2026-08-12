@@ -551,7 +551,12 @@ export function templateMasks(symbolPaths, size = TEMPLATE_SIZE) {
   return cacheBySize.get(size);
 }
 
-// Reconnait une composante : retourne les 3 meilleurs candidats tries.
+// Reconnait une composante : retourne les meilleurs candidats tries. Les
+// cercles de reference complets produisent parfois des regions denses ou
+// partielles; garder plus de candidats donne une correction manuelle utile sans
+// accepter automatiquement une correspondance faible.
+const PHOTO_IMPORT_CANDIDATE_LIMIT = 8;
+
 export function recognizeComponent(componentMask, componentWidth, componentHeight, symbolPaths) {
   const normalized = normalizeComponentMask(componentMask, componentWidth, componentHeight);
   const candidates = templateMasks(symbolPaths).map(({ name, mask, dist }) => ({
@@ -559,7 +564,7 @@ export function recognizeComponent(componentMask, componentWidth, componentHeigh
     score: rasterMatchScore(normalized, mask, dist),
   }));
   candidates.sort((a, b) => b.score - a.score);
-  return candidates.slice(0, 3);
+  return candidates.slice(0, PHOTO_IMPORT_CANDIDATE_LIMIT);
 }
 
 const GROUP_ROTATIONS = [-12, -6, 0, 6, 12];
@@ -608,7 +613,7 @@ export function recognizeGroup(groupMask, width, height, symbolPaths) {
     };
   });
   candidates.sort((a, b) => b.score - a.score);
-  const topCandidates = candidates.slice(0, 3);
+  const topCandidates = candidates.slice(0, PHOTO_IMPORT_CANDIDATE_LIMIT);
   const bestScore = topCandidates[0]?.score || 0;
   const secondScore = topCandidates[1]?.score || 0;
   const scoreMargin = bestScore - secondScore;
@@ -742,10 +747,14 @@ function sectorPresence(mask, width, height, cx, cy, radius, sectorCount, tolera
 }
 
 function detectOpeningPetrificationSeal(mask, width, height, cropBounds, rings) {
-  const { cx, cy, span, aspect } = cropCenter(cropBounds, width, height);
+  const crop = cropCenter(cropBounds, width, height);
+  const span = rings[0]?.radius ? rings[0].radius * 2 : crop.span;
+  const aspect = crop.aspect;
   if (aspect < 0.78 || aspect > 1.28 || span < Math.min(width, height) * 0.45) {
     return null;
   }
+  const cx = rings[0]?.cx || crop.cx;
+  const cy = rings[0]?.cy || crop.cy;
   const outerRadius = rings[0]?.radius || span * 0.47;
   if (outerRadius < Math.min(width, height) * 0.22) {
     return null;
@@ -760,6 +769,14 @@ function detectOpeningPetrificationSeal(mask, width, height, cropBounds, rings) 
     circularCoverage(mask, width, height, cx, cy, outerRadius * 0.42, tolerance),
   );
   const innerCoverage = circularCoverage(mask, width, height, cx, cy, outerRadius * 0.16, tolerance);
+  const centralRingCoverage = Math.max(
+    circularCoverage(mask, width, height, cx, cy, outerRadius * 0.34, tolerance),
+    circularCoverage(mask, width, height, cx, cy, outerRadius * 0.38, tolerance),
+    circularCoverage(mask, width, height, cx, cy, outerRadius * 0.42, tolerance),
+  );
+  const outerSpokeCoverage = circularCoverage(mask, width, height, cx, cy, outerRadius * 0.72, tolerance);
+  const outerModuleCoverage = circularCoverage(mask, width, height, cx, cy, outerRadius * 0.82, tolerance);
+  const outerPanelCoverage = circularCoverage(mask, width, height, cx, cy, outerRadius * 0.9, tolerance);
   const centralDensity = annularDensity(mask, width, height, cx, cy, 0, outerRadius * 0.22);
   const modulePresence = sectorPresence(mask, width, height, cx, cy, outerRadius * 0.78, 6, tolerance);
   const panelDensity = annularDensity(mask, width, height, cx, cy, outerRadius * 0.48, outerRadius * 0.92);
@@ -773,7 +790,16 @@ function detectOpeningPetrificationSeal(mask, width, height, cropBounds, rings) 
     + Math.min(1, panelDensity / 0.028) * 10
     + Math.min(1, radialBand / 0.025) * 6
   );
-  if (score < 72 || outerCoverage < 0.45 || centralDensity < 0.018 || modulePresence < 0.34) {
+  if (
+    score < 72
+    || outerCoverage < 0.45
+    || centralDensity < 0.018
+    || modulePresence < 0.34
+    || centralRingCoverage < 0.18
+    || outerSpokeCoverage < 0.35
+    || outerModuleCoverage < 0.33
+    || outerPanelCoverage < 0.58
+  ) {
     return null;
   }
   return {
@@ -795,8 +821,236 @@ function detectOpeningPetrificationSeal(mask, width, height, cropBounds, rings) 
       middleCoverage: Math.round(middleCoverage * 100),
       innerCoverage: Math.round(innerCoverage * 100),
       modulePresence: Math.round(modulePresence * 100),
+      centralRingCoverage: Math.round(centralRingCoverage * 100),
+      outerSpokeCoverage: Math.round(outerSpokeCoverage * 100),
+      outerModuleCoverage: Math.round(outerModuleCoverage * 100),
+      outerPanelCoverage: Math.round(outerPanelCoverage * 100),
     },
   };
+}
+
+function addArchitecturalSymbol(symbols, name, score, source, reason) {
+  const normalizedScore = Math.max(1, Math.min(100, Math.round(score)));
+  const existing = symbols.get(name);
+  const sourcePriority = {
+    "candidate-support": 5,
+    "ritual-pattern": 5,
+    "ring-topology": 4,
+    "balanced-pairing": 4,
+    "radial-symmetry": 3,
+    "radial-flow": 3,
+    "perception-family": 3,
+    "matter-family": 3,
+    "creature-family": 3,
+    "semantic-neighbor": 2,
+    "derived-architecture": 1,
+  };
+  const existingPriority = existing ? sourcePriority[existing.source] || 0 : 0;
+  const sourceRank = sourcePriority[source] || 0;
+  if (
+    !existing
+    || normalizedScore > existing.score
+    || (normalizedScore === existing.score && sourceRank > existingPriority)
+  ) {
+    symbols.set(name, {
+      name,
+      score: normalizedScore,
+      source,
+      reason,
+      status: "architectural-hint",
+    });
+  }
+}
+
+const ARCHITECTURAL_NEIGHBORS = Object.freeze({
+  "Aeriforme": ["Flottement", "Signe de vent", "Agrandissement"],
+  "Aeriforme defini": ["Aeriforme", "Flottement", "Signe de vent"],
+  Appel: ["Guidage", "Cible", "Lancement"],
+  "Arret temporel": ["Arret", "Enveloppe", "Immobilite"],
+  Cible: ["Selection", "Guidage"],
+  Collection: ["Lien", "Repetition", "Cible"],
+  Colonne: ["Lancement", "Projection"],
+  Cristal: ["Lumiere", "Solidification", "Terre"],
+  Dissimulation: ["Lumiere", "Enveloppe", "Reflection", "Selection"],
+  Dispersion: ["Nuage", "Fumee", "Agrandissement"],
+  Eau: ["Orbe", "Pluie"],
+  Enveloppe: ["Region", "Lien", "Arret", "Fenetres"],
+  Etirement: ["Projection", "Terre"],
+  Feu: ["Fumee", "Lumiere"],
+  Fenetres: ["Lumiere", "Projection", "Lien", "Reflection"],
+  Flottement: ["Aeriforme", "Orbe"],
+  Fumee: ["Nuage", "Dispersion"],
+  Guidage: ["Selection", "Cible", "Lancement"],
+  Immobilite: ["Arret", "Solidification", "Terre"],
+  Lancement: ["Projection", "Guidage"],
+  Levitation: ["Flottement", "Orbe", "Aeriforme"],
+  Lien: ["Collection", "Repetition"],
+  "Loup-ecaille": ["Projection", "Lien"],
+  Lumiere: ["Reflection", "Fenetres", "Selection", "Dissimulation"],
+  "Lumiere vacillante": ["Lumiere", "Lancement"],
+  Nuage: ["Fumee", "Dispersion"],
+  Orbe: ["Eau", "Flottement"],
+  Pantin: ["Projection", "Lien"],
+  Pluie: ["Eau", "Region", "Orbe"],
+  Projectile: ["Projection", "Lancement"],
+  Projection: ["Lancement", "Guidage", "Pantin"],
+  Refroidissement: ["Eau", "Immobilite"],
+  Reflection: ["Lumiere", "Selection", "Dissimulation", "Fenetres"],
+  Region: ["Enveloppe", "Etirement"],
+  Renforcement: ["Agrandissement", "Appel"],
+  Repetition: ["Lien", "Collection"],
+  Selection: ["Reflection", "Guidage", "Cible"],
+  "Signe de vent": ["Aeriforme", "Flottement"],
+  Solidification: ["Terre", "Immobilite"],
+  "Spire physique": ["Orbe", "Agrandissement", "Flottement"],
+  "Tete de chat-hibou": ["Chat-hibou", "Projection"],
+  Terre: ["Solidification", "Etirement"],
+  "Vent sous pied": ["Aeriforme", "Flottement", "Agrandissement"],
+  Viseur: ["Selection", "Reflection", "Cible"],
+});
+
+function inferArchitecturalSymbols({ mask, width, height, rings, regions, sealPatterns, cropBounds }) {
+  const hints = new Map();
+  const candidateScores = new Map();
+  for (const region of regions) {
+    for (const candidate of region.candidates || []) {
+      const existing = candidateScores.get(candidate.name) || 0;
+      candidateScores.set(candidate.name, Math.max(existing, candidate.score || 0));
+    }
+  }
+
+  for (const [name, score] of candidateScores) {
+    addArchitecturalSymbol(hints, name, Math.max(36, score), "candidate-support", "Visible region resembles this glyph family.");
+    for (const neighbor of ARCHITECTURAL_NEIGHBORS[name] || []) {
+      addArchitecturalSymbol(
+        hints,
+        neighbor,
+        Math.max(52, score - 4),
+        "semantic-neighbor",
+        `${name} shares a spell-function family with ${neighbor}.`,
+      );
+    }
+  }
+
+  const propagateArchitecturalNeighbors = (source) => {
+    for (const neighbor of ARCHITECTURAL_NEIGHBORS[source.name] || []) {
+      addArchitecturalSymbol(
+        hints,
+        neighbor,
+        Math.max(PHOTO_IMPORT_MIN_SCORE, source.score - 14),
+        "derived-architecture",
+        `${source.name} implies a compatible ${neighbor} function in the same architecture.`,
+      );
+    }
+  };
+  for (const hint of [...hints.values()]) propagateArchitecturalNeighbors(hint);
+
+  const { cx, cy, span } = cropCenter(cropBounds, width, height);
+  const outerRadius = rings[0]?.radius || span * 0.47;
+  const hasOuterRing = rings.length > 0 || circularCoverage(mask, width, height, cx, cy, outerRadius, Math.max(3, outerRadius * 0.03)) > 0.45;
+  if (hasOuterRing) {
+    addArchitecturalSymbol(hints, "Region", 62, "ring-topology", "A closed outer ring defines the spell region.");
+    addArchitecturalSymbol(hints, "Enveloppe", 58, "ring-topology", "A bounded seal can contain or wrap the manifestation.");
+  }
+
+  const centralDensity = annularDensity(mask, width, height, cx, cy, 0, outerRadius * 0.22);
+  const middleDensity = annularDensity(mask, width, height, cx, cy, outerRadius * 0.22, outerRadius * 0.58);
+  const outerModulePresence = sectorPresence(mask, width, height, cx, cy, outerRadius * 0.78, 8, Math.max(2, outerRadius * 0.018));
+  const bilateralPresence = sectorPresence(mask, width, height, cx, cy, outerRadius * 0.62, 2, Math.max(2, outerRadius * 0.02));
+  const radialPresence = sectorPresence(mask, width, height, cx, cy, outerRadius * 0.62, 4, Math.max(2, outerRadius * 0.02));
+
+  if (outerModulePresence >= 0.5) {
+    addArchitecturalSymbol(hints, "Repetition", 60 + outerModulePresence * 18, "radial-symmetry", "Repeated modules around the seal act as repeated instructions.");
+    addArchitecturalSymbol(hints, "Collection", 54 + outerModulePresence * 16, "radial-symmetry", "Repeated outer modules can gather or distribute the same instruction.");
+  }
+  if (outerModulePresence >= 0.72 && centralDensity < 0.006 && middleDensity < 0.01) {
+    addArchitecturalSymbol(hints, "Lien", 66, "woven-ring", "An interlocked empty ring reads as a linked boundary.");
+    addArchitecturalSymbol(hints, "Fenetres", 62, "woven-ring", "A linked hollow ring can open a window-like passage.");
+    addArchitecturalSymbol(hints, "Lumiere", 56, "woven-ring", "Window seals use light-family visibility and passage cues.");
+  }
+  if (
+    hasOuterRing
+    && candidateScores.has("Orbe")
+    && candidateScores.has("Pluie")
+    && (candidateScores.has("Aeriforme") || candidateScores.has("Vent"))
+  ) {
+    addArchitecturalSymbol(hints, "Lien", 62, "hollow-ring-family", "A hollow circular seal with repeated flowing marks links two spaces.");
+    addArchitecturalSymbol(hints, "Fenetres", 60, "hollow-ring-family", "A hollow linked seal can act as a window or passage.");
+  }
+  if ((candidateScores.has("Repetition") || outerModulePresence >= 0.6) && hasOuterRing) {
+    addArchitecturalSymbol(hints, "Arret", 56, "closed-repeat", "Repeated instructions inside a closed seal can hold or stop the active state.");
+  }
+  if (radialPresence >= 0.5) {
+    addArchitecturalSymbol(hints, "Projection", 58 + radialPresence * 16, "radial-flow", "Radial strokes point the manifestation away from the seal center.");
+    addArchitecturalSymbol(hints, "Lancement", 52 + radialPresence * 14, "radial-flow", "Directional spokes can launch a spell action.");
+  }
+  if (bilateralPresence >= 0.75 && hasOuterRing) {
+    addArchitecturalSymbol(hints, "Lien", 58, "balanced-pairing", "Paired marks across the ring imply linked endpoints or anchors.");
+  }
+  if (centralDensity > 0.025 && middleDensity > 0.012) {
+    addArchitecturalSymbol(hints, "Lumiere", 58, "central-focus", "A dense centered sigil acts like an activating focus.");
+  }
+  if (candidateScores.has("Nuage") || candidateScores.has("Dispersion") || candidateScores.has("Aeriforme") || candidateScores.has("Aeriforme defini")) {
+    addArchitecturalSymbol(hints, "Fumee", 60, "matter-family", "Airy or dispersive forms can manifest as smoke-like matter.");
+  }
+  if (candidateScores.has("Fumee") && candidateScores.has("Arret temporel")) {
+    addArchitecturalSymbol(hints, "Feu", 55, "matter-family", "Heat-retention marks can be read as a fire-family source.");
+  }
+  if (candidateScores.has("Pluie") || candidateScores.has("Refroidissement") || candidateScores.has("Orbe") || candidateScores.has("Flottement")) {
+    addArchitecturalSymbol(hints, "Eau", 60, "matter-family", "Rain, cooling, floating drops, or orbs indicate water-family matter.");
+  }
+  if (candidateScores.has("Solidification") || candidateScores.has("Immobilite") || candidateScores.has("Etirement") || candidateScores.has("Crush")) {
+    addArchitecturalSymbol(hints, "Terre", 58, "matter-family", "Solid, stretching, or crushing geometry indicates earth-family matter.");
+  }
+  if (candidateScores.has("Reflection") || candidateScores.has("Viseur") || candidateScores.has("Fenetres") || candidateScores.has("Lumiere vacillante")) {
+    addArchitecturalSymbol(hints, "Lumiere", 62, "perception-family", "Reflection, windows, targeting, and flicker are light-family operations.");
+  }
+  if (candidateScores.has("Tete de chat-hibou")) {
+    addArchitecturalSymbol(hints, "Chat-hibou", 70, "creature-family", "The head glyph is the editable form of the owlcat creature sigil.");
+  }
+  if (candidateScores.has("Pantin") && candidateScores.has("Repetition")) {
+    addArchitecturalSymbol(hints, "Loup-ecaille", 52, "creature-family", "Repeated animated-body marks indicate a creature-control family.");
+  }
+
+  for (const pattern of sealPatterns || []) {
+    if (pattern.ritualId === "opening-petrification") {
+      addArchitecturalSymbol(hints, "Terre", pattern.score, "ritual-pattern", "The petrification seal uses earth-family matter.");
+      addArchitecturalSymbol(hints, "Solidification", pattern.score, "ritual-pattern", "The petrification seal fixes matter into stone.");
+      addArchitecturalSymbol(hints, "Immobilite", pattern.score, "ritual-pattern", "The petrification seal stops motion.");
+    }
+  }
+
+  for (const hint of [...hints.values()]) propagateArchitecturalNeighbors(hint);
+
+  const sourcePriority = {
+    "candidate-support": 5,
+    "ritual-pattern": 5,
+    "ring-topology": 4,
+    "balanced-pairing": 4,
+    "radial-symmetry": 3,
+    "radial-flow": 3,
+    "perception-family": 3,
+    "matter-family": 3,
+    "creature-family": 3,
+    "semantic-neighbor": 2,
+    "derived-architecture": 1,
+  };
+  return [...hints.values()]
+    .filter((hint) => (
+      hint.score >= 52
+      || hint.source === "candidate-support"
+      || hint.source === "semantic-neighbor"
+      || hint.source === "ring-topology"
+      || hint.source === "balanced-pairing"
+      || hint.source === "ritual-pattern"
+      || hint.source === "perception-family"
+      || hint.source === "matter-family"
+    ))
+    .sort((a, b) => (
+      (sourcePriority[b.source] || 0) - (sourcePriority[a.source] || 0)
+      || b.score - a.score
+      || a.name.localeCompare(b.name)
+    ));
 }
 
 export function analyzePhoto(imageData, symbolPaths) {
@@ -884,12 +1138,22 @@ export function analyzePhoto(imageData, symbolPaths) {
       cy: region.cy,
       size: region.size,
     }));
+  const architecturalSymbols = inferArchitecturalSymbols({
+    mask,
+    width,
+    height,
+    rings,
+    regions,
+    sealPatterns,
+    cropBounds,
+  });
   return {
     rings,
     ring: rings[0] || null,
     sealPatterns,
     regions,
     symbols,
+    architecturalSymbols,
     ignored,
     cropBounds: inkBounds(mask, width, height),
     imageWidth: width,
