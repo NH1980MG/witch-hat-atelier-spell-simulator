@@ -1,4 +1,5 @@
 import { environmentalResponseFromSpell } from "./environmental-response.mjs";
+import { spellForcesFromSnapshot } from "./three-spell-forces.mjs";
 
 const WIND_FAMILIES = new Set(["wind", "air", "underfoot-wind", "whorling-wind", "fire-vortex", "driven-mist"]);
 
@@ -26,6 +27,7 @@ export function spellInfluenceProfile(spell = {}) {
   const lift = effects.has("levitation") || effects.has("flottement") || effects.has("vent porteur stabilise");
   const pull = effects.has("traction");
   const projectile = environmentalResponse.delivery === "pulsed-focused" || effects.has("projectile") || effects.has("lancement");
+  const spellForces = spellForcesFromSnapshot({ ...spell, environmentalResponse });
   const intensity = clamp((force / 100) * (0.55 + diameter / 3.8), 0.05, 1.7);
   return Object.freeze({
     canMove: true,
@@ -42,6 +44,7 @@ export function spellInfluenceProfile(spell = {}) {
     pull,
     projectile,
     environmentalResponse,
+    spellForces,
   });
 }
 

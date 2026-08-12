@@ -87,7 +87,7 @@ import {
   applySpellImpact,
   computeSceneScale,
   spellInfluenceProfile,
-} from "./environment-interactions.mjs?v=20260812-env-response-v1";
+} from "./environment-interactions.mjs?v=20260812-spell-forces-v1";
 
 const libraryCircleById = new Map(LIBRARY_CIRCLES.map((circle) => [circle.id, circle]));
 
