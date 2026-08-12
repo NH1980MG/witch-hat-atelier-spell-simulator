@@ -55,7 +55,7 @@ import {
   styleSelectedActions,
   topmostSelectableIndexAtPoint,
   translateSelectedActions,
-} from "./symbol-interactions.mjs?v=20260811-scalewolf-v1";
+} from "./symbol-interactions.mjs?v=20260812-dockable-toolbar-v1";
 import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260809-handoff-layout-v2";
 import {
   SPOILER_MAX_CHAPTER,
@@ -283,7 +283,10 @@ function actionDisplayLabel(action) {
 
 const canvas = document.querySelector("#magicCanvas");
 const ctx = canvas.getContext("2d");
+const canvasWrap = document.querySelector(".canvas-wrap");
+const floatingTools = document.querySelector(".floating-tools");
 let previousCanvasViewport = null;
+let toolbarDockResizeObserver = null;
 const toolButtons = document.querySelectorAll(".tool-button");
 const inkList = document.querySelector("#inkList");
 const inkInfo = document.querySelector("#inkInfo");
@@ -322,6 +325,7 @@ const saveButton = document.querySelector("#saveButton");
 const spell3dCanvas = document.querySelector("#spell3dCanvas");
 const view3dPanel = document.querySelector("#view3dPanel");
 const close3dButton = document.querySelector("#close3dButton");
+const relaunch3dButton = document.querySelector("#relaunch3dButton");
 const symbolToggleButton = document.querySelector("#symbolToggleButton");
 const symbolDrawer = document.querySelector("#symbolDrawer");
 const spoilerToggle = document.querySelector("#spoilerToggle");
@@ -402,6 +406,18 @@ let gallerySort = "newest";
 let galleryLoaded = false;
 let galleryRequest = 0;
 
+function readToolbarDock() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("whaToolbarDock") || "null");
+    return {
+      side: saved?.side === "right" ? "right" : "left",
+      yRatio: Math.max(0, Math.min(1, Number(saved?.yRatio) || 0.5)),
+    };
+  } catch {
+    return { side: "left", yRatio: 0.5 };
+  }
+}
+
 const state = {
   tool: "free",
   element: elements[0],
@@ -418,6 +434,9 @@ const state = {
   showMeasure: localStorage.getItem("whaShowMeasure") !== "false",
   alignmentAssist: localStorage.getItem("whaAlignmentAssist") === "true",
   toolbarCompact: localStorage.getItem("whaToolbarCompact") === "true",
+  toolbarDock: readToolbarDock(),
+  toolbarDrag: null,
+  suppressToolbarToggle: false,
   closedSeal: true,
   autoActivation: false,
   actions: [],
@@ -430,6 +449,7 @@ const state = {
   panGesture: null,
   activation: null,
   activeSpell: null,
+  lastActiveSpell: null,
   recognizedSymbol: null,
   selectedActionIndices: [],
   selectionScaleKey: null,
@@ -1944,6 +1964,7 @@ function drawActivation(width, height) {
       ...snapshot,
       startedAt: performance.now(),
     };
+    state.lastActiveSpell = state.activeSpell;
     state.activation = null;
     open3dView();
     setStatusList([
@@ -5031,6 +5052,7 @@ function addRecipeGrammarEffects3d(group, model, auraRadius, elementColor, suppo
 }
 
 function rebuildThreeSpell() {
+  const { preserveEnvironment = false, preserveTransform = false } = arguments[0] || {};
   const bounds = state.activeSpell?.bounds;
   if (!bounds || !state.activeSpell || !threeView.scene) {
     return;
@@ -5038,7 +5060,16 @@ function rebuildThreeSpell() {
 
   const targetSize = clampCircleDiameterMeters(state.activeSpell.diameter || estimatedCircleDiameterMeters(bounds)) || 0.8;
   const environment = preferredThreeEnvironment(bounds);
-  useThreeEnvironment(environment, environment === "exterior" ? computeSceneScale(targetSize) : 1);
+  if (!preserveEnvironment || !threeView.environmentGroup) {
+    useThreeEnvironment(environment, environment === "exterior" ? computeSceneScale(targetSize) : 1);
+  }
+
+  const previousTransform = preserveTransform && threeView.spellGroup
+    ? {
+      position: threeView.spellGroup.position.clone(),
+      rotation: threeView.spellGroup.rotation.clone(),
+    }
+    : null;
 
   clearActiveManifestation("replace", false);
 
@@ -5088,6 +5119,7 @@ function rebuildThreeSpell() {
   } else {
     group.add(sealCarrier);
   }
+  group.userData.carrier = supportProp || sealCarrier;
   if (!librarySchematic) {
     sealCarrier.add(circleLine(auraRadius, shoeMode ? THREE_SHOE_INK_Y : THREE_INK_Y, elementColor, 0.95, 192));
     sealCarrier.add(circleLine(auraRadius * 1.16, shoeMode ? THREE_SHOE_INK_Y + 0.006 : THREE_INK_Y + 0.006, elementColor, 0.5, 192));
@@ -5308,6 +5340,7 @@ function rebuildThreeSpell() {
   }
   const trajectory = new THREE.Group();
   trajectory.add(manifestation);
+  group.userData.manifestation = trajectory;
   const geometry = model.geometry;
   const pressure = geometry?.pressure || 0;
   if (pressure > 0.001) {
@@ -5329,6 +5362,10 @@ function rebuildThreeSpell() {
     });
   }
   group.add(trajectory);
+  if (previousTransform) {
+    group.position.copy(previousTransform.position);
+    group.rotation.copy(previousTransform.rotation);
+  }
 
   threeView.spellGroup = group;
   applySoftShadows(group);
@@ -5376,6 +5413,19 @@ function clearActiveManifestation(reason = "manual", clearSpell = true) {
     state.activeSpell = null;
   }
   return reason;
+}
+
+function clearExpiredManifestation() {
+  const group = threeView.spellGroup;
+  const manifestation = group?.userData?.manifestation;
+  manifestation?.parent?.remove(manifestation);
+  manifestation && disposeObject3d(manifestation);
+  group && (group.userData.manifestation = null);
+  group && (group.userData.animators = []);
+  threeView.selectedSpell = false;
+  threeView.spellDrag = null;
+  threeView.controls && (threeView.controls.enabled = true);
+  state.activeSpell = null;
 }
 
 const threePointer = new THREE.Vector2();
@@ -5488,6 +5538,23 @@ function rotateSelectedSpell3d(amount) {
   return true;
 }
 
+function relaunchThreeSpell() {
+  const snapshot = state.lastActiveSpell;
+  if (!snapshot) return setStatus(t("status.activationNeedsShape"));
+  state.activeSpell = {
+    ...snapshot,
+    actions: cloneActions(snapshot.actions || []),
+    effects: [...(snapshot.effects || [])],
+    center: snapshot.center ? { ...snapshot.center } : null,
+    bounds: snapshot.bounds ? { ...snapshot.bounds } : null,
+    startedAt: performance.now(),
+  };
+  state.lastActiveSpell = state.activeSpell;
+  rebuildThreeSpell({ preserveEnvironment: true, preserveTransform: true });
+  setStatus(t("status.activationElement", { name: materialPresentationDisplayName(state.activeSpell.materialPresentation) }));
+  render();
+}
+
 function renderThreeView(timestamp = performance.now()) {
   if (!threeView.renderer || view3dPanel.hidden) {
     return;
@@ -5499,7 +5566,7 @@ function renderThreeView(timestamp = performance.now()) {
   }
   threeView.lastRenderAt = timestamp;
   if (state.activeSpell && performance.now() - state.activeSpell.startedAt > state.activeSpell.durationMs) {
-    clearActiveManifestation("timeout");
+    clearExpiredManifestation();
     setStatus(t("status.spellDissipated"));
   }
   animateThreeSpell();
@@ -9221,6 +9288,100 @@ function syncWorkspaceModes() {
     toolbarCompactButton.setAttribute("aria-label", t(key));
     toolbarCompactButton.title = t(key);
   }
+  window.requestAnimationFrame(applyToolbarDockPosition);
+}
+
+const TOOLBAR_EDGE_INSET = 12;
+const TOOLBAR_TOP_INSET = 58;
+
+function toolbarDockBounds() {
+  const parent = canvasWrap?.getBoundingClientRect();
+  const toolbar = floatingTools?.getBoundingClientRect();
+  if (!parent || !toolbar) return null;
+  const maxTop = Math.max(TOOLBAR_EDGE_INSET, parent.height - toolbar.height - TOOLBAR_EDGE_INSET);
+  const minTop = Math.min(TOOLBAR_TOP_INSET, maxTop);
+  return {
+    parent,
+    width: parent.width,
+    toolbarWidth: toolbar.width,
+    minTop,
+    maxTop,
+  };
+}
+
+function applyToolbarDockPosition() {
+  if (!floatingTools) return;
+  if (!state.toolbarCompact) {
+    floatingTools.classList.remove("is-dragging");
+    floatingTools.removeAttribute("data-dock-side");
+    for (const property of ["top", "left", "right", "bottom"]) floatingTools.style.removeProperty(property);
+    return;
+  }
+  const bounds = toolbarDockBounds();
+  if (!bounds) return;
+  const top = bounds.minTop + (bounds.maxTop - bounds.minTop) * state.toolbarDock.yRatio;
+  floatingTools.style.top = `${Math.round(top)}px`;
+  floatingTools.style.bottom = "auto";
+  floatingTools.style[state.toolbarDock.side] = `${TOOLBAR_EDGE_INSET}px`;
+  floatingTools.style[state.toolbarDock.side === "left" ? "right" : "left"] = "auto";
+  floatingTools.dataset.dockSide = state.toolbarDock.side;
+}
+
+function beginToolbarDrag(event) {
+  if (!state.toolbarCompact || event.button !== 0 || !floatingTools || !canvasWrap) return;
+  const bounds = toolbarDockBounds();
+  if (!bounds) return;
+  const toolbarRect = floatingTools.getBoundingClientRect();
+  state.toolbarDrag = {
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    offsetX: event.clientX - toolbarRect.left,
+    offsetY: event.clientY - toolbarRect.top,
+    moved: false,
+  };
+  toolbarCompactButton.setPointerCapture(event.pointerId);
+}
+
+function moveToolbarDrag(event) {
+  const drag = state.toolbarDrag;
+  if (!drag || drag.pointerId !== event.pointerId) return;
+  const bounds = toolbarDockBounds();
+  if (!bounds) return;
+  const left = Math.max(TOOLBAR_EDGE_INSET, Math.min(
+    bounds.width - bounds.toolbarWidth - TOOLBAR_EDGE_INSET,
+    event.clientX - bounds.parent.left - drag.offsetX,
+  ));
+  const top = Math.max(bounds.minTop, Math.min(bounds.maxTop, event.clientY - bounds.parent.top - drag.offsetY));
+  drag.moved ||= Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > 5;
+  if (drag.moved) floatingTools.classList.add("is-dragging");
+  floatingTools.style.left = `${Math.round(left)}px`;
+  floatingTools.style.right = "auto";
+  floatingTools.style.top = `${Math.round(top)}px`;
+  event.preventDefault();
+}
+
+function finishToolbarDrag(event) {
+  const drag = state.toolbarDrag;
+  if (!drag || drag.pointerId !== event.pointerId) return;
+  moveToolbarDrag(event);
+  const bounds = toolbarDockBounds();
+  if (bounds) {
+    const toolbarRect = floatingTools.getBoundingClientRect();
+    const centerX = toolbarRect.left - bounds.parent.left + toolbarRect.width / 2;
+    const top = Math.max(bounds.minTop, Math.min(bounds.maxTop, toolbarRect.top - bounds.parent.top));
+    const range = bounds.maxTop - bounds.minTop;
+    state.toolbarDock = {
+      side: centerX < bounds.width / 2 ? "left" : "right",
+      yRatio: range > 0 ? (top - bounds.minTop) / range : 0,
+    };
+    localStorage.setItem("whaToolbarDock", JSON.stringify(state.toolbarDock));
+  }
+  state.suppressToolbarToggle = drag.moved;
+  state.toolbarDrag = null;
+  floatingTools.classList.remove("is-dragging");
+  if (toolbarCompactButton.hasPointerCapture(event.pointerId)) toolbarCompactButton.releasePointerCapture(event.pointerId);
+  applyToolbarDockPosition();
 }
 
 function toggleAlignmentAssist() {
@@ -9232,6 +9393,10 @@ function toggleAlignmentAssist() {
 }
 
 function toggleToolbarCompact() {
+  if (state.suppressToolbarToggle) {
+    state.suppressToolbarToggle = false;
+    return;
+  }
   state.toolbarCompact = !state.toolbarCompact;
   localStorage.setItem("whaToolbarCompact", String(state.toolbarCompact));
   syncWorkspaceModes();
@@ -10857,6 +11022,7 @@ clearButton.addEventListener("click", clearCanvas);
 saveButton.addEventListener("click", saveCanvas);
 saveExampleButton?.addEventListener("click", saveCurrentCircleAsGuide);
 close3dButton.addEventListener("click", close3dView);
+relaunch3dButton?.addEventListener("click", relaunchThreeSpell);
 symbolToggleButton?.addEventListener("click", () => setSymbolDrawer(true));
 closeSymbolsButton?.addEventListener("click", () => setSymbolDrawer(false));
 detailsToggleButton?.addEventListener("click", () => setDetailsDrawer(true));
@@ -10913,6 +11079,10 @@ rotateSelectionQuarterLeftButton?.addEventListener("click", () => rotateSelectio
 rotateSelectionQuarterRightButton?.addEventListener("click", () => rotateSelection(SELECTION_QUARTER_TURN));
 alignmentToggleButton?.addEventListener("click", toggleAlignmentAssist);
 toolbarCompactButton?.addEventListener("click", toggleToolbarCompact);
+toolbarCompactButton?.addEventListener("pointerdown", beginToolbarDrag);
+toolbarCompactButton?.addEventListener("pointermove", moveToolbarDrag);
+toolbarCompactButton?.addEventListener("pointerup", finishToolbarDrag);
+toolbarCompactButton?.addEventListener("pointercancel", finishToolbarDrag);
 
 // Derived, never mirrored. A boolean field would have to be synchronized on
 // every close path, and a stale true suppresses Escape permanently and
@@ -12031,8 +12201,15 @@ canvas.addEventListener("pointercancel", onPointerCancel);
 canvas.addEventListener("wheel", onCanvasWheel, { passive: false });
 window.addEventListener("resize", resizeCanvas);
 window.addEventListener("resize", resizeThreeView);
+window.addEventListener("resize", applyToolbarDockPosition);
 window.visualViewport?.addEventListener("resize", resizeCanvas);
+window.visualViewport?.addEventListener("resize", applyToolbarDockPosition);
 window.screen.orientation?.addEventListener("change", resizeCanvas);
+window.screen.orientation?.addEventListener("change", applyToolbarDockPosition);
+if (typeof ResizeObserver === "function") {
+  toolbarDockResizeObserver = new ResizeObserver(applyToolbarDockPosition);
+  toolbarDockResizeObserver?.observe(canvasWrap);
+}
 window.addEventListener("wha:localechange", () => {
   renderInkList();
   renderSupportList();

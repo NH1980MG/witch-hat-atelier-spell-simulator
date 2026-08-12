@@ -469,6 +469,18 @@ test("rotateSelectedActions pivote les traces libres et les deux bouts des rayon
   assert.ok(Math.abs(rotated[1].x) < 1e-9 && Math.abs(rotated[1].y - 20) < 1e-9);
 });
 
+test("rotateSelectedActions conserve l'angle exact des traces libres", () => {
+  const source = [{
+    type: "free",
+    rotation: 190 * Math.PI / 180,
+    points: [{ x: 10, y: 0 }, { x: 20, y: 0 }],
+  }];
+  const [rotated] = rotateSelectedActions(source, [0], { x: 0, y: 0 }, Math.PI / 2);
+  const degrees = Math.round(rotated.rotation * 180 / Math.PI);
+
+  assert.equal(degrees, 280);
+});
+
 test("rotateSelectedActions ne pivote que le centre des cercles et spirales", () => {
   const source = [
     { type: "circle", cx: 10, cy: 0, radius: 5 },

@@ -36,7 +36,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260812-circle-json-v1">
+    <link rel="stylesheet" href="styles.css?v=20260812-dockable-toolbar-v1">
     <script type="importmap">
       {
         "imports": {
@@ -47,7 +47,7 @@
     </script>
     <script type="module" src="site-i18n.mjs?v=20260811-scalewolf-v1"></script>
     <script type="module" src="site-nav.mjs?v=20260810-workshop-menu-v1"></script>
-    <script type="module" src="app.js?v=20260812-spell-forces-v1"></script>
+    <script type="module" src="app.js?v=20260812-dockable-toolbar-v1"></script>
   </head>
   <body class="simulator-page">
     <main class="app-shell">
@@ -91,7 +91,10 @@
           <div class="view3d-panel" id="view3dPanel" data-i18n-aria-label="atelier.view3dActive" aria-label="Active 3D magic-circle view" hidden>
             <div class="view3d-header">
               <span data-i18n="atelier.view3d">3D view</span>
-              <button id="close3dButton" type="button" data-i18n-aria-label="atelier.close3d" aria-label="Close the 3D view">&times;</button>
+              <div class="view3d-header-actions">
+                <button id="relaunch3dButton" type="button" data-i18n="atelier.relaunch3d" data-i18n-aria-label="atelier.relaunch3dLabel" aria-label="Relaunch the 3D spell">Relaunch</button>
+                <button id="close3dButton" type="button" data-i18n-aria-label="atelier.close3d" aria-label="Close the 3D view">&times;</button>
+              </div>
             </div>
             <canvas id="spell3dCanvas" data-i18n-aria-label="atelier.canvas3d" aria-label="Magic circle in 3D"></canvas>
           </div>

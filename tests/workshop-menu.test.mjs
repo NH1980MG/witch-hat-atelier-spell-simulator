@@ -21,6 +21,15 @@ test("every public page exposes the compact workshop navigation", async () => {
   }
 });
 
+test("the 3D view exposes a relaunch control", async () => {
+  const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  const i18n = await readFile(new URL("../i18n.mjs", import.meta.url), "utf8");
+  assert.match(html, /id="relaunch3dButton"/);
+  assert.match(html, /data-i18n="atelier\.relaunch3d"/);
+  assert.equal(i18n.split('"atelier.relaunch3d"').length - 1, 2);
+  assert.equal(i18n.split('"atelier.relaunch3dLabel"').length - 1, 2);
+});
+
 test("the workshop menu runtime keeps the collapsed state accessible and persistent", async () => {
   const source = await readFile(new URL("../site-nav.mjs", import.meta.url), "utf8");
   assert.match(source, /aria-expanded/);

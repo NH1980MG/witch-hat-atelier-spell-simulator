@@ -429,11 +429,11 @@ export function rotateSelectedActions(actions, indices, origin, angleDelta) {
     if (!selected.has(index) || !isSelectableAction(action)) {
       return action;
     }
+    action.rotation = (Number(action.rotation) || 0) + angleDelta;
     if (action.type === "glyph") {
       const position = rotate(action.x, action.y);
       action.x = position.x;
       action.y = position.y;
-      action.rotation = (Number(action.rotation) || 0) + angleDelta;
       action.userAdjusted = true;
     } else if (action.type === "free") {
       action.points = action.points.map((point) => rotate(point.x, point.y));

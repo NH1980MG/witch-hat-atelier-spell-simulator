@@ -19,7 +19,7 @@ test("la page expose un seul tiroir de symboles sans les anciens outils de taill
   assert.doesNotMatch(html, /id=["'](?:shrinkSelectionButton|growSelectionButton)["']/);
   assert.doesNotMatch(html, /id=["']placement(?:ToggleButton|Drawer|List)["']/);
   assert.doesNotMatch(html, /id=["']closePlacementButton["']/);
-  assert.match(html, /styles\.css\?v=20260812-circle-json-v1/);
+  assert.match(html, /styles\.css\?v=20260812-dockable-toolbar-v1/);
   assert.match(html, /app\.js\?v=\d{8}-[^"']+/);
 });
 
@@ -31,6 +31,15 @@ test("l'aide d'alignement et la barre reduite sont cablees dans l'atelier", asyn
   assert.match(app, /toolbarCompact:\s*localStorage\.getItem\("whaToolbarCompact"\) === "true"/);
   assert.match(app, /function toggleAlignmentAssist\(/);
   assert.match(app, /function toggleToolbarCompact\(/);
+  assert.match(app, /whaToolbarDock/);
+  assert.match(app, /function applyToolbarDockPosition\(/);
+  assert.match(app, /const minTop = Math\.min\(TOOLBAR_TOP_INSET, maxTop\)/);
+  assert.match(app, /function beginToolbarDrag\(/);
+  assert.match(app, /setPointerCapture\(event\.pointerId\)/);
+  assert.match(app, /function finishToolbarDrag\(/);
+  assert.match(app, /new ResizeObserver\(applyToolbarDockPosition\)/);
+  assert.match(app, /toolbarDockResizeObserver\?\.observe\(canvasWrap\)/);
+  assert.match(app, /side:\s*centerX < bounds\.width \/ 2 \? "left" : "right"/);
   assert.match(app, /snapDeltaForSelection/);
   assert.match(app, /document\.body\.classList\.toggle\("alignment-assist-on"/);
   assert.match(app, /document\.body\.classList\.toggle\("toolbar-compact"/);

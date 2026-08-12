@@ -428,10 +428,20 @@ input:focus-visible {
 }
 
 .simulator-page.toolbar-compact .floating-tools {
-  grid-template-columns: repeat(2, 42px);
+  display: flex;
+  flex-direction: column;
+  width: 60px;
   gap: 7px;
-  border-radius: 999px;
+  transform: none;
+  border-radius: 20px;
   padding: 8px;
+  touch-action: none;
+  transition: left 180ms ease, right 180ms ease, top 180ms ease, box-shadow 180ms ease;
+}
+
+.simulator-page.toolbar-compact .floating-tools.is-dragging {
+  transition: none;
+  box-shadow: 0 22px 44px rgba(36, 48, 68, 0.3);
 }
 
 .simulator-page.toolbar-compact .floating-tools .tool-button:not(.toolbar-keep) {
@@ -440,6 +450,15 @@ input:focus-visible {
 
 .tool-button.toolbar-keep {
   border-color: rgba(36, 48, 68, 0.62);
+}
+
+.simulator-page.toolbar-compact #toolbarCompactButton {
+  cursor: grab;
+  touch-action: none;
+}
+
+.simulator-page.toolbar-compact .floating-tools.is-dragging #toolbarCompactButton {
+  cursor: grabbing;
 }
 
 .simulator-page.alignment-assist-on #magicCanvas {
@@ -532,11 +551,23 @@ input:focus-visible {
   backdrop-filter: blur(8px);
 }
 
+.view3d-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .view3d-header button {
   display: grid;
   place-items: center;
-  width: 30px;
   min-height: 30px;
+  padding: 0 11px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+#close3dButton {
+  width: 30px;
   padding: 0;
   border-radius: 50%;
 }
@@ -3050,6 +3081,23 @@ input:focus-visible {
   .scene-preview {
     grid-template-columns: 1fr;
   }
+}
+
+/* Keep the compact palette vertical after the responsive toolbar rules. */
+.simulator-page.toolbar-compact .floating-tools {
+  bottom: auto;
+  display: flex;
+  flex-direction: column;
+  grid-auto-flow: initial;
+  grid-template-columns: none;
+  width: 60px;
+  transform: none;
+}
+
+.simulator-page.toolbar-compact .floating-tools .tool-button {
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
 }
 
 .symbol-search-dialog {
