@@ -396,20 +396,24 @@ function buildSymbolArchitecture({
   for (const [name, count] of orderedSigils) {
     const profile = SIGIL_PROFILES[name];
     if (!profile) continue;
-    const isPrimary = material?.family === profile.family || elementalMixture?.elements?.includes(name);
+    const isMixtureBase = elementalMixture?.elements?.includes(name);
+    const isSecondarySigil = Boolean(elementalMixture) && !isMixtureBase;
+    const isPrimary = material?.family === profile.family || isMixtureBase;
     symbols.push(freezeDeep({
       name,
       kind: "sigil",
       count,
       role: "material",
       operation: profile.family,
-      status: isPrimary ? "active" : "secondary",
+      status: isSecondarySigil ? "secondary" : isPrimary ? "active" : "secondary",
       consumed: true,
       confidence: profile.fidelity || "documented",
-      explanation: `${name} fournit la matiere active: ${profile.noun}.`,
+      explanation: isSecondarySigil
+        ? `${name} est present comme sigil secondaire sans remplacer le melange elementaire.`
+        : `${name} fournit la matiere active: ${profile.noun}.`,
       effectContribution: isPrimary
         ? `Base du sort: ${profile.mechanic}.`
-        : `Matiere secondaire: ${profile.mechanic}.`,
+        : `Couche secondaire: ${profile.mechanic}.`,
     }));
   }
 
@@ -520,6 +524,10 @@ export function composeSpellRecipe({
   const primaryName = selectPrimarySigil(Object.fromEntries(orderedSigils));
   const elementalMixture = composeElementalMixture(sigilCountObject);
   const material = elementalMixture?.materialProfile || (primaryName ? SIGIL_PROFILES[primaryName] : RAW_ENERGY_PROFILE);
+  const mixtureBaseNames = new Set(elementalMixture?.elements || []);
+  const secondarySigils = elementalMixture
+    ? orderedSigils.map(([name]) => name).filter((name) => !mixtureBaseNames.has(name))
+    : [];
   const axes = Object.fromEntries(ROLE_KEYS.map((role) => [role, []]));
   const effectNames = [];
   const mechanics = [];
@@ -534,6 +542,10 @@ export function composeSpellRecipe({
     warnings.push(`Melange elementaire ${elementalMixture.elements.join(" + ")}: interpretation ${elementalMixture.fidelity}.`);
     ruleIds.add(elementalMixture.ruleId);
     fidelity = worstFidelity(fidelity, elementalMixture.fidelity);
+  }
+  if (secondarySigils.length > 0) {
+    warnings.push(`Sigil(s) secondaire(s) hors melange: ${secondarySigils.join(", ")}. Le melange elementaire reste la matiere principale.`);
+    fidelity = worstFidelity(fidelity, "inferred");
   }
 
   for (const [name, count] of [...signCounts.entries()].sort(([a], [b]) => a.localeCompare(b, "fr"))) {
@@ -769,6 +781,7 @@ export function composeSpellRecipe({
     material: primaryName,
     materialProfile: material,
     elementalMixture,
+    secondarySigils,
     sigilCounts: sigilCountObject,
     signCounts: signCountObject,
     axes,

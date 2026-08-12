@@ -151,12 +151,9 @@ function deepFreeze(value) {
 
 function normalizeBaseCounts(sigilCounts) {
   if (!sigilCounts || typeof sigilCounts !== "object" || Array.isArray(sigilCounts)) return null;
-  const inputNames = Object.keys(sigilCounts);
-  if (inputNames.some((name) => !BASE_ELEMENT_NAMES.includes(name))) return null;
-  const positive = BASE_ELEMENT_NAMES
+  return BASE_ELEMENT_NAMES
     .filter((name) => Number.isFinite(sigilCounts[name]) && sigilCounts[name] > 0)
     .map((name) => [name, sigilCounts[name]]);
-  return positive;
 }
 
 function hexChannels(color) {

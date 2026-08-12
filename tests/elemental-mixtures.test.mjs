@@ -41,6 +41,14 @@ test("repetition changes dominance without changing material class", () => {
   assert.ok(waterLed.intensity > balanced.intensity);
 });
 
-test("non-base sigils disable elemental mixture inference", () => {
+test("non-base sigils do not cancel a complete base-element mixture", () => {
+  const mixture = composeElementalMixture({ Eau: 1, Terre: 1, Lumiere: 1 });
+
+  assert.equal(mixture.id, "eau+terre");
+  assert.equal(mixture.materialProfile.family, "mud");
+  assert.deepEqual(mixture.elements, ["Eau", "Terre"]);
+});
+
+test("a single base element plus non-base sigils remains a single material", () => {
   assert.equal(composeElementalMixture({ Eau: 1, Lumiere: 1 }), null);
 });

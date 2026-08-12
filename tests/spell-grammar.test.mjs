@@ -113,6 +113,40 @@ test("non-base combinations retain primary-sigil behavior", () => {
   assert.equal(recipe.materialProfile.family, "crystal");
 });
 
+test("extra non-base sigils do not break a base elemental mixture", () => {
+  const recipe = composeSpellRecipe({
+    sigils: ["Eau", "Terre", "Lumiere"],
+    signs: ["Colonne", "Convergence"],
+  });
+
+  assert.equal(recipe.elementalMixture.id, "eau+terre");
+  assert.equal(recipe.materialProfile.family, "mud");
+  assert.equal(recipe.manifestationPlan.material.id, "mud");
+  assert.deepEqual(recipe.manifestationPlan.material.elements, ["eau", "terre"]);
+  assert.deepEqual(recipe.secondarySigils, ["Lumiere"]);
+  assert.ok(recipe.warnings.some((warning) => /lumiere/i.test(warning)));
+});
+
+test("every indexed mixture survives one extra non-base sigil", () => {
+  for (const mixture of [
+    ["Eau", "Terre"],
+    ["Feu", "Eau"],
+    ["Eau", "Vent"],
+    ["Feu", "Terre"],
+    ["Feu", "Vent"],
+    ["Terre", "Vent"],
+    ["Eau", "Terre", "Vent"],
+    ["Feu", "Eau", "Vent"],
+    ["Feu", "Eau", "Terre"],
+    ["Feu", "Terre", "Vent"],
+    ["Feu", "Eau", "Terre", "Vent"],
+  ]) {
+    const base = composeSpellRecipe({ sigils: mixture, signs: ["Colonne"] });
+    const withLight = composeSpellRecipe({ sigils: [...mixture, "Lumiere"], signs: ["Colonne"] });
+    assert.equal(withLight.materialProfile.family, base.materialProfile.family, mixture.join("+"));
+  }
+});
+
 test("support changes the recipe identity and semantic plan", () => {
   const input = {
     sigils: ["Eau"],
