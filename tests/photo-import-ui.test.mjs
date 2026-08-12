@@ -9,6 +9,11 @@ test("l'atelier expose l'import photo complet", async () => {
   assert.match(html, /id="circleImportPhotoButton"/);
   assert.match(html, /id="circleJsonInput"/);
   assert.match(html, /id="circleJsonImportButton"/);
+  assert.match(html, /id="circleJsonExportDialog"/);
+  assert.match(html, /id="circleJsonExportText"/);
+  assert.match(html, /id="circleJsonCopyButton"/);
+  assert.match(html, /id="circleJsonDownloadButton"/);
+  assert.match(html, /id="circleJsonCopyLinkButton"/);
   assert.match(html, /id="photoFileInput"/);
   assert.match(html, /id="photoImportDialog"/);
   assert.match(html, /id="photoPreviewImage"/);
@@ -19,6 +24,10 @@ test("l'atelier expose l'import photo complet", async () => {
   assert.match(html, /data-i18n="import.exportJson"/);
   assert.match(html, /data-i18n="import.photoChoice"/);
   assert.match(html, /data-i18n="import.jsonChoice"/);
+  assert.match(html, /data-i18n="import.exportTitle"/);
+  assert.match(html, /data-i18n="import.copyJson"/);
+  assert.match(html, /data-i18n="import.downloadJson"/);
+  assert.match(html, /data-i18n="import.copyLink"/);
   assert.match(html, /data-i18n="photo\.recreate"/);
   assert.match(html, /data-i18n="photo\.guide"/);
 });
@@ -33,7 +42,10 @@ test("l'atelier importe l'analyse photo", async () => {
   assert.match(source, /serializeCircleShare/);
   assert.match(source, /parseCircleShareText/);
   assert.match(source, /importCircleShareText/);
-  assert.match(source, /downloadCircleJson/);
+  assert.match(source, /openCircleJsonExportDialog/);
+  assert.match(source, /downloadCircleJsonFromDialog/);
+  assert.match(source, /copyCircleJsonFromDialog/);
+  assert.match(source, /copyCircleJsonLinkFromDialog/);
   assert.match(source, /recreatePhotoImport/);
   assert.match(source, /savePhotoAsGuide/);
   assert.match(photoSource, /from "\.\/stroke-matcher\.mjs\?v=20260809-handoff-layout-v2"/);
@@ -97,11 +109,31 @@ test("les chaines de l'import photo existent dans les deux locales", async () =>
     "photo.status.nothing", "photo.status.error",
     "import.toggle", "import.exportJson", "import.photoChoice", "import.jsonChoice",
     "import.jsonLabel", "import.jsonPlaceholder", "import.status.exported",
+    "import.exportTitle", "import.copyJson", "import.downloadJson", "import.copyLink",
+    "import.closeExport", "import.status.copiedJson", "import.status.copiedLink",
+    "import.status.linkTooLong",
     "import.status.importedJson", "import.status.invalidJson",
   ]) {
     const occurrences = source.split(`"${key}"`).length - 1;
     assert.equal(occurrences, 2, `${key} doit exister en fr et en`);
   }
+});
+
+test("l'export JSON ouvre une fenetre centrale avec copie telechargement et lien", async () => {
+  const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
+  const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
+  assert.match(source, /circleJsonExportDialog/);
+  assert.match(source, /circleJsonExportText\.value = json/);
+  assert.match(source, /encodeCircleShare\(circle\)/);
+  assert.match(source, /new URL\(window\.location\.href\)/);
+  assert.match(source, /searchParams\.set\("communityCircle"/);
+  assert.match(source, /circleJsonExportDialog\.showModal\(\)/);
+  assert.match(source, /navigator\.clipboard\.writeText/);
+  assert.match(source, /circleJsonExportButton\?\.\addEventListener\("click", openCircleJsonExportDialog\)/);
+  assert.doesNotMatch(source, /circleJsonExportButton\?\.\addEventListener\("click", downloadCircleJson\)/);
+  assert.match(css, /\.circle-json-export-dialog/);
+  assert.match(css, /\.circle-json-export-actions/);
+  assert.match(css, /\.circle-json-export-text/);
 });
 
 test("la detection conserve le candidat visible et reste modifiable", async () => {

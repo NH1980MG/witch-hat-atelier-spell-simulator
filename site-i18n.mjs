@@ -2,7 +2,7 @@ import {
   DEFAULT_LOCALE,
   resolveLocale,
   translate,
-} from "./i18n.mjs?v=20260811-scalewolf-v1";
+} from "./i18n.mjs?v=20260812-project-support-v1";
 
 let currentLocale = DEFAULT_LOCALE;
 

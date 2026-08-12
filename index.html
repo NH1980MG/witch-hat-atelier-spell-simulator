@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-store">
     <meta http-equiv="Pragma" content="no-cache">
     <meta name="referrer" content="strict-origin-when-cross-origin">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site; object-src 'none'; base-uri 'self'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net; connect-src 'self' https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net; frame-src https://googleads.g.doubleclick.net https://tpc.googlesyndication.com; object-src 'none'; base-uri 'self'">
     <meta name="description" content="Draw, read, and animate magic circles in a bilingual Witch Hat Atelier spell simulator with a 3D workshop and 65,601 deterministic variants.">
     <meta property="og:title" content="Witch Hat Atelier Spell Simulator | Magic Circle Maker">
     <meta property="og:description" content="Draw magic circles, combine sigils and signs, then inspect their animated effects in a bilingual 3D workshop.">
@@ -36,7 +36,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260812-dockable-toolbar-v1">
+    <link rel="stylesheet" href="styles.css?v=20260812-project-support-v1">
     <script type="importmap">
       {
         "imports": {
@@ -45,9 +45,10 @@
         }
       }
     </script>
-    <script type="module" src="site-i18n.mjs?v=20260811-scalewolf-v1"></script>
+    <script type="module" src="site-i18n.mjs?v=20260812-project-support-v1"></script>
     <script type="module" src="site-nav.mjs?v=20260810-workshop-menu-v1"></script>
-    <script type="module" src="app.js?v=20260812-rapier-collisions-v1"></script>
+    <script type="module" src="support-project.mjs?v=20260812-project-support-v1"></script>
+    <script type="module" src="app.js?v=20260812-project-support-rapier-v1"></script>
   </head>
   <body class="simulator-page">
     <main class="app-shell">
@@ -56,10 +57,13 @@
           <img class="brand-logo-image" src="assets/brand/atelier-mark.svg?v=2" alt="" aria-hidden="true">
           <h1>Witch Hat Atelier Spell Simulator</h1>
         </a>
-        <a class="community-profile-pill" href="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site/sign-in?return_to=%2Fauth%2Freturn-to-simulator" data-i18n-aria-label="nav.openProfile" data-i18n-title="nav.profile" data-community-profile-pill>
-          <span class="community-profile-dot" aria-hidden="true"></span>
-          <span data-i18n="nav.signIn" data-community-profile-label>Sign in</span>
-        </a>
+        <div class="project-support-actions">
+          <a class="community-profile-pill" href="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site/sign-in?return_to=%2Fauth%2Freturn-to-simulator" data-i18n-aria-label="nav.openProfile" data-i18n-title="nav.profile" data-community-profile-pill>
+            <span class="community-profile-dot" aria-hidden="true"></span>
+            <span data-i18n="nav.signIn" data-community-profile-label>Sign in</span>
+          </a>
+          <button class="project-support-pill" id="projectSupportButton" type="button" aria-controls="projectSupportDialog" data-i18n="supportProject.open">Support the project</button>
+        </div>
         <aside class="workshop-menu" data-workshop-menu>
           <button class="workshop-menu-toggle" id="workshopMenuToggle" type="button" aria-controls="workshopMenuPanel" aria-expanded="false" data-i18n-aria-label="nav.openMenu" data-i18n-title="nav.menu" aria-label="Open the workshop menu" title="Workshop menu">
             <img src="assets/brand/atelier-mark.svg?v=2" alt="" aria-hidden="true">
@@ -202,6 +206,19 @@
             <button id="photoRecreateButton" type="button" data-i18n="photo.recreate">Recreate in the simulator</button>
             <button id="photoGuideButton" type="button" data-i18n="photo.guide">Use as a guide</button>
             <form method="dialog"><button class="dialog-close" type="submit" data-i18n="photo.cancel">Cancel</button></form>
+          </div>
+        </dialog>
+
+        <dialog id="circleJsonExportDialog" class="circle-json-export-dialog" aria-labelledby="circleJsonExportTitle">
+          <form method="dialog" class="circle-json-export-head">
+            <h2 id="circleJsonExportTitle" data-i18n="import.exportTitle">Export circle JSON</h2>
+            <button class="dialog-close" type="submit" data-i18n-aria-label="import.closeExport" aria-label="Close JSON export">&times;</button>
+          </form>
+          <textarea id="circleJsonExportText" class="circle-json-export-text" rows="10" spellcheck="false" readonly></textarea>
+          <div class="circle-json-export-actions">
+            <button id="circleJsonCopyButton" type="button" data-i18n="import.copyJson">Copy JSON</button>
+            <button id="circleJsonDownloadButton" type="button" data-i18n="import.downloadJson">Download file</button>
+            <button id="circleJsonCopyLinkButton" type="button" data-i18n="import.copyLink">Copy link</button>
           </div>
         </dialog>
 
@@ -440,7 +457,36 @@
           <output class="status" id="statusText" aria-live="polite" data-i18n="status.buttonMode">Button mode: draw a closed circle, then press Activate.</output>
         </div>
       </footer>
+      <aside class="simulator-ad-placement" id="simulatorAdPlacement" aria-label="Optional project-support advertisement" hidden>
+        <div class="project-ad-frame" id="simulatorAdFrame"></div>
+        <button class="project-ad-disable" id="simulatorAdDisable" type="button" data-i18n="supportProject.disableAds">Disable ads</button>
+      </aside>
     </main>
+    <dialog class="project-support-dialog" id="projectSupportDialog" aria-labelledby="projectSupportTitle">
+      <div class="project-support-heading">
+        <div>
+          <span class="project-support-kicker" data-i18n="supportProject.kicker">Optional workshop support</span>
+          <h2 id="projectSupportTitle" data-i18n="supportProject.title">Support the ongoing project</h2>
+        </div>
+        <button class="project-support-close" id="projectSupportClose" type="button" data-i18n-aria-label="supportProject.close" aria-label="Close">&times;</button>
+      </div>
+      <div class="project-support-copy">
+        <p data-i18n="supportProject.body">If you enjoy the experience and would like to support the project, you can enable discreet ads or make a donation.</p>
+        <p><span data-i18n="supportProject.costsBefore">The project is still being developed. Contributions help cover hosting, tools, and the </span><strong data-i18n="supportProject.aiTokens">tokens used by AI tools to help me generate, test, and improve the site's code</strong><span data-i18n="supportProject.costsAfter">.</span></p>
+        <p data-i18n="supportProject.thanks">More support means more bug fixes, features, and improvements for the community. Support is entirely optional. Thank you!</p>
+      </div>
+      <div class="project-support-options">
+        <div class="project-support-option">
+          <div><strong data-i18n="supportProject.donate">Make a donation</strong><small id="projectDonationStatus" data-i18n="supportProject.donationPending">Ko-fi is being configured.</small></div>
+          <a class="project-support-donate is-disabled" id="projectDonationLink" target="_blank" rel="noopener noreferrer" aria-disabled="true" tabindex="-1" data-i18n="supportProject.openKofi">Open Ko-fi</a>
+        </div>
+        <label class="project-support-option project-support-ad-choice">
+          <span><strong data-i18n="supportProject.ads">Enable discreet ads</strong><small id="projectAdsStatus" data-i18n="supportProject.adsPending">Advertising is not configured yet.</small></span>
+          <input id="projectAdsToggle" type="checkbox">
+        </label>
+      </div>
+      <p class="project-support-note" data-i18n="supportProject.filterNote">Sensitive categories will be blocked where supported, but no ad network can guarantee every creative. You can disable ads at any time.</p>
+    </dialog>
     <dialog class="symbol-search-dialog" id="symbolSearchDialog" aria-labelledby="symbolSearchTitle">
       <form method="dialog" class="symbol-search-head">
         <h2 id="symbolSearchTitle" data-i18n="search.title">Find an element</h2>

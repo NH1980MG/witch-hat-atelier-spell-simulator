@@ -8,7 +8,7 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260812-particle-field-v1";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260812-particle-field-v1";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260811-scalewolf-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260812-project-support-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260809-handoff-layout-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -29,6 +29,7 @@ import { parseRecipeParams } from "./recipe-link.mjs?v=20260811-exact-schematic-
 import {
   buildCommunityComposeUrl,
   decodeCircleShare,
+  encodeCircleShare,
   fitCircleShare,
   parseCircleShareText,
   parseCircleShare,
@@ -350,6 +351,11 @@ const circleImportJsonButton = document.querySelector("#circleImportJsonButton")
 const circleJsonImportPanel = document.querySelector("#circleJsonImportPanel");
 const circleJsonInput = document.querySelector("#circleJsonInput");
 const circleJsonImportButton = document.querySelector("#circleJsonImportButton");
+const circleJsonExportDialog = document.querySelector("#circleJsonExportDialog");
+const circleJsonExportText = document.querySelector("#circleJsonExportText");
+const circleJsonCopyButton = document.querySelector("#circleJsonCopyButton");
+const circleJsonDownloadButton = document.querySelector("#circleJsonDownloadButton");
+const circleJsonCopyLinkButton = document.querySelector("#circleJsonCopyLinkButton");
 const photoFileInput = document.querySelector("#photoFileInput");
 const photoImportDialog = document.querySelector("#photoImportDialog");
 const photoPreviewImage = document.querySelector("#photoPreviewImage");
@@ -10908,12 +10914,24 @@ function currentCircleShare() {
   }, { glyphNames: new Set(elements.map((element) => element.name)) });
 }
 
-function downloadCircleJson() {
-  if (state.actions.length === 0) {
-    setStatus(t("status.communityNeedsDrawing"));
-    return;
+function buildCircleJsonExportLink(circle) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("communityCircle", encodeCircleShare(circle));
+  url.hash = "";
+  return url.href;
+}
+
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return true;
   }
-  const json = serializeCircleShare(currentCircleShare(), { glyphNames: new Set(elements.map((element) => element.name)) });
+  circleJsonExportText?.focus();
+  circleJsonExportText?.select();
+  return document.execCommand?.("copy") || false;
+}
+
+function downloadJsonText(json) {
   const blob = new Blob([json], { type: "application/json" });
   const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
@@ -10923,7 +10941,57 @@ function downloadCircleJson() {
   link.click();
   link.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function openCircleJsonExportDialog() {
+  if (state.actions.length === 0) {
+    setStatus(t("status.communityNeedsDrawing"));
+    return;
+  }
+  const circle = currentCircleShare();
+  const json = serializeCircleShare(circle, { glyphNames: new Set(elements.map((element) => element.name)) });
+  const shareLink = buildCircleJsonExportLink(circle);
+  circleJsonExportText.value = json;
+  circleJsonExportDialog.dataset.shareLink = shareLink;
+  const linkTooLong = shareLink.length > 7000;
+  if (circleJsonCopyLinkButton) {
+    circleJsonCopyLinkButton.disabled = linkTooLong;
+    circleJsonCopyLinkButton.title = linkTooLong ? t("import.status.linkTooLong") : "";
+  }
+  circleJsonExportDialog.showModal();
+  circleJsonExportText.focus();
+  circleJsonExportText.select();
   setStatus(t("import.status.exported"));
+}
+
+function downloadCircleJsonFromDialog() {
+  const json = circleJsonExportText?.value || "";
+  if (!json) {
+    openCircleJsonExportDialog();
+    return;
+  }
+  downloadJsonText(json);
+  setStatus(t("import.status.exported"));
+}
+
+async function copyCircleJsonFromDialog() {
+  const json = circleJsonExportText?.value || "";
+  if (!json) {
+    openCircleJsonExportDialog();
+    return;
+  }
+  await copyTextToClipboard(json);
+  setStatus(t("import.status.copiedJson"));
+}
+
+async function copyCircleJsonLinkFromDialog() {
+  const shareLink = circleJsonExportDialog?.dataset.shareLink || "";
+  if (!shareLink || shareLink.length > 7000) {
+    setStatus(t("import.status.linkTooLong"));
+    return;
+  }
+  await copyTextToClipboard(shareLink);
+  setStatus(t("import.status.copiedLink"));
 }
 
 function replaceCircleFromShare(circle) {
@@ -12145,7 +12213,10 @@ function savePhotoAsGuide() {
 }
 
 circleImportButton?.addEventListener("click", openCircleImportDialog);
-circleJsonExportButton?.addEventListener("click", downloadCircleJson);
+circleJsonExportButton?.addEventListener("click", openCircleJsonExportDialog);
+circleJsonCopyButton?.addEventListener("click", copyCircleJsonFromDialog);
+circleJsonDownloadButton?.addEventListener("click", downloadCircleJsonFromDialog);
+circleJsonCopyLinkButton?.addEventListener("click", copyCircleJsonLinkFromDialog);
 circleImportPhotoButton?.addEventListener("click", () => photoFileInput?.click());
 circleImportJsonButton?.addEventListener("click", () => showCircleJsonImportPanel(!circleJsonImportPanel || circleJsonImportPanel.hidden));
 circleJsonImportButton?.addEventListener("click", importCircleShareText);
