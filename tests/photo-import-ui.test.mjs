@@ -4,14 +4,21 @@ import { readFile } from "node:fs/promises";
 
 test("l'atelier expose l'import photo complet", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
-  assert.match(html, /id="photoImportButton"/);
+  assert.match(html, /id="circleImportButton"/);
+  assert.match(html, /id="circleJsonExportButton"/);
+  assert.match(html, /id="circleImportPhotoButton"/);
+  assert.match(html, /id="circleJsonInput"/);
+  assert.match(html, /id="circleJsonImportButton"/);
   assert.match(html, /id="photoFileInput"/);
   assert.match(html, /id="photoImportDialog"/);
   assert.match(html, /id="photoPreviewImage"/);
   assert.match(html, /id="photoImportResults"/);
   assert.match(html, /id="photoRecreateButton"/);
   assert.match(html, /id="photoGuideButton"/);
-  assert.match(html, /data-i18n="photo\.toggle"/);
+  assert.match(html, /data-i18n="import.toggle"/);
+  assert.match(html, /data-i18n="import.exportJson"/);
+  assert.match(html, /data-i18n="import.photoChoice"/);
+  assert.match(html, /data-i18n="import.jsonChoice"/);
   assert.match(html, /data-i18n="photo\.recreate"/);
   assert.match(html, /data-i18n="photo\.guide"/);
 });
@@ -23,6 +30,10 @@ test("l'atelier importe l'analyse photo", async () => {
   assert.match(source, /from "\.\/guide-storage\.mjs\?v=20260809-handoff-layout-v2"/);
   assert.match(source, /createPhotoRegionFromBounds,\s+mapPhotoAnalysis,\s+selectPhotoSymbol,\s+setPhotoRegionBounds,\s+setPhotoRegionPosition,\s+sourceCropForAnalysis,\s+\} from "\.\/photo-placement\.mjs\?v=20260811-photo-edit-v1"/);
   assert.match(source, /createImageBitmap/);
+  assert.match(source, /serializeCircleShare/);
+  assert.match(source, /parseCircleShareText/);
+  assert.match(source, /importCircleShareText/);
+  assert.match(source, /downloadCircleJson/);
   assert.match(source, /recreatePhotoImport/);
   assert.match(source, /savePhotoAsGuide/);
   assert.match(photoSource, /from "\.\/stroke-matcher\.mjs\?v=20260809-handoff-layout-v2"/);
@@ -84,6 +95,9 @@ test("les chaines de l'import photo existent dans les deux locales", async () =>
     "photo.result.change", "photo.result.position", "photo.result.x", "photo.result.y",
     "photo.status.imported", "photo.status.guideSaved", "photo.status.guideUnsaved",
     "photo.status.nothing", "photo.status.error",
+    "import.toggle", "import.exportJson", "import.photoChoice", "import.jsonChoice",
+    "import.jsonLabel", "import.jsonPlaceholder", "import.status.exported",
+    "import.status.importedJson", "import.status.invalidJson",
   ]) {
     const occurrences = source.split(`"${key}"`).length - 1;
     assert.equal(occurrences, 2, `${key} doit exister en fr et en`);

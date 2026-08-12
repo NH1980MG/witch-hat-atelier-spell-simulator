@@ -36,7 +36,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260812-canvas-fill-v1">
+    <link rel="stylesheet" href="styles.css?v=20260812-circle-json-v1">
     <script type="importmap">
       {
         "imports": {
@@ -47,7 +47,7 @@
     </script>
     <script type="module" src="site-i18n.mjs?v=20260811-scalewolf-v1"></script>
     <script type="module" src="site-nav.mjs?v=20260810-workshop-menu-v1"></script>
-    <script type="module" src="app.js?v=20260812-canvas-fill-v1"></script>
+    <script type="module" src="app.js?v=20260812-circle-json-v1"></script>
   </head>
   <body class="simulator-page">
     <main class="app-shell">
@@ -56,9 +56,9 @@
           <img class="brand-logo-image" src="assets/brand/atelier-mark.svg?v=2" alt="" aria-hidden="true">
           <h1>Witch Hat Atelier Spell Simulator</h1>
         </a>
-        <a class="community-profile-pill" href="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site/sign-in?return_to=%2Fauth%2Freturn-to-simulator" data-i18n-aria-label="nav.openProfile" data-i18n-title="nav.profile">
+        <a class="community-profile-pill" href="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site/sign-in?return_to=%2Fauth%2Freturn-to-simulator" data-i18n-aria-label="nav.openProfile" data-i18n-title="nav.profile" data-community-profile-pill>
           <span class="community-profile-dot" aria-hidden="true"></span>
-          <span data-i18n="nav.profile">Circle Commons profile</span>
+          <span data-i18n="nav.signIn" data-community-profile-label>Sign in</span>
         </a>
         <aside class="workshop-menu" data-workshop-menu>
           <button class="workshop-menu-toggle" id="workshopMenuToggle" type="button" aria-controls="workshopMenuPanel" aria-expanded="false" data-i18n-aria-label="nav.openMenu" data-i18n-title="nav.menu" aria-label="Open the workshop menu" title="Workshop menu">
@@ -180,7 +180,16 @@
         <input type="file" id="photoFileInput" accept="image/*" hidden>
 
         <dialog id="photoImportDialog" class="photo-dialog" data-i18n-aria-label="photo.previewTitle" aria-label="Photo import">
-          <h2 data-i18n="photo.previewTitle">Photo import</h2>
+          <h2 data-i18n="import.dialogTitle">Import a circle</h2>
+          <div class="circle-import-choices" role="group" data-i18n-aria-label="import.choiceLabel" aria-label="Circle import source">
+            <button id="circleImportPhotoButton" type="button" data-i18n="import.photoChoice">Use a photo</button>
+            <button id="circleImportJsonButton" type="button" data-i18n="import.jsonChoice">Use JSON or a link</button>
+          </div>
+          <div class="circle-json-import" id="circleJsonImportPanel" hidden>
+            <label for="circleJsonInput" data-i18n="import.jsonLabel">Paste a simulator JSON file or link</label>
+            <textarea id="circleJsonInput" rows="7" spellcheck="false" data-i18n-placeholder="import.jsonPlaceholder" placeholder="Paste JSON or a simulator link with communityCircle=..."></textarea>
+            <button id="circleJsonImportButton" type="button" data-i18n="import.jsonImport">Import JSON</button>
+          </div>
           <div class="photo-preview-frame" id="photoPreviewFrame">
             <img id="photoPreviewImage" alt="">
             <div class="photo-preview-overlay" id="photoPreviewOverlay" aria-hidden="false"></div>
@@ -418,7 +427,8 @@
             <button class="command-button command-archive" id="saveButton" type="button" data-i18n="commands.savePng">Archive PNG</button>
             <button class="command-button command-archive" id="saveExampleButton" type="button" data-i18n="commands.saveExample">Save as example</button>
             <button class="command-button command-tool" id="practiceToggleButton" type="button" aria-controls="practiceBar" aria-expanded="false" data-i18n="practice.toggle">Practice</button>
-            <button class="command-button command-tool" id="photoImportButton" type="button" aria-controls="photoImportDialog" aria-expanded="false" data-i18n="photo.toggle">Photo</button>
+            <button class="command-button command-tool" id="circleImportButton" type="button" aria-controls="photoImportDialog" aria-expanded="false" data-i18n="import.toggle">Import circle</button>
+            <button class="command-button command-archive" id="circleJsonExportButton" type="button" data-i18n="import.exportJson">Export JSON</button>
             <button class="command-button command-archive" id="saveSpellButton" type="button" aria-controls="spellSaveDialog" data-i18n="commands.saveSpell">Save spell</button>
             <button class="command-button command-community" id="publishCommunityButton" type="button" data-community-url="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site" data-i18n="commands.publishCommunity">Publish this circle</button>
           </div>

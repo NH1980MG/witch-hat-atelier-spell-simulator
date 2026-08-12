@@ -4,7 +4,9 @@ import {
   buildCommunityComposeUrl,
   decodeCircleShare,
   encodeCircleShare,
+  parseCircleShareText,
   parseCircleShare,
+  serializeCircleShare,
 } from "../circle-share.mjs";
 
 const circle = {
@@ -45,4 +47,19 @@ test("community compose links never expose drawing JSON", () => {
   const href = buildCommunityComposeUrl("https://community.example", "empty-123");
   assert.equal(new URL(href).hash, "");
   assert.doesNotMatch(href, /circle=/);
+});
+
+test("circle share serializes to a deterministic JSON file", () => {
+  const json = serializeCircleShare(circle);
+  assert.match(json, /"version": 1/);
+  assert.match(json, /"actions": \[/);
+  assert.deepEqual(JSON.parse(json), circle);
+});
+
+test("circle share text imports raw JSON and encoded simulator links without photo recognition", () => {
+  assert.deepEqual(parseCircleShareText(JSON.stringify(circle)), circle);
+  const encoded = encodeCircleShare(circle);
+  const href = `https://example.test/index.html?communityCircle=${encoded}`;
+  assert.deepEqual(parseCircleShareText(href), circle);
+  assert.throws(() => parseCircleShareText("https://example.test/photo.png"), /json/i);
 });

@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
+import {
+  cleanCommunityProfileName,
+  communityProfileNameFrom,
+  readStoredCommunityProfileName,
+} from "../site-nav.mjs";
 
 test("the workshop exposes a translated community publishing action", async () => {
   const [html, app, i18n] = await Promise.all([
@@ -12,6 +17,8 @@ test("the workshop exposes a translated community publishing action", async () =
   assert.match(app, /buildCommunityComposeUrl/);
   assert.match(app, /\/api\/handoffs/);
   assert.match(app, /method:\s*"POST"/);
+  assert.match(app, /sourceType:\s*"simulator-json"/);
+  assert.match(app, /circleJson:\s*serializeCircleShare\(circle/);
   assert.match(app, /loadCommunityCircleFromUrl/);
   assert.equal(i18n.split('"commands.publishCommunity"').length - 1, 2);
   assert.equal(i18n.split('"status.communityCircleLoaded"').length - 1, 2);
@@ -66,10 +73,11 @@ test("every public simulator page exposes independent Circle Commons account and
     assert.match(html, /data-i18n="nav\.charter"/);
     assert.match(
       html,
-      /href="https:\/\/circle-commons-atelier\.hwl-brothers-5311\.chatgpt\.site\/sign-in\?return_to=%2Fauth%2Freturn-to-simulator"[^>]*data-i18n-aria-label="nav\.openProfile"/,
+      /href="https:\/\/circle-commons-atelier\.hwl-brothers-5311\.chatgpt\.site\/sign-in\?return_to=%2Fauth%2Freturn-to-simulator"[^>]*data-i18n-aria-label="nav\.openProfile"[^>]*data-community-profile-pill/,
       `${name} should expose the Circle Commons profile pill`,
     );
-    assert.match(html, /data-i18n="nav\.profile"/);
+    assert.match(html, /data-i18n-title="nav\.profile"/);
+    assert.match(html, /data-i18n="nav\.signIn"[^>]*data-community-profile-label/);
   }
   assert.equal(i18n.split('"nav.account"').length - 1, 2);
   assert.equal(i18n.split('"nav.openAccount"').length - 1, 2);
@@ -77,4 +85,19 @@ test("every public simulator page exposes independent Circle Commons account and
   assert.equal(i18n.split('"nav.openCharter"').length - 1, 2);
   assert.equal(i18n.split('"nav.profile"').length - 1, 2);
   assert.equal(i18n.split('"nav.openProfile"').length - 1, 2);
+  assert.equal(i18n.split('"nav.signIn"').length - 1, 2);
+  assert.match(i18n, /"nav\.signIn": "Connexion"/);
+});
+
+test("the Circle Commons profile pill can show a stored connected name", () => {
+  assert.equal(cleanCommunityProfileName("  Atelier   User  "), "Atelier User");
+  assert.equal(cleanCommunityProfileName(""), "");
+  assert.equal(cleanCommunityProfileName("x".repeat(49)), "");
+  assert.equal(communityProfileNameFrom({ user: { displayName: "Nathan" } }), "Nathan");
+  const storage = {
+    getItem(key) {
+      return key === "whaCircleCommonsProfile" ? JSON.stringify({ user: { username: "Apprenti" } }) : "";
+    },
+  };
+  assert.equal(readStoredCommunityProfileName(storage), "Apprenti");
 });

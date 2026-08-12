@@ -15,6 +15,28 @@ export function parseCircleShare(input, options = {}) {
   return { version: 1, locale, title, canvas, actions };
 }
 
+export function serializeCircleShare(input, options = {}) {
+  return `${JSON.stringify(parseCircleShare(input, options), null, 2)}\n`;
+}
+
+export function parseCircleShareText(textValue, options = {}) {
+  const text = String(textValue || "").trim();
+  if (!text || text.length > 1_500_000) throw new TypeError("Circle JSON is invalid");
+  try {
+    const url = new URL(text);
+    const encoded = url.searchParams.get("communityCircle");
+    if (encoded) return decodeCircleShare(encoded, options);
+    if (url.protocol === "data:") {
+      const [, payload = ""] = text.split(",", 2);
+      return parseCircleShare(JSON.parse(decodeURIComponent(payload)), options);
+    }
+    throw new TypeError("Circle JSON link is invalid");
+  } catch (error) {
+    if (error instanceof TypeError && /json/i.test(error.message) && !text.startsWith("{")) throw error;
+  }
+  return parseCircleShare(JSON.parse(text), options);
+}
+
 export function encodeCircleShare(input) {
   const json = JSON.stringify(parseCircleShare(input));
   const bytes = new TextEncoder().encode(json);

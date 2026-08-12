@@ -176,6 +176,11 @@ input:focus-visible {
   width: 10px;
   height: 10px;
   border-radius: 50%;
+  background: #c79736;
+  box-shadow: 0 0 0 2px rgba(199, 151, 54, 0.14);
+}
+
+.community-profile-pill[data-connected="true"] .community-profile-dot {
   background: #86a77f;
   box-shadow: 0 0 0 2px rgba(134, 167, 127, 0.14);
 }
@@ -3272,6 +3277,56 @@ input:focus-visible {
   margin: 0 0 0.5rem;
 }
 
+.circle-import-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.circle-import-choices button,
+.circle-json-import button {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff8ea;
+  color: var(--ink);
+  font-family: var(--label);
+  font-weight: 700;
+}
+
+.circle-import-choices button {
+  min-height: 2.6rem;
+}
+
+.circle-json-import {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.circle-json-import[hidden] {
+  display: none;
+}
+
+.circle-json-import textarea {
+  width: 100%;
+  min-height: 8rem;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 248, 234, 0.76);
+  color: var(--ink);
+  font: 0.82rem/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  box-sizing: border-box;
+  padding: 0.65rem;
+}
+
+.circle-json-import button {
+  justify-self: end;
+  min-height: 2.4rem;
+  padding: 0 1rem;
+}
+
 .photo-preview-frame {
   position: relative;
   border: 1px dashed var(--line);
@@ -3528,6 +3583,10 @@ input:focus-visible {
 @media (max-width: 560px) {
   .photo-dialog {
     padding: 0.85rem;
+  }
+
+  .circle-import-choices {
+    grid-template-columns: 1fr;
   }
 
   .photo-import-row {

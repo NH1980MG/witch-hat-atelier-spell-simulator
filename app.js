@@ -30,8 +30,10 @@ import {
   buildCommunityComposeUrl,
   decodeCircleShare,
   fitCircleShare,
+  parseCircleShareText,
   parseCircleShare,
-} from "./circle-share.mjs?v=20260809-handoff-layout-v2";
+  serializeCircleShare,
+} from "./circle-share.mjs?v=20260812-circle-json-v1";
 import {
   combinedSelectionBounds,
   canDropGlyph,
@@ -333,7 +335,13 @@ const practiceVerifyButton = document.querySelector("#practiceVerifyButton");
 const practiceScore = document.querySelector("#practiceScore");
 const practiceFeedback = document.querySelector("#practiceFeedback");
 const practiceCloseButton = document.querySelector("#practiceCloseButton");
-const photoImportButton = document.querySelector("#photoImportButton");
+const circleImportButton = document.querySelector("#circleImportButton");
+const circleJsonExportButton = document.querySelector("#circleJsonExportButton");
+const circleImportPhotoButton = document.querySelector("#circleImportPhotoButton");
+const circleImportJsonButton = document.querySelector("#circleImportJsonButton");
+const circleJsonImportPanel = document.querySelector("#circleJsonImportPanel");
+const circleJsonInput = document.querySelector("#circleJsonInput");
+const circleJsonImportButton = document.querySelector("#circleJsonImportButton");
 const photoFileInput = document.querySelector("#photoFileInput");
 const photoImportDialog = document.querySelector("#photoImportDialog");
 const photoPreviewImage = document.querySelector("#photoPreviewImage");
@@ -10531,6 +10539,77 @@ function currentCircleShare() {
   }, { glyphNames: new Set(elements.map((element) => element.name)) });
 }
 
+function downloadCircleJson() {
+  if (state.actions.length === 0) {
+    setStatus(t("status.communityNeedsDrawing"));
+    return;
+  }
+  const json = serializeCircleShare(currentCircleShare(), { glyphNames: new Set(elements.map((element) => element.name)) });
+  const blob = new Blob([json], { type: "application/json" });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.href = url;
+  link.download = "witch-hat-circle.json";
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  setStatus(t("import.status.exported"));
+}
+
+function replaceCircleFromShare(circle) {
+  const actions = fitCircleShare(circle, canvasSize()).map(hydrateSharedAction);
+  recordHistory();
+  state.actions = actions;
+  state.currentAction = null;
+  state.activeSpell = null;
+  state.activation = null;
+  state.selectedActionIndices = [];
+  state.guideSelected = false;
+  refreshCircleCenter();
+  updateSelectionControls();
+  updateUsedList();
+  updateSpellState();
+  render();
+  return circle;
+}
+
+function importCircleShareText() {
+  try {
+    const circle = parseCircleShareText(circleJsonInput?.value || "", {
+      glyphNames: new Set(elements.map((element) => element.name)),
+    });
+    replaceCircleFromShare(circle);
+    pendingPhotoImport = null;
+    photoImportDialog?.close();
+    setStatus(t("import.status.importedJson", { name: circle.title }));
+  } catch (error) {
+    console.warn("circle json import failed", error);
+    setStatus(t("import.status.invalidJson"));
+  }
+}
+
+function showCircleJsonImportPanel(open) {
+  if (!circleJsonImportPanel) return;
+  circleJsonImportPanel.hidden = !open;
+  if (open) {
+    circleJsonInput?.focus();
+  }
+}
+
+function openCircleImportDialog() {
+  pendingPhotoImport = null;
+  photoSelectedRegionIndex = null;
+  photoRegionDrag = null;
+  photoPreviewImage?.removeAttribute("src");
+  photoPreviewOverlay?.replaceChildren();
+  photoImportResults?.replaceChildren();
+  if (photoRecreateButton) photoRecreateButton.disabled = true;
+  if (photoGuideButton) photoGuideButton.disabled = true;
+  showCircleJsonImportPanel(false);
+  photoImportDialog?.showModal();
+}
+
 async function publishCurrentCircle() {
   const baseUrl = publishCommunityButton?.dataset.communityUrl;
   if (!baseUrl) {
@@ -10541,6 +10620,7 @@ async function publishCurrentCircle() {
     setStatus(t("status.communityNeedsDrawing"));
     return;
   }
+  const circle = currentCircleShare();
   let previewDataUrl;
   if (state.actions.length > 0) {
     try {
@@ -10562,7 +10642,12 @@ async function publishCurrentCircle() {
     const response = await fetch(`${baseUrl}/api/handoffs`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ circle: currentCircleShare(), previewDataUrl }),
+      body: JSON.stringify({
+        sourceType: "simulator-json",
+        circle,
+        circleJson: serializeCircleShare(circle),
+        previewDataUrl,
+      }),
     });
     const result = await response.json();
     if (!response.ok || !result.id) throw new Error(result.error || "handoff failed");
@@ -11491,7 +11576,7 @@ async function handlePhotoFile(file) {
     describePhotoAnalysis(analysis);
     updatePhotoRecreateAvailability();
     if (photoGuideButton) photoGuideButton.disabled = false;
-    photoImportDialog?.showModal();
+    if (photoImportDialog && !photoImportDialog.open) photoImportDialog.showModal();
     if (photoRecreateButton?.disabled) setStatus(t("photo.status.nothing"));
   } catch (error) {
     console.warn("photo import failed", error);
@@ -11685,7 +11770,17 @@ function savePhotoAsGuide() {
     : t("photo.status.guideUnsaved"));
 }
 
-photoImportButton?.addEventListener("click", () => photoFileInput?.click());
+circleImportButton?.addEventListener("click", openCircleImportDialog);
+circleJsonExportButton?.addEventListener("click", downloadCircleJson);
+circleImportPhotoButton?.addEventListener("click", () => photoFileInput?.click());
+circleImportJsonButton?.addEventListener("click", () => showCircleJsonImportPanel(!circleJsonImportPanel || circleJsonImportPanel.hidden));
+circleJsonImportButton?.addEventListener("click", importCircleShareText);
+circleJsonInput?.addEventListener("keydown", (event) => {
+  if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+    event.preventDefault();
+    importCircleShareText();
+  }
+});
 photoFileInput?.addEventListener("change", () => {
   const file = photoFileInput.files?.[0];
   if (file) {
