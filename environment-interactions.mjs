@@ -1,3 +1,5 @@
+import { environmentalResponseFromSpell } from "./environmental-response.mjs";
+
 const WIND_FAMILIES = new Set(["wind", "air", "underfoot-wind", "whorling-wind", "fire-vortex", "driven-mist"]);
 
 function clamp(value, min, max) {
@@ -15,14 +17,15 @@ export function computeSceneScale(diameterMeters = 1) {
 export function spellInfluenceProfile(spell = {}) {
   const effects = new Set(spell.effects || []);
   const family = spell.recipe?.materialProfile?.family || spell.materialFamily || "";
+  const environmentalResponse = environmentalResponseFromSpell(spell);
   const diameter = clamp(spell.diameter, 0.05, 5);
   const force = clamp(spell.force, 0, 100);
-  const wind = WIND_FAMILIES.has(family) || effects.has("signe de vent") || effects.has("courant d'air defini");
-  const fire = family === "fire" || effects.has("explosion de feu");
-  const water = family === "water" || family === "driven-mist" || effects.has("pluie");
+  const wind = environmentalResponse.primary === "flow" || WIND_FAMILIES.has(family) || effects.has("signe de vent") || effects.has("courant d'air defini");
+  const fire = environmentalResponse.primary === "heat" || family === "fire" || effects.has("explosion de feu");
+  const water = environmentalResponse.channels.includes("wetting") || environmentalResponse.primary === "adhesion" || family === "water" || family === "driven-mist" || effects.has("pluie");
   const lift = effects.has("levitation") || effects.has("flottement") || effects.has("vent porteur stabilise");
   const pull = effects.has("traction");
-  const projectile = effects.has("projectile") || effects.has("lancement");
+  const projectile = environmentalResponse.delivery === "pulsed-focused" || effects.has("projectile") || effects.has("lancement");
   const intensity = clamp((force / 100) * (0.55 + diameter / 3.8), 0.05, 1.7);
   return Object.freeze({
     canMove: true,
@@ -38,6 +41,7 @@ export function spellInfluenceProfile(spell = {}) {
     lift,
     pull,
     projectile,
+    environmentalResponse,
   });
 }
 
