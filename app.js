@@ -893,17 +893,7 @@ function formatCircleDiameter(meters) {
   return `${meters.toFixed(meters >= 2 ? 1 : 2).replace(/\.0$/, "")} m`;
 }
 
-function updateCanvasCssSize() {
-  const frame = canvas.parentElement?.getBoundingClientRect();
-  if (!frame) {
-    return;
-  }
-  const size = Math.max(1, Math.floor(Math.min(frame.width, frame.height)));
-  document.documentElement.style.setProperty("--canvas-size", `${size}px`);
-}
-
 function resizeCanvas() {
-  updateCanvasCssSize();
   const rect = canvas.getBoundingClientRect();
   if (previousCanvasViewport) {
     const deltaX = (rect.width - previousCanvasViewport.width) / 2;
@@ -1046,7 +1036,7 @@ function applyCanvasScale() {
   localStorage.setItem("whaCanvasScale", String(scale));
   localStorage.setItem("whaPanX", String(Math.round(state.panX)));
   localStorage.setItem("whaPanY", String(Math.round(state.panY)));
-  updateCanvasCssSize();
+  document.documentElement.style.setProperty("--canvas-size", "100%");
   const gridStep = Math.min(512, Math.max(4, Math.round(BASE_GRID_STEP * (scale / 100))));
   document.documentElement.style.setProperty("--grid-step", `${gridStep}px`);
   if (selectionScaleValue && normalizeSelection().length === 0) {
@@ -1061,7 +1051,6 @@ function canvasSize() {
 }
 
 function syncCanvasSizeIfNeeded() {
-  updateCanvasCssSize();
   const rect = canvas.getBoundingClientRect();
   const ratio = window.devicePixelRatio || 1;
   const expectedWidth = Math.max(1, Math.floor(rect.width * ratio));
