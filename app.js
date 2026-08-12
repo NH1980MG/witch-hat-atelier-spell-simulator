@@ -91,7 +91,7 @@ import {
 import {
   createSpellPhysicsRuntime,
   loadRapier3dCompat,
-} from "./rapier-physics-world.mjs?v=20260812-rapier-v1";
+} from "./rapier-physics-world.mjs?v=20260812-rapier-collisions-v1";
 
 const libraryCircleById = new Map(LIBRARY_CIRCLES.map((circle) => [circle.id, circle]));
 
@@ -5499,6 +5499,41 @@ function threeVectorObject(vector) {
   return { x: vector.x, y: vector.y, z: vector.z };
 }
 
+function threePhysicsMaterialForTarget(interactiveTarget = {}) {
+  const kind = interactiveTarget.kind || "prop";
+  if (kind.includes("house")) return "wood";
+  if (kind === "tree") return "wood";
+  if (kind === "rock" || kind === "stone") return "stone";
+  if (kind === "grass" || kind === "plant") return "plant";
+  if (kind === "cloth") return "cloth";
+  return "generic";
+}
+
+function threePhysicsColliderForTarget(interactiveTarget = {}, size = new THREE.Vector3(1, 1, 1)) {
+  const kind = interactiveTarget.kind || "prop";
+  if (kind === "tree") {
+    return {
+      type: "capsule",
+      radius: Math.max(0.08, Math.min(size.x, size.z) * 0.28),
+      halfHeight: Math.max(0.12, size.y * 0.42),
+    };
+  }
+  if (kind === "rock" || kind === "stone") {
+    return {
+      type: "ball",
+      radius: Math.max(0.08, Math.max(size.x, size.y, size.z) * 0.5),
+    };
+  }
+  return {
+    type: "cuboid",
+    halfExtents: {
+      x: Math.max(0.04, size.x * 0.5),
+      y: Math.max(0.04, size.y * 0.5),
+      z: Math.max(0.04, size.z * 0.5),
+    },
+  };
+}
+
 function threePhysicsTargetDescriptor(target, index) {
   const interactiveTarget = target.userData.interactiveTarget || {};
   const box = new THREE.Box3().setFromObject(target);
@@ -5514,16 +5549,28 @@ function threePhysicsTargetDescriptor(target, index) {
     id,
     anchored: Boolean(interactiveTarget.anchored),
     mass: interactiveTarget.mass,
+    material: threePhysicsMaterialForTarget(interactiveTarget),
     position: threeVectorObject(center),
-    collider: {
-      type: "cuboid",
-      halfExtents: {
-        x: Math.max(0.04, size.x * 0.5),
-        y: Math.max(0.04, size.y * 0.5),
-        z: Math.max(0.04, size.z * 0.5),
-      },
-    },
+    radius: interactiveTarget.radius,
+    collider: threePhysicsColliderForTarget(interactiveTarget, size),
   };
+}
+
+function threeSpellForcesForPhysics(forces = []) {
+  if (!threeView.spellGroup) return forces;
+  return forces.map((force) => {
+    const direction = new THREE.Vector3(
+      force.direction?.x ?? 0,
+      force.direction?.y ?? 0,
+      force.direction?.z ?? -1,
+    );
+    direction.applyEuler(threeView.spellGroup.rotation).normalize();
+    return {
+      ...force,
+      origin: threeVectorObject(threeView.spellGroup.position),
+      direction: threeVectorObject(direction),
+    };
+  });
 }
 
 async function rebuildThreePhysicsRuntime() {
@@ -5546,7 +5593,7 @@ async function rebuildThreePhysicsRuntime() {
       gravity: { x: 0, y: 0, z: 0 },
       targets: descriptors,
     });
-    runtime.applySpellForces(profile.spellForces);
+    runtime.applySpellForces(threeSpellForcesForPhysics(profile.spellForces));
     threeView.physicsRuntime = runtime;
     threeView.physicsTargetMap = targetMap;
   } catch (error) {
@@ -5557,17 +5604,26 @@ async function rebuildThreePhysicsRuntime() {
 function syncThreePhysicsTargets() {
   const runtime = threeView.physicsRuntime;
   if (!runtime) return;
+  const snapshotById = new Map((runtime.snapshot().targets || []).map((target) => [target.id, target]));
   for (const [id, entry] of runtime.targets) {
     const target = threeView.physicsTargetMap.get(id);
     const start = target?.userData?.physicsBodyStart;
     const base = target?.userData?.physicsBasePosition;
     const translation = entry.body.translation?.();
     if (!target || !start || !base || !translation) continue;
+    const snapshot = snapshotById.get(id);
     target.position.set(
       base.x + translation.x - start.x,
       base.y + translation.y - start.y,
       base.z + translation.z - start.z,
     );
+    if (snapshot?.rotation && typeof target.quaternion?.set === "function") {
+      target.quaternion.set(snapshot.rotation.x, snapshot.rotation.y, snapshot.rotation.z, snapshot.rotation.w);
+    }
+    if (snapshot) {
+      target.userData.persistentPhysicsState = snapshot;
+      target.userData.reactionState = snapshot.reactionState;
+    }
   }
 }
 

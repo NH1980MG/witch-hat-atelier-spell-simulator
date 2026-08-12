@@ -25,6 +25,7 @@ function makeFakeRapier() {
         desc,
         impulses: [],
         translations: [],
+        rotations: [],
         setLinearDamping: (value) => {
           body.linearDamping = value;
         },
@@ -33,7 +34,13 @@ function makeFakeRapier() {
         },
         applyImpulse: (impulse, wakeUp) => {
           body.impulses.push({ impulse, wakeUp });
+          body.translationValue = {
+            x: (body.translationValue || desc.translation).x + impulse.x,
+            y: (body.translationValue || desc.translation).y + impulse.y,
+            z: (body.translationValue || desc.translation).z + impulse.z,
+          };
         },
+        rotation: () => body.rotationValue || { x: 0, y: 0, z: 0, w: 1 },
         translation: () => body.translationValue || desc.translation,
       };
       bodies.push(body);
@@ -60,6 +67,7 @@ function makeFakeRapier() {
     ColliderDesc: {
       cuboid: (x, y, z) => ({ shape: "cuboid", x, y, z }),
       ball: (radius) => ({ shape: "ball", radius }),
+      capsule: (halfHeight, radius) => ({ shape: "capsule", halfHeight, radius }),
     },
     init: async () => {
       RAPIER.initCalls += 1;
@@ -128,3 +136,59 @@ test("physics runtime applies spell force descriptors to dynamic bodies", () => 
   assert.equal(body.additionalMass, 19.8);
 });
 
+test("physics runtime builds target-specific colliders and material response hints", () => {
+  const RAPIER = makeFakeRapier();
+  const runtime = createSpellPhysicsRuntime(RAPIER, {
+    targets: [
+      { id: "tree", material: "wood", anchored: true, position: { x: 0, y: 2, z: 0 }, collider: { type: "capsule", radius: 0.3, halfHeight: 1.7 } },
+      { id: "stone", material: "stone", mass: 45, position: { x: 2, y: 0.3, z: 0 }, collider: { type: "ball", radius: 0.45 } },
+      { id: "cloth", material: "cloth", mass: 2, position: { x: -2, y: 0.1, z: 0 }, collider: { type: "cuboid", halfExtents: { x: 0.8, y: 0.04, z: 0.6 } } },
+    ],
+  });
+
+  assert.equal(RAPIER.colliders[1].desc.shape, "capsule");
+  assert.equal(RAPIER.colliders[2].desc.shape, "ball");
+  assert.equal(RAPIER.colliders[3].desc.shape, "cuboid");
+  assert.equal(runtime.targets.get("tree").material, "wood");
+  assert.equal(runtime.targets.get("cloth").reactionState, "idle");
+});
+
+test("spell forces affect only dynamic bodies inside their radius", () => {
+  const RAPIER = makeFakeRapier();
+  const runtime = createSpellPhysicsRuntime(RAPIER, {
+    targets: [
+      { id: "near-crate", mass: 8, position: { x: 0.4, y: 0.4, z: 0 }, radius: 0.4, collider: { type: "ball", radius: 0.4 } },
+      { id: "far-crate", mass: 8, position: { x: 5, y: 0.4, z: 0 }, radius: 0.4, collider: { type: "ball", radius: 0.4 } },
+      { id: "anchored-house", anchored: true, position: { x: 0.5, y: 1, z: 0 }, radius: 1, collider: { type: "cuboid", halfExtents: { x: 1, y: 1, z: 1 } } },
+    ],
+  });
+
+  runtime.applySpellForces([
+    { type: "directed-impulse", forceKind: "impulse", origin: { x: 0, y: 0, z: 0 }, radiusMeters: 1.2, direction: { x: 1, y: 0, z: 0 }, physicalImpulse: 0.9 },
+  ]);
+
+  assert.equal(runtime.targets.get("near-crate").body.impulses.length, 1);
+  assert.equal(runtime.targets.get("far-crate").body.impulses.length, 0);
+  assert.equal(runtime.targets.get("anchored-house").body.impulses.length, 0);
+  assert.equal(runtime.targets.get("near-crate").reactionState, "pushed");
+});
+
+test("physics runtime exposes persistent target state after force and step", () => {
+  const RAPIER = makeFakeRapier();
+  const runtime = createSpellPhysicsRuntime(RAPIER, {
+    targets: [
+      { id: "crate", mass: 12, position: { x: 0, y: 0.4, z: 0 }, radius: 0.4, collider: { type: "ball", radius: 0.4 } },
+    ],
+  });
+
+  runtime.applySpellForces([
+    { type: "directed-impulse", origin: { x: 0, y: 0, z: 0 }, radiusMeters: 2, direction: { x: 1, y: 0, z: 0 }, physicalImpulse: 0.6 },
+  ]);
+  runtime.step(1 / 60);
+
+  const snapshot = runtime.snapshot();
+  assert.deepEqual(snapshot.targets[0].position, { x: 0.6, y: 0.4, z: 0 });
+  assert.deepEqual(snapshot.targets[0].rotation, { x: 0, y: 0, z: 0, w: 1 });
+  assert.equal(snapshot.targets[0].reactionState, "pushed");
+  assert.equal(snapshot.targets[0].settled, false);
+});

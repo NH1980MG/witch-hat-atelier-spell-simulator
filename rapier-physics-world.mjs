@@ -16,6 +16,23 @@ function vector3(value = {}, fallback = { x: 0, y: 0, z: 0 }) {
   };
 }
 
+function roundVector3(value = {}) {
+  return {
+    x: roundPhysicsValue(finiteNumber(value.x, 0)),
+    y: roundPhysicsValue(finiteNumber(value.y, 0)),
+    z: roundPhysicsValue(finiteNumber(value.z, 0)),
+  };
+}
+
+function roundQuaternion(value = {}) {
+  return {
+    x: roundPhysicsValue(finiteNumber(value.x, 0)),
+    y: roundPhysicsValue(finiteNumber(value.y, 0)),
+    z: roundPhysicsValue(finiteNumber(value.z, 0)),
+    w: roundPhysicsValue(finiteNumber(value.w, 1)),
+  };
+}
+
 function forceMagnitude(force) {
   return Math.max(0, finiteNumber(force.physicalImpulse, finiteNumber(force.magnitude, 0)));
 }
@@ -36,6 +53,12 @@ function colliderForTarget(RAPIER, target = {}) {
       Math.max(0.01, halfExtents.x),
       Math.max(0.01, halfExtents.y),
       Math.max(0.01, halfExtents.z),
+    );
+  }
+  if (collider.type === "capsule" && typeof RAPIER.ColliderDesc.capsule === "function") {
+    return RAPIER.ColliderDesc.capsule(
+      Math.max(0.01, finiteNumber(collider.halfHeight, 0.5)),
+      Math.max(0.01, finiteNumber(collider.radius, 0.2)),
     );
   }
   return RAPIER.ColliderDesc.ball(Math.max(0.01, finiteNumber(collider.radius, 0.35)));
@@ -65,6 +88,26 @@ function applyForceToBody(body, force, baseMass) {
     y: direction.y * magnitude,
     z: direction.z * magnitude,
   }, true);
+}
+
+function distanceXZ(a = {}, b = {}) {
+  return Math.hypot(finiteNumber(a.x, 0) - finiteNumber(b.x, 0), finiteNumber(a.z, 0) - finiteNumber(b.z, 0));
+}
+
+function forceAffectsTarget(force = {}, target = {}) {
+  const radius = finiteNumber(force.radiusMeters, Infinity);
+  if (!Number.isFinite(radius)) return true;
+  const origin = vector3(force.origin, { x: 0, y: 0, z: 0 });
+  const position = vector3(target.position, { x: 0, y: 0, z: 0 });
+  return distanceXZ(origin, position) <= radius + Math.max(0, finiteNumber(target.radius, 0));
+}
+
+function reactionStateForForce(force = {}) {
+  if (force.type === "adhesion-damping") return "damped";
+  if (force.type === "mass-load") return "loaded";
+  if (force.type === "thermal-field") return "heated";
+  if (force.type === "radiant-pulse" || force.type === "radiant-field") return "illuminated";
+  return "pushed";
 }
 
 export async function loadRapier3dCompat({ importer = (specifier) => import(specifier) } = {}) {
@@ -100,7 +143,14 @@ export function createSpellPhysicsRuntime(RAPIER, options = {}) {
       body.setAdditionalMass(mass);
     }
     world.createCollider(colliderForTarget(RAPIER, target), body);
-    targets.set(id, { body, target, mass });
+    targets.set(id, {
+      body,
+      target,
+      mass,
+      material: target.material || "generic",
+      reactionState: "idle",
+      settled: true,
+    });
   }
 
   return Object.freeze({
@@ -110,13 +160,28 @@ export function createSpellPhysicsRuntime(RAPIER, options = {}) {
       for (const entry of targets.values()) {
         if (entry.target.anchored) continue;
         for (const force of forces) {
+          if (!forceAffectsTarget(force, entry.target)) continue;
           applyForceToBody(entry.body, force, entry.mass);
+          entry.reactionState = reactionStateForForce(force);
+          entry.settled = false;
         }
       }
     },
     step(deltaSeconds = 1 / 60) {
       world.timestep = Math.max(1 / 240, Math.min(1 / 20, finiteNumber(deltaSeconds, 1 / 60)));
       world.step();
+    },
+    snapshot() {
+      return {
+        targets: [...targets].map(([id, entry]) => ({
+          id,
+          material: entry.material,
+          position: roundVector3(entry.body.translation?.() || entry.target.position),
+          rotation: roundQuaternion(entry.body.rotation?.()),
+          reactionState: entry.reactionState,
+          settled: entry.settled,
+        })),
+      };
     },
   });
 }

@@ -48,12 +48,26 @@ test("timeout, replacement, and view close use the cleanup path", () => {
 });
 
 test("the 3D view prepares a Rapier runtime from spell forces and environment targets", () => {
-  assert.match(app, /from "\.\/rapier-physics-world\.mjs\?v=20260812-rapier-v1"/);
+  assert.match(app, /from "\.\/rapier-physics-world\.mjs\?v=20260812-rapier-collisions-v1"/);
   assert.match(app, /function threePhysicsTargetDescriptor\(/);
   assert.match(app, /function rebuildThreePhysicsRuntime\(/);
   assert.match(app, /loadRapier3dCompat\(\)/);
   assert.match(app, /createSpellPhysicsRuntime\(RAPIER/);
   assert.match(app, /profile\.spellForces/);
-  assert.match(app, /runtime\.applySpellForces\(profile\.spellForces\)/);
+  assert.match(app, /runtime\.applySpellForces\(threeSpellForcesForPhysics\(profile\.spellForces\)\)/);
   assert.match(app, /function syncThreePhysicsTargets\(/);
+});
+
+test("the 3D physics bridge sends typed colliders and persists target snapshots", () => {
+  assert.match(app, /function threePhysicsMaterialForTarget\(/);
+  assert.match(app, /function threePhysicsColliderForTarget\(/);
+  assert.match(app, /collider: threePhysicsColliderForTarget\(interactiveTarget, size\)/);
+  assert.match(app, /material: threePhysicsMaterialForTarget\(interactiveTarget\)/);
+  assert.match(app, /radius: interactiveTarget\.radius/);
+  assert.match(app, /runtime\.snapshot\(\)/);
+  assert.match(app, /target\.userData\.persistentPhysicsState/);
+  assert.match(app, /target\.userData\.reactionState/);
+  assert.match(app, /function threeSpellForcesForPhysics\(/);
+  assert.match(app, /threeView\.spellGroup\.position/);
+  assert.match(app, /direction\.applyEuler\(threeView\.spellGroup\.rotation\)/);
 });
