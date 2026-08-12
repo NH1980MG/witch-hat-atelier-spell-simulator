@@ -4,9 +4,9 @@ import {
   normalizeSpellGeometry,
   selectPrimarySigil,
 } from "./spell-model.mjs";
-import { composeElementalMixture, INDEXED_ELEMENTAL_MIXTURES } from "./elemental-mixtures.mjs?v=20260809-photo-import-v3";
+import { composeElementalMixture, INDEXED_ELEMENTAL_MIXTURES } from "./elemental-mixtures.mjs?v=20260812-logical-combos-v1";
 import { composeSupportPlan } from "./support-policy.mjs";
-import { synthesizeManifestation } from "./manifestation-synthesis.mjs";
+import { synthesizeManifestation } from "./manifestation-synthesis.mjs?v=20260812-logical-combos-v1";
 
 const profile = (value) => Object.freeze(value);
 
