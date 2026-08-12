@@ -2376,6 +2376,132 @@ function resetTargetPose(target) {
   target.rotation.copy(target.userData.baseRotation);
 }
 
+function clearEnvironmentConsequenceMarkers(target) {
+  const markers = target?.userData?.consequenceMarkers || [];
+  for (const marker of markers) {
+    target.remove(marker);
+    disposeObject(marker);
+  }
+  target.userData.consequenceMarkers = [];
+}
+
+function makeEnvironmentConsequenceMarker(type, index = 0) {
+  switch (type) {
+    case "flame": {
+      const flame = new THREE.Mesh(
+        new THREE.ConeGeometry(0.055, 0.22, 10),
+        new THREE.MeshBasicMaterial({ color: 0xd86b2d, transparent: true, opacity: 0.86 }),
+      );
+      flame.position.set((index % 3 - 1) * 0.08, 0.42 + index * 0.035, 0.03);
+      flame.userData.pulse = true;
+      return flame;
+    }
+    case "scorch-mark": {
+      const mark = circleLine(0.18 + index * 0.035, 0.012, 0x22150f, 0.55, 64);
+      mark.rotation.x = Math.PI / 2;
+      mark.position.y = 0.016;
+      return mark;
+    }
+    case "heat-haze": {
+      const haze = new THREE.Mesh(
+        new THREE.SphereGeometry(0.28 + index * 0.04, 16, 8),
+        new THREE.MeshBasicMaterial({ color: 0xf0b45b, transparent: true, opacity: 0.12, depthWrite: false }),
+      );
+      haze.scale.set(1.15, 0.55, 1.15);
+      haze.position.y = 0.34;
+      return haze;
+    }
+    case "wet-surface": {
+      const wet = new THREE.Mesh(
+        new THREE.CircleGeometry(0.28 + index * 0.04, 48),
+        new THREE.MeshBasicMaterial({ color: 0x5aa8c8, transparent: true, opacity: 0.26, depthWrite: false }),
+      );
+      wet.rotation.x = -Math.PI / 2;
+      wet.position.y = 0.014;
+      return wet;
+    }
+    case "splash": {
+      return circleLine(0.26 + index * 0.08, 0.09 + index * 0.015, 0x8fd0e4, 0.48, 64);
+    }
+    case "earth-deposit": {
+      const mound = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.25 + index * 0.04, 0.34 + index * 0.05, 0.055, 18),
+        new THREE.MeshStandardMaterial({ color: 0x7b5a35, roughness: 0.96 }),
+      );
+      mound.position.y = 0.028;
+      return mound;
+    }
+    case "stone-ridge": {
+      const ridge = new THREE.Mesh(
+        new THREE.DodecahedronGeometry(0.1 + index * 0.025),
+        new THREE.MeshStandardMaterial({ color: 0x8b806d, roughness: 0.94 }),
+      );
+      ridge.position.set((index - 1) * 0.16, 0.095, 0.08);
+      return ridge;
+    }
+    case "wind-streaks": {
+      const y = 0.18 + index * 0.07;
+      return addLine([
+        new THREE.Vector3(-0.28, y, -0.02),
+        new THREE.Vector3(-0.08, y + 0.03, 0.03),
+        new THREE.Vector3(0.24, y, 0.02),
+      ], 0x9cc9bd, 0.58);
+    }
+    case "loose-debris": {
+      const debris = new THREE.Mesh(
+        new THREE.BoxGeometry(0.06, 0.025, 0.04),
+        new THREE.MeshStandardMaterial({ color: 0xb98b4f, roughness: 0.88 }),
+      );
+      debris.position.set((index - 1) * 0.12, 0.16 + index * 0.035, -0.1);
+      return debris;
+    }
+    case "crystal-sparks": {
+      const shard = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.065 + index * 0.01),
+        new THREE.MeshStandardMaterial({ color: 0x8eb8d0, roughness: 0.42, metalness: 0.08 }),
+      );
+      shard.position.set((index % 3 - 1) * 0.1, 0.2 + index * 0.055, 0.06);
+      return shard;
+    }
+    case "crack-lines": {
+      return addLine([
+        new THREE.Vector3(-0.18, 0.04, 0),
+        new THREE.Vector3(-0.03, 0.045, 0.08),
+        new THREE.Vector3(0.14, 0.04, -0.04),
+      ], 0x1f2530, 0.64);
+    }
+    case "light-glow": {
+      const glow = new THREE.Mesh(
+        new THREE.SphereGeometry(0.34 + index * 0.04, 18, 10),
+        new THREE.MeshBasicMaterial({ color: 0xf6ecd8, transparent: true, opacity: 0.18, depthWrite: false }),
+      );
+      glow.scale.y = 0.55;
+      glow.position.y = 0.3;
+      return glow;
+    }
+    case "lift-ring":
+    case "pressure-ripple":
+    case "drag-trail":
+    case "impact-ring":
+      return circleLine(0.24 + index * 0.06, 0.035 + index * 0.01, 0xf6ecd8, 0.34, 72);
+    default:
+      return null;
+  }
+}
+
+function applyEnvironmentConsequenceMarkers(target, consequences = []) {
+  clearEnvironmentConsequenceMarkers(target);
+  const markers = [];
+  for (const [index, consequence] of consequences.entries()) {
+    const marker = makeEnvironmentConsequenceMarker(consequence, index);
+    if (!marker) continue;
+    marker.userData.environmentConsequence = consequence;
+    markers.push(marker);
+    target.add(marker);
+  }
+  target.userData.consequenceMarkers = markers;
+}
+
 function animateEnvironmentTargets() {
   const elapsed = performance.now() / 1000;
   for (const target of threeView.environmentTargets) {
@@ -2388,6 +2514,12 @@ function animateEnvironmentTargets() {
     target.position.x += impact.direction.x * impact.offset * (impact.state === "torn" ? Math.min(1, impact.age || 0.8) : 0.22 * pulse);
     target.position.z += impact.direction.z * impact.offset * (impact.state === "torn" ? Math.min(1, impact.age || 0.8) : 0.22 * pulse);
     target.position.y += impact.state === "lifted" ? Math.abs(pulse) * impact.offset : 0;
+    for (const marker of target.userData.consequenceMarkers || []) {
+      if (marker.userData?.pulse) {
+        const scale = 0.92 + Math.abs(Math.sin(elapsed * 8.5 + marker.position.x * 3)) * 0.22;
+        marker.scale.set(scale, 1 + (scale - 1) * 0.8, scale);
+      }
+    }
     impact.age = Math.min(1, (impact.age || 0) + 0.018);
   }
 }
@@ -5354,6 +5486,8 @@ function applySpellToEnvironment() {
   if (!profile || !threeView.spellGroup) return;
   const spellPosition = threeView.spellGroup.position;
   for (const target of threeView.environmentTargets) {
+    clearEnvironmentConsequenceMarkers(target);
+    target.userData.impact = null;
     const base = target.userData.basePosition || target.position;
     const radius = target.userData.interactiveTarget?.radius || 0.4;
     const distance = Math.hypot(base.x - spellPosition.x, base.z - spellPosition.z);
@@ -5367,6 +5501,7 @@ function applySpellToEnvironment() {
       age: 0,
       direction: { x: direction.x, z: direction.z },
     };
+    applyEnvironmentConsequenceMarkers(target, impact.consequences);
   }
 }
 
