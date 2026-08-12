@@ -5,8 +5,8 @@ import {
   SYMBOL_BOARD_ASSET,
   SYMBOL_PATHS,
 } from "./symbol-catalog.mjs?v=20260809-handoff-layout-v2";
-import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260812-logical-combos-v1";
-import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260812-logical-combos-v1";
+import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260812-particle-field-v1";
+import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260812-particle-field-v1";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
 import { getLocale, t } from "./site-i18n.mjs?v=20260811-scalewolf-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260809-handoff-layout-v2";
@@ -4455,9 +4455,57 @@ function addDecorativeCreatureEffect3d(group, family, auraRadius, elementColor, 
   return true;
 }
 
+function addSymbolicParticleField3d(group, field, auraRadius, elementColor, baseY) {
+  if (!field || !Array.isArray(field.components)) return;
+  const particleCount = Math.max(24, Math.min(500, Math.round(field.count || 120)));
+  const focus = Math.max(0.2, Math.min(8, field.focus || 1));
+  const spread = Math.max(0.05, Math.min(8, field.spread || 1));
+  const cohesion = Math.max(0, Math.min(1, field.cohesion || 0.4));
+  const positions = [];
+  for (let index = 0; index < particleCount; index += 1) {
+    const phase = index / particleCount;
+    const angle = index * 2.399963;
+    const radialSpread = auraRadius * (0.08 + spread * 0.055) * (1 - cohesion * 0.45);
+    const beamHeight = field.mode === "pulsed-beam" || field.mode === "focused-flow" || field.mode === "column-flow"
+      ? auraRadius * (0.45 + focus * 0.42)
+      : auraRadius * (0.18 + spread * 0.28);
+    const radius = field.mode === "dispersed-field"
+      ? auraRadius * (0.22 + phase * 0.92)
+      : radialSpread * (0.35 + (index % 17) / 17);
+    positions.push(
+      Math.cos(angle) * radius,
+      baseY + 0.05 + phase * beamHeight,
+      Math.sin(angle) * radius,
+    );
+  }
+  const particleColor = field.interpretation === "fictional-ultraviolet"
+    ? new THREE.Color(0x8f7bff).lerp(elementColor, 0.35)
+    : elementColor;
+  const particles = new THREE.Points(
+    new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute(positions, 3)),
+    new THREE.PointsMaterial({
+      color: particleColor,
+      size: field.medium === "photon-like" ? 0.018 : 0.022,
+      transparent: true,
+      opacity: field.mode === "pulsed-beam" ? 0.72 : 0.48,
+      depthWrite: false,
+    }),
+  );
+  particles.name = field.mode === "pulsed-beam" ? "particle-field-pulsed-beam" : `particle-field-${field.medium}`;
+  addAnimatedObject(group, particles, (object, elapsed) => {
+    const pulseRate = Math.max(0, Math.min(16, field.pulseRateHz || 0));
+    const pulse = field.mode === "pulsed-beam"
+      ? Math.max(0.08, Math.sin(elapsed * pulseRate * Math.PI * 2) * 0.5 + 0.5)
+      : 0.82 + Math.sin(elapsed * 1.4) * 0.08;
+    object.material.opacity = (field.mode === "pulsed-beam" ? 0.12 + pulse * 0.68 : 0.38 + pulse * 0.12);
+    object.scale.set(1 + (1 - cohesion) * 0.08, 1, 1 + (1 - cohesion) * 0.08);
+  });
+}
+
 function addManifestationPlanEffect3d(group, plan, auraRadius, elementColor, supportId = "none") {
   if (!plan) return;
   const baseY = supportId === "shoe" ? THREE_SHOE_INK_Y + 0.012 : THREE_LOW_EFFECT_Y + 0.018;
+  addSymbolicParticleField3d(group, plan.particleField, auraRadius, elementColor, baseY);
 
   if (plan.id === "ancient.petrification-field") {
     addOpeningPetrificationEffect3d(group, plan, auraRadius, elementColor, baseY);

@@ -31,6 +31,13 @@ test("the opening petrification plan has a dedicated 3D field renderer", () => {
   assert.match(app, /petrification-frozen-target/);
 });
 
+test("the 3D renderer reads symbolic particle fields from the manifestation plan", () => {
+  assert.match(app, /function addSymbolicParticleField3d\(/);
+  assert.match(app, /plan\.particleField/);
+  assert.match(app, /field\.mode === "pulsed-beam"/);
+  assert.match(app, /particle-field-pulsed-beam/);
+});
+
 test("2D overlays also suppress consumed sign layers", () => {
   const draw = app.match(/function drawElementEffect\([\s\S]*?\n\}/)?.[0] || "";
   assert.match(draw, /renderOperation\("column"\)/);

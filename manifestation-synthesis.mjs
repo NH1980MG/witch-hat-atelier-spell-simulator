@@ -1,3 +1,5 @@
+import { synthesizeParticleField } from "./particle-physics.mjs";
+
 const ROLE_ORDER = Object.freeze(["supply", "state", "form", "motion", "pressure", "direction", "scope", "target", "relation", "power"]);
 const PRIMARY_ROLES = new Set(["supply", "state", "form", "motion", "pressure", "direction", "scope", "target", "power"]);
 const FIDELITY_RANK = Object.freeze({ documented: 0, inferred: 1, experimental: 2 });
@@ -31,6 +33,7 @@ export function synthesizeManifestation({
   axes = {},
   geometry = {},
   supportPlan = {},
+  effectParameters = {},
   fidelity = "documented",
   ritualId = null,
 } = {}) {
@@ -60,6 +63,14 @@ export function synthesizeManifestation({
   );
   const labels = selected.labels || MATERIAL_LABELS[selected.materialId] || MATERIAL_LABELS[family] || [titleCase(family), titleCase(family)];
   const movesCarrier = Boolean(supportPlan.movesCarrier) && (has("lift") || has("float") || has("carrier"));
+  const particleField = synthesizeParticleField({
+    materialProfile,
+    elementalMixture,
+    operations: normalizedOperations,
+    axes,
+    geometry: normalizedGeometry,
+    parameters: effectParameters,
+  });
 
   return freezeDeep({
     id: selected.id,
@@ -101,6 +112,7 @@ export function synthesizeManifestation({
     particles: {
       max: Math.round(finite(selected.particles, 120, 0, 240)),
     },
+    particleField,
     warnings: [...new Set(warnings)],
   });
 }
