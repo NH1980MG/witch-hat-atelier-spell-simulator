@@ -90,82 +90,112 @@
       </header>
 
       <section class="app-hub app-hub-home" data-app-hub data-i18n-aria-label="appHub.title" aria-label="Choose where the atelier will open">
-        <div class="app-hub-hero">
+        <div class="app-hub-topbar">
           <div class="app-hub-copy">
             <p class="app-hub-eyebrow" data-i18n="appHub.eyebrow">App preview</p>
             <h2 data-i18n="appHub.title">Choose where the atelier will open.</h2>
             <p data-i18n="appHub.description">This first app menu is a design preview only. The tools will be adapted before these entries become available.</p>
           </div>
-          <figure class="app-hub-showcase" aria-hidden="true">
-            <img src="assets/library-schematics/ancient-light-beacon.png" alt="">
-          </figure>
+          <div class="app-hub-shortcuts" aria-hidden="false">
+            <button class="app-hub-shortcut app-hub-shortcut-primary" type="button" disabled>
+              <span class="app-hub-card-icon" aria-hidden="true">&#9638;</span>
+              <span class="app-hub-card-text">
+                <strong data-i18n="appHub.canvases">My canvases</strong>
+              </span>
+              <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
+            </button>
+            <button class="app-hub-shortcut" type="button" disabled>
+              <span class="app-hub-card-icon" aria-hidden="true">&#10002;</span>
+              <span class="app-hub-card-text">
+                <strong data-i18n="appHub.workshop">Workshop</strong>
+              </span>
+              <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
+            </button>
+            <button class="app-hub-shortcut" type="button" disabled>
+              <span class="app-hub-card-icon" aria-hidden="true">&#9678;</span>
+              <span class="app-hub-card-text">
+                <strong data-i18n="appHub.library">Library</strong>
+              </span>
+              <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
+            </button>
+            <button class="app-hub-shortcut" type="button" disabled>
+              <span class="app-hub-card-icon" aria-hidden="true">&#9673;</span>
+              <span class="app-hub-card-text">
+                <strong data-i18n="appHub.commons">Circle Commons</strong>
+              </span>
+              <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
+            </button>
+            <button class="app-hub-shortcut" type="button" disabled>
+              <span class="app-hub-card-icon" aria-hidden="true">?</span>
+              <span class="app-hub-card-text">
+                <strong data-i18n="appHub.tutorial">Learn</strong>
+              </span>
+              <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
+            </button>
+            <button class="app-hub-shortcut" type="button" disabled>
+              <span class="app-hub-card-icon" aria-hidden="true">&#9881;</span>
+              <span class="app-hub-card-text">
+                <strong data-i18n="appHub.mods">Mods</strong>
+              </span>
+              <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
+            </button>
+            <button class="app-hub-shortcut" type="button" disabled>
+              <span class="app-hub-card-icon" aria-hidden="true">&#8759;</span>
+              <span class="app-hub-card-text">
+                <strong data-i18n="appHub.multiplayer">Shared canvases</strong>
+              </span>
+              <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
+            </button>
+            <button class="app-hub-shortcut" type="button" disabled>
+              <span class="app-hub-card-icon" aria-hidden="true">&#9733;</span>
+              <span class="app-hub-card-text">
+                <strong data-i18n="appHub.adventure">Adventure</strong>
+              </span>
+              <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
+            </button>
+          </div>
         </div>
-        <div class="app-hub-grid" aria-hidden="false">
-          <button class="app-hub-card app-hub-card-primary" type="button" disabled>
-            <span class="app-hub-card-icon" aria-hidden="true">&#9638;</span>
-            <span class="app-hub-card-text">
-              <strong data-i18n="appHub.canvases">My canvases</strong>
-              <small data-i18n="appHub.canvasesDetail">Create or reopen a circle canvas before drawing.</small>
-            </span>
-            <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
-          </button>
-          <button class="app-hub-card" type="button" disabled>
-            <span class="app-hub-card-icon" aria-hidden="true">&#10002;</span>
-            <span class="app-hub-card-text">
-              <strong data-i18n="appHub.workshop">Workshop</strong>
-              <small data-i18n="appHub.workshopDetail">Draw, read and activate a magic circle.</small>
-            </span>
-            <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
-          </button>
-          <button class="app-hub-card" type="button" disabled>
-            <span class="app-hub-card-icon" aria-hidden="true">&#9678;</span>
-            <span class="app-hub-card-text">
-              <strong data-i18n="appHub.library">Library</strong>
-              <small data-i18n="appHub.libraryDetail">Browse references, variants and circle recipes.</small>
-            </span>
-            <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
-          </button>
-          <button class="app-hub-card" type="button" disabled>
-            <span class="app-hub-card-icon" aria-hidden="true">&#9673;</span>
-            <span class="app-hub-card-text">
-              <strong data-i18n="appHub.commons">Circle Commons</strong>
-              <small data-i18n="appHub.commonsDetail">Visit the community gallery and prepare posts.</small>
-            </span>
-            <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
-          </button>
-          <button class="app-hub-card" type="button" disabled>
-            <span class="app-hub-card-icon" aria-hidden="true">?</span>
-            <span class="app-hub-card-text">
-              <strong data-i18n="appHub.tutorial">Learn</strong>
-              <small data-i18n="appHub.tutorialDetail">Practice the atelier workflow step by step.</small>
-            </span>
-            <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
-          </button>
-          <button class="app-hub-card" type="button" disabled>
-            <span class="app-hub-card-icon" aria-hidden="true">&#9881;</span>
-            <span class="app-hub-card-text">
-              <strong data-i18n="appHub.mods">Mods</strong>
-              <small data-i18n="appHub.modsDetail">Design custom effects, particles and rules later.</small>
-            </span>
-            <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
-          </button>
-          <button class="app-hub-card" type="button" disabled>
-            <span class="app-hub-card-icon" aria-hidden="true">&#8759;</span>
-            <span class="app-hub-card-text">
-              <strong data-i18n="appHub.multiplayer">Shared canvases</strong>
-              <small data-i18n="appHub.multiplayerDetail">Draw with friends or in public rooms later.</small>
-            </span>
-            <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
-          </button>
-          <button class="app-hub-card" type="button" disabled>
-            <span class="app-hub-card-icon" aria-hidden="true">&#9733;</span>
-            <span class="app-hub-card-text">
-              <strong data-i18n="appHub.adventure">Adventure</strong>
-              <small data-i18n="appHub.adventureDetail">Future story and duel modes.</small>
-            </span>
-            <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
-          </button>
-        </div>
+        <section class="app-hub-gallery" aria-labelledby="appHubGalleryTitle">
+          <div class="app-hub-gallery-heading">
+            <div>
+              <p class="app-hub-eyebrow" data-i18n="appHub.galleryEyebrow">Gallery</p>
+              <h3 id="appHubGalleryTitle" data-i18n="appHub.galleryTitle">Choose a spell canvas.</h3>
+            </div>
+            <p data-i18n="appHub.galleryDescription">A Canva-style gallery preview: the real actions will be connected in the next steps.</p>
+          </div>
+          <div class="app-hub-gallery-grid">
+            <article class="app-hub-spell-card">
+              <img src="assets/library-schematics/community-horse-haul.svg" alt="">
+              <strong>Horse Haul</strong>
+              <small>Movement support</small>
+            </article>
+            <article class="app-hub-spell-card">
+              <img src="assets/library-schematics/community-air-tornado-shield.svg" alt="">
+              <strong>Air Tornado Shield</strong>
+              <small>Wind defense</small>
+            </article>
+            <article class="app-hub-spell-card">
+              <img src="assets/library-schematics/community-water-lens.svg" alt="">
+              <strong>Water Lens</strong>
+              <small>Refraction study</small>
+            </article>
+            <article class="app-hub-spell-card">
+              <img src="assets/library-schematics/cloak-spell.png" alt="">
+              <strong>Cloak Spell</strong>
+              <small>Concealment</small>
+            </article>
+            <article class="app-hub-spell-card">
+              <img src="assets/library-schematics/fish-guidance.png" alt="">
+              <strong>Fish Guidance</strong>
+              <small>Direction ritual</small>
+            </article>
+            <article class="app-hub-spell-card">
+              <img src="assets/library-schematics/community-flower-lantern.svg" alt="">
+              <strong>Flower Lantern</strong>
+              <small>Light practice</small>
+            </article>
+          </div>
+        </section>
       </section>
 
       <section class="workspace" data-i18n-aria-label="atelier.region" aria-label="Creation workshop">
