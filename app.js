@@ -142,6 +142,115 @@ const supportOptions = [
 const englishElementNames = ENGLISH_DISPLAY_NAMES;
 
 const symbolSearchIndex = buildSymbolSearchIndex(PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES);
+const COMMUNITY_PROFILE_STORAGE_KEY = "whaCircleCommonsProfile";
+const COMMUNITY_SESSION_URL = "https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site/api/auth/session";
+
+function normalizeCommunityProfile(input) {
+  if (!input || typeof input !== "object") {
+    return null;
+  }
+  const source = input.user && typeof input.user === "object" ? input.user : input;
+  const displayName = source.displayName || source.display_name || source.username || source.name || source.email || "";
+  const id = source.id || source.userId || source.user_id || source.sub || "";
+  if (!displayName && !id) {
+    return null;
+  }
+  return {
+    id: String(id || displayName),
+    displayName: String(displayName || t("nav.connected")),
+  };
+}
+
+function storeCommunityProfile(profile) {
+  if (!profile) {
+    return;
+  }
+  try {
+    localStorage.setItem(COMMUNITY_PROFILE_STORAGE_KEY, JSON.stringify(profile));
+  } catch {
+    // The visible state still updates when private browsing disables storage.
+  }
+}
+
+function readCommunityProfileFromStorage() {
+  try {
+    return normalizeCommunityProfile(JSON.parse(localStorage.getItem(COMMUNITY_PROFILE_STORAGE_KEY) || "null"));
+  } catch {
+    return null;
+  }
+}
+
+function readCommunityProfileFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const displayName = params.get("cc_name")
+    || params.get("community_name")
+    || params.get("display_name")
+    || params.get("username");
+  const id = params.get("cc_user")
+    || params.get("community_user")
+    || params.get("user_id")
+    || params.get("sub");
+  const profile = normalizeCommunityProfile({ id, displayName });
+  if (!profile) {
+    return null;
+  }
+  storeCommunityProfile(profile);
+  for (const key of ["cc_name", "community_name", "display_name", "username", "cc_user", "community_user", "user_id", "sub"]) {
+    params.delete(key);
+  }
+  const query = params.toString();
+  const nextUrl = `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`;
+  history.replaceState(null, "", nextUrl);
+  return profile;
+}
+
+async function fetchCommunityProfile() {
+  try {
+    const response = await fetch(COMMUNITY_SESSION_URL, {
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) {
+      return null;
+    }
+    return normalizeCommunityProfile(await response.json());
+  } catch {
+    return null;
+  }
+}
+
+function renderCommunityProfilePill(profile) {
+  if (!communityProfilePill || !communityProfileName) {
+    return;
+  }
+  const signInUrl = communityProfilePill.dataset.communitySignInUrl || communityProfilePill.href;
+  const profileUrl = communityProfilePill.dataset.communityProfileUrl || signInUrl;
+  if (profile) {
+    communityProfilePill.dataset.status = "connected";
+    communityProfilePill.href = profileUrl;
+    communityProfileName.removeAttribute("data-i18n");
+    communityProfileName.textContent = profile.displayName;
+    communityProfilePill.title = t("nav.profileConnected", { name: profile.displayName });
+    communityProfilePill.setAttribute("aria-label", t("nav.profileConnected", { name: profile.displayName }));
+    return;
+  }
+  communityProfilePill.dataset.status = "signed-out";
+  communityProfilePill.href = signInUrl;
+  communityProfileName.dataset.i18n = "nav.profile";
+  communityProfileName.textContent = t("nav.profile");
+  communityProfilePill.title = t("nav.profile");
+  communityProfilePill.setAttribute("aria-label", t("nav.openProfile"));
+}
+
+async function syncCommunityProfilePill() {
+  const localProfile = readCommunityProfileFromUrl() || readCommunityProfileFromStorage();
+  renderCommunityProfilePill(localProfile);
+  const fetchedProfile = await fetchCommunityProfile();
+  if (fetchedProfile) {
+    storeCommunityProfile(fetchedProfile);
+    renderCommunityProfilePill(fetchedProfile);
+  }
+}
 
 const englishSigilMeanings = Object.freeze({
   "Feu": "Fire sigil: creates and manipulates flames or heat.",
@@ -284,6 +393,8 @@ function actionDisplayLabel(action) {
 const canvas = document.querySelector("#magicCanvas");
 const ctx = canvas.getContext("2d");
 let previousCanvasViewport = null;
+const communityProfilePill = document.querySelector("#communityProfilePill");
+const communityProfileName = document.querySelector("#communityProfileName");
 const toolButtons = document.querySelectorAll(".tool-button");
 const inkList = document.querySelector("#inkList");
 const inkInfo = document.querySelector("#inkInfo");
@@ -372,7 +483,6 @@ const closeGalleryButton = document.querySelector("#closeGalleryButton");
 const publishGalleryButton = document.querySelector("#publishGalleryButton");
 const guideLibraryTab = document.querySelector("#guideLibraryTab");
 const guidePersonalTab = document.querySelector("#guidePersonalTab");
-const guideSpellsTab = document.querySelector("#guideSpellsTab");
 const guideLibraryList = document.querySelector("#guideLibraryList");
 const guidePersonalList = document.querySelector("#guidePersonalList");
 const guideSpellsList = document.querySelector("#guideSpellsList");
@@ -9570,27 +9680,22 @@ function selectGuide(source, id) {
   updateToolButtons();
   updateSelectionControls();
   renderGuideLists();
-  setGuideDrawer(false);
+  setOpenDrawer(null);
   render();
   setStatus(t("status.guideSelected"));
 }
 
 function setGuideTab(tab) {
-  state.guideTab = ["library", "personal", "spells"].includes(tab) ? tab : "library";
+  state.guideTab = ["library", "personal"].includes(tab) ? tab : "library";
   guideLibraryTab?.classList.toggle("is-active", state.guideTab === "library");
   guidePersonalTab?.classList.toggle("is-active", state.guideTab === "personal");
-  guideSpellsTab?.classList.toggle("is-active", state.guideTab === "spells");
   guideLibraryTab?.setAttribute("aria-selected", String(state.guideTab === "library"));
   guidePersonalTab?.setAttribute("aria-selected", String(state.guideTab === "personal"));
-  guideSpellsTab?.setAttribute("aria-selected", String(state.guideTab === "spells"));
   if (guideLibraryList) {
     guideLibraryList.hidden = state.guideTab !== "library";
   }
   if (guidePersonalList) {
     guidePersonalList.hidden = state.guideTab !== "personal";
-  }
-  if (guideSpellsList) {
-    guideSpellsList.hidden = state.guideTab !== "spells";
   }
 }
 
@@ -10744,7 +10849,6 @@ galleryToggleButton?.addEventListener("click", () => setGalleryDrawer(true));
 closeGalleryButton?.addEventListener("click", () => setGalleryDrawer(false));
 guideLibraryTab?.addEventListener("click", () => setGuideTab("library"));
 guidePersonalTab?.addEventListener("click", () => setGuideTab("personal"));
-guideSpellsTab?.addEventListener("click", () => setGuideTab("spells"));
 saveSpellButton?.addEventListener("click", saveCurrentSpell);
 publishCommunityButton?.addEventListener("click", publishCurrentCircle);
 publishGalleryButton?.addEventListener("click", publishCurrentCircle);
@@ -11925,6 +12029,7 @@ window.addEventListener("resize", resizeThreeView);
 window.visualViewport?.addEventListener("resize", resizeCanvas);
 window.screen.orientation?.addEventListener("change", resizeCanvas);
 window.addEventListener("wha:localechange", () => {
+  renderCommunityProfilePill(readCommunityProfileFromStorage());
   renderInkList();
   renderSupportList();
   renderGuideLists();
@@ -12061,6 +12166,7 @@ close3dView();
 setSymbolDrawer(false);
 setSupportDrawer(false);
 setGuideDrawer(false);
+syncCommunityProfilePill();
 if (guideVisibleInput) {
   guideVisibleInput.checked = state.guideVisible;
 }

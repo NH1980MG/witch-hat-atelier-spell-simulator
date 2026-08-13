@@ -4,9 +4,10 @@ import { readFile } from "node:fs/promises";
 
 test("l'atelier expose l'onglet Mes sorts et le bouton d'enregistrement", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
-  assert.match(html, /id="guideSpellsTab"[^>]*aria-controls="guideSpellsList"/);
-  assert.match(html, /data-i18n="guides\.spells"/);
-  assert.match(html, /id="guideSpellsList"[^>]*hidden/);
+  assert.match(html, /id="galleryDrawer"[\s\S]*data-i18n="guides\.spells"/);
+  assert.match(html, /id="galleryDrawer"[\s\S]*id="guideSpellsList"/);
+  assert.match(html, /id="galleryDrawer"[\s\S]*id="publishGalleryButton"/);
+  assert.doesNotMatch(html, /id="guideSpellsTab"/);
   assert.match(html, /id="saveSpellButton"[^>]*data-i18n="commands\.saveSpell"/);
   assert.match(html, /id="spellSaveDialog"/);
   assert.match(html, /id="spellNameInput"/);
@@ -22,8 +23,8 @@ test("app.js branche la bibliotheque de sorts", async () => {
   assert.match(source, /function confirmSaveSpell\(\)/);
   assert.match(source, /function loadMySpell\(id\)/);
   assert.match(source, /function removeMySpell\(id\)/);
-  assert.match(source, /state\.guideTab = \["library", "personal", "spells"\]/);
-  assert.match(source, /guideSpellsTab\?\.addEventListener\("click", \(\) => setGuideTab\("spells"\)\)/);
+  assert.match(source, /state\.guideTab = \["library", "personal"\]/);
+  assert.doesNotMatch(source, /guideSpellsTab\?\.addEventListener/);
   assert.match(source, /saveSpellButton\?\.addEventListener\("click", saveCurrentSpell\)/);
   assert.match(source, /recordHistory\(\);/);
 });

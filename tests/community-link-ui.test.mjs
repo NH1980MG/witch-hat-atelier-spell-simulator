@@ -80,3 +80,22 @@ test("every public simulator page exposes independent Circle Commons account and
   assert.equal(i18n.split('"nav.profile"').length - 1, 2);
   assert.equal(i18n.split('"nav.openProfile"').length - 1, 2);
 });
+
+test("the simulator profile pill can reflect a returned Circle Commons session", async () => {
+  const [html, app, i18n] = await Promise.all([
+    readFile(new URL("../index.html", import.meta.url), "utf8"),
+    readFile(new URL("../app.js", import.meta.url), "utf8"),
+    readFile(new URL("../i18n.mjs", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(html, /id="communityProfilePill"/);
+  assert.match(html, /id="communityProfileName"/);
+  assert.match(html, /data-community-sign-in-url=/);
+  assert.match(app, /function syncCommunityProfilePill\(\)/);
+  assert.match(app, /readCommunityProfileFromUrl\(\)/);
+  assert.match(app, /COMMUNITY_PROFILE_STORAGE_KEY/);
+  assert.match(app, /communityProfilePill\.dataset\.status = "connected"/);
+  assert.match(app, /fetchCommunityProfile\(\)/);
+  assert.equal(i18n.split('"nav.connected"').length - 1, 2);
+  assert.equal(i18n.split('"nav.profileConnected"').length - 1, 2);
+});

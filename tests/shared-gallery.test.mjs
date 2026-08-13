@@ -3,11 +3,12 @@ import test from "node:test";
 import { readFile } from "node:fs/promises";
 import { buildCommunityComposeUrl } from "../circle-share.mjs";
 
-test("the workshop exposes a gallery drawer and current-circle action", async () => {
+test("the workshop exposes gallery actions inside the my-spells drawer", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
   assert.match(html, /id="galleryToggleButton"/);
   assert.match(html, /id="publishGalleryButton"/);
-  assert.match(html, /data-i18n="drawer\.gallery"/);
+  assert.match(html, /id="galleryToggleButton"[\s\S]*data-i18n="guides\.spells"/);
+  assert.match(html, /id="galleryDrawer"[\s\S]*id="guideSpellsList"/);
 });
 
 test("gallery publication keeps the handoff opaque", () => {

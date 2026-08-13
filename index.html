@@ -56,9 +56,9 @@
           <img class="brand-logo-image" src="assets/brand/atelier-mark.svg?v=2" alt="" aria-hidden="true">
           <h1>Witch Hat Atelier Spell Simulator</h1>
         </a>
-        <a class="community-profile-pill" href="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site/sign-in?return_to=%2Fauth%2Freturn-to-simulator" data-i18n-aria-label="nav.openProfile" data-i18n-title="nav.profile">
+        <a class="community-profile-pill" id="communityProfilePill" href="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site/sign-in?return_to=%2Fauth%2Freturn-to-simulator" data-community-sign-in-url="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site/sign-in?return_to=%2Fauth%2Freturn-to-simulator" data-community-profile-url="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site/profile" data-i18n-aria-label="nav.openProfile" data-i18n-title="nav.profile" data-status="signed-out">
           <span class="community-profile-dot" aria-hidden="true"></span>
-          <span data-i18n="nav.profile">Circle Commons profile</span>
+          <span id="communityProfileName" data-i18n="nav.profile">Circle Commons profile</span>
         </a>
         <aside class="workshop-menu" data-workshop-menu>
           <button class="workshop-menu-toggle" id="workshopMenuToggle" type="button" aria-controls="workshopMenuPanel" aria-expanded="false" data-i18n-aria-label="nav.openMenu" data-i18n-title="nav.menu" aria-label="Open the workshop menu" title="Workshop menu">
@@ -174,7 +174,7 @@
 
         <button class="gallery-island" id="galleryToggleButton" type="button" aria-controls="galleryDrawer" aria-expanded="false">
           <span aria-hidden="true">&#9733;</span>
-          <span data-i18n="drawer.gallery">Gallery</span>
+          <span data-i18n="guides.spells">My spells</span>
         </button>
 
         <input type="file" id="photoFileInput" accept="image/*" hidden>
@@ -239,7 +239,7 @@
         <aside class="sidebar gallery-drawer" id="galleryDrawer" data-i18n-aria-label="drawer.galleryChoice" aria-label="Circle gallery" aria-hidden="true">
           <div class="panel-heading">
             <div>
-              <h2 data-i18n="drawer.gallery">Gallery</h2>
+              <h2 data-i18n="guides.spells">My spells</h2>
               <p data-i18n="drawer.galleryDescription">Browse public circles. Sign in on Circle Commons to keep yours.</p>
             </div>
             <button class="drawer-close" id="closeGalleryButton" type="button" data-i18n-aria-label="drawer.closeGallery" aria-label="Close gallery">&times;</button>
@@ -249,6 +249,7 @@
             <button id="publishGalleryButton" type="button" data-i18n="drawer.addCurrentCircle">Add current circle</button>
           </div>
           <p class="gallery-note" data-i18n="drawer.gallerySignIn">Sign in on Circle Commons when you publish to keep the circle in your account.</p>
+          <div class="guide-list saved-spells-list" id="guideSpellsList"></div>
         </aside>
 
         <aside class="sidebar support-drawer" id="supportDrawer" data-i18n-aria-label="drawer.supportChoice" aria-label="Magic support selection" aria-hidden="true">
@@ -287,11 +288,9 @@
           <div class="guide-tabs" role="tablist" data-i18n-aria-label="guides.sources">
             <button id="guideLibraryTab" class="is-active" type="button" role="tab" aria-selected="true" aria-controls="guideLibraryList" data-i18n="guides.library">Library</button>
             <button id="guidePersonalTab" type="button" role="tab" aria-selected="false" aria-controls="guidePersonalList" data-i18n="guides.personal">My examples</button>
-            <button id="guideSpellsTab" type="button" role="tab" aria-selected="false" aria-controls="guideSpellsList" data-i18n="guides.spells">My spells</button>
           </div>
           <div class="guide-list" id="guideLibraryList" role="tabpanel"></div>
           <div class="guide-list" id="guidePersonalList" role="tabpanel" hidden></div>
-          <div class="guide-list" id="guideSpellsList" role="tabpanel" hidden></div>
         </aside>
 
         <dialog id="spellSaveDialog" class="photo-dialog spell-save-dialog" data-i18n-aria-label="spells.dialogTitle" aria-label="Save this spell">
