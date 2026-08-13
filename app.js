@@ -393,7 +393,6 @@ const galleryRefreshButton = document.querySelector("#galleryRefreshButton");
 const gallerySortButtons = [...document.querySelectorAll("[data-gallery-sort]")];
 const guideLibraryTab = document.querySelector("#guideLibraryTab");
 const guidePersonalTab = document.querySelector("#guidePersonalTab");
-const guideSpellsTab = document.querySelector("#guideSpellsTab");
 const guideLibraryList = document.querySelector("#guideLibraryList");
 const guidePersonalList = document.querySelector("#guidePersonalList");
 const guideSpellsList = document.querySelector("#guideSpellsList");
@@ -9972,21 +9971,16 @@ function selectGuide(source, id) {
 }
 
 function setGuideTab(tab) {
-  state.guideTab = ["library", "personal", "spells"].includes(tab) ? tab : "library";
+  state.guideTab = ["library", "personal"].includes(tab) ? tab : "library";
   guideLibraryTab?.classList.toggle("is-active", state.guideTab === "library");
   guidePersonalTab?.classList.toggle("is-active", state.guideTab === "personal");
-  guideSpellsTab?.classList.toggle("is-active", state.guideTab === "spells");
   guideLibraryTab?.setAttribute("aria-selected", String(state.guideTab === "library"));
   guidePersonalTab?.setAttribute("aria-selected", String(state.guideTab === "personal"));
-  guideSpellsTab?.setAttribute("aria-selected", String(state.guideTab === "spells"));
   if (guideLibraryList) {
     guideLibraryList.hidden = state.guideTab !== "library";
   }
   if (guidePersonalList) {
     guidePersonalList.hidden = state.guideTab !== "personal";
-  }
-  if (guideSpellsList) {
-    guideSpellsList.hidden = state.guideTab !== "spells";
   }
 }
 
@@ -11261,7 +11255,6 @@ galleryRefreshButton?.addEventListener("click", () => loadGalleryPosts());
 gallerySortButtons.forEach((button) => button.addEventListener("click", () => loadGalleryPosts(button.dataset.gallerySort)));
 guideLibraryTab?.addEventListener("click", () => setGuideTab("library"));
 guidePersonalTab?.addEventListener("click", () => setGuideTab("personal"));
-guideSpellsTab?.addEventListener("click", () => setGuideTab("spells"));
 saveSpellButton?.addEventListener("click", saveCurrentSpell);
 publishCommunityButton?.addEventListener("click", publishCurrentCircle);
 publishGalleryButton?.addEventListener("click", publishCurrentCircle);

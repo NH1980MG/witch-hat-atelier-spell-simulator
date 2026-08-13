@@ -888,6 +888,24 @@ input:focus-visible {
   display: none;
 }
 
+.saved-spells-section {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(140, 107, 63, 0.28);
+  border-radius: 12px;
+  background: rgba(255, 248, 234, 0.58);
+}
+
+.saved-spells-section h3 {
+  margin: 0;
+  font-size: clamp(1rem, 2.2vw, 1.25rem);
+}
+
+.saved-spells-list {
+  padding: 0;
+}
+
 .guide-card {
   position: relative;
   display: grid;

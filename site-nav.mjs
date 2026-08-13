@@ -52,6 +52,32 @@ function readStoredCommunityProfileName(storage = window.localStorage) {
   return "";
 }
 
+function writeCommunityProfileName(name, storage = window.localStorage) {
+  const displayName = cleanCommunityProfileName(name);
+  if (!displayName) {
+    return "";
+  }
+  storage.setItem("whaCircleCommonsProfile", JSON.stringify({ user: { displayName } }));
+  return displayName;
+}
+
+function readReturnedCommunityProfile({
+  location = window.location,
+  history = window.history,
+  storage = window.localStorage,
+} = {}) {
+  const params = new URLSearchParams(location.search || "");
+  const displayName = writeCommunityProfileName(params.get("cc_name"), storage);
+  if (!displayName) {
+    return "";
+  }
+  params.delete("cc_name");
+  const query = params.toString();
+  const nextUrl = `${location.pathname}${query ? `?${query}` : ""}${location.hash || ""}`;
+  history.replaceState(null, "", nextUrl);
+  return displayName;
+}
+
 function readPreference() {
   try {
     return window.localStorage.getItem(STORAGE_KEY) === "true";
@@ -155,12 +181,17 @@ async function initializeCommunityProfilePill() {
     return;
   }
   try {
-    updateCommunityProfilePill(readStoredCommunityProfileName());
+    updateCommunityProfilePill(readReturnedCommunityProfile() || readStoredCommunityProfileName());
   } catch {
     updateCommunityProfilePill("");
   }
   const profileName = await fetchCommunityProfileName(pill);
   if (profileName) {
+    try {
+      writeCommunityProfileName(profileName);
+    } catch {
+      // The connected state can still be shown for this page view.
+    }
     updateCommunityProfilePill(profileName);
   }
 }
@@ -193,7 +224,9 @@ export {
   communityProfileNameFrom,
   initializeCommunityProfilePill,
   initializeWorkshopMenu,
+  readReturnedCommunityProfile,
   readStoredCommunityProfileName,
   setOpen,
   updateCommunityProfilePill,
+  writeCommunityProfileName,
 };
