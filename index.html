@@ -35,6 +35,9 @@
       if (window.location.protocol === "file:") {
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
+      if (new URLSearchParams(window.location.search).get("view") === "atelier") {
+        document.documentElement.dataset.appView = "atelier";
+      }
     </script>
     <link rel="stylesheet" href="styles.css?v=20260812-app-hub-v1">
     <script type="importmap">
@@ -50,7 +53,7 @@
     <script type="module" src="support-project.mjs?v=20260812-project-support-v1"></script>
     <script type="module" src="app.js?v=20260812-project-support-rapier-v1"></script>
   </head>
-  <body class="simulator-page app-home-page">
+  <body class="simulator-page app-home-page" data-app-view-title="Atelier">
     <main class="app-shell">
       <header class="top-title">
         <a class="brand-title brand-home" href="index.html" data-i18n-aria-label="nav.home" aria-label="Return to the main workshop">
@@ -91,19 +94,13 @@
 
       <section class="app-hub app-hub-home" data-app-hub data-i18n-aria-label="appHub.title" aria-label="Choose where the atelier will open">
         <div class="app-hub-topbar">
-          <div class="app-hub-copy">
-            <p class="app-hub-eyebrow" data-i18n="appHub.eyebrow">App preview</p>
-            <h2 data-i18n="appHub.title">Choose where the atelier will open.</h2>
-            <p data-i18n="appHub.description">This first app menu is a design preview only. The tools will be adapted before these entries become available.</p>
-          </div>
           <div class="app-hub-shortcuts" aria-hidden="false">
-            <button class="app-hub-shortcut app-hub-shortcut-primary" type="button" disabled>
+            <a class="app-hub-shortcut app-hub-shortcut-primary" href="index.html" aria-current="page">
               <span class="app-hub-card-icon" aria-hidden="true">&#9638;</span>
               <span class="app-hub-card-text">
-                <strong data-i18n="appHub.canvases">My canvases</strong>
+                <strong data-i18n="appHub.canvases">My gallery</strong>
               </span>
-              <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
-            </button>
+            </a>
             <button class="app-hub-shortcut" type="button" disabled>
               <span class="app-hub-card-icon" aria-hidden="true">&#10002;</span>
               <span class="app-hub-card-text">
@@ -157,43 +154,24 @@
         </div>
         <section class="app-hub-gallery" aria-labelledby="appHubGalleryTitle">
           <div class="app-hub-gallery-heading">
-            <div>
-              <p class="app-hub-eyebrow" data-i18n="appHub.galleryEyebrow">Gallery</p>
-              <h3 id="appHubGalleryTitle" data-i18n="appHub.galleryTitle">Choose a spell canvas.</h3>
+            <div class="app-hub-gallery-title-group">
+              <a class="app-hub-new-canvas" href="index.html?view=atelier" data-i18n-aria-label="appHub.newCanvas" aria-label="New canvas">
+                <span aria-hidden="true">+</span>
+                <span data-i18n="appHub.newCanvas">New canvas</span>
+              </a>
+              <p class="app-hub-eyebrow" data-i18n="appHub.galleryEyebrow">My gallery</p>
+              <h3 id="appHubGalleryTitle" data-i18n="appHub.galleryTitle">Your spell canvases</h3>
             </div>
-            <p data-i18n="appHub.galleryDescription">A Canva-style gallery preview: the real actions will be connected in the next steps.</p>
+            <p data-i18n="appHub.galleryDescription">Saved canvases will appear here. Start with a new canvas.</p>
           </div>
           <div class="app-hub-gallery-grid">
-            <article class="app-hub-spell-card">
-              <img src="assets/library-schematics/community-horse-haul.svg" alt="">
-              <strong>Horse Haul</strong>
-              <small>Movement support</small>
-            </article>
-            <article class="app-hub-spell-card">
-              <img src="assets/library-schematics/community-air-tornado-shield.svg" alt="">
-              <strong>Air Tornado Shield</strong>
-              <small>Wind defense</small>
-            </article>
-            <article class="app-hub-spell-card">
-              <img src="assets/library-schematics/community-water-lens.svg" alt="">
-              <strong>Water Lens</strong>
-              <small>Refraction study</small>
-            </article>
-            <article class="app-hub-spell-card">
-              <img src="assets/library-schematics/cloak-spell.png" alt="">
-              <strong>Cloak Spell</strong>
-              <small>Concealment</small>
-            </article>
-            <article class="app-hub-spell-card">
-              <img src="assets/library-schematics/fish-guidance.png" alt="">
-              <strong>Fish Guidance</strong>
-              <small>Direction ritual</small>
-            </article>
-            <article class="app-hub-spell-card">
-              <img src="assets/library-schematics/community-flower-lantern.svg" alt="">
-              <strong>Flower Lantern</strong>
-              <small>Light practice</small>
-            </article>
+            <div class="app-hub-gallery-empty">
+              <span class="app-hub-empty-mark" aria-hidden="true">+</span>
+              <div>
+                <strong data-i18n="appHub.emptyGallery">No canvases yet</strong>
+                <p data-i18n="appHub.emptyGalleryDetail">Create a canvas to open the Atelier and start drawing.</p>
+              </div>
+            </div>
           </div>
         </section>
       </section>
@@ -555,7 +533,6 @@
             <button class="command-button command-danger" id="clearButton" type="button" data-i18n="commands.clear">Clear</button>
             <button class="command-button command-archive" id="saveButton" type="button" data-i18n="commands.savePng">Archive PNG</button>
             <button class="command-button command-archive" id="saveExampleButton" type="button" data-i18n="commands.saveExample">Save as example</button>
-            <button class="command-button command-tool" id="practiceToggleButton" type="button" aria-controls="practiceBar" aria-expanded="false" data-i18n="practice.toggle">Practice</button>
             <button class="command-button command-tool" id="circleImportButton" type="button" aria-controls="photoImportDialog" aria-expanded="false" data-i18n="import.toggle">Import circle</button>
             <button class="command-button command-archive" id="circleJsonExportButton" type="button" data-i18n="import.exportJson">Export JSON</button>
             <button class="command-button command-archive" id="saveSpellButton" type="button" aria-controls="spellSaveDialog" data-i18n="commands.saveSpell">Save spell</button>

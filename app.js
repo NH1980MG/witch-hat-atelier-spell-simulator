@@ -272,6 +272,19 @@ const labels = {
   eraser: "Grattoir",
 };
 
+function initializeLocalAppView() {
+  if (new URLSearchParams(window.location.search).get("view") !== "atelier") {
+    return;
+  }
+  document.documentElement.dataset.appView = "atelier";
+  const title = document.querySelector(".top-title h1");
+  if (title) {
+    title.textContent = document.body.dataset.appViewTitle || "Atelier";
+  }
+}
+
+initializeLocalAppView();
+
 function actionDisplayLabel(action) {
   if (action.seal) return t("tool.seal");
   const toolKey = {

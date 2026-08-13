@@ -7,16 +7,19 @@ import { translate } from "../i18n.mjs";
 test("the atelier opens with a non-interactive app hub mockup", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 
-  assert.match(html, /<body class="simulator-page app-home-page">/);
+  assert.match(html, /<body class="simulator-page app-home-page" data-app-view-title="Atelier">/);
   assert.match(html, /<section class="app-hub app-hub-home" data-app-hub/);
   assert.match(html, /<div class="app-hub-topbar">/);
   assert.match(html, /<div class="app-hub-shortcuts" aria-hidden="false">/);
   assert.match(html, /<section class="app-hub-gallery" aria-labelledby="appHubGalleryTitle">/);
-  assert.match(html, /<article class="app-hub-spell-card"[\s\S]*assets\/library-schematics\/community-horse-haul\.svg/);
-  assert.match(html, /<article class="app-hub-spell-card"[\s\S]*assets\/library-schematics\/community-air-tornado-shield\.svg/);
+  assert.match(html, /<div class="app-hub-gallery-empty"/);
+  assert.match(html, /<a class="app-hub-new-canvas" href="index\.html\?view=atelier"/);
+  assert.match(html, /data-i18n="appHub\.newCanvas"/);
+  assert.doesNotMatch(html, /app-hub-spell-card/);
+  assert.doesNotMatch(html, /assets\/library-schematics\//);
   assert.doesNotMatch(html, /app-hub-showcase/);
   assert.doesNotMatch(html, /ancient-light-beacon\.png/);
-  assert.match(html, /<button class="app-hub-shortcut app-hub-shortcut-primary" type="button" disabled[\s\S]*data-i18n="appHub\.canvases"/);
+  assert.match(html, /<a class="app-hub-shortcut app-hub-shortcut-primary" href="index\.html"[\s\S]*data-i18n="appHub\.canvases"/);
   assert.match(html, /<button class="app-hub-shortcut" type="button" disabled[\s\S]*data-i18n="appHub\.workshop"/);
   assert.match(html, /<button class="app-hub-shortcut" type="button" disabled[\s\S]*data-i18n="appHub\.library"/);
   assert.match(html, /<button class="app-hub-shortcut" type="button" disabled[\s\S]*data-i18n="appHub\.commons"/);
@@ -25,6 +28,8 @@ test("the atelier opens with a non-interactive app hub mockup", async () => {
   assert.match(html, /<button class="app-hub-shortcut" type="button" disabled[\s\S]*data-i18n="appHub\.multiplayer"/);
   assert.match(html, /<button class="app-hub-shortcut" type="button" disabled[\s\S]*data-i18n="appHub\.adventure"/);
   assert.doesNotMatch(html, /class="app-hub-card[^"]*" href=/);
+  assert.match(html, /data-app-view-title="Atelier"/);
+  assert.doesNotMatch(html, /id="practiceToggleButton"/);
 });
 
 test("the app hub labels are bilingual", () => {
@@ -34,6 +39,8 @@ test("the app hub labels are bilingual", () => {
     "appHub.description",
     "appHub.galleryTitle",
     "appHub.galleryDescription",
+    "appHub.newCanvas",
+    "appHub.emptyGallery",
     "appHub.canvases",
     "appHub.workshop",
     "appHub.library",
@@ -61,7 +68,9 @@ test("the app hub has a responsive designed shell", async () => {
   assert.match(css, /\.app-hub-topbar\s*\{/);
   assert.match(css, /\.app-hub-shortcuts\s*\{/);
   assert.match(css, /\.app-hub-gallery-grid\s*\{/);
-  assert.match(css, /\.app-hub-spell-card\s*\{/);
+  assert.match(css, /\.app-hub-gallery-empty\s*\{/);
+  assert.match(css, /\.app-hub-new-canvas\s*\{/);
   assert.match(css, /\.app-hub-shortcut:disabled/);
   assert.match(css, /@media \(max-width:\s*760px\)[\s\S]*?\.app-hub-shortcuts/);
+  assert.match(css, /html\[data-app-view="atelier"\][\s\S]*?\.app-hub/);
 });

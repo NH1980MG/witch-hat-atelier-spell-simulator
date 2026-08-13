@@ -478,7 +478,7 @@ input:focus-visible {
 
 .app-hub-topbar {
   display: grid;
-  grid-template-columns: minmax(260px, 0.58fr) minmax(0, 1.42fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: stretch;
   gap: 16px;
   min-width: 0;
@@ -534,6 +534,7 @@ input:focus-visible {
   background: rgba(255, 252, 243, 0.92);
   color: var(--ink);
   text-align: left;
+  text-decoration: none;
   box-shadow: 0 8px 20px rgba(36, 48, 68, 0.08);
   overflow: hidden;
 }
@@ -591,6 +592,46 @@ input:focus-visible {
   min-width: 0;
 }
 
+.app-hub-gallery-title-group {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.app-hub-new-canvas {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 8px;
+  min-height: 42px;
+  padding: 8px 14px 8px 10px;
+  border: 1px solid var(--gold);
+  border-radius: 7px;
+  background: var(--ink);
+  color: #fff8e7;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 8px 18px rgba(36, 48, 68, 0.13);
+}
+
+.app-hub-new-canvas:hover,
+.app-hub-new-canvas:focus-visible {
+  background: #34445e;
+  color: #fff8e7;
+}
+
+.app-hub-new-canvas span:first-child {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: var(--ink);
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
 .app-hub-gallery-heading h3 {
   margin: 2px 0 0;
   color: var(--ink);
@@ -608,8 +649,46 @@ input:focus-visible {
 
 .app-hub-gallery-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(150px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
+}
+
+.app-hub-gallery-empty {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 190px;
+  border: 1px dashed rgba(140, 107, 63, 0.54);
+  border-radius: 8px;
+  padding: 24px;
+  background: rgba(255, 252, 243, 0.56);
+  color: var(--ink);
+}
+
+.app-hub-empty-mark {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 54px;
+  height: 54px;
+  border: 1px solid var(--gold);
+  border-radius: 50%;
+  background: rgba(199, 151, 54, 0.13);
+  color: var(--gold);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.app-hub-gallery-empty strong {
+  display: block;
+  font-size: 1.15rem;
+}
+
+.app-hub-gallery-empty p {
+  max-width: 48ch;
+  margin: 6px 0 0;
+  color: rgba(36, 48, 68, 0.7);
+  line-height: 1.4;
 }
 
 .app-hub-spell-card {
@@ -820,6 +899,22 @@ input:focus-visible {
 .app-home-page .grimoire,
 .app-home-page .simulator-ad-placement {
   display: none;
+}
+
+html[data-app-view="atelier"] body.app-home-page .app-shell {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+html[data-app-view="atelier"] body.app-home-page .app-hub {
+  display: none;
+}
+
+html[data-app-view="atelier"] body.app-home-page .workspace {
+  display: grid;
+}
+
+html[data-app-view="atelier"] body.app-home-page .grimoire {
+  display: block;
 }
 
 .canvas-wrap {
