@@ -64,7 +64,7 @@ input:focus-visible {
 .app-shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   min-width: 0;
   min-height: 100vh;
 }
@@ -441,127 +441,6 @@ input:focus-visible {
 .header-link > span[aria-hidden="true"] {
   font-family: "Courier New", monospace;
   line-height: 1;
-}
-
-.app-hub {
-  display: grid;
-  grid-template-columns: minmax(220px, 0.62fr) minmax(0, 1.38fr);
-  gap: 18px;
-  max-height: 34dvh;
-  overflow: auto;
-  padding: 16px 18px 18px;
-  border-bottom: 1px solid rgba(140, 107, 63, 0.42);
-  background:
-    linear-gradient(90deg, rgba(246, 236, 216, 0.96), rgba(239, 226, 201, 0.9)),
-    repeating-linear-gradient(0deg, rgba(140, 107, 63, 0.12) 0 1px, transparent 1px 34px);
-}
-
-.app-hub-copy {
-  display: grid;
-  align-content: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.app-hub-eyebrow {
-  margin: 0;
-  color: #9d3d30;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.app-hub h2 {
-  margin: 0;
-  color: var(--ink);
-  font-size: clamp(1.35rem, 2.8vw, 2.5rem);
-  line-height: 1;
-}
-
-.app-hub-copy p:last-child {
-  max-width: 48ch;
-  margin: 0;
-  color: rgba(36, 48, 68, 0.78);
-  font-size: 0.98rem;
-  line-height: 1.45;
-}
-
-.app-hub-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  min-width: 0;
-}
-
-.app-hub-card {
-  display: grid;
-  grid-template-columns: 38px minmax(0, 1fr);
-  gap: 10px;
-  align-items: start;
-  min-height: 112px;
-  padding: 12px;
-  border: 1px solid rgba(140, 107, 63, 0.46);
-  border-radius: 8px;
-  background: rgba(255, 248, 234, 0.72);
-  color: var(--ink);
-  text-align: left;
-  box-shadow: 0 12px 26px rgba(36, 48, 68, 0.08);
-}
-
-.app-hub-card-primary {
-  border-color: rgba(199, 151, 54, 0.8);
-  background: rgba(255, 244, 214, 0.86);
-}
-
-.app-hub-card:disabled {
-  cursor: default;
-  opacity: 1;
-}
-
-.app-hub-card-icon {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border: 1px solid rgba(199, 151, 54, 0.64);
-  border-radius: 50%;
-  background: rgba(36, 48, 68, 0.95);
-  color: var(--gold);
-  font-family: "Courier New", monospace;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.app-hub-card-text {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.app-hub-card-text strong {
-  font-size: 1rem;
-  line-height: 1.1;
-}
-
-.app-hub-card-text small {
-  color: rgba(36, 48, 68, 0.72);
-  font-size: 0.82rem;
-  line-height: 1.25;
-}
-
-.app-hub-card-status {
-  grid-column: 1 / -1;
-  align-self: end;
-  width: fit-content;
-  border: 1px solid rgba(140, 107, 63, 0.36);
-  border-radius: 999px;
-  padding: 4px 8px;
-  background: rgba(246, 236, 216, 0.9);
-  color: rgba(36, 48, 68, 0.7);
-  font-size: 0.68rem;
-  font-weight: 800;
-  text-transform: uppercase;
 }
 
 .workspace {
@@ -3032,16 +2911,6 @@ input:focus-visible {
     overflow: visible;
   }
 
-  .app-hub {
-    grid-template-columns: 1fr;
-    max-height: none;
-    overflow: visible;
-  }
-
-  .app-hub-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .workspace {
     grid-template-columns: 1fr;
     min-height: 720px;
@@ -4006,18 +3875,6 @@ input:focus-visible {
 }
 
 @media (max-width: 760px) {
-  .app-hub {
-    padding: 14px 12px;
-  }
-
-  .app-hub-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .app-hub-card {
-    min-height: 98px;
-  }
-
   .suggestions-layout {
     grid-template-columns: 1fr;
   }
