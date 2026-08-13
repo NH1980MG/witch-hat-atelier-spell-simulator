@@ -58,6 +58,7 @@ function baseForce({ response, snapshot }) {
     radiusMeters: round(clamp(response.radiusMeters || diameter * 0.45, 0.05, diameter)),
     magnitude: round(clamp(response.intensity * (0.55 + force * 0.7), 0, 3.5)),
     pulse: response.pulse || { mode: "continuous", rateHz: 0 },
+    channels: [...(response.channels || [])],
     medicalClaim: "none",
   };
 }

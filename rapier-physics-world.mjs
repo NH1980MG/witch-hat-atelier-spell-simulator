@@ -110,6 +110,44 @@ function reactionStateForForce(force = {}) {
   return "pushed";
 }
 
+const COMBUSTIBLE_MATERIALS = new Set(["cloth", "paper", "plant", "wax", "wood"]);
+
+function forceWetsTarget(force = {}) {
+  return force.type === "water-field"
+    || force.type === "wetting-field"
+    || (force.channels || []).includes("wetting");
+}
+
+function thermalReaction(entry, forces, deltaSeconds) {
+  if (forces.some(forceWetsTarget)) {
+    entry.wetness = Math.min(1, entry.wetness + deltaSeconds * 2.5);
+    if (entry.heatExposure > 0 || ["heated", "scorched", "burning"].includes(entry.reactionState)) {
+      entry.heatExposure = 0;
+      entry.reactionState = "extinguished";
+    } else {
+      entry.reactionState = "wet";
+    }
+    return true;
+  }
+
+  const heat = forces.reduce((maximum, force) => (
+    force.type === "thermal-field" ? Math.max(maximum, finiteNumber(force.heat, force.magnitude)) : maximum
+  ), 0);
+  if (heat <= 0) return false;
+  entry.wetness = Math.max(0, entry.wetness - deltaSeconds * heat);
+  entry.heatExposure += heat * deltaSeconds * (1 - entry.wetness * 0.75);
+  if (!COMBUSTIBLE_MATERIALS.has(entry.material)) {
+    entry.reactionState = "heated";
+  } else if (entry.heatExposure >= 0.45) {
+    entry.reactionState = "burning";
+  } else if (entry.heatExposure >= 0.2) {
+    entry.reactionState = "scorched";
+  } else {
+    entry.reactionState = "heated";
+  }
+  return true;
+}
+
 export async function loadRapier3dCompat({ importer = (specifier) => import(specifier) } = {}) {
   if (!rapierLoadPromise) {
     rapierLoadPromise = importer(RAPIER_COMPAT_MODULE).then(async (module) => {
@@ -131,6 +169,9 @@ export function createSpellPhysicsRuntime(RAPIER, options = {}) {
   const gravity = vector3(options.gravity, { x: 0, y: -9.81, z: 0 });
   const world = new RAPIER.World(gravity);
   const targets = new Map();
+  const colliderTargets = new Map();
+  let spellField = null;
+  let contacts = new Set();
 
   const groundBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, -0.05, 0));
   world.createCollider(RAPIER.ColliderDesc.cuboid(80, 0.05, 80), groundBody);
@@ -142,15 +183,68 @@ export function createSpellPhysicsRuntime(RAPIER, options = {}) {
     if (!target.anchored && typeof body.setAdditionalMass === "function") {
       body.setAdditionalMass(mass);
     }
-    world.createCollider(colliderForTarget(RAPIER, target), body);
-    targets.set(id, {
+    const collider = world.createCollider(colliderForTarget(RAPIER, target), body);
+    const entry = {
       body,
+      collider,
       target,
       mass,
       material: target.material || "generic",
       reactionState: "idle",
       settled: true,
-    });
+      heatExposure: 0,
+      wetness: 0,
+    };
+    targets.set(id, entry);
+    colliderTargets.set(collider, id);
+    if (collider?.handle !== undefined) colliderTargets.set(collider.handle, id);
+  }
+
+  function targetIdsInsideSpellField() {
+    if (!spellField) return new Set();
+    const hits = new Set();
+    if (typeof world.intersectionsWithShape === "function" && typeof RAPIER.Ball === "function") {
+      const shape = new RAPIER.Ball(spellField.radiusMeters);
+      world.intersectionsWithShape(
+        spellField.position,
+        { x: 0, y: 0, z: 0, w: 1 },
+        shape,
+        (collider) => {
+          const id = colliderTargets.get(collider) ?? colliderTargets.get(collider?.handle);
+          if (id) hits.add(id);
+          return true;
+        },
+      );
+      return hits;
+    }
+    for (const [id, entry] of targets) {
+      const current = entry.body.translation?.() || entry.target.position;
+      const distance = Math.hypot(
+        finiteNumber(current.x) - spellField.position.x,
+        finiteNumber(current.y) - spellField.position.y,
+        finiteNumber(current.z) - spellField.position.z,
+      );
+      if (distance <= spellField.radiusMeters + Math.max(0, finiteNumber(entry.target.radius, 0))) hits.add(id);
+    }
+    return hits;
+  }
+
+  function applySpellContacts(deltaSeconds) {
+    if (!spellField) return;
+    const nextContacts = targetIdsInsideSpellField();
+    for (const id of nextContacts) {
+      const entry = targets.get(id);
+      if (!entry) continue;
+      const isNewContact = !contacts.has(id);
+      const reactedThermally = thermalReaction(entry, spellField.forces, deltaSeconds);
+      for (const force of spellField.forces) {
+        if (force.type === "thermal-field" || forceWetsTarget(force)) continue;
+        if (isNewContact && !entry.target.anchored) applyForceToBody(entry.body, force, entry.mass);
+        if (!reactedThermally) entry.reactionState = reactionStateForForce(force);
+      }
+      entry.settled = false;
+    }
+    contacts = nextContacts;
   }
 
   return Object.freeze({
@@ -167,9 +261,22 @@ export function createSpellPhysicsRuntime(RAPIER, options = {}) {
         }
       }
     },
+    setSpellField(field = {}) {
+      spellField = {
+        position: vector3(field.position, { x: 0, y: 0, z: 0 }),
+        radiusMeters: Math.max(0.05, finiteNumber(field.radiusMeters, 0.5)),
+        forces: [...(field.forces || [])],
+      };
+      contacts = new Set();
+    },
+    setSpellFieldPosition(position = {}) {
+      if (spellField) spellField.position = vector3(position, spellField.position);
+    },
     step(deltaSeconds = 1 / 60) {
-      world.timestep = Math.max(1 / 240, Math.min(1 / 20, finiteNumber(deltaSeconds, 1 / 60)));
+      const delta = Math.max(1 / 240, Math.min(1 / 20, finiteNumber(deltaSeconds, 1 / 60)));
+      world.timestep = delta;
       world.step();
+      applySpellContacts(delta);
     },
     snapshot() {
       return {
@@ -179,8 +286,11 @@ export function createSpellPhysicsRuntime(RAPIER, options = {}) {
           position: roundVector3(entry.body.translation?.() || entry.target.position),
           rotation: roundQuaternion(entry.body.rotation?.()),
           reactionState: entry.reactionState,
+          heatExposure: roundPhysicsValue(entry.heatExposure),
+          wetness: roundPhysicsValue(entry.wetness),
           settled: entry.settled,
         })),
+        contacts: [...contacts],
       };
     },
   });

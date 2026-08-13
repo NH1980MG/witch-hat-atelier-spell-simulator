@@ -1,5 +1,5 @@
 import { environmentalResponseFromSpell } from "./environmental-response.mjs";
-import { spellForcesFromSnapshot } from "./three-spell-forces.mjs";
+import { spellForcesFromSnapshot } from "./three-spell-forces.mjs?v=20260813-contact-reactions-v1";
 
 const WIND_FAMILIES = new Set(["wind", "air", "underfoot-wind", "whorling-wind", "fire-vortex", "driven-mist"]);
 

@@ -85,14 +85,13 @@ import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=202
 import { assessFreehandBoundary, recognizedMaterialLabel } from "./drawing-recognition.mjs";
 import { createScalewolfMotionProfile } from "./decorative-creature-profile.mjs?v=20260811-scalewolf-v2";
 import {
-  applySpellImpact,
   computeSceneScale,
   spellInfluenceProfile,
-} from "./environment-interactions.mjs?v=20260812-spell-forces-v1";
+} from "./environment-interactions.mjs?v=20260813-contact-reactions-v1";
 import {
   createSpellPhysicsRuntime,
   loadRapier3dCompat,
-} from "./rapier-physics-world.mjs?v=20260812-rapier-collisions-v1";
+} from "./rapier-physics-world.mjs?v=20260813-contact-reactions-v1";
 
 const libraryCircleById = new Map(LIBRARY_CIRCLES.map((circle) => [circle.id, circle]));
 
@@ -2098,6 +2097,56 @@ const THREE_LOW_EFFECT_Y = THREE_INK_Y + 0.008;
 const THREE_SHOE_PAPER_Y = THREE_TABLE_SURFACE_Y + 0.008;
 const THREE_SHOE_INK_Y = THREE_SHOE_PAPER_Y + 0.008;
 
+function spellPhase3d(elapsedSeconds) {
+  const progress = spellProgress3d(elapsedSeconds);
+  const gather = Math.min(1, progress / 0.24);
+  const manifest = Math.min(1, Math.max(0, (progress - 0.18) / 0.42));
+  const sustain = Math.min(1, Math.max(0, (progress - 0.42) / 0.58));
+  return {
+    progress,
+    gather: easeOutCubic(gather),
+    manifest: easeOutCubic(manifest),
+    sustain,
+  };
+}
+
+function effectAnchorY3d(supportId = "none") {
+  return supportId === "shoe" ? THREE_SHOE_INK_Y : THREE_INK_Y;
+}
+
+function addSurfaceContact3d(group, radius, color, {
+  supportId = "none",
+  opacity = 0.18,
+  scaleZ = 0.44,
+} = {}) {
+  const anchorY = effectAnchorY3d(supportId) + 0.002;
+  const contactColor = new THREE.Color(color).lerp(new THREE.Color(0x2a211b), 0.72);
+  const contact = new THREE.Mesh(
+    new THREE.CircleGeometry(Math.max(0.06, radius), 64),
+    new THREE.MeshStandardMaterial({
+      color: contactColor,
+      roughness: 1,
+      metalness: 0,
+      transparent: true,
+      opacity,
+      depthWrite: true,
+      side: THREE.DoubleSide,
+    }),
+  );
+  contact.name = "spell-surface-contact";
+  contact.rotation.x = -Math.PI / 2;
+  contact.position.y = anchorY;
+  contact.scale.z = scaleZ;
+  addAnimatedObject(group, contact, (object, elapsed) => {
+    const phase = spellPhase3d(elapsed);
+    const pulse = 1 + Math.sin(elapsed * 2.1) * 0.025;
+    const reveal = 0.22 + phase.gather * 0.78;
+    object.scale.set(reveal * pulse, 1, scaleZ * reveal * pulse);
+    object.material.opacity = opacity * (0.35 + phase.manifest * 0.65);
+  });
+  return contact;
+}
+
 const THREE_SURFACE_ESCAPE_SIGNS = new Set([
   "Colonne",
   "Convergence",
@@ -2427,6 +2476,13 @@ function resetTargetPose(target) {
 function animateEnvironmentTargets() {
   const elapsed = performance.now() / 1000;
   for (const target of threeView.environmentTargets) {
+    const reactionEffect = target.userData.reactionEffect;
+    if (reactionEffect?.visible) {
+      reactionEffect.children.forEach((flame, index) => {
+        const pulse = 0.78 + Math.sin(elapsed * 8 + index * 1.7) * 0.2;
+        flame.scale.set(pulse, 0.82 + Math.sin(elapsed * 10 + index) * 0.24, pulse);
+      });
+    }
     const impact = target.userData.impact;
     if (!impact) continue;
     resetTargetPose(target);
@@ -3526,6 +3582,12 @@ function addElementBaseEffect3d(group, elementName, effects, auraRadius, element
     side: THREE.DoubleSide,
   });
 
+  addSurfaceContact3d(group, baseRadius * 0.78, elementColor, {
+    supportId,
+    opacity: elementName === "Feu" ? 0.24 : 0.14,
+    scaleZ: 0.42,
+  });
+
   const addFlatDisc = (radius, opacity, scaleZ = 0.36) => {
     const disc = new THREE.Mesh(new THREE.CircleGeometry(radius, 64), surfaceMaterial.clone());
     disc.rotation.x = -Math.PI / 2;
@@ -3589,20 +3651,64 @@ function addElementBaseEffect3d(group, elementName, effects, auraRadius, element
   }
 
   if (elementName === "Feu") {
-    addFlatDisc(baseRadius * 0.8, 0.18, 0.46);
-    const flameMaterial = new THREE.MeshBasicMaterial({ color: 0xf0a23a, transparent: true, opacity: 0.58, depthWrite: false });
-    for (let index = 0; index < 10; index += 1) {
-      const angle = (index / 10) * Math.PI * 2;
-      const radius = baseRadius * (0.16 + (index % 4) * 0.075);
-      const flame = new THREE.Mesh(new THREE.ConeGeometry(0.015 + (index % 3) * 0.004, 0.07 + (index % 2) * 0.03, 8), flameMaterial.clone());
-      flame.position.set(Math.cos(angle) * radius, surfaceY + 0.03, Math.sin(angle) * radius * 0.42);
-      addAnimatedObject(group, flame, (object, elapsed) => {
-        const flicker = 0.75 + Math.abs(Math.sin(elapsed * 5.5 + index)) * 0.4;
-        object.scale.set(0.8 + flicker * 0.2, flicker, 0.8);
-        object.position.y = surfaceY + 0.022 + flicker * 0.026;
-        object.material.opacity = 0.34 + flicker * 0.24;
-      });
-    }
+    addFlatDisc(baseRadius * 0.8, 0.16, 0.46);
+    const plume = new THREE.Group();
+    plume.name = "fire-plume";
+    const outerMaterial = new THREE.MeshStandardMaterial({
+      color: 0xc74e2c,
+      emissive: 0x6e1d12,
+      emissiveIntensity: 0.72,
+      roughness: 0.68,
+      transparent: true,
+      opacity: 0.76,
+      depthWrite: true,
+    });
+    const innerMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffd46a,
+      emissive: 0xe68c22,
+      emissiveIntensity: 1.2,
+      roughness: 0.4,
+      transparent: true,
+      opacity: 0.82,
+      depthWrite: true,
+    });
+    const outer = new THREE.Mesh(new THREE.ConeGeometry(baseRadius * 0.42, 0.62, 24), outerMaterial);
+    outer.name = "fire-plume-outer";
+    outer.position.y = surfaceY + 0.31;
+    plume.add(outer);
+    const inner = new THREE.Mesh(new THREE.ConeGeometry(baseRadius * 0.24, 0.44, 20), innerMaterial);
+    inner.name = "fire-plume-inner";
+    inner.position.y = surfaceY + 0.24;
+    plume.add(inner);
+    addAnimatedObject(group, plume, (object, elapsed) => {
+      const phase = spellPhase3d(elapsed);
+      const flicker = 1 + Math.sin(elapsed * 6.2) * 0.07;
+      const reveal = 0.16 + phase.manifest * 0.84;
+      object.scale.set(0.86 + reveal * 0.14, reveal * flicker, 0.86 + reveal * 0.14);
+      object.rotation.z = Math.sin(elapsed * 3.4) * 0.035;
+      outer.material.opacity = 0.18 + reveal * 0.58;
+      inner.material.opacity = 0.22 + reveal * 0.6;
+    });
+
+    const smoke = new THREE.Mesh(
+      new THREE.SphereGeometry(baseRadius * 0.28, 18, 12),
+      new THREE.MeshStandardMaterial({
+        color: 0x5b443b,
+        roughness: 1,
+        transparent: true,
+        opacity: 0.22,
+        depthWrite: false,
+      }),
+    );
+    smoke.name = "fire-smoke";
+    smoke.position.y = surfaceY + 0.7;
+    addAnimatedObject(group, smoke, (object, elapsed) => {
+      const phase = spellPhase3d(elapsed);
+      object.position.x = Math.sin(elapsed * 1.4) * baseRadius * 0.08;
+      object.position.y = surfaceY + 0.56 + phase.manifest * 0.34;
+      object.scale.setScalar(0.3 + phase.manifest * 1.1);
+      object.material.opacity = Math.max(0.02, 0.08 + phase.manifest * 0.18);
+    });
     return;
   }
 
@@ -3692,7 +3798,7 @@ function addElementBaseEffect3d(group, elementName, effects, auraRadius, element
 function addElementalMixtureEffect3d(group, presentation, auraRadius, elementColor, supportId = "none") {
   if (!presentation) return;
   const family = presentation.family;
-  const surfaceY = THREE_LOW_EFFECT_Y;
+  const surfaceY = effectAnchorY3d(supportId) + 0.002;
   const baseRadius = Math.max(0.1, auraRadius * 0.5);
   const waterWeight = presentation.elements.find(({ name }) => name === "Eau")?.weight || 0;
   const earthWeight = presentation.elements.find(({ name }) => name === "Terre")?.weight || 0;
@@ -3701,6 +3807,12 @@ function addElementalMixtureEffect3d(group, presentation, auraRadius, elementCol
   const isVapor = ["steam", "driven-mist", "pressurized-steam"].includes(family);
   const isGrounded = ["mud", "moving-mud", "heated-mud", "heated-earth"].includes(family);
   const isParticulate = ["dust", "ash"].includes(family);
+
+  addSurfaceContact3d(group, baseRadius * 0.82, elementColor, {
+    supportId,
+    opacity: isGrounded ? 0.22 : 0.12,
+    scaleZ: isGrounded ? 0.52 : 0.42,
+  });
 
   if (isVapor) {
     const vaporColor = elementColor.clone().lerp(new THREE.Color(0xdce8e5), 0.58);
@@ -3719,13 +3831,15 @@ function addElementalMixtureEffect3d(group, presentation, auraRadius, elementCol
       const radial = baseRadius * (0.08 + (index % 6) * 0.06);
       puff.position.set(Math.cos(angle) * radial, surfaceY + 0.03, Math.sin(angle) * radial * 0.5);
       addAnimatedObject(group, puff, (object, elapsed) => {
+        const phaseState = spellPhase3d(elapsed);
         const phase = (elapsed * (0.12 + fireWeight * 0.12) + index / 18) % 1;
-        const spread = 1 + phase * (0.8 + windWeight * 1.4);
-        object.position.x = Math.cos(angle) * radial * spread + windWeight * phase * baseRadius;
-        object.position.y = surfaceY + 0.04 + phase * (0.5 + fireWeight * 0.8);
-        object.position.z = Math.sin(angle) * radial * (0.45 + phase * 0.65);
-        object.scale.setScalar(0.78 + phase * 2.6);
-        object.material.opacity = Math.max(0.035, 0.38 * (1 - phase));
+        const gather = 1 - phaseState.gather * 0.35;
+        const spread = (1 + phase * (0.8 + windWeight * 1.4)) * gather;
+        object.position.x = Math.cos(angle) * radial * spread + windWeight * phase * baseRadius * phaseState.manifest;
+        object.position.y = surfaceY + 0.04 + phaseState.manifest * phase * (0.5 + fireWeight * 0.8);
+        object.position.z = Math.sin(angle) * radial * (0.45 + phase * 0.65) * gather;
+        object.scale.setScalar((0.78 + phase * 2.6) * (0.72 + phaseState.manifest * 0.28));
+        object.material.opacity = Math.max(0.035, 0.38 * (0.35 + phaseState.manifest * 0.65) * (1 - phase));
       });
     }
     if (family === "driven-mist" || family === "pressurized-steam") {
@@ -3763,7 +3877,8 @@ function addElementalMixtureEffect3d(group, presentation, auraRadius, elementCol
     surface.position.y = surfaceY;
     surface.scale.z = 0.34 + waterWeight * 0.45;
     addAnimatedObject(group, surface, (object, elapsed) => {
-      const progress = easeOutCubic(spellProgress3d(elapsed));
+      const phaseState = spellPhase3d(elapsed);
+      const progress = phaseState.manifest;
       const spread = 0.45 + progress * (0.9 + waterWeight * 1.35);
       object.scale.set(spread, 1, (0.3 + waterWeight * 0.5) * spread);
       object.material.opacity = 0.48 + Math.sin(elapsed * 1.6) * 0.06;
@@ -3798,18 +3913,21 @@ function addElementalMixtureEffect3d(group, presentation, auraRadius, elementCol
   }
 
   if (family === "fire-vortex") {
+    addSurfaceContact3d(group, baseRadius * 0.76, elementColor, { supportId, opacity: 0.22, scaleZ: 0.46 });
     const flameMaterial = new THREE.MeshBasicMaterial({ color: elementColor, transparent: true, opacity: 0.66, depthWrite: false });
     for (let index = 0; index < 18; index += 1) {
       const angle = (index / 18) * Math.PI * 2;
       const flame = new THREE.Mesh(new THREE.ConeGeometry(0.012, 0.065, 7), flameMaterial.clone());
       flame.position.set(Math.cos(angle) * baseRadius * 0.48, surfaceY + 0.04 + (index % 4) * 0.025, Math.sin(angle) * baseRadius * 0.48);
       addAnimatedObject(group, flame, (object, elapsed) => {
+        const phaseState = spellPhase3d(elapsed);
         const rotation = angle + elapsed * (0.7 + windWeight * 1.8);
-        const radius = baseRadius * (0.18 + ((index + elapsed * 3) % 18) / 18 * 0.42);
+        const radius = baseRadius * (0.18 + ((index + elapsed * 3) % 18) / 18 * 0.42) * (0.55 + phaseState.manifest * 0.45);
         object.position.x = Math.cos(rotation) * radius;
         object.position.z = Math.sin(rotation) * radius;
-        object.position.y = surfaceY + 0.025 + radius * (0.7 + fireWeight);
+        object.position.y = surfaceY + 0.025 + phaseState.manifest * radius * (0.7 + fireWeight);
         object.scale.y = 0.7 + Math.abs(Math.sin(elapsed * 5 + index)) * 0.8;
+        object.material.opacity = 0.18 + phaseState.manifest * 0.48;
       });
     }
     return;
@@ -4060,6 +4178,12 @@ function addCombinedSignEffects3d(group, effects, elementName, auraRadius, eleme
   }
 
   const baseY = supportId === "shoe" ? 0.56 : THREE_LOW_EFFECT_Y + 0.018;
+  const contactY = Math.max(THREE_TABLE_SURFACE_Y + 0.002, baseY);
+  addSurfaceContact3d(group, auraRadius * 0.62, elementColor, {
+    supportId,
+    opacity: 0.1,
+    scaleZ: 0.44,
+  });
   const makeLineMaterial = (color = elementColor, opacity = 0.52) => new THREE.LineBasicMaterial({
     color,
     transparent: true,
@@ -4067,22 +4191,102 @@ function addCombinedSignEffects3d(group, effects, elementName, auraRadius, eleme
   });
 
   if (has("colonne diffuse")) {
-    const material = new THREE.MeshBasicMaterial({
-      color: elementColor,
-      transparent: true,
-      opacity: 0.12,
-      depthWrite: false,
-      side: THREE.DoubleSide,
+    const plume = new THREE.Group();
+    plume.name = "integrated-column-plume";
+    plume.position.y = contactY;
+    const isFire = elementName === "Feu";
+    const outerColor = isFire
+      ? new THREE.Color(0xe05b32)
+      : new THREE.Color(elementColor);
+    const innerColor = isFire
+      ? new THREE.Color(0xffcf68)
+      : new THREE.Color(elementColor).lerp(new THREE.Color(0xf6ecd8), 0.38);
+    const plumeLayers = [
+      {
+        name: "column-shell",
+        radius: auraRadius * 0.68,
+        height: 0.84,
+        y: 0.42,
+        color: outerColor,
+        opacity: 0.22,
+      },
+      {
+        name: "column-core",
+        radius: auraRadius * 0.4,
+        height: 0.62,
+        y: 0.31,
+        color: innerColor,
+        opacity: 0.3,
+      },
+    ];
+    for (const layer of plumeLayers) {
+      const mesh = new THREE.Mesh(
+        new THREE.ConeGeometry(layer.radius, layer.height, 40, 6, true),
+        new THREE.MeshStandardMaterial({
+          color: layer.color,
+          emissive: layer.color,
+          emissiveIntensity: isFire ? 0.5 : 0.14,
+          roughness: 0.72,
+          transparent: true,
+          opacity: layer.opacity,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+        }),
+      );
+      mesh.name = layer.name;
+      mesh.position.y = layer.y;
+      plume.add(mesh);
+    }
+    addAnimatedObject(group, plume, (object, elapsed) => {
+      const phase = spellPhase3d(elapsed);
+      const reveal = 0.06 + phase.manifest * 0.94;
+      const sway = Math.sin(elapsed * 2.4) * 0.035;
+      object.scale.set(0.88 + reveal * 0.12, reveal, 0.88 + reveal * 0.12);
+      object.rotation.z = sway;
+      object.rotation.x = Math.cos(elapsed * 1.7) * 0.018;
+      for (const [index, child] of object.children.entries()) {
+        child.material.opacity = plumeLayers[index].opacity * (0.28 + phase.gather * 0.72);
+      }
     });
-    const cone = new THREE.Mesh(new THREE.ConeGeometry(auraRadius * 1.02, 2.4, 56, 1, true), material);
-    cone.position.y = 1.2;
-    cone.rotation.x = Math.PI;
-    group.add(cone);
+    if (isFire) {
+      const fireflies = new THREE.Group();
+      fireflies.name = "firefly-field";
+      for (let index = 0; index < 7; index += 1) {
+        const mote = new THREE.Mesh(
+          new THREE.SphereGeometry(0.012 + (index % 3) * 0.004, 8, 6),
+          new THREE.MeshBasicMaterial({
+            color: index % 2 ? 0xffd46a : 0xe05b32,
+            transparent: true,
+            opacity: 0.65,
+            depthWrite: false,
+          }),
+        );
+        mote.position.set(
+          Math.cos(index * 2.4) * auraRadius * (0.28 + (index % 2) * 0.12),
+          0.18 + (index % 4) * 0.16,
+          Math.sin(index * 2.4) * auraRadius * 0.22,
+        );
+        fireflies.add(mote);
+      }
+      addAnimatedObject(group, fireflies, (object, elapsed) => {
+        const phase = spellPhase3d(elapsed);
+        object.rotation.y = elapsed * 0.7;
+        object.position.y = phase.manifest * 0.08;
+        object.scale.setScalar(0.2 + phase.manifest * 0.8);
+        for (const [index, mote] of object.children.entries()) {
+          mote.position.y = 0.18 + (index % 4) * 0.16 + Math.sin(elapsed * 3 + index) * 0.025;
+          mote.material.opacity = 0.08 + phase.manifest * 0.62;
+        }
+      });
+    }
     for (let index = 0; index < 5; index += 1) {
       const ring = circleLine(auraRadius * (0.44 + index * 0.2), 0.42 + index * 0.34, elementColor, 0.22, 144);
+      ring.position.y = contactY;
       addAnimatedObject(group, ring, (object, elapsed) => {
+        const phase = spellPhase3d(elapsed);
         object.scale.setScalar(1 + Math.sin(elapsed * 1.7 + index) * 0.045);
-        object.material.opacity = 0.14 + Math.sin(elapsed * 2.1 + index) * 0.06;
+        object.position.y = contactY + index * 0.34 * phase.manifest;
+        object.material.opacity = (0.06 + phase.gather * 0.08) + Math.sin(elapsed * 2.1 + index) * 0.06;
       });
     }
   }
@@ -4092,9 +4296,10 @@ function addCombinedSignEffects3d(group, effects, elementName, auraRadius, eleme
     for (let index = 0; index < 4; index += 1) {
       const ring = circleLine(auraRadius * (0.36 + index * 0.16), 0.42 + index * 0.22, 0x9cc9bd, 0.48, 128);
       addAnimatedObject(group, ring, (object, elapsed) => {
+        const phase = spellPhase3d(elapsed);
         object.position.y = 0.34 + ((elapsed * 0.2 + index * 0.14) % 0.92);
         object.rotation.y = elapsed * 0.35;
-        object.material.opacity = 0.28 + Math.sin(elapsed * 2.8 + index) * 0.12;
+        object.material.opacity = (0.1 + phase.manifest * 0.18) + Math.sin(elapsed * 2.8 + index) * 0.12;
       });
     }
     for (let index = 0; index < 8; index += 1) {
@@ -4527,12 +4732,13 @@ function addSymbolicParticleField3d(group, field, auraRadius, elementColor, base
   );
   particles.name = field.mode === "pulsed-beam" ? "particle-field-pulsed-beam" : `particle-field-${field.medium}`;
   addAnimatedObject(group, particles, (object, elapsed) => {
+    const phaseState = spellPhase3d(elapsed);
     const pulseRate = Math.max(0, Math.min(16, field.pulseRateHz || 0));
     const pulse = field.mode === "pulsed-beam"
       ? Math.max(0.08, Math.sin(elapsed * pulseRate * Math.PI * 2) * 0.5 + 0.5)
       : 0.82 + Math.sin(elapsed * 1.4) * 0.08;
-    object.material.opacity = (field.mode === "pulsed-beam" ? 0.12 + pulse * 0.68 : 0.38 + pulse * 0.12);
-    object.scale.set(1 + (1 - cohesion) * 0.08, 1, 1 + (1 - cohesion) * 0.08);
+    object.material.opacity = (field.mode === "pulsed-beam" ? 0.04 + phaseState.manifest * (0.08 + pulse * 0.6) : 0.12 + phaseState.manifest * (0.26 + pulse * 0.12));
+    object.scale.set(1 + (1 - cohesion) * 0.08, 0.12 + phaseState.manifest * 0.88, 1 + (1 - cohesion) * 0.08);
   });
 }
 
@@ -5343,8 +5549,12 @@ function rebuildThreeSpell() {
     }
   }
 
-  const pointLight = new THREE.PointLight(elementColor, floatingCore ? 1.6 : 0.55, floatingCore ? 7 : 2.2);
-  pointLight.position.set(0, floatingCore ? (shoeMode ? 0.82 : 1.35) : (shoeMode ? 0.64 : THREE_LOW_EFFECT_Y + 0.16), 0);
+  const fireLight = element.name === "Feu";
+  const pointLightIntensity = fireLight ? 1.35 : (floatingCore ? 1.6 : 0.55);
+  const pointLightDistance = fireLight ? 3.4 : (floatingCore ? 7 : 2.2);
+  const pointLight = new THREE.PointLight(elementColor, pointLightIntensity, pointLightDistance);
+  pointLight.name = "spell-element-light";
+  pointLight.position.set(0, fireLight ? THREE_LOW_EFFECT_Y + 0.24 : (floatingCore ? (shoeMode ? 0.82 : 1.35) : (shoeMode ? 0.64 : THREE_LOW_EFFECT_Y + 0.16)), 0);
   group.add(pointLight);
 
   const manifestation = new THREE.Group();
@@ -5434,6 +5644,10 @@ function clearActiveManifestation(reason = "manual", clearSpell = true) {
 }
 
 function clearExpiredManifestation() {
+  threeView.physicsLoadToken += 1;
+  threeView.physicsRuntime = null;
+  threeView.physicsTargetMap = new Map();
+  threeView.lastPhysicsAt = 0;
   const group = threeView.spellGroup;
   const manifestation = group?.userData?.manifestation;
   manifestation?.parent?.remove(manifestation);
@@ -5479,27 +5693,6 @@ function currentSpellInfluenceProfile() {
   });
 }
 
-function applySpellToEnvironment() {
-  const profile = currentSpellInfluenceProfile();
-  if (!profile || !threeView.spellGroup) return;
-  const spellPosition = threeView.spellGroup.position;
-  for (const target of threeView.environmentTargets) {
-    const base = target.userData.basePosition || target.position;
-    const radius = target.userData.interactiveTarget?.radius || 0.4;
-    const distance = Math.hypot(base.x - spellPosition.x, base.z - spellPosition.z);
-    if (distance > profile.diameter * 0.75 + radius) continue;
-    const impact = applySpellImpact(target.userData.interactiveTarget, profile);
-    const direction = new THREE.Vector3(base.x - spellPosition.x, 0, base.z - spellPosition.z);
-    if (direction.lengthSq() < 0.001) direction.set(1, 0, 0);
-    direction.normalize();
-    target.userData.impact = {
-      ...impact,
-      age: 0,
-      direction: { x: direction.x, z: direction.z },
-    };
-  }
-}
-
 function threeVectorObject(vector) {
   return { x: vector.x, y: vector.y, z: vector.z };
 }
@@ -5510,7 +5703,10 @@ function threePhysicsMaterialForTarget(interactiveTarget = {}) {
   if (kind === "tree") return "wood";
   if (kind === "rock" || kind === "stone") return "stone";
   if (kind === "grass" || kind === "plant") return "plant";
-  if (kind === "cloth") return "cloth";
+  if (kind === "cloth" || kind === "hat") return "cloth";
+  if (kind === "book" || kind === "scroll") return "paper";
+  if (kind === "candle") return "wax";
+  if (kind === "bottle") return "glass";
   return "generic";
 }
 
@@ -5578,6 +5774,18 @@ function threeSpellForcesForPhysics(forces = []) {
   });
 }
 
+function updateThreeSpellPhysicsField(runtime = threeView.physicsRuntime) {
+  const profile = currentSpellInfluenceProfile();
+  if (!runtime || !profile?.spellForces?.length || !threeView.spellGroup) return false;
+  const forces = threeSpellForcesForPhysics(profile.spellForces);
+  runtime.setSpellField({
+    position: threeVectorObject(threeView.spellGroup.position),
+    radiusMeters: Math.max(profile.diameter * 0.5, ...forces.map((force) => force.radiusMeters || 0)),
+    forces,
+  });
+  return true;
+}
+
 async function rebuildThreePhysicsRuntime() {
   const token = threeView.physicsLoadToken + 1;
   threeView.physicsLoadToken = token;
@@ -5598,12 +5806,76 @@ async function rebuildThreePhysicsRuntime() {
       gravity: { x: 0, y: 0, z: 0 },
       targets: descriptors,
     });
-    runtime.applySpellForces(threeSpellForcesForPhysics(profile.spellForces));
+    updateThreeSpellPhysicsField(runtime);
     threeView.physicsRuntime = runtime;
     threeView.physicsTargetMap = targetMap;
   } catch (error) {
     console.warn("Rapier physics runtime unavailable", error);
   }
+}
+
+function targetReactionEffect(target) {
+  if (target.userData.reactionEffect) return target.userData.reactionEffect;
+  const effect = new THREE.Group();
+  effect.userData.persistentReactionEffect = true;
+  const bounds = new THREE.Box3().setFromObject(target);
+  const size = new THREE.Vector3();
+  const center = new THREE.Vector3();
+  bounds.getSize(size);
+  bounds.getCenter(center);
+  target.worldToLocal(center);
+  const effectScale = Math.max(0.6, Math.min(2.8, Math.max(size.x, size.y, size.z) * 0.55));
+  effect.position.set(center.x, center.y + size.y * 0.34, center.z);
+  effect.scale.setScalar(effectScale);
+  for (let index = 0; index < 5; index += 1) {
+    const flame = new THREE.Mesh(
+      new THREE.ConeGeometry(0.08 + (index % 2) * 0.025, 0.32 + (index % 3) * 0.08, 9),
+      new THREE.MeshBasicMaterial({
+        color: index % 2 ? 0xffb12b : 0xe74b24,
+        transparent: true,
+        opacity: 0.82,
+        depthWrite: false,
+      }),
+    );
+    flame.userData.persistentReactionEffect = true;
+    const angle = (index / 5) * Math.PI * 2;
+    flame.position.set(Math.cos(angle) * 0.18, 0.26 + (index % 2) * 0.08, Math.sin(angle) * 0.18);
+    effect.add(flame);
+  }
+  effect.visible = false;
+  target.add(effect);
+  target.userData.reactionEffect = effect;
+  return effect;
+}
+
+function renderThreeTargetReaction(target, snapshot = {}) {
+  if (!target) return;
+  const state = snapshot.reactionState || "idle";
+  const effect = targetReactionEffect(target);
+  effect.visible = state === "burning";
+  target.traverse((object) => {
+    if (object.userData?.persistentReactionEffect) return;
+    const materials = Array.isArray(object.material) ? object.material : object.material ? [object.material] : [];
+    for (const material of materials) {
+      if (!material?.color) continue;
+      if (!material.userData.reactionBaseColor) {
+        material.userData.reactionBaseColor = `#${material.color.getHexString()}`;
+        material.userData.reactionBaseEmissive = material.emissive ? `#${material.emissive.getHexString()}` : null;
+      }
+      const baseColor = new THREE.Color(material.userData.reactionBaseColor);
+      material.color.copy(baseColor);
+      if (state === "heated") material.color.lerp(new THREE.Color(0xc86432), 0.24);
+      if (state === "scorched") material.color.lerp(new THREE.Color(0x3c2017), 0.58);
+      if (state === "burning") material.color.lerp(new THREE.Color(0x24130f), 0.7);
+      if (state === "wet" || state === "extinguished") material.color.lerp(new THREE.Color(0x38566d), state === "wet" ? 0.28 : 0.18);
+      if (material.emissive) {
+        material.emissive.set(material.userData.reactionBaseEmissive || 0x000000);
+        if (state === "burning") material.emissive.lerp(new THREE.Color(0xff5a20), 0.55);
+        material.emissiveIntensity = state === "burning" ? 0.8 : 1;
+      }
+      material.needsUpdate = true;
+    }
+  });
 }
 
 function syncThreePhysicsTargets() {
@@ -5628,6 +5900,7 @@ function syncThreePhysicsTargets() {
     if (snapshot) {
       target.userData.persistentPhysicsState = snapshot;
       target.userData.reactionState = snapshot.reactionState;
+      renderThreeTargetReaction(target, snapshot);
     }
   }
 }
@@ -5638,6 +5911,7 @@ function stepThreePhysicsRuntime(timestamp) {
   const now = timestamp / 1000;
   const delta = threeView.lastPhysicsAt ? now - threeView.lastPhysicsAt : 1 / 60;
   threeView.lastPhysicsAt = now;
+  runtime.setSpellFieldPosition(threeVectorObject(threeView.spellGroup?.position || new THREE.Vector3()));
   runtime.step(delta);
   syncThreePhysicsTargets();
 }
@@ -5688,13 +5962,13 @@ function finishSpell3dDrag(event) {
   if (spell3dCanvas.hasPointerCapture?.(drag.pointerId)) {
     spell3dCanvas.releasePointerCapture(drag.pointerId);
   }
-  applySpellToEnvironment();
+  updateThreeSpellPhysicsField();
 }
 
 function rotateSelectedSpell3d(amount) {
   if (!threeView.selectedSpell || !threeView.spellGroup) return false;
   threeView.spellGroup.rotation.y += amount;
-  applySpellToEnvironment();
+  updateThreeSpellPhysicsField();
   return true;
 }
 
