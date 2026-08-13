@@ -9,6 +9,9 @@ test("the atelier opens with a non-interactive app hub mockup", async () => {
 
   assert.match(html, /<body class="simulator-page app-home-page">/);
   assert.match(html, /<section class="app-hub app-hub-home" data-app-hub/);
+  assert.match(html, /<div class="app-hub-hero">/);
+  assert.match(html, /<figure class="app-hub-showcase" aria-hidden="true">/);
+  assert.match(html, /assets\/library-schematics\/ancient-light-beacon\.png/);
   assert.match(html, /<button class="app-hub-card app-hub-card-primary" type="button" disabled[\s\S]*data-i18n="appHub\.canvases"/);
   assert.match(html, /<button class="app-hub-card" type="button" disabled[\s\S]*data-i18n="appHub\.workshop"/);
   assert.match(html, /<button class="app-hub-card" type="button" disabled[\s\S]*data-i18n="appHub\.library"/);
@@ -49,6 +52,9 @@ test("the app hub has a responsive designed shell", async () => {
   assert.match(css, /\.app-home-page \.workspace\s*\{[\s\S]*?display:\s*none/);
   assert.match(css, /\.app-hub\s*\{/);
   assert.match(css, /\.app-hub-home\s*\{[\s\S]*?min-height:\s*calc\(100dvh - 68px\)/);
+  assert.match(css, /\.app-hub-hero\s*\{/);
+  assert.match(css, /\.app-hub-showcase\s*\{/);
+  assert.match(css, /\.app-hub-card-primary\s*\{[\s\S]*?grid-row:\s*span 2/);
   assert.match(css, /\.app-hub-grid\s*\{/);
   assert.match(css, /\.app-hub-card\s*\{/);
   assert.match(css, /\.app-hub-card:disabled/);
