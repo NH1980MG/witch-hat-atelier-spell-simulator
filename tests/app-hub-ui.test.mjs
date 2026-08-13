@@ -7,7 +7,8 @@ import { translate } from "../i18n.mjs";
 test("the atelier opens with a non-interactive app hub mockup", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 
-  assert.match(html, /<section class="app-hub" data-app-hub/);
+  assert.match(html, /<body class="simulator-page app-home-page">/);
+  assert.match(html, /<section class="app-hub app-hub-home" data-app-hub/);
   assert.match(html, /<button class="app-hub-card app-hub-card-primary" type="button" disabled[\s\S]*data-i18n="appHub\.canvases"/);
   assert.match(html, /<button class="app-hub-card" type="button" disabled[\s\S]*data-i18n="appHub\.workshop"/);
   assert.match(html, /<button class="app-hub-card" type="button" disabled[\s\S]*data-i18n="appHub\.library"/);
@@ -44,7 +45,10 @@ test("the app hub labels are bilingual", () => {
 test("the app hub has a responsive designed shell", async () => {
   const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
 
+  assert.match(css, /\.app-home-page \.app-shell\s*\{/);
+  assert.match(css, /\.app-home-page \.workspace\s*\{[\s\S]*?display:\s*none/);
   assert.match(css, /\.app-hub\s*\{/);
+  assert.match(css, /\.app-hub-home\s*\{[\s\S]*?min-height:\s*calc\(100dvh - 68px\)/);
   assert.match(css, /\.app-hub-grid\s*\{/);
   assert.match(css, /\.app-hub-card\s*\{/);
   assert.match(css, /\.app-hub-card:disabled/);

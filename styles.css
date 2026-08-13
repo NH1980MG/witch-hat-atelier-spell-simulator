@@ -75,6 +75,13 @@ input:focus-visible {
   overflow: hidden;
 }
 
+.app-home-page .app-shell {
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .top-title {
   position: relative;
   display: flex;
@@ -456,6 +463,16 @@ input:focus-visible {
     repeating-linear-gradient(0deg, rgba(140, 107, 63, 0.12) 0 1px, transparent 1px 34px);
 }
 
+.app-hub-home {
+  min-height: calc(100dvh - 68px);
+  max-height: none;
+  align-content: center;
+  grid-template-columns: minmax(280px, 0.58fr) minmax(0, 1.42fr);
+  gap: 28px;
+  overflow: auto;
+  padding: 34px;
+}
+
 .app-hub-copy {
   display: grid;
   align-content: center;
@@ -570,6 +587,15 @@ input:focus-visible {
   grid-template-columns: minmax(0, 1fr);
   min-height: 0;
   overflow: hidden;
+}
+
+.app-home-page .workspace {
+  display: none;
+}
+
+.app-home-page .grimoire,
+.app-home-page .simulator-ad-placement {
+  display: none;
 }
 
 .canvas-wrap {
