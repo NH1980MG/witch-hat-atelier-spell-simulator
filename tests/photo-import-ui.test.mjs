@@ -35,7 +35,7 @@ test("l'atelier expose l'import photo complet", async () => {
 test("l'atelier importe l'analyse photo", async () => {
   const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
   const photoSource = await readFile(new URL("../photo-import.mjs", import.meta.url), "utf8");
-  assert.match(source, /import \{ analyzePhoto \} from "\.\/photo-import\.mjs\?v=20260809-handoff-layout-v2"/);
+  assert.match(source, /import \{ analyzePhoto \} from "\.\/photo-import\.mjs\?v=20260814-photo-rotation-v1"/);
   assert.match(source, /from "\.\/guide-storage\.mjs\?v=20260809-handoff-layout-v2"/);
   assert.match(source, /createPhotoRegionFromBounds,\s+mapPhotoAnalysis,\s+selectPhotoSymbol,\s+setPhotoRegionBounds,\s+setPhotoRegionPosition,\s+sourceCropForAnalysis,\s+\} from "\.\/photo-placement\.mjs\?v=20260811-photo-edit-v1"/);
   assert.match(source, /createImageBitmap/);

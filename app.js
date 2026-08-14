@@ -71,7 +71,7 @@ import {
   reconcilePracticeStartIndex,
   updatePracticeDiagnostic,
 } from "./practice-session.mjs?v=20260809-handoff-layout-v2";
-import { analyzePhoto } from "./photo-import.mjs?v=20260809-handoff-layout-v2";
+import { analyzePhoto } from "./photo-import.mjs?v=20260814-photo-rotation-v1";
 import {
   createPhotoRegionFromBounds,
   mapPhotoAnalysis,

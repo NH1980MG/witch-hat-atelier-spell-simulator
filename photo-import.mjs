@@ -296,6 +296,69 @@ export function groupComponents(components, imageWidth, imageHeight, rings) {
       }
     }
   }
+
+  // Le Viseur est forme de quatre bras volontairement separes par un grand
+  // vide central. Une distance globale assez grande pour les reunir fusionnerait
+  // aussi des glyphes voisins. On ne regroupe donc ce cas que si deux paires de
+  // traits opposes convergent vers le meme centre.
+  const centerOf = (component) => ({
+    x: (component.left + component.right) / 2,
+    y: (component.top + component.bottom) / 2,
+  });
+  const majorSpan = (component, orientation) => (
+    orientation === "vertical" ? component.height : component.width
+  );
+  const isOriented = (component, orientation) => (
+    orientation === "vertical"
+      ? component.height >= component.width * 2
+      : component.width >= component.height * 2
+  );
+  const crosshairGap = Math.min(
+    Math.min(imageWidth, imageHeight) * 0.25,
+    Math.max(imageGapCap * 5, medianStrokeWidth * 14),
+  );
+  const alignmentTolerance = Math.max(5, medianStrokeWidth * 2);
+  const opposingPairs = (orientation) => {
+    const pairs = [];
+    for (let first = 0; first < components.length; first += 1) {
+      if (!isOriented(components[first], orientation)) continue;
+      for (let second = first + 1; second < components.length; second += 1) {
+        if (!isOriented(components[second], orientation)) continue;
+        const a = components[first];
+        const b = components[second];
+        const centerA = centerOf(a);
+        const centerB = centerOf(b);
+        const alignment = orientation === "vertical"
+          ? Math.abs(centerA.x - centerB.x)
+          : Math.abs(centerA.y - centerB.y);
+        if (alignment > alignmentTolerance) continue;
+        const gap = orientation === "vertical"
+          ? Math.max(0, a.top - b.bottom - 1, b.top - a.bottom - 1)
+          : Math.max(0, a.left - b.right - 1, b.left - a.right - 1);
+        if (gap <= maxGap || gap > crosshairGap) continue;
+        const shorter = Math.min(majorSpan(a, orientation), majorSpan(b, orientation));
+        const longer = Math.max(majorSpan(a, orientation), majorSpan(b, orientation));
+        if (shorter < minSpanForCrosshair(medianStrokeWidth) || longer > shorter * 2.2) continue;
+        pairs.push({
+          indices: [first, second],
+          center: orientation === "vertical"
+            ? { x: (centerA.x + centerB.x) / 2, y: (Math.max(a.top, b.top) + Math.min(a.bottom, b.bottom)) / 2 }
+            : { x: (Math.max(a.left, b.left) + Math.min(a.right, b.right)) / 2, y: (centerA.y + centerB.y) / 2 },
+        });
+      }
+    }
+    return pairs;
+  };
+  const verticalPairs = opposingPairs("vertical");
+  const horizontalPairs = opposingPairs("horizontal");
+  const centerTolerance = Math.max(alignmentTolerance * 2, crosshairGap * 0.28);
+  for (const vertical of verticalPairs) {
+    for (const horizontal of horizontalPairs) {
+      if (Math.hypot(vertical.center.x - horizontal.center.x, vertical.center.y - horizontal.center.y) > centerTolerance) continue;
+      const indices = [...vertical.indices, ...horizontal.indices];
+      for (let index = 1; index < indices.length; index += 1) unite(indices[0], indices[index]);
+    }
+  }
   const grouped = new Map();
   for (let index = 0; index < components.length; index += 1) {
     const root = find(index);
@@ -318,6 +381,10 @@ export function groupComponents(components, imageWidth, imageHeight, rings) {
       size: members.reduce((sum, component) => sum + component.size, 0),
     };
   }).sort((a, b) => a.top - b.top || a.left - b.left);
+}
+
+function minSpanForCrosshair(strokeWidth) {
+  return Math.max(8, strokeWidth * 3);
 }
 
 // --- rasterisation des modeles --------------------------------------------
@@ -503,8 +570,7 @@ function meanDistanceOverInk(inkMask, dist) {
 // d'encre. La densite est decisive : un glyphe photographie garde une encre en
 // traits fins proche du modele (~20 % de remplissage), la ou une tache pleine
 // depasse 60 % — sans elle n'importe quel blob "ressemble" a un glyphe compact.
-export function rasterMatchScore(componentMask, templateMask, templateDist) {
-  const componentDist = distanceTransform(componentMask);
+export function rasterMatchScore(componentMask, templateMask, templateDist, componentDist = distanceTransform(componentMask)) {
   const forward = meanDistanceOverInk(templateMask, componentDist);
   const backward = meanDistanceOverInk(componentMask, templateDist);
   const chamfer = Math.max(forward, backward);
@@ -562,7 +628,10 @@ export function recognizeComponent(componentMask, componentWidth, componentHeigh
   return candidates.slice(0, 3);
 }
 
-const GROUP_ROTATIONS = [-12, -6, 0, 6, 12];
+// Les signes suivent souvent la circonference du cercle et peuvent donc etre
+// dessines dans n'importe quelle orientation. Un pas de 12 degres garde une
+// erreur maximale de 6 degres sans multiplier inutilement les comparaisons.
+const GROUP_ROTATIONS = Array.from({ length: 30 }, (_, index) => -180 + index * 12);
 const PHOTO_IMPORT_ACCEPTED_SCORE = 58;
 const PHOTO_IMPORT_ACCEPTED_MARGIN = 6;
 
@@ -593,10 +662,11 @@ export function recognizeGroup(groupMask, width, height, symbolPaths) {
     degrees,
     mask: rotateMask(normalized, degrees),
   }));
+  for (const rotation of rotations) rotation.dist = distanceTransform(rotation.mask);
   const candidates = templateMasks(symbolPaths).map(({ name, skeleton, skeletonDist }) => {
-    const matches = rotations.map(({ degrees, mask }) => ({
+    const matches = rotations.map(({ degrees, mask, dist }) => ({
       degrees,
-      score: rasterMatchScore(mask, skeleton, skeletonDist),
+      score: rasterMatchScore(mask, skeleton, skeletonDist, dist),
     }));
     matches.sort((a, b) => b.score - a.score || Math.abs(a.degrees) - Math.abs(b.degrees));
     return {
@@ -639,17 +709,6 @@ function eraseDetectedRings(mask, width, height, rings) {
     }
   }
   return out;
-}
-
-function componentNearErasedRing(component, ring) {
-  const farthestRadius = Math.max(
-    Math.hypot(component.left - ring.cx, component.top - ring.cy),
-    Math.hypot(component.right - ring.cx, component.top - ring.cy),
-    Math.hypot(component.left - ring.cx, component.bottom - ring.cy),
-    Math.hypot(component.right - ring.cx, component.bottom - ring.cy),
-  );
-  const allowance = ring.eraseTolerance + component.strokeWidth + 2;
-  return farthestRadius >= ring.radius - allowance;
 }
 
 function cropCenter(cropBounds, width, height) {
@@ -832,19 +891,20 @@ export function analyzePhoto(imageData, symbolPaths) {
   const sealPatterns = [detectOpeningPetrificationSeal(mask, width, height, cropBounds, rings)].filter(Boolean);
   const glyphMask = eraseDetectedRings(mask, width, height, rings);
   const residualComponents = connectedComponents(glyphMask, width, height, { minSize });
+  // Un symbole multi-traits (Viseur, Eau, etc.) contient parfois des marques
+  // qui sont petites individuellement mais significatives une fois regroupees.
+  // On ne filtre donc leur taille finale qu'apres le regroupement spatial.
+  const shortComponentSpan = Math.max(5, Math.round(minSpan * 0.3));
   const glyphComponents = residualComponents.components.filter((component) => {
-    if (Math.max(component.width, component.height) >= minSpan) return true;
-    const shortAttachedSpan = Math.max(5, Math.round(minSpan * 0.3));
-    if (
-      Math.max(component.width, component.height) >= shortAttachedSpan
-      && rings.some((ring) => componentNearErasedRing(component, ring))
-    ) {
-      return true;
-    }
+    if (Math.max(component.width, component.height) >= shortComponentSpan) return true;
     ignored += 1;
     return false;
   });
-  const groups = groupComponents(glyphComponents, width, height, rings);
+  const groups = groupComponents(glyphComponents, width, height, rings).filter((group) => {
+    if (Math.max(group.width, group.height) >= minSpan) return true;
+    ignored += group.components.length;
+    return false;
+  });
   const regions = groups.map((group) => {
     const groupMask = new Uint8Array(group.width * group.height);
     for (const component of group.components) {
