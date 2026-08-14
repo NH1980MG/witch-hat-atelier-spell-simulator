@@ -6,9 +6,9 @@ import {
   SYMBOL_PATHS,
 } from "./symbol-catalog.mjs?v=20260809-handoff-layout-v2";
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260812-particle-field-v1";
-import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260812-particle-field-v1";
+import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260814-crosshair-sides-v1";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260812-project-support-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260814-crosshair-sides-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260809-handoff-layout-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -57,7 +57,7 @@ import {
   topmostSelectableIndexAtPoint,
   translateSelectedActions,
 } from "./symbol-interactions.mjs?v=20260812-dockable-toolbar-v1";
-import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260809-handoff-layout-v2";
+import { PALETTE_ELEMENTS, ENGLISH_DISPLAY_NAMES } from "./symbol-palette-data.mjs?v=20260814-crosshair-sides-v1";
 import {
   SPOILER_MAX_CHAPTER,
   clampSpoilerChapter,
@@ -180,7 +180,7 @@ const englishSigilMeanings = Object.freeze({
 });
 
 const englishSignMeanings = Object.freeze({
-  Viseur: "Crosshair: the short ends point toward the intended target; a Target sign can lock that target.",
+  Viseur: "Crosshair: the long side forms the sight line, and the short side points toward the intended target; a Target sign can lock that target.",
   Radial: "Function unresolved: the simulator records this sign but does not apply an invented power change.",
 });
 

@@ -29,7 +29,8 @@ remaining large `app.js` sections.
   regular 65,600-recipe matrix.
 - Community mechanics audit added with explicit documented, inferred and
   experimental levels. Radial no longer invents a power reduction,
-  Convergence concentrates without adding power, Viseur contributes direction,
+  Convergence concentrates without adding power, Viseur contributes direction
+  from its short side,
   and Aeriforme/Vent keep separate air-creation and air-motion capabilities.
 - Elemental mixtures preserve their composed identity through reading,
   activation, 2D animation and 3D rendering. The frozen activation snapshot

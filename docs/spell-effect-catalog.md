@@ -97,7 +97,8 @@ The app separates the central sigil from modifier signs.
 - Multi-stroke signs are clustered before classification. A stem, crossbar and
   arrowhead therefore count as one sign instead of three unrelated marks.
 - Rotation changes a directional sign's output direction, not its identity.
-- Crosshair short ends face the target. `Cible` adds a target lock; without it,
+- Crosshair has a long side and a short side: the long side is the sight line,
+  and the short side faces the target. `Cible` adds a target lock; without it,
   the direction remains manually aimed.
 - Size, radial position and tilt are preserved as separate geometry values;
   they determine balance, lateral pressure, spin and reach.

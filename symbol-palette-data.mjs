@@ -62,7 +62,7 @@ export const PALETTE_ELEMENTS = Object.freeze([
   { name: "Diamant", color: "#8b1f1f", rune: "DM", charge: 0, kind: "sign", category: "Non-directionnel", meaning: "Cible les objets proches plutot que l'objet porteur." },
   { name: "Selection", color: "#8b1f1f", rune: "SE", charge: 0, kind: "sign", category: "Non-directionnel", meaning: "Selection: limite l'effet a l'objet qui porte le sceau." },
   { name: "Agrandissement", color: "#8b1f1f", rune: "AG", charge: 1, kind: "sign", category: "Semi-directionnel", meaning: "Fait grandir, ou reduit si le signe est inverse." },
-  { name: "Viseur", color: "#8b1f1f", rune: "VI", charge: 0, kind: "sign", category: "Directionnel", meaning: "Oriente l'effet: les extremites courtes pointent vers la cible." },
+  { name: "Viseur", color: "#8b1f1f", rune: "VI", charge: 0, kind: "sign", category: "Directionnel", meaning: "Oriente l'effet: le cote long forme la ligne du viseur, et le cote court pointe vers la cible." },
   { name: "Radial", color: "#8b1f1f", rune: "RA", charge: 0, kind: "sign", category: "Non-directionnel", meaning: "Sa fonction reste inconnue; aucun changement de puissance n'est applique." },
   { name: "Projectile", color: "#8b1f1f", rune: "BT", charge: 2, kind: "sign", category: "Non-directionnel", meaning: "Bolt: transforme l'effet en projectiles rapides." },
   { name: "Pluie", color: "#8b1f1f", rune: "PL", charge: 1, kind: "sign", category: "Semi-directionnel", meaning: "Rain: fait tomber l'effet dans la zone immediate." },

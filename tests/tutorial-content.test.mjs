@@ -53,4 +53,8 @@ test("tutorial covers the final matrix and fidelity model", () => {
   assert.match(html, /href="#tracing-guides"/);
   assert.match(translate("en", "tutorial.placement.select"), /right-click/i);
   assert.match(translate("fr", "tutorial.placement.select"), /clic droit/i);
+  assert.match(translate("en", "tutorial.step8.body"), /long side/i);
+  assert.match(translate("en", "tutorial.step8.body"), /short side.*target/i);
+  assert.match(translate("fr", "tutorial.step8.body"), /cote long/i);
+  assert.match(translate("fr", "tutorial.step8.body"), /cote court.*cible/i);
 });
