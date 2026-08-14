@@ -48,6 +48,8 @@ export function environmentalResponseFromParticleField({
   let massLoad = 0;
   let damping = 0;
   let heat = 0;
+  let crystal = 0;
+  let restoration = 0;
 
   if (medium === "photon-like") {
     primary = "illumination";
@@ -79,6 +81,18 @@ export function environmentalResponseFromParticleField({
     forceKind = "thermal";
     heat = round(clamp(0.2 + base.intensity * 0.45, 0, 1.4));
     channels.push("heat", "light");
+  } else if (medium === "solid" && componentsContain(field, "crystal")) {
+    primary = "crystallization";
+    delivery = base.focus > 1.25 ? "focused-crystal" : "surface-crystal";
+    forceKind = "crystallization";
+    crystal = round(clamp(0.18 + base.intensity * 0.5 + base.cohesion * 0.2, 0, 1.4));
+    channels.push("crystal", "surface-contact", "mass");
+  } else if (medium === "temporal-field" || componentsContain(field, "repetition")) {
+    primary = "restoration";
+    delivery = base.focus > 1.25 ? "focused-restoration" : "local-restoration";
+    forceKind = "reversible-state";
+    restoration = round(clamp(0.2 + base.intensity * 0.42, 0, 1.2));
+    channels.push("restore", "repetition");
   } else if (medium === "solid" || medium === "particulate") {
     primary = "impact";
     forceKind = "mass-impact";
@@ -100,6 +114,8 @@ export function environmentalResponseFromParticleField({
     massLoad,
     damping,
     heat,
+    crystal,
+    restoration,
     pulse: {
       mode: field.pulseRateHz > 0 ? "intermittent" : "continuous",
       rateHz: round(clamp(field.pulseRateHz ?? 0, 0, 16)),

@@ -105,6 +105,22 @@ export function spellForcesFromSnapshot(snapshot = {}) {
       physicalImpulse: round(clamp(base.magnitude * 0.08, 0, 0.28)),
       affects: ["surface", "flammable-props"],
     });
+  } else if (response.primary === "crystallization") {
+    forces.push({
+      ...base,
+      type: "crystal-field",
+      crystal: round(clamp(response.crystal || base.magnitude * 0.35, 0, 1.4)),
+      physicalImpulse: round(clamp(base.magnitude * 0.08, 0, 0.28)),
+      affects: ["surface", "wet-props", "stone", "loose-props"],
+    });
+  } else if (response.primary === "restoration") {
+    forces.push({
+      ...base,
+      type: "restoration-field",
+      restoration: round(clamp(response.restoration || base.magnitude * 0.3, 0, 1.2)),
+      physicalImpulse: 0,
+      affects: ["reversible-state", "surface", "loose-props"],
+    });
   } else if (response.primary === "impact") {
     forces.push({
       ...base,

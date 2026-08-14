@@ -87,11 +87,11 @@ import { createScalewolfMotionProfile } from "./decorative-creature-profile.mjs?
 import {
   computeSceneScale,
   spellInfluenceProfile,
-} from "./environment-interactions.mjs?v=20260813-contact-reactions-v1";
+} from "./environment-interactions.mjs?v=20260814-material-consequences-v1";
 import {
   createSpellPhysicsRuntime,
   loadRapier3dCompat,
-} from "./rapier-physics-world.mjs?v=20260813-contact-reactions-v1";
+} from "./rapier-physics-world.mjs?v=20260814-material-consequences-v1";
 
 const libraryCircleById = new Map(LIBRARY_CIRCLES.map((circle) => [circle.id, circle]));
 
@@ -5814,10 +5814,11 @@ async function rebuildThreePhysicsRuntime() {
   }
 }
 
-function targetReactionEffect(target) {
+function ensureThreeTargetReactionEffect(target) {
   if (target.userData.reactionEffect) return target.userData.reactionEffect;
-  const effect = new THREE.Group();
-  effect.userData.persistentReactionEffect = true;
+  const reactionEffect = new THREE.Group();
+  reactionEffect.userData.persistentReactionEffect = true;
+  reactionEffect.userData.kind = "material-consequence";
   const bounds = new THREE.Box3().setFromObject(target);
   const size = new THREE.Vector3();
   const center = new THREE.Vector3();
@@ -5840,19 +5841,88 @@ function targetReactionEffect(target) {
     flame.userData.persistentReactionEffect = true;
     const angle = (index / 5) * Math.PI * 2;
     flame.position.set(Math.cos(angle) * 0.18, 0.26 + (index % 2) * 0.08, Math.sin(angle) * 0.18);
-    effect.add(flame);
+    flame.userData.kind = "flame";
+    reactionEffect.add(flame);
   }
-  effect.visible = false;
-  target.add(effect);
-  target.userData.reactionEffect = effect;
-  return effect;
+  const crystalMaterial = new THREE.MeshPhysicalMaterial({
+    color: 0xd7f0ff,
+    roughness: 0.18,
+    transmission: 0.18,
+    transparent: true,
+    opacity: 0.72,
+    depthWrite: false,
+  });
+  for (let index = 0; index < 7; index += 1) {
+    const angle = (index / 7) * Math.PI * 2;
+    const crystal = new THREE.Mesh(
+      new THREE.ConeGeometry(0.045 + (index % 2) * 0.012, 0.24 + (index % 3) * 0.06, 5),
+      crystalMaterial.clone(),
+    );
+    crystal.userData.persistentReactionEffect = true;
+    crystal.userData.kind = "crystal";
+    crystal.position.set(Math.cos(angle) * 0.24, 0.12 + (index % 3) * 0.035, Math.sin(angle) * 0.24);
+    crystal.rotation.set(0.18, angle, (index % 2 ? -1 : 1) * 0.16);
+    reactionEffect.add(crystal);
+  }
+  const adhesion = new THREE.Mesh(
+    new THREE.TorusGeometry(0.34, 0.018, 8, 54),
+    new THREE.MeshBasicMaterial({ color: 0x6f5a35, transparent: true, opacity: 0.42, depthWrite: false }),
+  );
+  adhesion.userData.persistentReactionEffect = true;
+  adhesion.userData.kind = "adhesion";
+  adhesion.rotation.x = Math.PI / 2;
+  adhesion.position.y = -0.14;
+  reactionEffect.add(adhesion);
+  const glow = new THREE.PointLight(0xf8e7a4, 0.8, 1.8);
+  glow.userData.persistentReactionEffect = true;
+  glow.userData.kind = "illumination";
+  glow.position.y = 0.25;
+  reactionEffect.add(glow);
+  const restore = new THREE.Mesh(
+    new THREE.TorusGeometry(0.42, 0.012, 8, 72),
+    new THREE.MeshBasicMaterial({ color: 0x9edfc5, transparent: true, opacity: 0.58, depthWrite: false }),
+  );
+  restore.userData.persistentReactionEffect = true;
+  restore.userData.kind = "restoration";
+  restore.rotation.x = Math.PI / 2;
+  reactionEffect.add(restore);
+  reactionEffect.visible = false;
+  target.add(reactionEffect);
+  target.userData.reactionEffect = reactionEffect;
+  return reactionEffect;
 }
 
 function renderThreeTargetReaction(target, snapshot = {}) {
   if (!target) return;
   const state = snapshot.reactionState || "idle";
-  const effect = targetReactionEffect(target);
-  effect.visible = state === "burning";
+  const reactionEffect = ensureThreeTargetReactionEffect(target);
+  const visibleKinds = new Set();
+  switch (state) {
+    case "burning":
+      visibleKinds.add("flame");
+      break;
+    case "crystallized":
+    case "frosted":
+      visibleKinds.add("crystal");
+      break;
+    case "stuck":
+    case "damped":
+    case "loaded":
+      visibleKinds.add("adhesion");
+      break;
+    case "illuminated":
+      visibleKinds.add("illumination");
+      break;
+    case "restored":
+      visibleKinds.add("restoration");
+      break;
+    default:
+      break;
+  }
+  reactionEffect.visible = visibleKinds.size > 0;
+  reactionEffect.children.forEach((child) => {
+    child.visible = visibleKinds.has(child.userData.kind);
+  });
   target.traverse((object) => {
     if (object.userData?.persistentReactionEffect) return;
     const materials = Array.isArray(object.material) ? object.material : object.material ? [object.material] : [];
@@ -5868,10 +5938,16 @@ function renderThreeTargetReaction(target, snapshot = {}) {
       if (state === "scorched") material.color.lerp(new THREE.Color(0x3c2017), 0.58);
       if (state === "burning") material.color.lerp(new THREE.Color(0x24130f), 0.7);
       if (state === "wet" || state === "extinguished") material.color.lerp(new THREE.Color(0x38566d), state === "wet" ? 0.28 : 0.18);
+      if (state === "crystallized" || state === "frosted") material.color.lerp(new THREE.Color(0xd7f0ff), state === "crystallized" ? 0.46 : 0.24);
+      if (state === "stuck" || state === "damped" || state === "loaded") material.color.lerp(new THREE.Color(0x6f5a35), state === "stuck" ? 0.36 : 0.22);
+      if (state === "illuminated") material.color.lerp(new THREE.Color(0xf6e6a4), 0.28);
+      if (state === "restored") material.color.lerp(new THREE.Color(0x9edfc5), 0.2);
       if (material.emissive) {
         material.emissive.set(material.userData.reactionBaseEmissive || 0x000000);
         if (state === "burning") material.emissive.lerp(new THREE.Color(0xff5a20), 0.55);
-        material.emissiveIntensity = state === "burning" ? 0.8 : 1;
+        if (state === "illuminated") material.emissive.lerp(new THREE.Color(0xf8e7a4), 0.42);
+        if (state === "restored") material.emissive.lerp(new THREE.Color(0x9edfc5), 0.26);
+        material.emissiveIntensity = state === "burning" || state === "illuminated" ? 0.8 : 1;
       }
       material.needsUpdate = true;
     }

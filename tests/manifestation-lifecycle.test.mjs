@@ -49,7 +49,7 @@ test("timeout, replacement, and view close use the cleanup path", () => {
 });
 
 test("the 3D view prepares a Rapier runtime from spell forces and environment targets", () => {
-  assert.match(app, /from "\.\/rapier-physics-world\.mjs\?v=20260813-contact-reactions-v1"/);
+  assert.match(app, /from "\.\/rapier-physics-world\.mjs\?v=20260814-material-consequences-v1"/);
   assert.match(app, /function threePhysicsTargetDescriptor\(/);
   assert.match(app, /function rebuildThreePhysicsRuntime\(/);
   assert.match(app, /loadRapier3dCompat\(\)/);
@@ -74,6 +74,16 @@ test("the 3D physics bridge sends typed colliders and persists target snapshots"
   assert.match(app, /runtime\.setSpellField\(/);
   assert.match(app, /runtime\.setSpellFieldPosition\(/);
   assert.match(app, /renderThreeTargetReaction\(target, snapshot\)/);
+});
+
+test("the 3D target reaction renderer exposes visible material consequences", () => {
+  const renderReaction = app.match(/function renderThreeTargetReaction\([\s\S]*?\n\}/)?.[0] || "";
+  assert.match(renderReaction, /case "crystallized"/);
+  assert.match(renderReaction, /case "stuck"/);
+  assert.match(renderReaction, /case "illuminated"/);
+  assert.match(renderReaction, /case "restored"/);
+  assert.match(app, /function ensureThreeTargetReactionEffect\(/);
+  assert.match(app, /reactionEffect\.userData\.kind/);
 });
 
 test("moving or rotating the 3D circle refreshes the Rapier spell field", () => {

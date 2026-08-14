@@ -47,6 +47,32 @@ test("slurry adhesion becomes damping and mass-load forces", () => {
   assert.ok(forces[1].massLoad > 0);
 });
 
+test("crystal spells expose a crystallizing material field", () => {
+  const recipe = composeSpellRecipe({
+    sigils: ["Cristal"],
+    signs: ["Solidification", "Convergence"],
+  });
+  const forces = spellForcesFromSnapshot({ diameter: 1.4, force: 66, recipe });
+
+  assert.equal(forces[0].type, "crystal-field");
+  assert.equal(forces[0].forceKind, "crystallization");
+  assert.ok(forces[0].channels.includes("crystal"));
+  assert.ok(forces[0].crystal > 0);
+});
+
+test("repetition spells expose a restoration field", () => {
+  const recipe = composeSpellRecipe({
+    sigils: ["Repetition"],
+    signs: ["Convergence", "Arret"],
+  });
+  const forces = spellForcesFromSnapshot({ diameter: 1.1, force: 50, recipe });
+
+  assert.equal(forces[0].type, "restoration-field");
+  assert.equal(forces[0].forceKind, "reversible-state");
+  assert.ok(forces[0].channels.includes("restore"));
+  assert.ok(forces[0].restoration > 0);
+});
+
 test("spell influence profiles expose force descriptors for the future physics layer", () => {
   const recipe = composeSpellRecipe({
     sigils: ["Vent"],

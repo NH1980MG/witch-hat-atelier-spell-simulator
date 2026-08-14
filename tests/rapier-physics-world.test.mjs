@@ -256,3 +256,79 @@ test("water contact extinguishes a burning target without moving anchored bodies
   assert.equal(runtime.snapshot().targets[0].reactionState, "extinguished");
   assert.equal(runtime.targets.get("house").body.impulses.length, 0);
 });
+
+test("material consequences accumulate crystal, adhesion, and illumination state", () => {
+  const RAPIER = makeFakeRapier();
+  const runtime = createSpellPhysicsRuntime(RAPIER, {
+    gravity: { x: 0, y: 0, z: 0 },
+    targets: [
+      { id: "stone", material: "stone", mass: 18, position: { x: 0, y: 0, z: 0 }, radius: 0.5, collider: { type: "ball", radius: 0.5 } },
+    ],
+  });
+
+  runtime.setSpellField({
+    position: { x: 0, y: 0, z: 0 },
+    radiusMeters: 1,
+    forces: [{ type: "crystal-field", channels: ["crystal"], magnitude: 0.9, physicalImpulse: 0 }],
+  });
+  for (let index = 0; index < 10; index += 1) runtime.step(0.1);
+  assert.equal(runtime.snapshot().targets[0].reactionState, "crystallized");
+  assert.equal(runtime.snapshot().targets[0].crystalExposure, 0.45);
+
+  runtime.setSpellField({
+    position: { x: 0, y: 0, z: 0 },
+    radiusMeters: 1,
+    forces: [{ type: "adhesion-damping", channels: ["surface-contact", "mass"], damping: 0.8, physicalImpulse: 0 }],
+  });
+  for (let index = 0; index < 6; index += 1) runtime.step(0.1);
+  assert.equal(runtime.snapshot().targets[0].reactionState, "stuck");
+  assert.equal(runtime.snapshot().targets[0].adhesion, 0.24);
+
+  runtime.setSpellField({
+    position: { x: 0, y: 0, z: 0 },
+    radiusMeters: 1,
+    forces: [{ type: "radiant-field", channels: ["light"], magnitude: 0.7, physicalImpulse: 0 }],
+  });
+  runtime.step(0.1);
+  runtime.step(0.1);
+  const snapshot = runtime.snapshot().targets[0];
+  assert.equal(snapshot.reactionState, "illuminated");
+  assert.equal(snapshot.illumination, 0.07);
+  assert.equal(snapshot.crystalExposure, 0.45);
+  assert.equal(snapshot.adhesion, 0.24);
+});
+
+test("repetition contact restores reversible material consequences and pose", () => {
+  const RAPIER = makeFakeRapier();
+  const runtime = createSpellPhysicsRuntime(RAPIER, {
+    gravity: { x: 0, y: 0, z: 0 },
+    targets: [
+      { id: "book", material: "paper", mass: 2, position: { x: 0, y: 0, z: 0 }, radius: 0.35, collider: { type: "ball", radius: 0.35 } },
+    ],
+  });
+
+  runtime.setSpellField({
+    position: { x: 0, y: 0, z: 0 },
+    radiusMeters: 1,
+    forces: [{ type: "thermal-field", heat: 1.2, physicalImpulse: 0 }],
+  });
+  for (let index = 0; index < 8; index += 1) runtime.step(0.1);
+  assert.equal(runtime.snapshot().targets[0].reactionState, "burning");
+
+  runtime.applySpellForces([
+    { type: "directed-impulse", origin: { x: 0, y: 0, z: 0 }, radiusMeters: 1, direction: { x: 1, y: 0, z: 0 }, physicalImpulse: 0.4 },
+  ]);
+  assert.deepEqual(runtime.snapshot().targets[0].position, { x: 0.4, y: 0, z: 0 });
+
+  runtime.setSpellField({
+    position: { x: 0.4, y: 0, z: 0 },
+    radiusMeters: 1,
+    forces: [{ type: "restoration-field", channels: ["restore", "repetition"], magnitude: 1, physicalImpulse: 0 }],
+  });
+  runtime.step(0.1);
+  const restored = runtime.snapshot().targets[0];
+  assert.equal(restored.reactionState, "restored");
+  assert.equal(restored.heatExposure, 0);
+  assert.equal(restored.wetness, 0);
+  assert.deepEqual(restored.position, { x: 0, y: 0, z: 0 });
+});
