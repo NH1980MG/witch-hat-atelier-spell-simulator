@@ -8,7 +8,11 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260812-particle-field-v1";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260814-crosshair-sides-v1";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260814-sigil-composition-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260815-sigil-composition-stage-v1";
+import {
+  SIGIL_COMPOSITION_SLOTS,
+  buildSigilCompositionPlacements,
+} from "./sigil-composition-layout.mjs?v=20260815-sigil-composition-stage-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260809-handoff-layout-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -335,10 +339,10 @@ const symbolDrawer = document.querySelector("#symbolDrawer");
 const directPaletteTab = document.querySelector("#directPaletteTab");
 const sigilCompositionTab = document.querySelector("#sigilCompositionTab");
 const sigilCompositionPanel = document.querySelector("#sigilCompositionPanel");
-const compositionSigilSelect = document.querySelector("#compositionSigilSelect");
-const compositionFirstSignSelect = document.querySelector("#compositionFirstSignSelect");
-const compositionSecondSignSelect = document.querySelector("#compositionSecondSignSelect");
-const compositionPreview = document.querySelector("#compositionPreview");
+const compositionSigilTray = document.querySelector("#compositionSigilTray");
+const compositionSignTray = document.querySelector("#compositionSignTray");
+const compositionStage = document.querySelector("#compositionStage");
+const clearSigilCompositionButton = document.querySelector("#clearSigilCompositionButton");
 const applySigilCompositionButton = document.querySelector("#applySigilCompositionButton");
 const spoilerToggle = document.querySelector("#spoilerToggle");
 const spoilerChapterRange = document.querySelector("#spoilerChapterRange");
@@ -454,6 +458,16 @@ const state = {
   toolbarDrag: null,
   suppressToolbarToggle: false,
   symbolDrawerMode: "direct",
+  sigilComposition: {
+    activeSlot: "center",
+    slots: {
+      center: null,
+      north: null,
+      east: null,
+      south: null,
+      west: null,
+    },
+  },
   closedSeal: true,
   autoActivation: false,
   actions: [],
@@ -10037,65 +10051,123 @@ function visibleCompositionElements(kind) {
   });
 }
 
-function setCompositionSelectOptions(select, options, emptyLabel = null) {
-  if (!select) return;
-  const previous = select.value;
-  select.replaceChildren();
-  if (emptyLabel) {
-    const empty = document.createElement("option");
-    empty.value = "";
-    empty.textContent = emptyLabel;
-    select.append(empty);
+function compositionElementByName(name, kind = null) {
+  if (!name) return null;
+  return elements.find((element) => element.name === name && (!kind || element.kind === kind)) || null;
+}
+
+function compositionSlotDefinition(slotId) {
+  return SIGIL_COMPOSITION_SLOTS.find((slot) => slot.id === slotId) || SIGIL_COMPOSITION_SLOTS[0];
+}
+
+function selectCompositionSlot(slotId) {
+  state.sigilComposition.activeSlot = compositionSlotDefinition(slotId).id;
+  renderSigilCompositionStage();
+  renderCompositionChipSelection();
+}
+
+function nextCompositionSlot(kind, currentSlotId) {
+  const matchingSlots = SIGIL_COMPOSITION_SLOTS.filter((slot) => slot.kind === kind);
+  const currentIndex = matchingSlots.findIndex((slot) => slot.id === currentSlotId);
+  const firstEmptyAfterCurrent = matchingSlots
+    .slice(Math.max(0, currentIndex + 1))
+    .find((slot) => !state.sigilComposition.slots[slot.id]);
+  if (firstEmptyAfterCurrent) {
+    return firstEmptyAfterCurrent.id;
   }
-  for (const element of options) {
-    const option = document.createElement("option");
-    option.value = element.name;
-    option.textContent = elementDisplayName(element);
-    select.append(option);
+  const firstEmpty = matchingSlots.find((slot) => !state.sigilComposition.slots[slot.id]);
+  return firstEmpty?.id || matchingSlots[(currentIndex + 1 + matchingSlots.length) % matchingSlots.length]?.id || "center";
+}
+
+function setCompositionSlotElement(element) {
+  if (!element) return;
+  let slot = compositionSlotDefinition(state.sigilComposition.activeSlot);
+  if (slot.kind !== element.kind) {
+    slot = SIGIL_COMPOSITION_SLOTS.find((candidate) => {
+      return candidate.kind === element.kind && !state.sigilComposition.slots[candidate.id];
+    }) || SIGIL_COMPOSITION_SLOTS.find((candidate) => candidate.kind === element.kind);
   }
-  if ([...select.options].some((option) => option.value === previous)) {
-    select.value = previous;
+  if (!slot) return;
+  state.sigilComposition.slots[slot.id] = element.name;
+  state.sigilComposition.activeSlot = nextCompositionSlot(element.kind, slot.id);
+  renderSigilCompositionStage();
+  renderCompositionChipSelection();
+}
+
+function clearSigilComposition() {
+  for (const slot of SIGIL_COMPOSITION_SLOTS) {
+    state.sigilComposition.slots[slot.id] = null;
+  }
+  state.sigilComposition.activeSlot = "center";
+  renderSigilCompositionStage();
+  renderCompositionChipSelection();
+}
+
+function renderCompositionChipSelection() {
+  const activeSlot = compositionSlotDefinition(state.sigilComposition.activeSlot);
+  for (const button of sigilCompositionPanel?.querySelectorAll(".composition-chip") || []) {
+    const name = button.dataset.symbolName;
+    const selected = Boolean(name && Object.values(state.sigilComposition.slots).includes(name));
+    const compatible = button.dataset.symbolKind === activeSlot.kind;
+    button.classList.toggle("is-active", selected && compatible);
+    button.setAttribute("aria-pressed", String(selected && compatible));
   }
 }
 
-function selectedCompositionElement(select, kind) {
-  const name = select?.value;
-  if (!name) return null;
-  return elements.find((element) => element.name === name && element.kind === kind) || null;
+function renderCompositionTray(tray, options) {
+  if (!tray) return;
+  tray.replaceChildren();
+  for (const element of options) {
+    const button = document.createElement("button");
+    button.className = "composition-chip";
+    button.type = "button";
+    button.dataset.symbolName = element.name;
+    button.dataset.symbolKind = element.kind;
+    button.style.setProperty("--symbol-color", element.color);
+    button.setAttribute("aria-pressed", "false");
+    button.setAttribute("aria-label", elementDisplayName(element));
+    button.innerHTML = elementIconMarkup(element);
+    button.addEventListener("click", () => setCompositionSlotElement(element));
+    tray.append(button);
+  }
 }
 
 function renderSigilCompositionPanel() {
-  const sigils = visibleCompositionElements("sigil");
-  const signs = visibleCompositionElements("sign");
-  setCompositionSelectOptions(compositionSigilSelect, sigils);
-  setCompositionSelectOptions(compositionFirstSignSelect, signs, t("composition.emptySign"));
-  setCompositionSelectOptions(compositionSecondSignSelect, signs, t("composition.emptySign"));
-  if (compositionSigilSelect && !compositionSigilSelect.value && sigils[0]) {
-    compositionSigilSelect.value = sigils[0].name;
-  }
-  if (compositionFirstSignSelect && !compositionFirstSignSelect.value && signs[0]) {
-    compositionFirstSignSelect.value = signs[0].name;
-  }
-  updateSigilCompositionPreview();
+  renderCompositionTray(compositionSigilTray, visibleCompositionElements("sigil"));
+  renderCompositionTray(compositionSignTray, visibleCompositionElements("sign"));
+  renderSigilCompositionStage();
+  renderCompositionChipSelection();
 }
 
-function updateSigilCompositionPreview() {
-  if (!compositionPreview) return;
-  const sigil = selectedCompositionElement(compositionSigilSelect, "sigil");
-  const signs = [
-    selectedCompositionElement(compositionFirstSignSelect, "sign"),
-    selectedCompositionElement(compositionSecondSignSelect, "sign"),
-  ].filter(Boolean);
-  const names = [sigil, ...signs].filter(Boolean).map((element) => elementDisplayName(element));
-  compositionPreview.innerHTML = `
+function renderSigilCompositionStage() {
+  if (!compositionStage) return;
+  const activeSlotId = state.sigilComposition.activeSlot;
+  compositionStage.innerHTML = `
     <div class="composition-preview-title">${t("composition.preview")}</div>
-    <div class="composition-preview-seal" aria-hidden="true">
-      <span class="composition-preview-ring"></span>
-      ${sigil ? `<span class="composition-preview-sigil" style="--symbol-color:${sigil.color}">${elementIconMarkup(sigil)}</span>` : ""}
-      ${signs.map((sign, index) => `<span class="composition-preview-sign composition-preview-sign-${index + 1}" style="--symbol-color:${sign.color}">${elementIconMarkup(sign)}</span>`).join("")}
-    </div>
-    <p>${names.length > 0 ? names.join(" + ") : t("composition.emptySign")}</p>
+    <div class="composition-preview-seal" aria-hidden="true"></div>
   `;
+  for (const slot of SIGIL_COMPOSITION_SLOTS) {
+    const name = state.sigilComposition.slots[slot.id];
+    const element = compositionElementByName(name, slot.kind);
+    const button = document.createElement("button");
+    button.className = "composition-slot";
+    button.type = "button";
+    button.dataset.slotId = slot.id;
+    button.dataset.slotKind = slot.kind;
+    button.style.left = `${slot.stageX}%`;
+    button.style.top = `${slot.stageY}%`;
+    button.classList.toggle("is-active", slot.id === activeSlotId);
+    button.setAttribute("aria-pressed", String(slot.id === activeSlotId));
+    button.setAttribute("aria-label", t(slot.labelKey));
+    if (element) {
+      button.style.setProperty("--symbol-color", element.color);
+      button.innerHTML = elementIconMarkup(element);
+    } else {
+      button.innerHTML = `<span class="composition-slot-empty">${t("composition.emptySign")}</span>`;
+    }
+    button.addEventListener("click", () => selectCompositionSlot(slot.id));
+    compositionStage.append(button);
+  }
 }
 
 function sealAnchorFromAction(action) {
@@ -10141,18 +10213,22 @@ function resolveSigilCompositionAnchor() {
 }
 
 function applySigilComposition() {
-  const sigil = selectedCompositionElement(compositionSigilSelect, "sigil");
-  if (!sigil) return false;
-  const signs = [
-    selectedCompositionElement(compositionFirstSignSelect, "sign"),
-    selectedCompositionElement(compositionSecondSignSelect, "sign"),
-  ].filter(Boolean);
   const anchor = resolveSigilCompositionAnchor();
-  const added = [];
+  const placements = buildSigilCompositionPlacements({
+    anchor,
+    slots: state.sigilComposition.slots,
+  });
+  const glyphPlacements = placements.filter((placement) => placement.type === "glyph");
+  if (glyphPlacements.length === 0) {
+    setStatus(t("status.selectionEmpty"));
+    return false;
+  }
 
+  const added = [];
   recordHistory();
   state.circleCenter = { ...anchor.center };
-  if (!anchor.hasSeal) {
+  for (const placement of placements) {
+    if (placement.type !== "ring") continue;
     added.push({
       type: "ring",
       label: labels.ring,
@@ -10160,22 +10236,16 @@ function applySigilComposition() {
       charge: 0,
       color: state.drawingColor,
       width: lineWidth(),
-      cx: anchor.center.x,
-      cy: anchor.center.y,
-      radius: anchor.radius,
+      cx: placement.x,
+      cy: placement.y,
+      radius: placement.radius,
     });
   }
-
-  added.push(createGlyphAction(sigil, anchor.center, 30));
-  const signAngles = signs.length === 1 ? [-90] : [-135, -45];
-  signs.forEach((sign, index) => {
-    const angle = (signAngles[index] * Math.PI) / 180;
-    const point = {
-      x: anchor.center.x + Math.cos(angle) * anchor.radius * 0.82,
-      y: anchor.center.y + Math.sin(angle) * anchor.radius * 0.82,
-    };
-    added.push(createGlyphAction(sign, point, 20));
-  });
+  for (const placement of glyphPlacements) {
+    const element = compositionElementByName(placement.name, placement.kind);
+    if (!element) continue;
+    added.push(createGlyphAction(element, { x: placement.x, y: placement.y }, placement.size));
+  }
 
   const firstNewIndex = state.actions.length;
   state.actions.push(...added);
@@ -11775,9 +11845,7 @@ symbolToggleButton?.addEventListener("click", () => setSymbolDrawer(true));
 closeSymbolsButton?.addEventListener("click", () => setSymbolDrawer(false));
 directPaletteTab?.addEventListener("click", () => setSymbolDrawerMode("direct"));
 sigilCompositionTab?.addEventListener("click", () => setSymbolDrawerMode("composition"));
-compositionSigilSelect?.addEventListener("change", updateSigilCompositionPreview);
-compositionFirstSignSelect?.addEventListener("change", updateSigilCompositionPreview);
-compositionSecondSignSelect?.addEventListener("change", updateSigilCompositionPreview);
+clearSigilCompositionButton?.addEventListener("click", clearSigilComposition);
 applySigilCompositionButton?.addEventListener("click", applySigilComposition);
 detailsToggleButton?.addEventListener("click", () => setDetailsDrawer(true));
 closeDetailsButton?.addEventListener("click", () => setDetailsDrawer(false));

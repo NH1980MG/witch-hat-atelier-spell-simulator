@@ -12,9 +12,10 @@ test("la page expose un seul tiroir de symboles sans les anciens outils de taill
     "sigilCompositionTab",
     "inkList",
     "sigilCompositionPanel",
-    "compositionSigilSelect",
-    "compositionFirstSignSelect",
-    "compositionSecondSignSelect",
+    "compositionSigilTray",
+    "compositionSignTray",
+    "compositionStage",
+    "clearSigilCompositionButton",
     "applySigilCompositionButton",
     "closeSymbolsButton",
     "symbolDragGhost",
@@ -27,7 +28,8 @@ test("la page expose un seul tiroir de symboles sans les anciens outils de taill
   assert.doesNotMatch(html, /id=["'](?:shrinkSelectionButton|growSelectionButton)["']/);
   assert.doesNotMatch(html, /id=["']placement(?:ToggleButton|Drawer|List)["']/);
   assert.doesNotMatch(html, /id=["']closePlacementButton["']/);
-  assert.match(html, /styles\.css\?v=20260814-sigil-composition-v1/);
+  assert.doesNotMatch(html, /id=["']composition(?:Sigil|FirstSign|SecondSign)Select["']/);
+  assert.match(html, /styles\.css\?v=20260815-sigil-composition-stage-v1/);
   assert.match(html, /app\.js\?v=\d{8}-[^"']+/);
 });
 
@@ -63,6 +65,8 @@ test("le tiroir unique et le transport sont styles", async () => {
   assert.match(css, /\.symbol-drawer-tabs/);
   assert.match(css, /\.sigil-composition-panel/);
   assert.match(css, /\.composition-stage/);
+  assert.match(css, /\.composition-slot/);
+  assert.match(css, /\.composition-chip/);
   assert.match(css, /\.symbol-drag-ghost/);
   assert.match(css, /\.ink-button/);
   assert.match(css, /\.symbol-mark path,[\s\S]*stroke-width: 2\.2/);
@@ -105,6 +109,8 @@ test("la palette cable le transport Scratch jusqu'au canevas", async () => {
     "renderInkList",
     "renderSigilCompositionPanel",
     "setSymbolDrawerMode",
+    "selectCompositionSlot",
+    "setCompositionSlotElement",
     "resolveSigilCompositionAnchor",
     "applySigilComposition",
     "startSymbolDrag",
@@ -120,6 +126,7 @@ test("la palette cable le transport Scratch jusqu'au canevas", async () => {
   assert.doesNotMatch(app, /setPlacementDrawer/);
   assert.match(app, /canDropGlyph/);
   assert.match(app, /selectedActionIndices[\s\S]*isCompleteSeal/);
+  assert.match(app, /buildSigilCompositionPlacements/);
   assert.match(app, /state\.circleCenter/);
   assert.match(app, /state\.exporting = true/);
   assert.match(app, /state\.exporting = false/);
@@ -135,9 +142,17 @@ test("la composition sigillaire possede ses libelles bilingues", async () => {
     "composition.sigil",
     "composition.firstSign",
     "composition.secondSign",
+    "composition.sigilTray",
+    "composition.signTray",
     "composition.apply",
+    "composition.clear",
     "composition.emptySign",
     "composition.preview",
+    "composition.slot.center",
+    "composition.slot.north",
+    "composition.slot.east",
+    "composition.slot.south",
+    "composition.slot.west",
     "status.sigilCompositionApplied",
   ]) {
     assert.notEqual(translate("en", key), key);

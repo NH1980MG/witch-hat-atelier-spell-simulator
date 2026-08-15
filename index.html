@@ -36,7 +36,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260814-sigil-composition-v1">
+    <link rel="stylesheet" href="styles.css?v=20260815-sigil-composition-stage-v1">
     <script type="importmap">
       {
         "imports": {
@@ -45,9 +45,9 @@
         }
       }
     </script>
-    <script type="module" src="site-i18n.mjs?v=20260814-sigil-composition-v1"></script>
+    <script type="module" src="site-i18n.mjs?v=20260815-sigil-composition-stage-v1"></script>
     <script type="module" src="site-nav.mjs?v=20260810-workshop-menu-v1"></script>
-    <script type="module" src="app.js?v=20260814-sigil-composition-v1"></script>
+    <script type="module" src="app.js?v=20260815-sigil-composition-stage-v1"></script>
   </head>
   <body class="simulator-page">
     <main class="app-shell">
@@ -261,22 +261,21 @@
           <div class="ink-list" id="inkList" role="tabpanel" aria-labelledby="directPaletteTab"></div>
 
           <div class="sigil-composition-panel" id="sigilCompositionPanel" role="tabpanel" aria-labelledby="sigilCompositionTab" hidden>
-            <div class="composition-options">
-              <label>
-                <span data-i18n="composition.sigil">Central sigil</span>
-                <select id="compositionSigilSelect"></select>
-              </label>
-              <label>
-                <span data-i18n="composition.firstSign">Sign 1</span>
-                <select id="compositionFirstSignSelect"></select>
-              </label>
-              <label>
-                <span data-i18n="composition.secondSign">Sign 2</span>
-                <select id="compositionSecondSignSelect"></select>
-              </label>
+            <div class="composition-tool-tray" id="compositionToolTray">
+              <section class="composition-tool-group" data-composition-kind="sigil">
+                <h3 data-i18n="composition.sigilTray">Sigils</h3>
+                <div class="composition-chip-grid" id="compositionSigilTray"></div>
+              </section>
+              <section class="composition-tool-group" data-composition-kind="sign">
+                <h3 data-i18n="composition.signTray">Signs</h3>
+                <div class="composition-chip-grid" id="compositionSignTray"></div>
+              </section>
             </div>
-            <div class="composition-stage" id="compositionPreview" aria-live="polite"></div>
-            <button class="composition-apply" id="applySigilCompositionButton" type="button" data-i18n="composition.apply">Inscribe composition</button>
+            <div class="composition-stage" id="compositionStage" aria-live="polite"></div>
+            <div class="composition-action-row">
+              <button class="composition-clear" id="clearSigilCompositionButton" type="button" data-i18n="composition.clear">Clear composition</button>
+              <button class="composition-apply" id="applySigilCompositionButton" type="button" data-i18n="composition.apply">Inscribe composition</button>
+            </div>
           </div>
         </aside>
 

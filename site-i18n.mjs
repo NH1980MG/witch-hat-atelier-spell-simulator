@@ -2,7 +2,7 @@ import {
   DEFAULT_LOCALE,
   resolveLocale,
   translate,
-} from "./i18n.mjs?v=20260814-sigil-composition-v1";
+} from "./i18n.mjs?v=20260815-sigil-composition-stage-v1";
 
 let currentLocale = DEFAULT_LOCALE;
 
