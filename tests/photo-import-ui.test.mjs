@@ -16,6 +16,7 @@ test("l'atelier expose l'import photo complet", async () => {
   assert.match(html, /id="circleJsonCopyLinkButton"/);
   assert.match(html, /id="photoFileInput"/);
   assert.match(html, /id="photoImportDialog"/);
+  assert.match(html, /id="photoImportDropzone"/);
   assert.match(html, /id="photoPreviewImage"/);
   assert.match(html, /id="photoImportResults"/);
   assert.match(html, /id="photoRecreateButton"/);
@@ -24,6 +25,7 @@ test("l'atelier expose l'import photo complet", async () => {
   assert.match(html, /data-i18n="import.exportJson"/);
   assert.match(html, /data-i18n="import.photoChoice"/);
   assert.match(html, /data-i18n="import.jsonChoice"/);
+  assert.match(html, /data-i18n="photo.pasteHint"/);
   assert.match(html, /data-i18n="import.exportTitle"/);
   assert.match(html, /data-i18n="import.copyJson"/);
   assert.match(html, /data-i18n="import.downloadJson"/);
@@ -101,6 +103,7 @@ test("le guide photo conserve le raster corrige sans ajouter d'actions", async (
 test("les chaines de l'import photo existent dans les deux locales", async () => {
   const source = await readFile(new URL("../i18n.mjs", import.meta.url), "utf8");
   for (const key of [
+    "photo.pasteHint", "photo.pasteReady", "photo.pasteNoImage",
     "photo.toggle", "photo.previewTitle", "photo.recreate", "photo.guide", "photo.cancel",
     "photo.result.ring", "photo.result.noRing", "photo.result.accepted",
     "photo.result.ambiguous", "photo.result.unreadable", "photo.result.choose",

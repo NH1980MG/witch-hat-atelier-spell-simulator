@@ -284,6 +284,18 @@
             <textarea id="circleJsonInput" rows="7" spellcheck="false" data-i18n-placeholder="import.jsonPlaceholder" placeholder="Paste JSON or a simulator link with communityCircle=..."></textarea>
             <button id="circleJsonImportButton" type="button" data-i18n="import.jsonImport">Import JSON</button>
           </div>
+          <div
+            id="photoImportDropzone"
+            class="photo-import-dropzone"
+            role="button"
+            tabindex="0"
+            data-i18n-aria-label="photo.pasteHint"
+            aria-label="Paste or drop an image here"
+          >
+            <span class="photo-import-dropzone-icon" aria-hidden="true">+</span>
+            <strong data-i18n="photo.pasteHint">Paste or drop an image here</strong>
+            <small id="photoPasteStatus" data-i18n="photo.pasteReady">Copy an image, then press Cmd+V or Ctrl+V</small>
+          </div>
           <div class="photo-preview-frame" id="photoPreviewFrame">
             <img id="photoPreviewImage" alt="">
             <div class="photo-preview-overlay" id="photoPreviewOverlay" aria-hidden="false"></div>

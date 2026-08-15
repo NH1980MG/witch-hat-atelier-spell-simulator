@@ -3995,6 +3995,46 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
   padding: 0 1rem;
 }
 
+.photo-import-dropzone {
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+  margin: 0.5rem 0 0.75rem;
+  padding: 0.8rem 1rem;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  background: rgba(255, 248, 234, 0.5);
+  color: color-mix(in srgb, var(--ink) 78%, var(--paper));
+  text-align: center;
+  cursor: copy;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.photo-import-dropzone:hover,
+.photo-import-dropzone:focus-visible,
+.photo-import-dropzone[data-drag-active="true"] {
+  border-color: var(--gold);
+  background: rgba(255, 241, 214, 0.86);
+  color: var(--ink);
+  outline: none;
+}
+
+.photo-import-dropzone-icon {
+  display: grid;
+  place-items: center;
+  width: 1.45rem;
+  height: 1.45rem;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.photo-import-dropzone small {
+  color: color-mix(in srgb, var(--ink) 64%, transparent);
+  font-size: 0.76rem;
+}
+
 .photo-preview-frame {
   position: relative;
   border: 1px dashed var(--line);
