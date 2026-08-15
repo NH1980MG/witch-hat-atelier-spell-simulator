@@ -7,7 +7,15 @@ test("la page expose un seul tiroir de symboles sans les anciens outils de taill
   for (const id of [
     "symbolToggleButton",
     "symbolDrawer",
+    "symbolDrawerTabs",
+    "directPaletteTab",
+    "sigilCompositionTab",
     "inkList",
+    "sigilCompositionPanel",
+    "compositionSigilSelect",
+    "compositionFirstSignSelect",
+    "compositionSecondSignSelect",
+    "applySigilCompositionButton",
     "closeSymbolsButton",
     "symbolDragGhost",
     "selectToolButton",
@@ -19,7 +27,7 @@ test("la page expose un seul tiroir de symboles sans les anciens outils de taill
   assert.doesNotMatch(html, /id=["'](?:shrinkSelectionButton|growSelectionButton)["']/);
   assert.doesNotMatch(html, /id=["']placement(?:ToggleButton|Drawer|List)["']/);
   assert.doesNotMatch(html, /id=["']closePlacementButton["']/);
-  assert.match(html, /styles\.css\?v=20260812-project-support-v1/);
+  assert.match(html, /styles\.css\?v=20260814-sigil-composition-v1/);
   assert.match(html, /app\.js\?v=\d{8}-[^"']+/);
 });
 
@@ -52,6 +60,9 @@ test("le tiroir unique et le transport sont styles", async () => {
   const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
 
   assert.match(css, /\.simulator-page\.symbols-open/);
+  assert.match(css, /\.symbol-drawer-tabs/);
+  assert.match(css, /\.sigil-composition-panel/);
+  assert.match(css, /\.composition-stage/);
   assert.match(css, /\.symbol-drag-ghost/);
   assert.match(css, /\.ink-button/);
   assert.match(css, /\.symbol-mark path,[\s\S]*stroke-width: 2\.2/);
@@ -92,6 +103,10 @@ test("la palette cable le transport Scratch jusqu'au canevas", async () => {
 
   for (const functionName of [
     "renderInkList",
+    "renderSigilCompositionPanel",
+    "setSymbolDrawerMode",
+    "resolveSigilCompositionAnchor",
+    "applySigilComposition",
     "startSymbolDrag",
     "moveSymbolDrag",
     "finishSymbolDrag",
@@ -104,9 +119,30 @@ test("la palette cable le transport Scratch jusqu'au canevas", async () => {
   assert.doesNotMatch(app, /function renderPlacementList\(/);
   assert.doesNotMatch(app, /setPlacementDrawer/);
   assert.match(app, /canDropGlyph/);
+  assert.match(app, /selectedActionIndices[\s\S]*isCompleteSeal/);
+  assert.match(app, /state\.circleCenter/);
   assert.match(app, /state\.exporting = true/);
   assert.match(app, /state\.exporting = false/);
   assert.match(readme, /glisser.*Scratch/i);
+});
+
+test("la composition sigillaire possede ses libelles bilingues", async () => {
+  const { translate } = await import("../i18n.mjs");
+
+  for (const key of [
+    "symbols.mode.directPalette",
+    "symbols.mode.sigilComposition",
+    "composition.sigil",
+    "composition.firstSign",
+    "composition.secondSign",
+    "composition.apply",
+    "composition.emptySign",
+    "composition.preview",
+    "status.sigilCompositionApplied",
+  ]) {
+    assert.notEqual(translate("en", key), key);
+    assert.notEqual(translate("fr", key), key);
+  }
 });
 
 test("le defilement tactile vertical ne demarre pas le transport d'un symbole", async () => {

@@ -8,7 +8,7 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260812-particle-field-v1";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260814-crosshair-sides-v1";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260814-crosshair-sides-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260814-sigil-composition-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260809-handoff-layout-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -332,6 +332,14 @@ const close3dButton = document.querySelector("#close3dButton");
 const relaunch3dButton = document.querySelector("#relaunch3dButton");
 const symbolToggleButton = document.querySelector("#symbolToggleButton");
 const symbolDrawer = document.querySelector("#symbolDrawer");
+const directPaletteTab = document.querySelector("#directPaletteTab");
+const sigilCompositionTab = document.querySelector("#sigilCompositionTab");
+const sigilCompositionPanel = document.querySelector("#sigilCompositionPanel");
+const compositionSigilSelect = document.querySelector("#compositionSigilSelect");
+const compositionFirstSignSelect = document.querySelector("#compositionFirstSignSelect");
+const compositionSecondSignSelect = document.querySelector("#compositionSecondSignSelect");
+const compositionPreview = document.querySelector("#compositionPreview");
+const applySigilCompositionButton = document.querySelector("#applySigilCompositionButton");
 const spoilerToggle = document.querySelector("#spoilerToggle");
 const spoilerChapterRange = document.querySelector("#spoilerChapterRange");
 const spoilerChapterValue = document.querySelector("#spoilerChapterValue");
@@ -445,6 +453,7 @@ const state = {
   toolbarDock: readToolbarDock(),
   toolbarDrag: null,
   suppressToolbarToggle: false,
+  symbolDrawerMode: "direct",
   closedSeal: true,
   autoActivation: false,
   actions: [],
@@ -10008,6 +10017,177 @@ function renderInkList() {
   updateInkSelection();
 }
 
+function setSymbolDrawerMode(mode) {
+  state.symbolDrawerMode = mode === "composition" ? "composition" : "direct";
+  const compositionActive = state.symbolDrawerMode === "composition";
+  directPaletteTab?.classList.toggle("is-active", !compositionActive);
+  sigilCompositionTab?.classList.toggle("is-active", compositionActive);
+  directPaletteTab?.setAttribute("aria-selected", String(!compositionActive));
+  sigilCompositionTab?.setAttribute("aria-selected", String(compositionActive));
+  inkList.hidden = compositionActive;
+  sigilCompositionPanel.hidden = !compositionActive;
+  if (compositionActive) {
+    renderSigilCompositionPanel();
+  }
+}
+
+function visibleCompositionElements(kind) {
+  return elements.filter((element) => {
+    return element.kind === kind && isSymbolVisibleAtChapter(element.name, state.spoilerChapter);
+  });
+}
+
+function setCompositionSelectOptions(select, options, emptyLabel = null) {
+  if (!select) return;
+  const previous = select.value;
+  select.replaceChildren();
+  if (emptyLabel) {
+    const empty = document.createElement("option");
+    empty.value = "";
+    empty.textContent = emptyLabel;
+    select.append(empty);
+  }
+  for (const element of options) {
+    const option = document.createElement("option");
+    option.value = element.name;
+    option.textContent = elementDisplayName(element);
+    select.append(option);
+  }
+  if ([...select.options].some((option) => option.value === previous)) {
+    select.value = previous;
+  }
+}
+
+function selectedCompositionElement(select, kind) {
+  const name = select?.value;
+  if (!name) return null;
+  return elements.find((element) => element.name === name && element.kind === kind) || null;
+}
+
+function renderSigilCompositionPanel() {
+  const sigils = visibleCompositionElements("sigil");
+  const signs = visibleCompositionElements("sign");
+  setCompositionSelectOptions(compositionSigilSelect, sigils);
+  setCompositionSelectOptions(compositionFirstSignSelect, signs, t("composition.emptySign"));
+  setCompositionSelectOptions(compositionSecondSignSelect, signs, t("composition.emptySign"));
+  if (compositionSigilSelect && !compositionSigilSelect.value && sigils[0]) {
+    compositionSigilSelect.value = sigils[0].name;
+  }
+  if (compositionFirstSignSelect && !compositionFirstSignSelect.value && signs[0]) {
+    compositionFirstSignSelect.value = signs[0].name;
+  }
+  updateSigilCompositionPreview();
+}
+
+function updateSigilCompositionPreview() {
+  if (!compositionPreview) return;
+  const sigil = selectedCompositionElement(compositionSigilSelect, "sigil");
+  const signs = [
+    selectedCompositionElement(compositionFirstSignSelect, "sign"),
+    selectedCompositionElement(compositionSecondSignSelect, "sign"),
+  ].filter(Boolean);
+  const names = [sigil, ...signs].filter(Boolean).map((element) => elementDisplayName(element));
+  compositionPreview.innerHTML = `
+    <div class="composition-preview-title">${t("composition.preview")}</div>
+    <div class="composition-preview-seal" aria-hidden="true">
+      <span class="composition-preview-ring"></span>
+      ${sigil ? `<span class="composition-preview-sigil" style="--symbol-color:${sigil.color}">${elementIconMarkup(sigil)}</span>` : ""}
+      ${signs.map((sign, index) => `<span class="composition-preview-sign composition-preview-sign-${index + 1}" style="--symbol-color:${sign.color}">${elementIconMarkup(sign)}</span>`).join("")}
+    </div>
+    <p>${names.length > 0 ? names.join(" + ") : t("composition.emptySign")}</p>
+  `;
+}
+
+function sealAnchorFromAction(action) {
+  if (!action) return null;
+  const bounds = actionBounds(action);
+  const center = ["circle", "ring", "spiral"].includes(action.type)
+    ? { x: action.cx, y: action.cy }
+    : actionCenter(action);
+  return {
+    center,
+    radius: Math.max(42, action.radius || Math.min(bounds.width, bounds.height) / 2 || BASE_GRID_STEP * 2),
+    hasSeal: isCompleteSeal(action),
+  };
+}
+
+function resolveSigilCompositionAnchor() {
+  const selectedSeal = state.selectedActionIndices
+    .map((index) => state.actions[index])
+    .find((action) => action && isCompleteSeal(action));
+  if (selectedSeal) {
+    return sealAnchorFromAction(selectedSeal);
+  }
+
+  const lastSeal = [...state.actions].reverse().find((action) => isCompleteSeal(action));
+  if (lastSeal) {
+    return sealAnchorFromAction(lastSeal);
+  }
+
+  if (state.circleCenter) {
+    return {
+      center: { ...state.circleCenter },
+      radius: BASE_GRID_STEP * 2,
+      hasSeal: false,
+    };
+  }
+
+  const { width, height } = canvasSize();
+  return {
+    center: clampPointToDrawingLimit({ x: (width || 800) / 2, y: (height || 600) / 2 }, BASE_GRID_STEP * 2.4),
+    radius: BASE_GRID_STEP * 2,
+    hasSeal: false,
+  };
+}
+
+function applySigilComposition() {
+  const sigil = selectedCompositionElement(compositionSigilSelect, "sigil");
+  if (!sigil) return false;
+  const signs = [
+    selectedCompositionElement(compositionFirstSignSelect, "sign"),
+    selectedCompositionElement(compositionSecondSignSelect, "sign"),
+  ].filter(Boolean);
+  const anchor = resolveSigilCompositionAnchor();
+  const added = [];
+
+  recordHistory();
+  state.circleCenter = { ...anchor.center };
+  if (!anchor.hasSeal) {
+    added.push({
+      type: "ring",
+      label: labels.ring,
+      element: "Structure",
+      charge: 0,
+      color: state.drawingColor,
+      width: lineWidth(),
+      cx: anchor.center.x,
+      cy: anchor.center.y,
+      radius: anchor.radius,
+    });
+  }
+
+  added.push(createGlyphAction(sigil, anchor.center, 30));
+  const signAngles = signs.length === 1 ? [-90] : [-135, -45];
+  signs.forEach((sign, index) => {
+    const angle = (signAngles[index] * Math.PI) / 180;
+    const point = {
+      x: anchor.center.x + Math.cos(angle) * anchor.radius * 0.82,
+      y: anchor.center.y + Math.sin(angle) * anchor.radius * 0.82,
+    };
+    added.push(createGlyphAction(sign, point, 20));
+  });
+
+  const firstNewIndex = state.actions.length;
+  state.actions.push(...added);
+  state.selectedActionIndices = added.map((_, index) => firstNewIndex + index);
+  state.activeSpell = null;
+  updateUsedList();
+  updateSpellState();
+  setStatus(t("status.sigilCompositionApplied", { count: added.length }));
+  render();
+  return true;
+}
+
 // How far the pointer must travel during a drawer-button press before the
 // trailing click is treated as drag debris rather than a click-to-arm. Real
 // pointing hardware doesn't produce perfectly stationary clicks - trackpads
@@ -11593,6 +11773,12 @@ close3dButton.addEventListener("click", close3dView);
 relaunch3dButton?.addEventListener("click", relaunchThreeSpell);
 symbolToggleButton?.addEventListener("click", () => setSymbolDrawer(true));
 closeSymbolsButton?.addEventListener("click", () => setSymbolDrawer(false));
+directPaletteTab?.addEventListener("click", () => setSymbolDrawerMode("direct"));
+sigilCompositionTab?.addEventListener("click", () => setSymbolDrawerMode("composition"));
+compositionSigilSelect?.addEventListener("change", updateSigilCompositionPreview);
+compositionFirstSignSelect?.addEventListener("change", updateSigilCompositionPreview);
+compositionSecondSignSelect?.addEventListener("change", updateSigilCompositionPreview);
+applySigilCompositionButton?.addEventListener("click", applySigilComposition);
 detailsToggleButton?.addEventListener("click", () => setDetailsDrawer(true));
 closeDetailsButton?.addEventListener("click", () => setDetailsDrawer(false));
 supportToggleButton?.addEventListener("click", () => setSupportDrawer(true));
@@ -11792,6 +11978,7 @@ function applySpoilerSetting(enabled, chapter) {
   state.spoilerChapter = readSpoilerChapter(localStorage);
   syncSpoilerControls();
   renderInkList();
+  renderSigilCompositionPanel();
   renderSymbolSearchResults();
 }
 
@@ -12782,6 +12969,7 @@ if (typeof ResizeObserver === "function") {
 }
 window.addEventListener("wha:localechange", () => {
   renderInkList();
+  renderSigilCompositionPanel();
   renderSupportList();
   renderGuideLists();
   updateUsedList();
@@ -12903,6 +13091,7 @@ function loadRecipeFromUrl() {
 }
 
 renderInkList();
+renderSigilCompositionPanel();
 renderSupportList();
 renderGuideLists();
 updateToolButtons();
@@ -12916,6 +13105,7 @@ if (measureInput) {
 setGrimoireOpen(preferredGrimoireOpen, { persist: false });
 close3dView();
 setSymbolDrawer(false);
+setSymbolDrawerMode("direct");
 setSupportDrawer(false);
 setGuideDrawer(false);
 if (guideVisibleInput) {

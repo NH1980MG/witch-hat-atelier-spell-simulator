@@ -1261,6 +1261,154 @@ input:focus-visible {
   overscroll-behavior: contain;
 }
 
+.symbol-drawer-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin: 2px 0 8px;
+  border-bottom: 1px solid rgba(140, 107, 63, 0.45);
+}
+
+.symbol-drawer-tabs button {
+  min-height: 34px;
+  padding: 7px 8px;
+  border: 1px solid rgba(140, 107, 63, 0.42);
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  background: rgba(159, 133, 88, 0.18);
+  color: var(--edge);
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.symbol-drawer-tabs button.is-active {
+  background: rgba(199, 151, 54, 0.24);
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.sigil-composition-panel {
+  display: grid;
+  grid-template-rows: auto minmax(220px, 1fr) auto;
+  flex: 1 1 auto;
+  gap: 9px;
+  min-height: 360px;
+}
+
+.sigil-composition-panel[hidden] {
+  display: none;
+}
+
+.composition-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.composition-options label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  color: var(--edge);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.composition-options select {
+  width: 100%;
+  min-width: 0;
+  min-height: 32px;
+  padding: 4px 5px;
+  border: 1px solid rgba(140, 107, 63, 0.5);
+  border-radius: 6px;
+  background: rgba(255, 248, 234, 0.9);
+  color: var(--ink);
+  font-size: 0.82rem;
+}
+
+.composition-stage {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 245px;
+  padding: 12px;
+  border: 1px solid rgba(140, 107, 63, 0.45);
+  border-radius: 8px;
+  background:
+    linear-gradient(rgba(255, 248, 234, 0.76), rgba(244, 228, 191, 0.58)),
+    repeating-linear-gradient(0deg, transparent 0 31px, rgba(140, 107, 63, 0.12) 32px);
+  text-align: center;
+}
+
+.composition-preview-title {
+  color: var(--edge);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.composition-preview-seal {
+  position: relative;
+  width: min(180px, 80%);
+  aspect-ratio: 1;
+}
+
+.composition-preview-ring {
+  position: absolute;
+  inset: 18%;
+  border: 2px solid var(--edge);
+  border-radius: 50%;
+}
+
+.composition-preview-sigil,
+.composition-preview-sign {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  aspect-ratio: 1;
+  color: var(--symbol-color);
+}
+
+.composition-preview-sigil {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.composition-preview-sign-1 {
+  left: 22%;
+  top: 20%;
+  transform: translate(-50%, -50%);
+}
+
+.composition-preview-sign-2 {
+  right: 22%;
+  top: 20%;
+  transform: translate(50%, -50%);
+}
+
+.composition-stage .symbol-mark {
+  width: 100%;
+  height: 100%;
+}
+
+.composition-stage p {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.composition-apply {
+  width: 100%;
+  min-height: 40px;
+  border-radius: 7px;
+  font-weight: 700;
+}
+
 .symbol-section {
   display: grid;
   gap: 7px;
