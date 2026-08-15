@@ -38,6 +38,7 @@ test("l'atelier importe l'analyse photo", async () => {
   const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
   const photoSource = await readFile(new URL("../photo-import.mjs", import.meta.url), "utf8");
   assert.match(source, /import \{ analyzePhoto \} from "\.\/photo-import\.mjs\?v=20260809-handoff-layout-v2"/);
+  assert.match(source, /import \{ imageFileFromPaste \} from "\.\/photo-clipboard\.mjs"/);
   assert.match(source, /from "\.\/guide-storage\.mjs\?v=20260809-handoff-layout-v2"/);
   assert.match(source, /createPhotoRegionFromBounds,\s+mapPhotoAnalysis,\s+selectPhotoSymbol,\s+setPhotoRegionBounds,\s+setPhotoRegionPosition,\s+sourceCropForAnalysis,\s+\} from "\.\/photo-placement\.mjs\?v=20260811-photo-edit-v1"/);
   assert.match(source, /createImageBitmap/);
@@ -50,6 +51,11 @@ test("l'atelier importe l'analyse photo", async () => {
   assert.match(source, /copyCircleJsonLinkFromDialog/);
   assert.match(source, /recreatePhotoImport/);
   assert.match(source, /savePhotoAsGuide/);
+  assert.match(source, /photoImportDialog\?\.open/);
+  assert.match(source, /addEventListener\("paste"/);
+  assert.match(source, /addEventListener\("drop"/);
+  assert.match(source, /handlePhotoFile\(file\)/);
+  assert.match(source, /dataset\.dragActive/);
   assert.match(photoSource, /from "\.\/stroke-matcher\.mjs\?v=20260809-handoff-layout-v2"/);
   assert.match(source, /type: "circle"/);
   assert.doesNotMatch(source, /const ringAction = \{\s*type: "ring"/);

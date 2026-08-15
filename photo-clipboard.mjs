@@ -5,7 +5,7 @@ const PHOTO_MIME_TYPES = new Set([
 ]);
 
 export function imageFileFromPaste(event) {
-  const items = event?.clipboardData?.items;
+  const items = event?.clipboardData?.items || event?.dataTransfer?.items;
   if (!items) return null;
 
   for (const item of items) {

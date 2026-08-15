@@ -72,6 +72,7 @@ import {
   updatePracticeDiagnostic,
 } from "./practice-session.mjs?v=20260809-handoff-layout-v2";
 import { analyzePhoto } from "./photo-import.mjs?v=20260809-handoff-layout-v2";
+import { imageFileFromPaste } from "./photo-clipboard.mjs";
 import {
   createPhotoRegionFromBounds,
   mapPhotoAnalysis,
@@ -371,6 +372,7 @@ const circleJsonDownloadButton = document.querySelector("#circleJsonDownloadButt
 const circleJsonCopyLinkButton = document.querySelector("#circleJsonCopyLinkButton");
 const photoFileInput = document.querySelector("#photoFileInput");
 const photoImportDialog = document.querySelector("#photoImportDialog");
+const photoImportDropzone = document.querySelector("#photoImportDropzone");
 const photoPreviewImage = document.querySelector("#photoPreviewImage");
 const photoPreviewOverlay = document.querySelector("#photoPreviewOverlay");
 const photoImportResults = document.querySelector("#photoImportResults");
@@ -11060,6 +11062,35 @@ function openCircleImportDialog() {
   photoImportDialog?.showModal();
 }
 
+function isEditablePasteTarget(target) {
+  const tagName = target?.tagName?.toLowerCase();
+  return target?.isContentEditable || tagName === "input" || tagName === "textarea" || tagName === "select";
+}
+
+function handlePhotoPaste(event) {
+  if (!photoImportDialog?.open || isEditablePasteTarget(event.target)) return;
+  const file = imageFileFromPaste(event);
+  if (!file) {
+    setStatus(t("photo.pasteNoImage"));
+    return;
+  }
+  event.preventDefault();
+  handlePhotoFile(file);
+}
+
+function setPhotoDropzoneActive(active) {
+  if (photoImportDropzone) photoImportDropzone.dataset.dragActive = active ? "true" : "false";
+}
+
+function handlePhotoDrop(event) {
+  setPhotoDropzoneActive(false);
+  if (!photoImportDialog?.open) return;
+  const file = imageFileFromPaste(event);
+  if (!file) return;
+  event.preventDefault();
+  handlePhotoFile(file);
+}
+
 async function publishCurrentCircle() {
   const baseUrl = publishCommunityButton?.dataset.communityUrl;
   if (!baseUrl) {
@@ -12239,6 +12270,7 @@ circleJsonInput?.addEventListener("keydown", (event) => {
     importCircleShareText();
   }
 });
+document.addEventListener("paste", handlePhotoPaste);
 photoFileInput?.addEventListener("change", () => {
   const file = photoFileInput.files?.[0];
   if (file) {
@@ -12257,7 +12289,20 @@ photoImportDialog?.addEventListener("close", () => {
   pendingPhotoImport = null;
   photoSelectedRegionIndex = null;
   photoRegionDrag = null;
+  setPhotoDropzoneActive(false);
   photoPreviewOverlay?.replaceChildren();
+});
+photoImportDropzone?.addEventListener("dragover", (event) => {
+  if (!photoImportDialog?.open || !imageFileFromPaste(event)) return;
+  event.preventDefault();
+  setPhotoDropzoneActive(true);
+});
+photoImportDropzone?.addEventListener("dragleave", () => setPhotoDropzoneActive(false));
+photoImportDropzone?.addEventListener("drop", handlePhotoDrop);
+photoImportDropzone?.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  event.preventDefault();
+  photoFileInput?.click();
 });
 
 symbolSearchInput?.addEventListener("keydown", (event) => {
