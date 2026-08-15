@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 121114)
-Total output lines: 12645
-
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import {
@@ -5933,7 +5930,133 @@ async function loadGalleryPosts(sort = gallerySort) {
     galleryLoaded = false;
     renderGalleryMessage("gallery.error");
   } finally {
-    if (requestId === galleryReque…1114 tokens truncated…0;
+    if (requestId === galleryRequest) galleryFeed.setAttribute("aria-busy", "false");
+  }
+}
+
+function setOpenDrawer(drawer) {
+  const symbolsOpen = drawer === "symbols";
+  const detailsOpen = drawer === "details";
+  const supportOpen = drawer === "support";
+  const guidesOpen = drawer === "guides";
+  const galleryOpen = drawer === "gallery";
+  if (!symbolsOpen) {
+    cancelSymbolDragIntent();
+    if (state.symbolDrag) {
+      cancelSymbolDrag();
+    }
+  }
+  document.body.classList.toggle("symbols-open", symbolsOpen);
+  document.body.classList.toggle("details-open", detailsOpen);
+  document.body.classList.toggle("support-open", supportOpen);
+  document.body.classList.toggle("guides-open", guidesOpen);
+  document.body.classList.toggle("gallery-open", galleryOpen);
+  symbolToggleButton?.setAttribute("aria-expanded", String(symbolsOpen));
+  detailsToggleButton?.setAttribute("aria-expanded", String(detailsOpen));
+  supportToggleButton?.setAttribute("aria-expanded", String(supportOpen));
+  guideToggleButton?.setAttribute("aria-expanded", String(guidesOpen));
+  galleryToggleButton?.setAttribute("aria-expanded", String(galleryOpen));
+  symbolDrawer?.setAttribute("aria-hidden", String(!symbolsOpen));
+  detailsDrawer?.setAttribute("aria-hidden", String(!detailsOpen));
+  supportDrawer?.setAttribute("aria-hidden", String(!supportOpen));
+  guideDrawer?.setAttribute("aria-hidden", String(!guidesOpen));
+  galleryDrawer?.setAttribute("aria-hidden", String(!galleryOpen));
+  render();
+}
+
+function boundsFromActions(actions) {
+  const bounds = actions.map(actionBounds);
+  const left = Math.min(...bounds.map((bound) => bound.left));
+  const right = Math.max(...bounds.map((bound) => bound.right));
+  const top = Math.min(...bounds.map((bound) => bound.top));
+  const bottom = Math.max(...bounds.map((bound) => bound.bottom));
+  return { left, right, top, bottom, width: right - left, height: bottom - top };
+}
+
+function normalizedStroke(action, bounds) {
+  return {
+    action,
+    bounds: actionBounds(action),
+    points: action.points.map((point) => ({
+      x: (point.x - bounds.left) / Math.max(1, bounds.width),
+      y: (point.y - bounds.top) / Math.max(1, bounds.height),
+    })),
+  };
+}
+
+function normalizedBounds(stroke, bounds) {
+  return {
+    left: (stroke.bounds.left - bounds.left) / Math.max(1, bounds.width),
+    right: (stroke.bounds.right - bounds.left) / Math.max(1, bounds.width),
+    top: (stroke.bounds.top - bounds.top) / Math.max(1, bounds.height),
+    bottom: (stroke.bounds.bottom - bounds.top) / Math.max(1, bounds.height),
+    width: stroke.bounds.width / Math.max(1, bounds.width),
+    height: stroke.bounds.height / Math.max(1, bounds.height),
+  };
+}
+
+function isClosedStroke(action) {
+  if (action.points.length < 8) {
+    return false;
+  }
+  const bounds = actionBounds(action);
+  const size = Math.max(bounds.width, bounds.height, 1);
+  return distance(action.points[0], action.points[action.points.length - 1]) <= size * 0.34;
+}
+
+function strokeOrientation(item) {
+  const { width, height } = item.bounds;
+  if (width >= height * 2.4) {
+    return "horizontal";
+  }
+  if (height >= width * 2.4) {
+    return "vertical";
+  }
+  if (width >= 0.18 && height >= 0.18) {
+    const first = item.stroke.points[0];
+    const last = item.stroke.points[item.stroke.points.length - 1];
+    return (last.x - first.x) * (last.y - first.y) >= 0 ? "diagonal-down" : "diagonal-up";
+  }
+  return "compact";
+}
+
+function strokeDirectionChanges(points, axis = "x") {
+  let changes = 0;
+  let previous = 0;
+  for (let index = 1; index < points.length; index += 1) {
+    const delta = points[index][axis] - points[index - 1][axis];
+    if (Math.abs(delta) < 0.012) {
+      continue;
+    }
+    const direction = Math.sign(delta);
+    if (previous && direction !== previous) {
+      changes += 1;
+    }
+    previous = direction;
+  }
+  return changes;
+}
+
+function strokePointNear(item, x, y, tolerance = 0.12) {
+  return item.stroke.points.some((point) => Math.hypot(point.x - x, point.y - y) <= tolerance);
+}
+
+function strokeCenter(item) {
+  return {
+    x: item.bounds.left + item.bounds.width / 2,
+    y: item.bounds.top + item.bounds.height / 2,
+  };
+}
+
+function isDotLike(item) {
+  return item.bounds.width <= 0.12 && item.bounds.height <= 0.12;
+}
+
+function isStraightLike(item) {
+  const first = item.stroke.points[0];
+  const last = item.stroke.points[item.stroke.points.length - 1];
+  const direct = Math.hypot(last.x - first.x, last.y - first.y);
+  let length = 0;
   for (let index = 1; index < item.stroke.points.length; index += 1) {
     length += Math.hypot(item.stroke.points[index].x - item.stroke.points[index - 1].x, item.stroke.points[index].y - item.stroke.points[index - 1].y);
   }
