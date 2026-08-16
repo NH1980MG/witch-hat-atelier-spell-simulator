@@ -1261,6 +1261,10 @@ input:focus-visible {
   overscroll-behavior: contain;
 }
 
+.ink-list[hidden] {
+  display: none !important;
+}
+
 .symbol-drawer-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1298,7 +1302,7 @@ input:focus-visible {
 }
 
 .sigil-composition-panel[hidden] {
-  display: none;
+  display: none !important;
 }
 
 .composition-tool-tray {
