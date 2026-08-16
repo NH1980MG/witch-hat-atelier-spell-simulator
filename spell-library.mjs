@@ -5,6 +5,7 @@
 
 export const SPELL_LIBRARY_STORAGE_KEY = "whaMySpellsV1";
 export const MAX_MY_SPELLS = 24;
+export const MAX_MY_SPELL_RASTER_CHARS = 2_000_000;
 
 const DRAWING_ACTION_TYPES = new Set(["free", "circle", "ring", "ray", "glyph", "spiral"]);
 const ACTION_KEYS = [
@@ -51,6 +52,16 @@ function clampInt(value, min, max, fallback) {
   return Math.max(min, Math.min(max, Math.round(number)));
 }
 
+function sanitizeRaster(raster) {
+  if (!raster || typeof raster.src !== "string" || raster.src.length > MAX_MY_SPELL_RASTER_CHARS ||
+      !/^data:image\/(?:png|jpeg|webp);base64,[a-z0-9+/=]+$/i.test(raster.src) ||
+      !Number.isFinite(raster.width) || raster.width <= 0 ||
+      !Number.isFinite(raster.height) || raster.height <= 0) {
+    return null;
+  }
+  return { src: raster.src, width: raster.width, height: raster.height };
+}
+
 function normalizeSpell(spell) {
   if (!spell || typeof spell.id !== "string" || !Array.isArray(spell.actions)) {
     return null;
@@ -59,6 +70,7 @@ function normalizeSpell(spell) {
   if (actions.length === 0) {
     return null;
   }
+  const raster = sanitizeRaster(spell.raster);
   return {
     id: spell.id.slice(0, 100),
     name: String(spell.name || "Sort").slice(0, 80),
@@ -66,10 +78,11 @@ function normalizeSpell(spell) {
     intensity: clampInt(spell.intensity, 1, 5, 3),
     stroke: clampInt(spell.stroke, 1, 8, 3),
     actions,
+    ...(raster ? { raster } : {}),
   };
 }
 
-export function createSpell({ name, actions, intensity, stroke }, options = {}) {
+export function createSpell({ name, actions, intensity, stroke, raster }, options = {}) {
   const spell = normalizeSpell({
     id: options.id || `spell-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     name,
@@ -77,6 +90,7 @@ export function createSpell({ name, actions, intensity, stroke }, options = {}) 
     intensity,
     stroke,
     actions,
+    raster,
   });
   if (!spell) {
     throw new TypeError("A spell requires at least one valid drawing action");
