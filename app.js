@@ -406,6 +406,7 @@ const publishGalleryButton = document.querySelector("#publishGalleryButton");
 const galleryFeed = document.querySelector("#galleryFeed");
 const galleryRefreshButton = document.querySelector("#galleryRefreshButton");
 const gallerySortButtons = [...document.querySelectorAll("[data-gallery-sort]")];
+const appHubGalleryGrid = document.querySelector("#appHubGalleryGrid");
 const guideLibraryTab = document.querySelector("#guideLibraryTab");
 const guidePersonalTab = document.querySelector("#guidePersonalTab");
 const guideSpellsTab = document.querySelector("#guideSpellsTab");
@@ -10005,6 +10006,79 @@ function setGuideTab(tab) {
   }
 }
 
+function captureCurrentCanvasRaster() {
+  const sourceWidth = Math.max(1, canvas.width);
+  const sourceHeight = Math.max(1, canvas.height);
+  const scale = Math.min(1, 512 / Math.max(sourceWidth, sourceHeight));
+  const thumbnail = document.createElement("canvas");
+  thumbnail.width = Math.max(1, Math.round(sourceWidth * scale));
+  thumbnail.height = Math.max(1, Math.round(sourceHeight * scale));
+  const thumbnailContext = thumbnail.getContext("2d");
+  state.exporting = true;
+  try {
+    render();
+    thumbnailContext.drawImage(canvas, 0, 0, thumbnail.width, thumbnail.height);
+    return {
+      src: encodePhotoGuideRaster(thumbnail),
+      width: thumbnail.width,
+      height: thumbnail.height,
+    };
+  } finally {
+    state.exporting = false;
+    render();
+  }
+}
+
+function renderAppHubGallery() {
+  if (!appHubGalleryGrid) {
+    return;
+  }
+  appHubGalleryGrid.replaceChildren();
+  if (state.mySpells.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "app-hub-gallery-empty";
+    const mark = document.createElement("span");
+    mark.className = "app-hub-empty-mark";
+    mark.setAttribute("aria-hidden", "true");
+    mark.textContent = "+";
+    const copy = document.createElement("div");
+    const title = document.createElement("strong");
+    title.textContent = t("appHub.emptyGallery");
+    const detail = document.createElement("p");
+    detail.textContent = t("appHub.emptyGalleryDetail");
+    copy.append(title, detail);
+    empty.append(mark, copy);
+    appHubGalleryGrid.append(empty);
+    return;
+  }
+
+  for (const spell of state.mySpells) {
+    const card = document.createElement("article");
+    card.className = "app-hub-spell-card";
+    if (spell.raster) {
+      const image = document.createElement("img");
+      image.src = spell.raster.src;
+      image.alt = t("appHub.savedSpellAlt", { name: spell.name });
+      card.append(image);
+    } else {
+      const fallback = document.createElement("span");
+      fallback.className = "app-hub-spell-fallback";
+      fallback.setAttribute("aria-hidden", "true");
+      fallback.textContent = "◇";
+      card.append(fallback);
+    }
+    const name = document.createElement("strong");
+    name.textContent = spell.name;
+    const meta = document.createElement("small");
+    meta.textContent = t("spells.meta", {
+      count: spell.actions.length,
+      date: new Date(spell.createdAt).toLocaleDateString(getLocale()),
+    });
+    card.append(name, meta);
+    appHubGalleryGrid.append(card);
+  }
+}
+
 function renderSpellList() {
   if (!guideSpellsList) {
     return;
@@ -10021,7 +10095,23 @@ function renderSpellList() {
     card.className = "guide-card";
     const useButton = document.createElement("button");
     useButton.type = "button";
-    useButton.innerHTML = `<span class="guide-card-preview" aria-hidden="true">&#9672;</span><span class="guide-card-name">${spell.name}</span>`;
+    if (spell.raster) {
+      const preview = document.createElement("img");
+      preview.className = "guide-card-preview";
+      preview.src = spell.raster.src;
+      preview.alt = t("spells.imageAlt", { name: spell.name });
+      useButton.append(preview);
+    } else {
+      const preview = document.createElement("span");
+      preview.className = "guide-card-preview";
+      preview.setAttribute("aria-hidden", "true");
+      preview.textContent = "◇";
+      useButton.append(preview);
+    }
+    const name = document.createElement("span");
+    name.className = "guide-card-name";
+    name.textContent = spell.name;
+    useButton.append(name);
     useButton.dataset.guideAction = "use";
     useButton.addEventListener("click", () => selectGuide("spell", spell.id));
     const meta = document.createElement("p");
@@ -10051,6 +10141,7 @@ function renderSpellList() {
     card.append(useButton, meta, actions);
     guideSpellsList.append(card);
   }
+  renderAppHubGallery();
 }
 
 function saveCurrentSpell() {
@@ -10074,6 +10165,7 @@ function confirmSaveSpell() {
       actions: state.actions,
       intensity: diameterPowerLevel(estimatedCircleDiameterMeters()),
       stroke: state.strokeSize,
+      raster: captureCurrentCanvasRaster(),
     });
     state.mySpells = saveMySpells(localStorage, [spell, ...state.mySpells]);
     renderSpellList();
@@ -10193,6 +10285,7 @@ function saveCurrentCircleAsGuide() {
   try {
     const guide = createUserGuide(state.actions, {
       name: t("guides.defaultName", { count: state.userGuides.length + 1 }),
+      raster: captureCurrentCanvasRaster(),
     });
     state.userGuides = saveUserGuides(localStorage, [guide, ...state.userGuides]);
     state.activeGuide = { source: "personal", id: guide.id };

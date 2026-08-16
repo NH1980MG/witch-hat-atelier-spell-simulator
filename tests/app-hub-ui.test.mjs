@@ -12,6 +12,7 @@ test("the atelier opens with a non-interactive app hub mockup", async () => {
   assert.match(html, /<div class="app-hub-topbar">/);
   assert.match(html, /<div class="app-hub-shortcuts" aria-hidden="false">/);
   assert.match(html, /<section class="app-hub-gallery" aria-labelledby="appHubGalleryTitle">/);
+  assert.match(html, /<div class="app-hub-gallery-grid" id="appHubGalleryGrid"/);
   assert.match(html, /<div class="app-hub-gallery-empty"/);
   assert.match(html, /<a class="app-hub-new-canvas" href="index\.html\?view=atelier"/);
   assert.match(html, /data-i18n="appHub\.newCanvas"/);
@@ -30,6 +31,16 @@ test("the atelier opens with a non-interactive app hub mockup", async () => {
   assert.doesNotMatch(html, /class="app-hub-card[^"]*" href=/);
   assert.match(html, /data-app-view-title="Atelier"/);
   assert.doesNotMatch(html, /id="practiceToggleButton"/);
+});
+
+test("the personal gallery is rendered from saved spells instead of library seeds", async () => {
+  const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
+
+  assert.match(app, /function renderAppHubGallery\(\)/);
+  assert.match(app, /loadMySpells\(localStorage\)/);
+  assert.match(app, /spell\.raster/);
+  assert.match(app, /appHubGalleryGrid\.append/);
+  assert.doesNotMatch(app, /LIBRARY_CIRCLES\.map\([^\n]*appHubGalleryGrid/);
 });
 
 test("the app hub labels are bilingual", () => {
