@@ -9,7 +9,6 @@ import {
 
 test("l'atelier expose le mode entrainement complet", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
-  assert.match(html, /id="practiceToggleButton"/);
   assert.match(html, /id="practiceBar"/);
   assert.match(html, /id="practiceTargetSelect"/);
   assert.match(html, /id="practiceVerifyButton"/);
@@ -18,7 +17,8 @@ test("l'atelier expose le mode entrainement complet", async () => {
   const scoreMarkup = html.match(/<output id="practiceScore"[^>]*>/)?.[0] || "";
   assert.doesNotMatch(scoreMarkup, /aria-live/);
   assert.match(html, /id="practiceCloseButton"/);
-  assert.match(html, /data-i18n="practice\.toggle"/);
+  assert.match(html, /href="index\.html#practice"/);
+  assert.match(html, /data-i18n="nav\.practice"/);
   assert.match(html, /data-i18n="practice\.target"/);
   assert.match(html, /data-i18n="practice\.verify"/);
 });

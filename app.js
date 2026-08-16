@@ -12027,13 +12027,13 @@ function renderPracticePreview() {
 }
 
 function setPracticeOpen(open) {
-  if (!practiceBar || !practiceToggleButton) {
+  if (!practiceBar) {
     return;
   }
   state.practiceOpen = open;
   practiceBar.hidden = !open;
-  practiceToggleButton.setAttribute("aria-expanded", String(open));
-  practiceToggleButton.classList.toggle("is-active", open);
+  practiceToggleButton?.setAttribute("aria-expanded", String(open));
+  practiceToggleButton?.classList.toggle("is-active", open);
   if (open) {
     fillPracticeTargets();
     renderPracticePreview();
@@ -12089,6 +12089,15 @@ practiceTargetSelect?.addEventListener("change", () => {
   }
 });
 practiceVerifyButton?.addEventListener("click", verifyPracticeStroke);
+
+function openPracticeFromHash() {
+  if (window.location.hash === "#practice") {
+    setPracticeOpen(true);
+  }
+}
+
+window.addEventListener("hashchange", openPracticeFromHash);
+openPracticeFromHash();
 
 let pendingPhotoImport = null;
 let photoEditRegionIndex = null;
