@@ -87,6 +87,15 @@ test("every public simulator page exposes independent Circle Commons account and
   assert.equal(i18n.split('"nav.openProfile"').length - 1, 2);
   assert.equal(i18n.split('"nav.signIn"').length - 1, 2);
   assert.match(i18n, /"nav\.signIn": "Connexion"/);
+  assert.match(i18n, /"nav\.signOut": "Se deconnecter"/);
+});
+
+test("the profile pill changes into a Circle Commons sign-out action", async () => {
+  const source = await readFile(new URL("../site-nav.mjs", import.meta.url), "utf8");
+
+  assert.match(source, /\/auth\/sign-out/);
+  assert.match(source, /data-i18n-title.*nav\.signOut/);
+  assert.match(source, /clearStoredCommunityProfile/);
 });
 
 test("the Circle Commons profile pill can show a stored connected name", () => {

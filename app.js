@@ -24,6 +24,7 @@ import {
   loadMySpells,
   saveMySpells,
 } from "./spell-library.mjs";
+import { buildSpellPreviewDataUrl } from "./spell-preview.mjs";
 import { classifySymbolDragGesture } from "./symbol-drag-gesture.mjs?v=20260809-handoff-layout-v2";
 import { parseRecipeParams } from "./recipe-link.mjs?v=20260811-exact-schematic-v1";
 import {
@@ -10029,6 +10030,10 @@ function captureCurrentCanvasRaster() {
   }
 }
 
+function spellPreviewSource(spell) {
+  return spell?.raster?.src || buildSpellPreviewDataUrl(spell?.actions);
+}
+
 function renderAppHubGallery() {
   if (!appHubGalleryGrid) {
     return;
@@ -10055,9 +10060,10 @@ function renderAppHubGallery() {
   for (const spell of state.mySpells) {
     const card = document.createElement("article");
     card.className = "app-hub-spell-card";
-    if (spell.raster) {
+    const previewSource = spellPreviewSource(spell);
+    if (previewSource) {
       const image = document.createElement("img");
-      image.src = spell.raster.src;
+      image.src = previewSource;
       image.alt = t("appHub.savedSpellAlt", { name: spell.name });
       card.append(image);
     } else {
@@ -10095,10 +10101,11 @@ function renderSpellList() {
     card.className = "guide-card";
     const useButton = document.createElement("button");
     useButton.type = "button";
-    if (spell.raster) {
+    const previewSource = spellPreviewSource(spell);
+    if (previewSource) {
       const preview = document.createElement("img");
       preview.className = "guide-card-preview";
-      preview.src = spell.raster.src;
+      preview.src = previewSource;
       preview.alt = t("spells.imageAlt", { name: spell.name });
       useButton.append(preview);
     } else {
@@ -10245,11 +10252,12 @@ function renderGuideLists() {
     card.className = `guide-card${active ? " is-active" : ""}`;
     const useButton = document.createElement("button");
     useButton.type = "button";
-    if (guide.raster) {
+    const previewSource = guide.raster?.src || buildSpellPreviewDataUrl(guide.actions);
+    if (previewSource) {
       const preview = document.createElement("img");
       preview.className = "guide-card-preview";
-      preview.src = guide.raster.src;
-      preview.alt = "";
+      preview.src = previewSource;
+      preview.alt = guide.name;
       const name = document.createElement("span");
       name.className = "guide-card-name";
       name.textContent = guide.name;
