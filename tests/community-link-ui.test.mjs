@@ -4,7 +4,6 @@ import { readFile } from "node:fs/promises";
 import {
   cleanCommunityProfileName,
   communityProfileNameFrom,
-  readReturnedCommunityProfile,
   readStoredCommunityProfileName,
 } from "../site-nav.mjs";
 
@@ -88,6 +87,15 @@ test("every public simulator page exposes independent Circle Commons account and
   assert.equal(i18n.split('"nav.openProfile"').length - 1, 2);
   assert.equal(i18n.split('"nav.signIn"').length - 1, 2);
   assert.match(i18n, /"nav\.signIn": "Connexion"/);
+  assert.match(i18n, /"nav\.signOut": "Se deconnecter"/);
+});
+
+test("the profile pill changes into a Circle Commons sign-out action", async () => {
+  const source = await readFile(new URL("../site-nav.mjs", import.meta.url), "utf8");
+
+  assert.match(source, /\/auth\/sign-out/);
+  assert.match(source, /data-i18n-title.*nav\.signOut/);
+  assert.match(source, /clearStoredCommunityProfile/);
 });
 
 test("the Circle Commons profile pill can show a stored connected name", () => {
@@ -101,30 +109,4 @@ test("the Circle Commons profile pill can show a stored connected name", () => {
     },
   };
   assert.equal(readStoredCommunityProfileName(storage), "Apprenti");
-});
-
-test("the Circle Commons profile pill stores the profile returned by sign-in", () => {
-  const stored = new Map();
-  const storage = {
-    setItem(key, value) {
-      stored.set(key, value);
-    },
-  };
-  const location = {
-    pathname: "/index.html",
-    search: "?cc_name=Atelier%20User&cache=old",
-    hash: "#draw",
-  };
-  let replaced = "";
-  const history = {
-    replaceState(_state, _title, url) {
-      replaced = url;
-    },
-  };
-
-  assert.equal(readReturnedCommunityProfile({ location, history, storage }), "Atelier User");
-  assert.deepEqual(JSON.parse(stored.get("whaCircleCommonsProfile")), {
-    user: { displayName: "Atelier User" },
-  });
-  assert.equal(replaced, "/index.html?cache=old#draw");
 });
