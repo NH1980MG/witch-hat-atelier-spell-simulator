@@ -38,7 +38,8 @@ test("the personal gallery is rendered from saved spells instead of library seed
 
   assert.match(app, /function renderAppHubGallery\(\)/);
   assert.match(app, /loadMySpells\(localStorage\)/);
-  assert.match(app, /spell\.raster/);
+  assert.match(app, /spellPreviewSource\(spell\)/);
+  assert.match(app, /buildSpellPreviewDataUrl/);
   assert.match(app, /appHubGalleryGrid\.append/);
   assert.doesNotMatch(app, /LIBRARY_CIRCLES\.map\([^\n]*appHubGalleryGrid/);
 });
