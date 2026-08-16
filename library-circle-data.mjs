@@ -4,7 +4,6 @@ export const LIBRARY_CATEGORIES = Object.freeze([
   "niche",
   "ancient-forbidden",
   "ancient-non-forbidden",
-  "community-inferred",
 ]);
 
 const referenceEntries = [
@@ -505,25 +504,5 @@ export const LIBRARY_CIRCLES = Object.freeze([
     activate: true,
     ritualId: previewRituals[id] || null,
   }),
-  })),
-  ...communityRecipes.map((entry, index) => Object.freeze({
-    id: entry.id,
-    name: entry.name,
-    category: "community-inferred",
-    fidelity: entry.fidelity,
-    assetKind: "generated-recipe",
-    effect: entry.effect,
-    source: entry.source,
-    alt: Object.freeze({
-      en: `Generated community recipe for ${entry.name}: ${entry.effect}`,
-      fr: `Recette communautaire generee pour ${entry.name} : ${entry.effect}`,
-    }),
-    seed: referenceEntries.length + index + 1,
-    preview: Object.freeze({
-      sigils: Object.freeze([...entry.preview.sigils]),
-      signs: Object.freeze([...entry.preview.signs]),
-      supportId: entry.preview.supportId,
-      activate: true,
-    }),
   })),
 ]);
