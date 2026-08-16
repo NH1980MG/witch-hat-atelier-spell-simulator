@@ -60,3 +60,11 @@ test("les cles spells existent dans les deux locales, fr sans accents", async ()
   assert.match(source, /"guides\.spells": "Mes sorts"/);
   assert.match(source, /"commands\.saveSpell": "Enregistrer le sort"/);
 });
+
+test("les cartes Mes sorts contiennent leurs apercus et leurs actions", async () => {
+  const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
+  assert.match(css, /\.guide-card \{[\s\S]*?min-width: 0;[\s\S]*?overflow: hidden;/);
+  assert.match(css, /\.guide-card img,[\s\S]*?\.guide-card-preview \{[\s\S]*?max-width: 100%;/);
+  assert.match(css, /\.guide-card-actions \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\) minmax\(0, auto\);/);
+  assert.match(css, /\.guide-card-actions button \{[\s\S]*?min-width: 0;/);
+});

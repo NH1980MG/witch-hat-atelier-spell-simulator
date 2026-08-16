@@ -911,6 +911,8 @@ input:focus-visible {
   display: grid;
   gap: 7px;
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   border: 1px solid rgba(140, 107, 63, 0.46);
   border-radius: 12px;
   padding: 8px;
@@ -928,6 +930,8 @@ input:focus-visible {
 .guide-card-preview {
   display: block;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   aspect-ratio: 1;
   border: 1px solid rgba(140, 107, 63, 0.24);
   border-radius: 8px;
@@ -969,18 +973,27 @@ input:focus-visible {
 
 .guide-card-actions {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto);
   gap: 6px;
+  min-width: 0;
 }
 
 .guide-card-actions button {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: 34px;
   padding: 5px 8px;
+  overflow-wrap: anywhere;
 }
 
 .guide-card > button:first-child {
   display: grid;
   gap: 7px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   min-height: 0;
   border: 0;
   padding: 0;
@@ -1261,10 +1274,6 @@ input:focus-visible {
   overscroll-behavior: contain;
 }
 
-.ink-list[hidden] {
-  display: none !important;
-}
-
 .symbol-drawer-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1295,66 +1304,49 @@ input:focus-visible {
 
 .sigil-composition-panel {
   display: grid;
-  grid-template-rows: auto minmax(260px, 1fr) auto;
+  grid-template-rows: auto minmax(220px, 1fr) auto;
   flex: 1 1 auto;
   gap: 9px;
-  min-height: 430px;
+  min-height: 360px;
 }
 
 .sigil-composition-panel[hidden] {
-  display: none !important;
+  display: none;
 }
 
-.composition-tool-tray {
+.composition-options {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
 }
 
-.composition-tool-group {
+.composition-options label {
   display: grid;
-  gap: 5px;
+  gap: 4px;
   min-width: 0;
-}
-
-.composition-tool-group h3 {
-  margin: 0;
   color: var(--edge);
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
 }
 
-.composition-chip-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(34px, 1fr));
-  gap: 4px;
-  max-height: 82px;
-  overflow: auto;
-  padding-right: 2px;
-}
-
-.composition-chip {
-  display: grid;
-  place-items: center;
+.composition-options select {
+  width: 100%;
   min-width: 0;
-  min-height: 34px;
-  padding: 4px;
+  min-height: 32px;
+  padding: 4px 5px;
   border: 1px solid rgba(140, 107, 63, 0.5);
   border-radius: 6px;
   background: rgba(255, 248, 234, 0.9);
-  color: var(--symbol-color, var(--ink));
-}
-
-.composition-chip.is-active,
-.composition-chip:focus-visible {
-  border-color: var(--gold);
-  box-shadow: 0 0 0 2px rgba(199, 151, 54, 0.24);
+  color: var(--ink);
+  font-size: 0.82rem;
 }
 
 .composition-stage {
-  position: relative;
-  min-height: 300px;
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 245px;
   padding: 12px;
   border: 1px solid rgba(140, 107, 63, 0.45);
   border-radius: 8px;
@@ -1365,9 +1357,6 @@ input:focus-visible {
 }
 
 .composition-preview-title {
-  position: absolute;
-  left: 12px;
-  top: 10px;
   color: var(--edge);
   font-size: 0.78rem;
   font-weight: 700;
@@ -1375,47 +1364,44 @@ input:focus-visible {
 }
 
 .composition-preview-seal {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: min(210px, 68%);
+  position: relative;
+  width: min(180px, 80%);
   aspect-ratio: 1;
-  transform: translate(-50%, -50%);
+}
+
+.composition-preview-ring {
+  position: absolute;
+  inset: 18%;
   border: 2px solid var(--edge);
   border-radius: 50%;
 }
 
-.composition-slot {
+.composition-preview-sigil,
+.composition-preview-sign {
   position: absolute;
   display: grid;
   place-items: center;
-  width: 58px;
-  min-width: 58px;
+  width: 42px;
   aspect-ratio: 1;
-  padding: 5px;
-  border: 1px dashed rgba(140, 107, 63, 0.66);
-  border-radius: 50%;
-  background: rgba(255, 248, 234, 0.8);
-  color: var(--symbol-color, var(--edge));
+  color: var(--symbol-color);
+}
+
+.composition-preview-sigil {
+  left: 50%;
+  top: 50%;
   transform: translate(-50%, -50%);
 }
 
-.composition-slot.is-active {
-  border-style: solid;
-  border-color: var(--gold);
-  background: rgba(255, 248, 234, 0.96);
-  box-shadow: 0 0 0 3px rgba(199, 151, 54, 0.2);
+.composition-preview-sign-1 {
+  left: 22%;
+  top: 20%;
+  transform: translate(-50%, -50%);
 }
 
-.composition-slot[data-slot-kind="sigil"] {
-  width: 70px;
-  min-width: 70px;
-}
-
-.composition-slot-empty {
-  color: var(--edge);
-  font-size: 0.72rem;
-  font-weight: 700;
+.composition-preview-sign-2 {
+  right: 22%;
+  top: 20%;
+  transform: translate(50%, -50%);
 }
 
 .composition-stage .symbol-mark {
@@ -1423,13 +1409,12 @@ input:focus-visible {
   height: 100%;
 }
 
-.composition-action-row {
-  display: grid;
-  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-  gap: 8px;
+.composition-stage p {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.9rem;
 }
 
-.composition-clear,
 .composition-apply {
   width: 100%;
   min-height: 40px;
