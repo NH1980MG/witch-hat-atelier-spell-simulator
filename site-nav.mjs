@@ -52,32 +52,6 @@ function readStoredCommunityProfileName(storage = window.localStorage) {
   return "";
 }
 
-function writeCommunityProfileName(name, storage = window.localStorage) {
-  const displayName = cleanCommunityProfileName(name);
-  if (!displayName) {
-    return "";
-  }
-  storage.setItem("whaCircleCommonsProfile", JSON.stringify({ user: { displayName } }));
-  return displayName;
-}
-
-function readReturnedCommunityProfile({
-  location = window.location,
-  history = window.history,
-  storage = window.localStorage,
-} = {}) {
-  const params = new URLSearchParams(location.search || "");
-  const displayName = writeCommunityProfileName(params.get("cc_name"), storage);
-  if (!displayName) {
-    return "";
-  }
-  params.delete("cc_name");
-  const query = params.toString();
-  const nextUrl = `${location.pathname}${query ? `?${query}` : ""}${location.hash || ""}`;
-  history.replaceState(null, "", nextUrl);
-  return displayName;
-}
-
 function readPreference() {
   try {
     return window.localStorage.getItem(STORAGE_KEY) === "true";
@@ -145,14 +119,33 @@ function updateCommunityProfilePill(name = "") {
     return;
   }
   const profileName = cleanCommunityProfileName(name);
+  const baseUrl = new URL(pill.href).origin;
   if (!profileName) {
+    const wasConnected = pill.dataset.connected === "true";
     pill.dataset.connected = "false";
+    pill.href = `${baseUrl}/sign-in?return_to=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+    pill.removeAttribute("data-i18n-title");
+    if (wasConnected) {
+      label.textContent = label.dataset.signedOutText || "Sign in";
+    }
     return;
   }
   label.textContent = profileName;
   pill.dataset.connected = "true";
-  pill.setAttribute("aria-label", profileName);
-  pill.title = profileName;
+  pill.href = `${baseUrl}/auth/sign-out`;
+  pill.setAttribute("data-i18n-title", "nav.signOut");
+  pill.setAttribute("aria-label", `Sign out: ${profileName}`);
+  pill.title = "Sign out";
+}
+
+function clearStoredCommunityProfile() {
+  for (const key of COMMUNITY_PROFILE_KEYS) {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      // The remote sign-out still clears the authoritative session cookie.
+    }
+  }
 }
 
 async function fetchCommunityProfileName(pill) {
@@ -180,18 +173,25 @@ async function initializeCommunityProfilePill() {
   if (!pill) {
     return;
   }
+  const label = pill.querySelector("[data-community-profile-label]");
+  if (label && !label.dataset.signedOutText) {
+    label.dataset.signedOutText = label.textContent || "Sign in";
+  }
+  if (!pill.dataset.signoutWired) {
+    pill.dataset.signoutWired = "true";
+    pill.addEventListener("click", () => {
+      if (pill.dataset.connected === "true") {
+        clearStoredCommunityProfile();
+      }
+    });
+  }
   try {
-    updateCommunityProfilePill(readReturnedCommunityProfile() || readStoredCommunityProfileName());
+    updateCommunityProfilePill(readStoredCommunityProfileName());
   } catch {
     updateCommunityProfilePill("");
   }
   const profileName = await fetchCommunityProfileName(pill);
   if (profileName) {
-    try {
-      writeCommunityProfileName(profileName);
-    } catch {
-      // The connected state can still be shown for this page view.
-    }
     updateCommunityProfilePill(profileName);
   }
 }
@@ -224,9 +224,7 @@ export {
   communityProfileNameFrom,
   initializeCommunityProfilePill,
   initializeWorkshopMenu,
-  readReturnedCommunityProfile,
   readStoredCommunityProfileName,
   setOpen,
   updateCommunityProfilePill,
-  writeCommunityProfileName,
 };
