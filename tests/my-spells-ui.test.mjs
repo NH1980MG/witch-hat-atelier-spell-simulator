@@ -61,6 +61,7 @@ test("les cles spells existent dans les deux locales, fr sans accents", async ()
   assert.match(source, /"commands\.saveSpell": "Enregistrer le sort"/);
 });
 
+
 test("les cartes Mes sorts contiennent leurs apercus et leurs actions", async () => {
   const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
   assert.match(css, /\.guide-card \{[\s\S]*?min-width: 0;[\s\S]*?overflow: hidden;/);
