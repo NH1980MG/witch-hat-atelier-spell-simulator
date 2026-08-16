@@ -25,6 +25,12 @@ const SAMPLE_ACTIONS = [
   { type: "free", color: "#243044", width: 2, points: [{ x: 0, y: 0 }, { x: 10, y: 5 }, { x: 20, y: 0 }] },
 ];
 
+const SAMPLE_RASTER = {
+  src: "data:image/webp;base64,UklGRiIAAABXRUJQVlA4IBAAAADQAwCdASoQABAAPpE6mk0iIiIiIgBoSywA",
+  width: 320,
+  height: 240,
+};
+
 test("aller-retour sauvegarde puis chargement", () => {
   const storage = fakeStorage();
   const spell = createSpell({ name: "Torche", actions: SAMPLE_ACTIONS, intensity: 4, stroke: 5 });
@@ -38,6 +44,22 @@ test("aller-retour sauvegarde puis chargement", () => {
   assert.equal(loaded[0].actions[1].rune, "feu");
   assert.equal(loaded[0].actions[1].sector, 6);
   assert.equal(loaded[0].actions[2].points.length, 3);
+});
+
+test("l'image raster du sort est conservee dans la bibliotheque personnelle", () => {
+  const storage = fakeStorage();
+  const spell = createSpell({
+    name: "Sort illustre",
+    actions: SAMPLE_ACTIONS,
+    intensity: 3,
+    stroke: 3,
+    raster: SAMPLE_RASTER,
+  });
+
+  saveMySpells(storage, [spell]);
+  const [loaded] = loadMySpells(storage);
+
+  assert.deepEqual(loaded.raster, SAMPLE_RASTER);
 });
 
 test("les actions invalides et les cles superflues sont ecartees", () => {
