@@ -7,8 +7,10 @@ import {
   updatePracticeDiagnostic,
 } from "../practice-session.mjs";
 
-test("l'atelier expose le mode entrainement complet", async () => {
+test("la version app retire le mode entrainement des commandes de rituel", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  const commandGrid = html.match(/<div class="command-grid">[\s\S]*?<\/div>/)?.[0] || "";
+  assert.doesNotMatch(commandGrid, /practiceToggleButton/);
   assert.match(html, /id="practiceBar"/);
   assert.match(html, /id="practiceTargetSelect"/);
   assert.match(html, /id="practiceVerifyButton"/);

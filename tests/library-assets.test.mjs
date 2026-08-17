@@ -4,15 +4,16 @@ import { readFile, stat } from "node:fs/promises";
 import { LIBRARY_CIRCLES } from "../library-circle-data.mjs";
 import { composeSpellRecipe } from "../spell-grammar.mjs";
 
-test("the gallery keeps the 33 classified references and 50 generated community recipes", () => {
-  assert.equal(LIBRARY_CIRCLES.length, 83);
+test("the gallery keeps only the 33 classified reference circles", () => {
+  assert.equal(LIBRARY_CIRCLES.length, 33);
   assert.deepEqual(
     Object.fromEntries(
-      ["vision", "mixed", "niche", "ancient-forbidden", "ancient-non-forbidden", "community-inferred"]
+      ["vision", "mixed", "niche", "ancient-forbidden", "ancient-non-forbidden"]
         .map((category) => [category, LIBRARY_CIRCLES.filter((circle) => circle.category === category).length]),
     ),
-    { vision: 3, mixed: 5, niche: 20, "ancient-forbidden": 3, "ancient-non-forbidden": 2, "community-inferred": 50 },
+    { vision: 3, mixed: 5, niche: 20, "ancient-forbidden": 3, "ancient-non-forbidden": 2 },
   );
+  assert.equal(LIBRARY_CIRCLES.filter((circle) => circle.assetKind === "generated-recipe").length, 0);
 });
 
 test("every reference gallery entry has a local square reference crop", async () => {
@@ -31,16 +32,10 @@ test("every reference gallery entry has a local square reference crop", async ()
 test("every entry has bilingual accessible text and fidelity", () => {
   for (const circle of LIBRARY_CIRCLES) {
     assert.ok(circle.alt.en && circle.alt.fr, circle.id);
-    assert.ok(["documented", "inferred", "experimental"].includes(circle.fidelity), circle.id);
-    assert.ok(["reference-crop", "generated-recipe"].includes(circle.assetKind), circle.id);
-    if (circle.assetKind === "reference-crop") {
-      assert.match(circle.alt.en, /Reference circle/);
-      assert.match(circle.alt.fr, /Cercle de reference/);
-    } else {
-      assert.match(circle.alt.en, /Generated community recipe/);
-      assert.match(circle.alt.fr, /Recette communautaire generee/);
-      assert.ok(circle.effect, circle.id);
-    }
+    assert.equal(circle.fidelity, "documented", circle.id);
+    assert.equal(circle.assetKind, "reference-crop", circle.id);
+    assert.match(circle.alt.en, /Reference circle/);
+    assert.match(circle.alt.fr, /Cercle de reference/);
   }
 });
 
@@ -61,16 +56,6 @@ test("the opening petrification reference previews the dedicated forbidden effec
   assert.equal(recipe.manifestationPlan.labelEn, "Forbidden petrification field");
 });
 
-test("every generated community recipe has a local svg schematic", async () => {
-  for (const circle of LIBRARY_CIRCLES.filter((entry) => entry.assetKind === "generated-recipe")) {
-    const url = new URL(`../assets/library-schematics/${circle.id}.svg`, import.meta.url);
-    const svg = await readFile(url, "utf8");
-    assert.match(svg, /^<svg /, circle.id);
-    assert.match(svg, /<title>/, circle.id);
-    assert.match(svg, /<circle /, circle.id);
-  }
-});
-
 test("the public library renders all schematics as local accessible images", async () => {
   const html = await readFile(new URL("../bibliotheque.html", import.meta.url), "utf8");
   const cards = [...html.matchAll(/<article class="circle-card">([\s\S]*?)<\/article>/g)];
@@ -85,5 +70,6 @@ test("the public library renders all schematics as local accessible images", asy
     assert.match(image[0], /data-i18n-alt="library\.circleAlt"/);
     assert.match(card, /data-i18n="library\.fidelity\.reference"/);
   }
+  assert.doesNotMatch(html, /communityRecipeGrid/);
   assert.match(html, /library-schematic-preview\.mjs/);
 });

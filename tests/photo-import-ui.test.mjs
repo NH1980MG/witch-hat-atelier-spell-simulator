@@ -16,6 +16,7 @@ test("l'atelier expose l'import photo complet", async () => {
   assert.match(html, /id="circleJsonCopyLinkButton"/);
   assert.match(html, /id="photoFileInput"/);
   assert.match(html, /id="photoImportDialog"/);
+  assert.match(html, /id="photoImportDropzone"/);
   assert.match(html, /id="photoPreviewImage"/);
   assert.match(html, /id="photoImportResults"/);
   assert.match(html, /id="photoRecreateButton"/);
@@ -24,6 +25,7 @@ test("l'atelier expose l'import photo complet", async () => {
   assert.match(html, /data-i18n="import.exportJson"/);
   assert.match(html, /data-i18n="import.photoChoice"/);
   assert.match(html, /data-i18n="import.jsonChoice"/);
+  assert.match(html, /data-i18n="photo.pasteHint"/);
   assert.match(html, /data-i18n="import.exportTitle"/);
   assert.match(html, /data-i18n="import.copyJson"/);
   assert.match(html, /data-i18n="import.downloadJson"/);
@@ -35,7 +37,8 @@ test("l'atelier expose l'import photo complet", async () => {
 test("l'atelier importe l'analyse photo", async () => {
   const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
   const photoSource = await readFile(new URL("../photo-import.mjs", import.meta.url), "utf8");
-  assert.match(source, /import \{ analyzePhoto \} from "\.\/photo-import\.mjs\?v=20260814-photo-rotation-v1"/);
+  assert.match(source, /import \{ analyzePhoto \} from "\.\/photo-import\.mjs\?v=20260809-handoff-layout-v2"/);
+  assert.match(source, /import \{ imageFileFromPaste \} from "\.\/photo-clipboard\.mjs"/);
   assert.match(source, /from "\.\/guide-storage\.mjs\?v=20260809-handoff-layout-v2"/);
   assert.match(source, /createPhotoRegionFromBounds,\s+mapPhotoAnalysis,\s+selectPhotoSymbol,\s+setPhotoRegionBounds,\s+setPhotoRegionPosition,\s+sourceCropForAnalysis,\s+\} from "\.\/photo-placement\.mjs\?v=20260811-photo-edit-v1"/);
   assert.match(source, /createImageBitmap/);
@@ -48,6 +51,11 @@ test("l'atelier importe l'analyse photo", async () => {
   assert.match(source, /copyCircleJsonLinkFromDialog/);
   assert.match(source, /recreatePhotoImport/);
   assert.match(source, /savePhotoAsGuide/);
+  assert.match(source, /photoImportDialog\?\.open/);
+  assert.match(source, /addEventListener\("paste"/);
+  assert.match(source, /addEventListener\("drop"/);
+  assert.match(source, /handlePhotoFile\(file\)/);
+  assert.match(source, /dataset\.dragActive/);
   assert.match(photoSource, /from "\.\/stroke-matcher\.mjs\?v=20260809-handoff-layout-v2"/);
   assert.match(source, /type: "circle"/);
   assert.doesNotMatch(source, /const ringAction = \{\s*type: "ring"/);
@@ -101,6 +109,7 @@ test("le guide photo conserve le raster corrige sans ajouter d'actions", async (
 test("les chaines de l'import photo existent dans les deux locales", async () => {
   const source = await readFile(new URL("../i18n.mjs", import.meta.url), "utf8");
   for (const key of [
+    "photo.pasteHint", "photo.pasteReady", "photo.pasteNoImage",
     "photo.toggle", "photo.previewTitle", "photo.recreate", "photo.guide", "photo.cancel",
     "photo.result.ring", "photo.result.noRing", "photo.result.accepted",
     "photo.result.ambiguous", "photo.result.unreadable", "photo.result.choose",
