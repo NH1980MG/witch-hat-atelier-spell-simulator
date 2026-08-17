@@ -4,6 +4,9 @@ import assert from "node:assert/strict";
 import {
   SIGIL_COMPOSITION_SLOTS,
   buildSigilCompositionPlacements,
+  createDefaultSigilComposition,
+  extractSigilComposition,
+  normalizeCompositionCircleSize,
 } from "../sigil-composition-layout.mjs";
 
 test("la composition convertit les slots en positions relatives au cercle actif", () => {
@@ -51,4 +54,31 @@ test("les slots de composition exposent une scene centrale et des signes autour"
   ]);
   assert.equal(SIGIL_COMPOSITION_SLOTS[0].kind, "sigil");
   assert.equal(SIGIL_COMPOSITION_SLOTS.filter((slot) => slot.kind === "sign").length, 4);
+});
+
+test("un nouveau sceau utilise le centre de la toile et une taille bornee", () => {
+  const draft = createDefaultSigilComposition({ width: 900, height: 600 });
+  assert.deepEqual(draft.center, { x: 450, y: 300 });
+  assert.equal(draft.mode, "new");
+  assert.ok(draft.radius > 0);
+  assert.equal(normalizeCompositionCircleSize(240, { min: 80, max: 400 }), 240);
+  assert.equal(normalizeCompositionCircleSize(20, { min: 80, max: 400 }), 80);
+  assert.equal(normalizeCompositionCircleSize(900, { min: 80, max: 400 }), 400);
+});
+
+test("un sceau existant regroupe uniquement ses actions geometriques", () => {
+  const draft = extractSigilComposition({
+    actions: [
+      { type: "circle", cx: 300, cy: 300, radius: 120, closed: true },
+      { type: "glyph", element: "Feu", kind: "sigil", x: 300, y: 300, size: 24 },
+      { type: "glyph", element: "Viseur", kind: "sign", x: 300, y: 204, size: 18 },
+      { type: "circle", cx: 700, cy: 300, radius: 100, closed: true },
+      { type: "glyph", element: "Eau", kind: "sigil", x: 700, y: 300, size: 24 },
+    ],
+    anchorIndex: 0,
+  });
+  assert.equal(draft.mode, "existing");
+  assert.equal(draft.radius, 120);
+  assert.deepEqual(draft.sigils.map((item) => item.name), ["Feu"]);
+  assert.deepEqual(draft.signs.map((item) => item.name), ["Viseur"]);
 });
