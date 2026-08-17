@@ -11,6 +11,7 @@ import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs"
 import { getLocale, t } from "./site-i18n.mjs?v=20260816-sigil-composition-scroll-v1";
 import {
   SIGIL_COMPOSITION_SLOTS,
+  buildSigilCompositionCommitPlan,
   buildSigilCompositionPlacements,
   createDefaultSigilComposition,
   extractSigilComposition,
@@ -10227,6 +10228,11 @@ function renderSigilCompositionPanel() {
   if (compositionCircleSizeValue && compositionCircleSizeInput) {
     compositionCircleSizeValue.textContent = compositionCircleSizeInput.value;
   }
+  if (compositionStage) {
+    const maxDiameter = Math.max(80, Math.min(canvasSize().width, canvasSize().height) * 0.82);
+    const stageSize = Math.max(42, Math.min(68, (draft.diameter / maxDiameter) * 68));
+    compositionStage.style.setProperty("--composition-circle-size", `${stageSize}%`);
+  }
   renderCompositionTray(compositionSigilTray, visibleCompositionElements("sigil"));
   renderCompositionTray(compositionSignTray, visibleCompositionElements("sign"));
   renderSigilCompositionStage();
@@ -10289,6 +10295,14 @@ function sealAnchorFromAction(action) {
 }
 
 function resolveSigilCompositionAnchor() {
+  const draft = state.sigilComposition.draft;
+  if (draft) {
+    return {
+      center: { ...draft.center },
+      radius: draft.radius,
+      hasSeal: draft.mode === "existing",
+    };
+  }
   const selectedSeal = state.selectedActionIndices
     .map((index) => state.actions[index])
     .find((action) => action && isCompleteSeal(action));
@@ -10318,43 +10332,111 @@ function resolveSigilCompositionAnchor() {
 }
 
 function applySigilComposition() {
-  const anchor = resolveSigilCompositionAnchor();
-  const placements = buildSigilCompositionPlacements({
-    anchor,
+  const draft = state.sigilComposition.draft || createDefaultSigilComposition(canvasSize());
+  const plan = buildSigilCompositionCommitPlan({
+    draft,
     slots: state.sigilComposition.slots,
   });
+  const placements = plan.placements;
   const glyphPlacements = placements.filter((placement) => placement.type === "glyph");
   if (glyphPlacements.length === 0) {
     setStatus(t("status.selectionEmpty"));
     return false;
   }
 
-  const added = [];
   recordHistory();
-  state.circleCenter = { ...anchor.center };
-  for (const placement of placements) {
-    if (placement.type !== "ring") continue;
-    added.push({
-      type: "ring",
-      label: labels.ring,
-      element: "Structure",
-      charge: 0,
-      color: state.drawingColor,
-      width: lineWidth(),
-      cx: placement.x,
-      cy: placement.y,
-      radius: placement.radius,
+  const touched = [];
+  const added = [];
+  const draftSlotIndices = draft.slotActionIndices || {};
+  state.circleCenter = { ...draft.center };
+
+  if (draft.mode === "existing" && Number.isInteger(draft.anchorIndex)) {
+    const removed = new Set(
+      SIGIL_COMPOSITION_SLOTS
+        .map((slot) => draftSlotIndices[slot.id])
+        .filter((index) => Number.isInteger(index) && !state.sigilComposition.slots[Object.keys(draftSlotIndices).find((slotId) => draftSlotIndices[slotId] === index)]),
+    );
+    const indexMap = new Map();
+    const retained = [];
+    state.actions.forEach((action, index) => {
+      if (removed.has(index)) return;
+      indexMap.set(index, retained.length);
+      retained.push(action);
     });
-  }
-  for (const placement of glyphPlacements) {
-    const element = compositionElementByName(placement.name, placement.kind);
-    if (!element) continue;
-    added.push(createGlyphAction(element, { x: placement.x, y: placement.y }, placement.size));
+    state.actions = retained;
+    const mapIndex = (index) => indexMap.get(index);
+    const anchorIndex = mapIndex(draft.anchorIndex);
+    const anchorAction = state.actions[anchorIndex];
+    if (anchorAction) {
+      anchorAction.cx = draft.center.x;
+      anchorAction.cy = draft.center.y;
+      anchorAction.radius = draft.radius;
+      anchorAction.sealId ||= draft.id;
+      touched.push(anchorIndex);
+    }
+    const originalRadius = Math.max(1, draft.radius || 1);
+    for (const ring of draft.rings || []) {
+      const ringIndex = mapIndex(ring.actionIndex);
+      const ringAction = state.actions[ringIndex];
+      if (!ringAction || ringIndex === anchorIndex) continue;
+      ringAction.cx = draft.center.x;
+      ringAction.cy = draft.center.y;
+      ringAction.radius = draft.radius * (ring.radius / originalRadius);
+      ringAction.sealId ||= draft.id;
+      touched.push(ringIndex);
+    }
+    for (const placement of glyphPlacements) {
+      const existingIndex = mapIndex(draftSlotIndices[placement.slotId]);
+      const existing = Number.isInteger(existingIndex) ? state.actions[existingIndex] : null;
+      const element = compositionElementByName(placement.name, placement.kind);
+      if (!element) continue;
+      if (existing?.type === "glyph") {
+        existing.element = element.name;
+        existing.kind = element.kind;
+        existing.category = element.category || existing.category;
+        existing.x = placement.position.x;
+        existing.y = placement.position.y;
+        existing.sealId ||= draft.id;
+        touched.push(existingIndex);
+      } else {
+        const action = createGlyphAction(element, placement.position, placement.size);
+        action.sealId = draft.id;
+        added.push(action);
+      }
+    }
+  } else {
+    const sealId = draft.id || `seal-${state.actions.length + 1}`;
+    for (const placement of placements) {
+      if (placement.type === "ring") {
+        added.push({
+          type: "circle",
+          label: labels.circle,
+          element: "Structure",
+          charge: 0,
+          color: state.drawingColor,
+          width: lineWidth(),
+          cx: placement.x,
+          cy: placement.y,
+          radius: placement.radius,
+          closed: true,
+          sealId,
+        });
+        continue;
+      }
+      const element = compositionElementByName(placement.name, placement.kind);
+      if (!element) continue;
+      const action = createGlyphAction(element, placement.position, placement.size);
+      action.sealId = sealId;
+      added.push(action);
+    }
   }
 
   const firstNewIndex = state.actions.length;
   state.actions.push(...added);
-  state.selectedActionIndices = added.map((_, index) => firstNewIndex + index);
+  state.selectedActionIndices = [...touched, ...added.map((_, index) => firstNewIndex + index)];
+  state.sigilComposition.draft = null;
+  state.sigilComposition.source = "tab";
+  state.selectedCompositionAnchorIndex = null;
   state.activeSpell = null;
   updateUsedList();
   updateSpellState();

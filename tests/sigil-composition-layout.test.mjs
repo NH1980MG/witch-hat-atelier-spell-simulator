@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   SIGIL_COMPOSITION_SLOTS,
+  buildSigilCompositionCommitPlan,
   buildSigilCompositionPlacements,
   createDefaultSigilComposition,
   extractSigilComposition,
@@ -81,4 +82,43 @@ test("un sceau existant regroupe uniquement ses actions geometriques", () => {
   assert.equal(draft.radius, 120);
   assert.deepEqual(draft.sigils.map((item) => item.name), ["Feu"]);
   assert.deepEqual(draft.signs.map((item) => item.name), ["Viseur"]);
+});
+
+test("le plan d'inscription respecte la taille du nouveau cercle", () => {
+  const plan = buildSigilCompositionCommitPlan({
+    draft: {
+      mode: "new",
+      center: { x: 450, y: 300 },
+      radius: 180,
+      anchorIndex: null,
+    },
+    slots: {
+      center: "Feu",
+      north: "Viseur",
+      east: null,
+      south: null,
+      west: null,
+    },
+  });
+  assert.equal(plan.mode, "new");
+  assert.equal(plan.placements.find((item) => item.type === "ring").radius, 180);
+  assert.deepEqual(
+    plan.placements.find((item) => item.slotId === "north").position,
+    { x: 450, y: 152 },
+  );
+});
+
+test("le plan d'inscription d'un sceau existant ne recree pas son anneau", () => {
+  const plan = buildSigilCompositionCommitPlan({
+    draft: {
+      mode: "existing",
+      center: { x: 300, y: 300 },
+      radius: 120,
+      anchorIndex: 4,
+    },
+    slots: { center: "Eau", north: null, east: null, south: null, west: null },
+  });
+  assert.equal(plan.mode, "existing");
+  assert.equal(plan.anchorIndex, 4);
+  assert.equal(plan.placements.some((item) => item.type === "ring"), false);
 });

@@ -121,6 +121,7 @@ export function createDefaultSigilComposition({
     signs: [],
     lines: [],
     slots: emptyCompositionSlots(),
+    slotActionIndices: emptyCompositionSlots(),
   };
 }
 
@@ -158,6 +159,7 @@ export function extractSigilComposition({ actions = [], anchorIndex = -1 } = {})
   }
   const center = actionCenter(anchor);
   const slots = emptyCompositionSlots();
+  const slotActionIndices = emptyCompositionSlots();
   const members = actions
     .map((action, index) => ({ action, index }))
     .filter(({ action, index }) => index === anchorIndex || actionBelongsToAnchor(action, anchor, anchorIndex, actions));
@@ -200,11 +202,17 @@ export function extractSigilComposition({ actions = [], anchorIndex = -1 } = {})
       };
     });
   for (const sigil of sigils) {
-    if (!slots.center) slots.center = sigil.name;
+    if (!slots.center) {
+      slots.center = sigil.name;
+      slotActionIndices.center = sigil.actionIndex;
+    }
   }
   for (const sign of signs) {
     const slotId = slotForSign(center, { x: sign.x, y: sign.y }, slots);
-    if (slotId) slots[slotId] = sign.name;
+    if (slotId) {
+      slots[slotId] = sign.name;
+      slotActionIndices[slotId] = sign.actionIndex;
+    }
   }
   return {
     id: anchor.sealId || `seal-${anchorIndex + 1}`,
@@ -222,6 +230,7 @@ export function extractSigilComposition({ actions = [], anchorIndex = -1 } = {})
       .filter(({ action }) => action.type === "free")
       .map(({ index, action }) => ({ actionIndex: index, visible: action.visible !== false })),
     slots,
+    slotActionIndices,
   };
 }
 
@@ -270,4 +279,24 @@ export function buildSigilCompositionPlacements({ anchor, slots }) {
     });
   }
   return placements;
+}
+
+export function buildSigilCompositionCommitPlan({ draft, slots }) {
+  const placements = buildSigilCompositionPlacements({
+    anchor: {
+      center: draft?.center,
+      radius: draft?.radius,
+      hasSeal: draft?.mode === "existing",
+    },
+    slots,
+  }).map((placement) => placement.type === "glyph"
+    ? { ...placement, position: { x: placement.x, y: placement.y } }
+    : placement);
+  return {
+    mode: draft?.mode || "new",
+    anchorIndex: Number.isInteger(draft?.anchorIndex) ? draft.anchorIndex : null,
+    center: draft?.center || null,
+    radius: draft?.radius || 0,
+    placements,
+  };
 }

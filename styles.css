@@ -1422,7 +1422,7 @@ input:focus-visible {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: min(210px, 68%);
+  width: min(210px, var(--composition-circle-size, 68%));
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   border: 2px solid var(--edge);
