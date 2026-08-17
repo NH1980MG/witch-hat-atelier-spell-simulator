@@ -26,6 +26,8 @@ test("l'application cable les guides officiels et personnels sous le dessin", as
   assert.match(app, /loadUserGuides/);
   assert.match(app, /function drawActiveGuide\(/);
   assert.match(app, /function saveCurrentCircleAsGuide\(/);
+  assert.match(app, /guide\.raster\?\.src \|\| buildSpellPreviewDataUrl\(guide\.actions\)/);
+  assert.match(app, /import \{ buildSpellPreviewDataUrl \} from "\.\/spell-preview\.mjs"/);
   assert.match(app, /function deletePersonalGuide\(/);
   assert.match(app, /function drawSelectedGuide\(/);
   assert.match(app, /function beginGuideResize\(/);
