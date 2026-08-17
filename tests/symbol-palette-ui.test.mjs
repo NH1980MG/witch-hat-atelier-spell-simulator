@@ -191,6 +191,16 @@ test("les libelles du nouveau sceau et de la taille existent en anglais et en fr
   }
 });
 
+test("l'editeur ouvre un brouillon ou le sceau selectionne depuis le clic droit", async () => {
+  const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
+  assert.match(app, /createDefaultSigilComposition/);
+  assert.match(app, /extractSigilComposition/);
+  assert.match(app, /function openSigilCompositionEditor\(/);
+  assert.match(app, /selectedCompositionAnchorIndex/);
+  assert.match(app, /data-selection-action.*composition|composition.*data-selection-action/);
+  assert.match(app, /isCompleteSeal/);
+});
+
 test("le defilement tactile vertical ne demarre pas le transport d'un symbole", async () => {
   const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
   const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");

@@ -12,6 +12,9 @@ import { getLocale, t } from "./site-i18n.mjs?v=20260816-sigil-composition-scrol
 import {
   SIGIL_COMPOSITION_SLOTS,
   buildSigilCompositionPlacements,
+  createDefaultSigilComposition,
+  extractSigilComposition,
+  normalizeCompositionCircleSize,
 } from "./sigil-composition-layout.mjs?v=20260816-sigil-composition-scroll-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260809-handoff-layout-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
@@ -342,6 +345,10 @@ const sigilCompositionPanel = document.querySelector("#sigilCompositionPanel");
 const compositionSigilTray = document.querySelector("#compositionSigilTray");
 const compositionSignTray = document.querySelector("#compositionSignTray");
 const compositionStage = document.querySelector("#compositionStage");
+const compositionDraftMode = document.querySelector("#compositionDraftMode");
+const compositionCircleSizeInput = document.querySelector("#compositionCircleSizeInput");
+const compositionCircleSizeValue = document.querySelector("#compositionCircleSizeValue");
+const cancelSigilCompositionButton = document.querySelector("#cancelSigilCompositionButton");
 const clearSigilCompositionButton = document.querySelector("#clearSigilCompositionButton");
 const applySigilCompositionButton = document.querySelector("#applySigilCompositionButton");
 const spoilerToggle = document.querySelector("#spoilerToggle");
@@ -392,6 +399,7 @@ const rotateSelectionQuarterRightButton = document.querySelector("#rotateSelecti
 const alignmentToggleButton = document.querySelector("#alignmentToggleButton");
 const toolbarCompactButton = document.querySelector("#toolbarCompactButton");
 const selectionContextMenu = document.querySelector("#selectionContextMenu");
+const compositionContextMenuItem = selectionContextMenu?.querySelector('[data-selection-action="composition"]');
 const guideToggleButton = document.querySelector("#guideToggleButton");
 const guideDrawer = document.querySelector("#guideDrawer");
 const closeGuidesButton = document.querySelector("#closeGuidesButton");
@@ -458,8 +466,11 @@ const state = {
   toolbarDrag: null,
   suppressToolbarToggle: false,
   symbolDrawerMode: "direct",
+  selectedCompositionAnchorIndex: null,
   sigilComposition: {
     activeSlot: "center",
+    draft: null,
+    source: "tab",
     slots: {
       center: null,
       north: null,
@@ -8115,6 +8126,7 @@ function clearSelection() {
   closeSelectionContextMenu();
   syncSelectionGrimoire();
   syncSelectionRotationDock();
+  updateCompositionContextAction();
 }
 
 function closeSelectionContextMenu() {
@@ -8161,6 +8173,7 @@ function openSelectionContextMenu(event) {
   if (!selectionContextMenu || normalizeSelection().length === 0) {
     return;
   }
+  updateCompositionContextAction();
   selectionContextMenu.hidden = false;
   const rect = selectionContextMenu.getBoundingClientRect();
   const left = Math.max(10, Math.min(event.clientX + 8, window.innerWidth - rect.width - 10));
@@ -8197,6 +8210,7 @@ function updateSelectionControls() {
   }
   syncSelectionGrimoire();
   syncSelectionRotationDock();
+  updateCompositionContextAction();
 }
 
 function relativeScaleLabel(ratio) {
@@ -10031,7 +10045,7 @@ function renderInkList() {
   updateInkSelection();
 }
 
-function setSymbolDrawerMode(mode) {
+function setSymbolDrawerMode(mode, { openEditor = true } = {}) {
   state.symbolDrawerMode = mode === "composition" ? "composition" : "direct";
   const compositionActive = state.symbolDrawerMode === "composition";
   directPaletteTab?.classList.toggle("is-active", !compositionActive);
@@ -10041,8 +10055,69 @@ function setSymbolDrawerMode(mode) {
   inkList.hidden = compositionActive;
   sigilCompositionPanel.hidden = !compositionActive;
   if (compositionActive) {
+    if (openEditor) {
+      openSigilCompositionEditor();
+      return;
+    }
     renderSigilCompositionPanel();
   }
+}
+
+function compositionSelectionAnchorIndex() {
+  const selectedIndices = normalizeSelection();
+  const selectedSeal = selectedIndices.find((index) => isCompleteSeal(state.actions[index]));
+  if (selectedSeal !== undefined) return selectedSeal;
+
+  for (const selectedIndex of selectedIndices) {
+    const selectedAction = state.actions[selectedIndex];
+    const selectedCenter = actionCenter(selectedAction);
+    if (!selectedCenter) continue;
+    const containingSeal = state.actions.findIndex((action) => {
+      if (!isCompleteSeal(action) || !Number.isFinite(action.radius)) return false;
+      const sealCenter = actionCenter(action);
+      return sealCenter && distance(selectedCenter, sealCenter) <= action.radius + (selectedAction.size || 12);
+    });
+    if (containingSeal >= 0) return containingSeal;
+  }
+  return null;
+}
+
+function updateCompositionContextAction() {
+  if (!compositionContextMenuItem) return;
+  const anchorIndex = compositionSelectionAnchorIndex();
+  compositionContextMenuItem.hidden = anchorIndex === null;
+  state.selectedCompositionAnchorIndex = anchorIndex;
+}
+
+function compositionDraftFromState() {
+  return state.sigilComposition.draft || createDefaultSigilComposition(canvasSize());
+}
+
+function openSigilCompositionEditor(anchorIndex = null, source = "tab") {
+  const resolvedAnchorIndex = Number.isInteger(anchorIndex)
+    ? anchorIndex
+    : compositionSelectionAnchorIndex();
+  const draft = resolvedAnchorIndex === null
+    ? createDefaultSigilComposition(canvasSize())
+    : extractSigilComposition({ actions: state.actions, anchorIndex: resolvedAnchorIndex });
+  state.selectedCompositionAnchorIndex = resolvedAnchorIndex;
+  state.sigilComposition.draft = draft;
+  state.sigilComposition.source = source;
+  state.sigilComposition.slots = { ...draft.slots };
+  state.sigilComposition.activeSlot = draft.slots.center ? "center" : "center";
+  setSymbolDrawerMode("composition", { openEditor: false });
+  setSymbolDrawer(true);
+  renderSigilCompositionPanel();
+}
+
+function cancelSigilComposition() {
+  const source = state.sigilComposition.source;
+  state.selectedCompositionAnchorIndex = null;
+  state.sigilComposition.draft = null;
+  state.sigilComposition.source = "tab";
+  clearSigilComposition();
+  setSymbolDrawerMode("direct", { openEditor: false });
+  if (source === "context") setSymbolDrawer(false);
 }
 
 function visibleCompositionElements(kind) {
@@ -10089,6 +10164,9 @@ function setCompositionSlotElement(element) {
   }
   if (!slot) return;
   state.sigilComposition.slots[slot.id] = element.name;
+  if (state.sigilComposition.draft) {
+    state.sigilComposition.draft.slots = { ...state.sigilComposition.slots };
+  }
   state.sigilComposition.activeSlot = nextCompositionSlot(element.kind, slot.id);
   renderSigilCompositionStage();
   renderCompositionChipSelection();
@@ -10097,6 +10175,9 @@ function setCompositionSlotElement(element) {
 function clearSigilComposition() {
   for (const slot of SIGIL_COMPOSITION_SLOTS) {
     state.sigilComposition.slots[slot.id] = null;
+  }
+  if (state.sigilComposition.draft) {
+    state.sigilComposition.draft.slots = { ...state.sigilComposition.slots };
   }
   state.sigilComposition.activeSlot = "center";
   renderSigilCompositionStage();
@@ -10133,10 +10214,34 @@ function renderCompositionTray(tray, options) {
 }
 
 function renderSigilCompositionPanel() {
+  const draft = compositionDraftFromState();
+  state.sigilComposition.draft = draft;
+  if (compositionDraftMode) {
+    compositionDraftMode.textContent = t(draft.mode === "new" ? "composition.newSeal" : "composition.selectedSeal");
+  }
+  if (compositionCircleSizeInput) {
+    const maxDiameter = Math.max(80, Math.floor(Math.min(canvasSize().width, canvasSize().height) * 0.82));
+    compositionCircleSizeInput.max = String(maxDiameter);
+    compositionCircleSizeInput.value = String(Math.round(draft.diameter || draft.radius * 2));
+  }
+  if (compositionCircleSizeValue && compositionCircleSizeInput) {
+    compositionCircleSizeValue.textContent = compositionCircleSizeInput.value;
+  }
   renderCompositionTray(compositionSigilTray, visibleCompositionElements("sigil"));
   renderCompositionTray(compositionSignTray, visibleCompositionElements("sign"));
   renderSigilCompositionStage();
   renderCompositionChipSelection();
+}
+
+function updateSigilCompositionCircleSize(value) {
+  const draft = compositionDraftFromState();
+  const { width, height } = canvasSize();
+  const maxDiameter = Math.max(80, Math.floor(Math.min(width, height) * 0.82));
+  const diameter = normalizeCompositionCircleSize(value, { min: 80, max: maxDiameter });
+  draft.diameter = diameter;
+  draft.radius = diameter / 2;
+  state.sigilComposition.draft = draft;
+  renderSigilCompositionPanel();
 }
 
 function renderSigilCompositionStage() {
@@ -11845,6 +11950,8 @@ symbolToggleButton?.addEventListener("click", () => setSymbolDrawer(true));
 closeSymbolsButton?.addEventListener("click", () => setSymbolDrawer(false));
 directPaletteTab?.addEventListener("click", () => setSymbolDrawerMode("direct"));
 sigilCompositionTab?.addEventListener("click", () => setSymbolDrawerMode("composition"));
+compositionCircleSizeInput?.addEventListener("input", () => updateSigilCompositionCircleSize(compositionCircleSizeInput.value));
+cancelSigilCompositionButton?.addEventListener("click", cancelSigilComposition);
 clearSigilCompositionButton?.addEventListener("click", clearSigilComposition);
 applySigilCompositionButton?.addEventListener("click", applySigilComposition);
 detailsToggleButton?.addEventListener("click", () => setDetailsDrawer(true));
@@ -12973,6 +13080,8 @@ selectionContextMenu?.addEventListener("click", (event) => {
   closeSelectionContextMenu();
   if (action === "search") {
     openSymbolSearch();
+  } else if (action === "composition") {
+    openSigilCompositionEditor(state.selectedCompositionAnchorIndex, "context");
   } else if (action === "duplicate") {
     duplicateSelectedActions();
   } else if (action === "delete") {
