@@ -39,7 +39,7 @@
         document.documentElement.dataset.appView = "atelier";
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260815-sigil-composition-panel-v1">
+    <link rel="stylesheet" href="styles.css?v=20260817-sigil-alignment-board-v1">
     <script type="importmap">
       {
         "imports": {
@@ -48,10 +48,10 @@
         }
       }
     </script>
-    <script type="module" src="site-i18n.mjs?v=20260812-project-support-v1"></script>
+    <script type="module" src="site-i18n.mjs?v=20260817-sigil-alignment-board-v1"></script>
     <script type="module" src="site-nav.mjs?v=20260810-workshop-menu-v1"></script>
     <script type="module" src="support-project.mjs?v=20260812-project-support-v1"></script>
-    <script type="module" src="app.js?v=20260812-project-support-rapier-v1"></script>
+    <script type="module" src="app.js?v=20260817-sigil-alignment-board-v1"></script>
   </head>
   <body class="simulator-page app-home-page" data-app-view-title="Atelier">
     <main class="app-shell">
@@ -269,7 +269,7 @@
 
         <button class="gallery-island" id="galleryToggleButton" type="button" aria-controls="galleryDrawer" aria-expanded="false">
           <span aria-hidden="true">&#9733;</span>
-          <span data-i18n="drawer.gallery">Gallery</span>
+          <span data-i18n="guides.spells">My spells</span>
         </button>
 
         <input type="file" id="photoFileInput" accept="image/*" hidden>
@@ -357,49 +357,30 @@
             <p class="spoiler-note" data-i18n="spoiler.note">Symbols first seen after this chapter stay hidden here, in search, and in the library.</p>
           </div>
 
-
-          <div class="symbol-drawer-tabs" id="symbolDrawerTabs" role="tablist" data-i18n-aria-label="symbols.mode.label" aria-label="Symbol modes">
-            <button id="directPaletteTab" type="button" role="tab" aria-selected="true" aria-controls="inkList" data-i18n="symbols.mode.directPalette">Direct palette</button>
-            <button id="sigilCompositionTab" type="button" role="tab" aria-selected="false" aria-controls="sigilCompositionPanel" data-i18n="symbols.mode.sigilComposition">Sigil composition</button>
+          <div class="symbol-drawer-tabs" id="symbolDrawerTabs" role="tablist" data-i18n-aria-label="drawer.symbols">
+            <button id="directPaletteTab" class="is-active" type="button" role="tab" aria-selected="true" aria-controls="inkList" data-symbol-mode="direct" data-i18n="symbols.mode.directPalette">Direct palette</button>
+            <button id="sigilCompositionTab" type="button" role="tab" aria-selected="false" aria-controls="sigilCompositionPanel" data-symbol-mode="composition" data-i18n="symbols.mode.sigilComposition">Sigil composition</button>
           </div>
 
-          <section class="sigil-composition-panel" id="sigilCompositionPanel" role="tabpanel" aria-labelledby="sigilCompositionTab" hidden>
-            <div class="composition-stage" id="compositionStage" data-i18n-aria-label="composition.preview" aria-label="Sigil composition preview">
-              <button class="composition-slot" type="button" data-composition-slot="center" aria-pressed="true">
-                <span class="composition-slot-label" data-i18n="composition.slot.center">Center sigil</span>
-                <span class="composition-chip" data-composition-chip="center"></span>
-              </button>
-              <button class="composition-slot" type="button" data-composition-slot="north" aria-pressed="false">
-                <span class="composition-slot-label" data-i18n="composition.slot.north">North sign</span>
-                <span class="composition-chip" data-composition-chip="north"></span>
-              </button>
-              <button class="composition-slot" type="button" data-composition-slot="east" aria-pressed="false">
-                <span class="composition-slot-label" data-i18n="composition.slot.east">East sign</span>
-                <span class="composition-chip" data-composition-chip="east"></span>
-              </button>
-              <button class="composition-slot" type="button" data-composition-slot="south" aria-pressed="false">
-                <span class="composition-slot-label" data-i18n="composition.slot.south">South sign</span>
-                <span class="composition-chip" data-composition-chip="south"></span>
-              </button>
-              <button class="composition-slot" type="button" data-composition-slot="west" aria-pressed="false">
-                <span class="composition-slot-label" data-i18n="composition.slot.west">West sign</span>
-                <span class="composition-chip" data-composition-chip="west"></span>
-              </button>
+          <div class="ink-list" id="inkList" role="tabpanel" aria-labelledby="directPaletteTab"></div>
+
+          <div class="sigil-composition-panel" id="sigilCompositionPanel" role="tabpanel" aria-labelledby="sigilCompositionTab" hidden>
+            <div class="composition-tool-tray" id="compositionToolTray">
+              <section class="composition-tool-group" data-composition-kind="sigil">
+                <h3 data-i18n="composition.sigilTray">Sigils</h3>
+                <div class="composition-chip-grid" id="compositionSigilTray"></div>
+              </section>
+              <section class="composition-tool-group" data-composition-kind="sign">
+                <h3 data-i18n="composition.signTray">Signs</h3>
+                <div class="composition-chip-grid" id="compositionSignTray"></div>
+              </section>
             </div>
-            <div class="composition-tray-group">
-              <h3 data-i18n="composition.sigilTray">Sigils</h3>
-              <div class="composition-tray" id="compositionSigilTray"></div>
+            <div class="composition-stage" id="compositionStage" aria-live="polite"></div>
+            <div class="composition-action-row">
+              <button class="composition-clear" id="clearSigilCompositionButton" type="button" data-i18n="composition.clear">Clear composition</button>
+              <button class="composition-apply" id="applySigilCompositionButton" type="button" data-i18n="composition.apply">Inscribe composition</button>
             </div>
-            <div class="composition-tray-group">
-              <h3 data-i18n="composition.signTray">Signs</h3>
-              <div class="composition-tray" id="compositionSignTray"></div>
-            </div>
-            <div class="composition-actions">
-              <button id="clearSigilCompositionButton" type="button" data-i18n="composition.clear">Clear composition</button>
-              <button id="applySigilCompositionButton" class="command-primary" type="button" data-i18n="composition.apply">Apply to parchment</button>
-            </div>
-          </section>
-          <div class="ink-list" id="inkList"></div>
+          </div>
         </aside>
 
         <aside class="sidebar gallery-drawer" id="galleryDrawer" data-community-url="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site" data-i18n-aria-label="drawer.galleryChoice" aria-label="Circle gallery" aria-hidden="true">
@@ -420,6 +401,7 @@
             <button id="galleryRefreshButton" type="button" data-i18n="gallery.refresh">Refresh</button>
           </div>
           <div class="gallery-feed" id="galleryFeed" aria-live="polite" aria-busy="false"></div>
+          <div class="guide-list" id="guideSpellsList" role="list"></div>
           <p class="gallery-note" data-i18n="drawer.gallerySignIn">Sign in on Circle Commons when you publish to keep the circle in your account.</p>
         </aside>
 
@@ -459,11 +441,9 @@
           <div class="guide-tabs" role="tablist" data-i18n-aria-label="guides.sources">
             <button id="guideLibraryTab" class="is-active" type="button" role="tab" aria-selected="true" aria-controls="guideLibraryList" data-i18n="guides.library">Library</button>
             <button id="guidePersonalTab" type="button" role="tab" aria-selected="false" aria-controls="guidePersonalList" data-i18n="guides.personal">My examples</button>
-            <button id="guideSpellsTab" type="button" role="tab" aria-selected="false" aria-controls="guideSpellsList" data-i18n="guides.spells">My spells</button>
           </div>
           <div class="guide-list" id="guideLibraryList" role="tabpanel"></div>
           <div class="guide-list" id="guidePersonalList" role="tabpanel" hidden></div>
-          <div class="guide-list" id="guideSpellsList" role="tabpanel" hidden></div>
         </aside>
 
         <dialog id="spellSaveDialog" class="photo-dialog spell-save-dialog" data-i18n-aria-label="spells.dialogTitle" aria-label="Save this spell">
