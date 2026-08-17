@@ -1310,6 +1310,45 @@ input:focus-visible {
   display: none !important;
 }
 
+.composition-meta {
+  display: grid;
+  gap: 7px;
+  padding: 8px 9px;
+  border: 1px solid rgba(140, 107, 63, 0.42);
+  border-radius: 7px;
+  background: rgba(255, 248, 234, 0.58);
+}
+
+.composition-draft-mode {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.composition-size-control {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 8px;
+  align-items: center;
+  color: var(--edge);
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.composition-size-control output {
+  color: var(--ink);
+  font-size: 0.82rem;
+  text-transform: none;
+}
+
+.composition-size-control input {
+  grid-column: 1 / -1;
+  width: 100%;
+  accent-color: var(--gold);
+}
+
 .composition-tool-tray {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -1435,6 +1474,7 @@ input:focus-visible {
 }
 
 .composition-clear,
+.composition-cancel,
 .composition-apply {
   width: 100%;
   min-height: 40px;

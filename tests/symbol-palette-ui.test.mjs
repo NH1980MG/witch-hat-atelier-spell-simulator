@@ -164,6 +164,33 @@ test("la composition sigillaire possede ses libelles bilingues", async () => {
   }
 });
 
+test("la composition expose le mode du sceau, sa taille et l'action du clic droit", async () => {
+  const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  for (const id of [
+    "compositionDraftMode",
+    "compositionCircleSizeInput",
+    "compositionCircleSizeValue",
+    "cancelSigilCompositionButton",
+  ]) {
+    assert.match(html, new RegExp("id=[\\\"']" + id + "[\\\"']"));
+  }
+  assert.match(html, /data-selection-action=["']composition["']/);
+});
+
+test("les libelles du nouveau sceau et de la taille existent en anglais et en francais", async () => {
+  const { translate } = await import("../i18n.mjs");
+  for (const key of [
+    "composition.newSeal",
+    "composition.selectedSeal",
+    "composition.circleSize",
+    "composition.cancel",
+    "selectionMenu.composition",
+  ]) {
+    assert.notEqual(translate("en", key), key);
+    assert.notEqual(translate("fr", key), key);
+  }
+});
+
 test("le defilement tactile vertical ne demarre pas le transport d'un symbole", async () => {
   const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
   const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");

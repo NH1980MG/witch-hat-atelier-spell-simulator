@@ -148,6 +148,7 @@
           <div id="selectionContextMenu" class="selection-context-menu" role="menu" data-i18n-aria-label="selectionMenu.label" aria-label="Selected object actions" hidden>
             <button type="button" role="menuitem" data-selection-action="select" data-i18n="selectionMenu.select">Select</button>
             <button type="button" role="menuitem" data-selection-action="search" data-i18n="selectionMenu.search">Search symbols</button>
+            <button type="button" role="menuitem" data-selection-action="composition" data-i18n="selectionMenu.composition" hidden>Sigil composition</button>
             <button type="button" role="menuitem" data-selection-action="duplicate" data-i18n="selectionMenu.duplicate">Duplicate</button>
             <button type="button" role="menuitem" data-selection-action="front" data-i18n="selectionMenu.front">Bring to front</button>
             <button type="button" role="menuitem" data-selection-action="back" data-i18n="selectionMenu.back">Send to back</button>
@@ -261,6 +262,14 @@
           <div class="ink-list" id="inkList" role="tabpanel" aria-labelledby="directPaletteTab"></div>
 
           <div class="sigil-composition-panel" id="sigilCompositionPanel" role="tabpanel" aria-labelledby="sigilCompositionTab" hidden>
+            <div class="composition-meta">
+              <p id="compositionDraftMode" class="composition-draft-mode" data-i18n="composition.newSeal">New seal</p>
+              <label class="composition-size-control" for="compositionCircleSizeInput">
+                <span data-i18n="composition.circleSize">Circle size</span>
+                <output id="compositionCircleSizeValue" for="compositionCircleSizeInput">240</output>
+                <input id="compositionCircleSizeInput" type="range" min="80" max="720" step="1" value="240">
+              </label>
+            </div>
             <div class="composition-tool-tray" id="compositionToolTray">
               <section class="composition-tool-group" data-composition-kind="sigil">
                 <h3 data-i18n="composition.sigilTray">Sigils</h3>
@@ -273,6 +282,7 @@
             </div>
             <div class="composition-stage" id="compositionStage" aria-live="polite"></div>
             <div class="composition-action-row">
+              <button class="composition-cancel" id="cancelSigilCompositionButton" type="button" data-i18n="composition.cancel">Cancel</button>
               <button class="composition-clear" id="clearSigilCompositionButton" type="button" data-i18n="composition.clear">Clear composition</button>
               <button class="composition-apply" id="applySigilCompositionButton" type="button" data-i18n="composition.apply">Inscribe composition</button>
             </div>
