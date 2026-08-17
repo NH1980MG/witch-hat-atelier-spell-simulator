@@ -23,7 +23,7 @@ test("app.js branche la bibliotheque de sorts", async () => {
   assert.match(source, /function confirmSaveSpell\(\)/);
   assert.match(source, /function loadMySpell\(id\)/);
   assert.match(source, /function removeMySpell\(id\)/);
-  assert.match(source, /state\.guideTab = \["library", "personal"\]/);
+  assert.doesNotMatch(source, /guideTab/);
   assert.doesNotMatch(source, /guideSpellsTab\?\.addEventListener/);
   assert.match(source, /saveSpellButton\?\.addEventListener\("click", saveCurrentSpell\)/);
   assert.match(source, /recordHistory\(\);/);
