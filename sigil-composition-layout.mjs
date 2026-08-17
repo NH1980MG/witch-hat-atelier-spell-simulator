@@ -129,8 +129,7 @@ function isCircleAnchor(action) {
   return ["circle", "ring", "spiral"].includes(action?.type)
     && Number.isFinite(action?.cx)
     && Number.isFinite(action?.cy)
-    && Number.isFinite(action?.radius)
-    && (action.type !== "circle" || action.closed !== false);
+    && Number.isFinite(action?.radius);
 }
 
 function actionBelongsToAnchor(action, anchor, anchorIndex, actions) {

@@ -84,6 +84,20 @@ test("un sceau existant regroupe uniquement ses actions geometriques", () => {
   assert.deepEqual(draft.signs.map((item) => item.name), ["Viseur"]);
 });
 
+test("un cercle graphique selectionne peut devenir une composition", () => {
+  const draft = extractSigilComposition({
+    actions: [
+      { type: "circle", cx: 300, cy: 300, radius: 120, closed: false },
+      { type: "glyph", element: "Feu", kind: "sigil", x: 300, y: 300, size: 24 },
+    ],
+    anchorIndex: 0,
+  });
+
+  assert.equal(draft.mode, "existing");
+  assert.equal(draft.anchorIndex, 0);
+  assert.equal(draft.slots.center, "Feu");
+});
+
 test("le plan d'inscription respecte la taille du nouveau cercle", () => {
   const plan = buildSigilCompositionCommitPlan({
     draft: {

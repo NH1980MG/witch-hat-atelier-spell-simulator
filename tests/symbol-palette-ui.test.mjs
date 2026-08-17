@@ -199,6 +199,8 @@ test("l'editeur ouvre un brouillon ou le sceau selectionne depuis le clic droit"
   assert.match(app, /extractSigilComposition/);
   assert.match(app, /function openSigilCompositionEditor\(/);
   assert.match(app, /selectedCompositionAnchorIndex/);
+  assert.match(app, /function isCompositionCircleCandidate\(/);
+  assert.match(app, /selectedIndices\.find\(\(index\) => isCompositionCircleCandidate/);
   assert.match(app, /data-selection-action.*composition|composition.*data-selection-action/);
   assert.match(app, /isCompleteSeal/);
 });

@@ -8521,6 +8521,15 @@ function isCompleteSeal(action) {
   return action.seal || action.type === "ring" || (action.type === "circle" && action.closed);
 }
 
+function isCompositionCircleCandidate(action) {
+  return isCompleteSeal(action) || (
+    action?.type === "circle"
+    && Number.isFinite(action.cx)
+    && Number.isFinite(action.cy)
+    && Number.isFinite(action.radius)
+  );
+}
+
 function createGlyphAction(element, point, size = 25) {
   const safePoint = clampPointToDrawingLimit(point, size * 1.1);
   const boundary = primarySpellBounds();
@@ -9820,7 +9829,7 @@ function setSymbolDrawerMode(mode, { openEditor = true } = {}) {
 
 function compositionSelectionAnchorIndex() {
   const selectedIndices = normalizeSelection();
-  const selectedSeal = selectedIndices.find((index) => isCompleteSeal(state.actions[index]));
+  const selectedSeal = selectedIndices.find((index) => isCompositionCircleCandidate(state.actions[index]));
   if (selectedSeal !== undefined) return selectedSeal;
 
   for (const selectedIndex of selectedIndices) {
@@ -9828,7 +9837,7 @@ function compositionSelectionAnchorIndex() {
     const selectedCenter = actionCenter(selectedAction);
     if (!selectedCenter) continue;
     const containingSeal = state.actions.findIndex((action) => {
-      if (!isCompleteSeal(action) || !Number.isFinite(action.radius)) return false;
+      if (!isCompositionCircleCandidate(action)) return false;
       const sealCenter = actionCenter(action);
       return sealCenter && distance(selectedCenter, sealCenter) <= action.radius + (selectedAction.size || 12);
     });
@@ -10125,6 +10134,7 @@ function applySigilComposition() {
       anchorAction.cx = draft.center.x;
       anchorAction.cy = draft.center.y;
       anchorAction.radius = draft.radius;
+      if (anchorAction.type === "circle") anchorAction.closed = true;
       anchorAction.sealId ||= draft.id;
       touched.push(anchorIndex);
     }
