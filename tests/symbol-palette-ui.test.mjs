@@ -7,6 +7,8 @@ test("la page expose un seul tiroir de symboles sans les anciens outils de taill
   for (const id of [
     "symbolToggleButton",
     "symbolDrawer",
+    "symbolComposition",
+    "symbolCompositionBoard",
     "inkList",
     "closeSymbolsButton",
     "symbolDragGhost",
@@ -177,4 +179,17 @@ test("la superposition de recherche est stylee", async () => {
   assert.match(css, /\.symbol-search-result\[aria-selected="true"\]/);
   assert.match(css, /\.symbol-drag-ghost\.is-armed/);
   assert.match(css, /\.symbol-drawer-hint/);
+});
+
+test("la planche de composition est synchronisee avec le parchemin et les glyphes restent centres", async () => {
+  const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
+  const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
+
+  assert.match(app, /const symbolCompositionBoard = document\.querySelector\("#symbolCompositionBoard"\)/);
+  assert.match(app, /function renderSymbolCompositionBoard\(\)/);
+  assert.match(app, /symbolCompositionContext\.drawImage\(canvas, 0, 0, width, height\)/);
+  assert.match(app, /const isOpen = document\.body\.classList\.contains\("symbols-open"\)/);
+  assert.match(css, /\.symbol-composition\s*\{/);
+  assert.match(css, /\.symbol-icon\s*\{[\s\S]*?justify-items:\s*center/);
+  assert.match(css, /\.symbol-board-glyph\s*\{[\s\S]*?display:\s*block/);
 });

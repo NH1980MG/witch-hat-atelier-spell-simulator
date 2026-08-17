@@ -303,6 +303,8 @@ function actionDisplayLabel(action) {
 
 const canvas = document.querySelector("#magicCanvas");
 const ctx = canvas.getContext("2d");
+const symbolCompositionBoard = document.querySelector("#symbolCompositionBoard");
+const symbolCompositionContext = symbolCompositionBoard?.getContext("2d");
 const canvasWrap = document.querySelector(".canvas-wrap");
 const floatingTools = document.querySelector(".floating-tools");
 let previousCanvasViewport = null;
@@ -8250,6 +8252,19 @@ function render() {
   if (!state.exporting) {
     drawMeasureCounter(width, height);
   }
+  renderSymbolCompositionBoard();
+}
+
+function renderSymbolCompositionBoard() {
+  if (!symbolCompositionBoard || !symbolCompositionContext || !canvas.width || !canvas.height) {
+    return;
+  }
+  const width = symbolCompositionBoard.width;
+  const height = symbolCompositionBoard.height;
+  symbolCompositionContext.clearRect(0, 0, width, height);
+  symbolCompositionContext.fillStyle = colors.paper;
+  symbolCompositionContext.fillRect(0, 0, width, height);
+  symbolCompositionContext.drawImage(canvas, 0, 0, width, height);
 }
 
 function currentElementData() {
@@ -11394,7 +11409,10 @@ saveButton.addEventListener("click", saveCanvas);
 saveExampleButton?.addEventListener("click", saveCurrentCircleAsGuide);
 close3dButton.addEventListener("click", close3dView);
 relaunch3dButton?.addEventListener("click", relaunchThreeSpell);
-symbolToggleButton?.addEventListener("click", () => setSymbolDrawer(true));
+symbolToggleButton?.addEventListener("click", () => {
+  const isOpen = document.body.classList.contains("symbols-open");
+  setSymbolDrawer(!isOpen);
+});
 closeSymbolsButton?.addEventListener("click", () => setSymbolDrawer(false));
 detailsToggleButton?.addEventListener("click", () => setDetailsDrawer(true));
 closeDetailsButton?.addEventListener("click", () => setDetailsDrawer(false));
