@@ -420,9 +420,6 @@ const galleryFeed = document.querySelector("#galleryFeed");
 const galleryRefreshButton = document.querySelector("#galleryRefreshButton");
 const gallerySortButtons = [...document.querySelectorAll("[data-gallery-sort]")];
 const appHubGalleryGrid = document.querySelector("#appHubGalleryGrid");
-const guideLibraryTab = document.querySelector("#guideLibraryTab");
-const guidePersonalTab = document.querySelector("#guidePersonalTab");
-const guideLibraryList = document.querySelector("#guideLibraryList");
 const guidePersonalList = document.querySelector("#guidePersonalList");
 const guideSpellsList = document.querySelector("#guideSpellsList");
 const guideVisibleInput = document.querySelector("#guideVisibleInput");
@@ -521,7 +518,6 @@ const state = {
   guideOpacity: Math.max(10, Math.min(70, Number(localStorage.getItem("whaGuideOpacity") || 28))),
   userGuides: loadUserGuides(localStorage),
   mySpells: loadMySpells(localStorage),
-  guideTab: "library",
   guideScale: 1,
   guideSelected: false,
   guideResize: null,
@@ -10328,20 +10324,6 @@ function selectGuide(source, id) {
   setStatus(t("status.guideSelected"));
 }
 
-function setGuideTab(tab) {
-  state.guideTab = ["library", "personal"].includes(tab) ? tab : "library";
-  guideLibraryTab?.classList.toggle("is-active", state.guideTab === "library");
-  guidePersonalTab?.classList.toggle("is-active", state.guideTab === "personal");
-  guideLibraryTab?.setAttribute("aria-selected", String(state.guideTab === "library"));
-  guidePersonalTab?.setAttribute("aria-selected", String(state.guideTab === "personal"));
-  if (guideLibraryList) {
-    guideLibraryList.hidden = state.guideTab !== "library";
-  }
-  if (guidePersonalList) {
-    guidePersonalList.hidden = state.guideTab !== "personal";
-  }
-}
-
 function captureCurrentCanvasRaster() {
   const sourceWidth = Math.max(1, canvas.width);
   const sourceHeight = Math.max(1, canvas.height);
@@ -10547,33 +10529,9 @@ function removeMySpell(id) {
 
 
 function renderGuideLists() {
-  if (!guideLibraryList || !guidePersonalList) {
+  if (!guidePersonalList) {
     return;
   }
-  guideLibraryList.innerHTML = "";
-  for (const guide of LIBRARY_CIRCLES) {
-    const button = document.createElement("button");
-    const active = state.activeGuide?.source === "library" && state.activeGuide.id === guide.id;
-    button.className = `guide-card${active ? " is-active" : ""}`;
-    button.type = "button";
-    button.setAttribute("aria-pressed", String(active));
-    const image = document.createElement("img");
-    image.src = guideAssetPath(guide.id);
-    image.alt = guide.alt[getLocale()] || guide.alt.en;
-    const name = document.createElement("span");
-    name.className = "guide-card-name";
-    name.textContent = guide.name;
-    button.append(image, name);
-    if (guide.effect) {
-      const effect = document.createElement("small");
-      effect.className = "guide-card-effect";
-      effect.textContent = guide.effect;
-      button.append(effect);
-    }
-    button.addEventListener("click", () => selectGuide("library", guide.id));
-    guideLibraryList.append(button);
-  }
-
   guidePersonalList.innerHTML = "";
   if (state.userGuides.length === 0) {
     const empty = document.createElement("p");
@@ -10617,7 +10575,6 @@ function renderGuideLists() {
     guidePersonalList.append(card);
   }
   renderSpellList();
-  setGuideTab(state.guideTab);
 }
 
 function saveCurrentCircleAsGuide() {
@@ -10637,7 +10594,6 @@ function saveCurrentCircleAsGuide() {
     state.selectedActionIndices = [];
     setTool("select");
     state.guideVisible = true;
-    setGuideTab("personal");
     renderGuideLists();
     updateToolButtons();
     updateSelectionControls();
@@ -11743,8 +11699,6 @@ galleryToggleButton?.addEventListener("click", () => setGalleryDrawer(true));
 closeGalleryButton?.addEventListener("click", () => setGalleryDrawer(false));
 galleryRefreshButton?.addEventListener("click", () => loadGalleryPosts());
 gallerySortButtons.forEach((button) => button.addEventListener("click", () => loadGalleryPosts(button.dataset.gallerySort)));
-guideLibraryTab?.addEventListener("click", () => setGuideTab("library"));
-guidePersonalTab?.addEventListener("click", () => setGuideTab("personal"));
 saveSpellButton?.addEventListener("click", saveCurrentSpell);
 publishCommunityButton?.addEventListener("click", publishCurrentCircle);
 publishGalleryButton?.addEventListener("click", publishCurrentCircle);
@@ -12668,7 +12622,6 @@ function activateRasterGuide(guide) {
     // The raster remains usable for this session when browser storage is full.
   }
   if (guideVisibleInput) guideVisibleInput.checked = true;
-  setGuideTab("personal");
   renderGuideLists();
   updateToolButtons();
   updateSelectionControls();

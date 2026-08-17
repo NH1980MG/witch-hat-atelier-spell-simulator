@@ -438,12 +438,8 @@
             <button id="clearGuideButton" type="button" data-i18n="guides.remove">Remove guide</button>
           </div>
 
-          <div class="guide-tabs" role="tablist" data-i18n-aria-label="guides.sources">
-            <button id="guideLibraryTab" class="is-active" type="button" role="tab" aria-selected="true" aria-controls="guideLibraryList" data-i18n="guides.library">Library</button>
-            <button id="guidePersonalTab" type="button" role="tab" aria-selected="false" aria-controls="guidePersonalList" data-i18n="guides.personal">My examples</button>
-          </div>
-          <div class="guide-list" id="guideLibraryList" role="tabpanel"></div>
-          <div class="guide-list" id="guidePersonalList" role="tabpanel" hidden></div>
+          <h3 class="guide-source-title" data-i18n="guides.personal">My examples</h3>
+          <div class="guide-list" id="guidePersonalList" role="list"></div>
         </aside>
 
         <dialog id="spellSaveDialog" class="photo-dialog spell-save-dialog" data-i18n-aria-label="spells.dialogTitle" aria-label="Save this spell">
