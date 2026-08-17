@@ -6,8 +6,8 @@ import { catalogKeys, translate } from "../i18n.mjs";
 const appSource = await readFile(new URL("../app.js", import.meta.url), "utf8");
 const siteI18nSource = await readFile(new URL("../site-i18n.mjs", import.meta.url), "utf8");
 const publicPages = ["index.html", "bibliotheque.html", "tutoriel.html", "parametres.html", "fonctionnement.html"];
-const sharedRevision = "20260815-sigil-composition-panel-v1";
-const styleRevision = "20260815-sigil-composition-panel-v1";
+const sharedRevision = "20260812-project-support-v1";
+const styleRevision = "20260812-project-support-v1";
 
 test("the language controller imports the current catalog revision", () => {
   assert.match(siteI18nSource, new RegExp(`from "\\./i18n\\.mjs\\?v=${sharedRevision}"`));
@@ -19,6 +19,22 @@ test("every public page uses the same shared asset revision", async () => {
     assert.match(source, new RegExp(`styles\\.css\\?v=${styleRevision}`), `${page}: stale styles revision`);
     assert.match(source, new RegExp(`site-i18n\\.mjs\\?v=${sharedRevision}`), `${page}: stale i18n runtime revision`);
   }
+});
+
+test("the practice workflow is a menu feature beside the tutorial", async () => {
+  for (const page of publicPages) {
+    const html = await readFile(new URL(`../${page}`, import.meta.url), "utf8");
+    assert.match(html, /href="index\.html#practice"/, `${page}: missing practice menu link`);
+    assert.match(html, /href="index\.html#practice"[\s\S]*?data-i18n="nav\.practice"/, `${page}: missing practice menu label`);
+    assert.match(html, /data-i18n-aria-label="nav\.openPractice"/, `${page}: missing practice menu label`);
+  }
+
+  const index = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  assert.doesNotMatch(index, /id="practiceToggleButton"/);
+
+  const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
+  assert.doesNotMatch(app, /if \(!practiceBar \|\| !practiceToggleButton\)/);
+  assert.match(app, /location\.hash === "#practice"/);
 });
 
 test("the simulator uses the shared runtime translation service", () => {
