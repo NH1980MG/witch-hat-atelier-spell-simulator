@@ -4755,3 +4755,80 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
     transition: none;
   }
 }
+
+
+/* Wide workshops keep the same bottom-sheet behavior as compact layouts. */
+@media (min-width: 1181px) {
+  .grimoire {
+    position: relative;
+    z-index: 18;
+    max-height: 52px;
+    padding: 0 16px 14px;
+    overflow: hidden;
+    transition: max-height 220ms ease;
+  }
+
+  .grimoire.is-open {
+    max-height: min(46dvh, 460px);
+  }
+
+  .grimoire-toggle {
+    display: flex;
+    position: sticky;
+    z-index: 2;
+    top: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 50px;
+    border: 0;
+    border-radius: 0;
+    padding: 10px 12px;
+    background: var(--paper);
+    box-shadow: none;
+    color: var(--ink);
+    font-weight: 700;
+  }
+
+  .grimoire-handle {
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    width: 46px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(140, 107, 63, 0.54);
+    transform: translateX(-50%);
+  }
+
+  .grimoire-chevron {
+    display: inline-block;
+    font-family: "Courier New", monospace;
+    transform: rotate(0deg);
+    transition: transform 180ms ease;
+  }
+
+  .grimoire.is-open .grimoire-chevron {
+    transform: rotate(180deg);
+  }
+
+  .grimoire-content {
+    min-width: 0;
+    max-height: 0;
+    overflow: hidden;
+    padding: 0 2px;
+    opacity: 0;
+    transition: opacity 150ms ease;
+  }
+
+  .grimoire.is-open .grimoire-content {
+    max-height: calc(min(46dvh, 460px) - 52px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 4px 2px 14px;
+    opacity: 1;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}

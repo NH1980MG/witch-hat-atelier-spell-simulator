@@ -552,11 +552,13 @@ function setGrimoireOpen(open, { persist = true } = {}) {
   if (persist) {
     localStorage.setItem("whaGrimoireOpen", String(preferredGrimoireOpen));
   }
-  const expanded = !compactGrimoireMedia.matches || preferredGrimoireOpen;
+  const expanded = preferredGrimoireOpen || (
+    !compactGrimoireMedia.matches && localStorage.getItem("whaGrimoireOpen") === null
+  );
   grimoirePanel?.classList.toggle("is-open", expanded);
   grimoireToggle?.setAttribute("aria-expanded", String(expanded));
   if (grimoireContent) {
-    grimoireContent.inert = compactGrimoireMedia.matches && !expanded;
+    grimoireContent.inert = !expanded;
   }
 }
 
