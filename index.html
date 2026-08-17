@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-store">
     <meta http-equiv="Pragma" content="no-cache">
     <meta name="referrer" content="strict-origin-when-cross-origin">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site; object-src 'none'; base-uri 'self'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net; connect-src 'self' https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net; frame-src https://googleads.g.doubleclick.net https://tpc.googlesyndication.com; object-src 'none'; base-uri 'self'">
     <meta name="description" content="Draw, read, and animate magic circles in a bilingual Witch Hat Atelier spell simulator with a 3D workshop and 65,601 deterministic variants.">
     <meta property="og:title" content="Witch Hat Atelier Spell Simulator | Magic Circle Maker">
     <meta property="og:description" content="Draw magic circles, combine sigils and signs, then inspect their animated effects in a bilingual 3D workshop.">
@@ -35,6 +35,9 @@
       if (window.location.protocol === "file:") {
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
+      if (new URLSearchParams(window.location.search).get("view") === "atelier") {
+        document.documentElement.dataset.appView = "atelier";
+      }
     </script>
     <link rel="stylesheet" href="styles.css?v=20260817-seal-composition-editor-v1">
     <script type="importmap">
@@ -49,17 +52,20 @@
     <script type="module" src="site-nav.mjs?v=20260810-workshop-menu-v1"></script>
     <script type="module" src="app.js?v=20260817-seal-composition-editor-v1"></script>
   </head>
-  <body class="simulator-page">
+  <body class="simulator-page app-home-page" data-app-view-title="Atelier">
     <main class="app-shell">
       <header class="top-title">
         <a class="brand-title brand-home" href="index.html" data-i18n-aria-label="nav.home" aria-label="Return to the main workshop">
           <img class="brand-logo-image" src="assets/brand/atelier-mark.svg?v=2" alt="" aria-hidden="true">
           <h1>Witch Hat Atelier Spell Simulator</h1>
         </a>
-        <a class="community-profile-pill" href="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site/sign-in?return_to=%2Fauth%2Freturn-to-simulator" data-i18n-aria-label="nav.openProfile" data-i18n-title="nav.profile" data-community-profile-pill>
-          <span class="community-profile-dot" aria-hidden="true"></span>
-          <span data-i18n="nav.signIn" data-community-profile-label>Sign in</span>
-        </a>
+        <div class="project-support-actions">
+          <a class="community-profile-pill" href="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site/sign-in?return_to=%2Fauth%2Freturn-to-simulator" data-i18n-aria-label="nav.openProfile" data-i18n-title="nav.profile" data-community-profile-pill>
+            <span class="community-profile-dot" aria-hidden="true"></span>
+            <span data-i18n="nav.signIn" data-community-profile-label>Sign in</span>
+          </a>
+          <button class="project-support-pill" id="projectSupportButton" type="button" aria-controls="projectSupportDialog" data-i18n="supportProject.open">Support the project</button>
+        </div>
         <aside class="workshop-menu" data-workshop-menu>
           <button class="workshop-menu-toggle" id="workshopMenuToggle" type="button" aria-controls="workshopMenuPanel" aria-expanded="false" data-i18n-aria-label="nav.openMenu" data-i18n-title="nav.menu" aria-label="Open the workshop menu" title="Workshop menu">
             <img src="assets/brand/atelier-mark.svg?v=2" alt="" aria-hidden="true">
@@ -71,6 +77,7 @@
             <nav class="workshop-menu-links" data-i18n-aria-label="nav.secondary" aria-label="Secondary navigation">
               <a class="header-link" href="bibliotheque.html" data-i18n-aria-label="nav.openLibrary" data-i18n-title="nav.library"><span aria-hidden="true">&#9678;</span><span data-i18n="nav.library">Library</span></a>
               <a class="header-link" href="tutoriel.html" data-i18n-aria-label="nav.openTutorial" data-i18n-title="nav.tutorial"><span aria-hidden="true">?</span><span data-i18n="nav.tutorial">Tutorial</span></a>
+              <a class="header-link" href="index.html#practice" data-i18n-aria-label="nav.openPractice" data-i18n-title="nav.practice"><span aria-hidden="true">&#10003;</span><span data-i18n="nav.practice">Practice</span></a>
               <a class="header-link" href="fonctionnement.html" data-i18n-aria-label="nav.openHowItWorks" data-i18n-title="nav.howItWorks"><span aria-hidden="true">i</span><span data-i18n="nav.howItWorks">How it works</span></a>
               <a class="header-link" href="suggestions.html" data-i18n-aria-label="nav.openSuggestions" data-i18n-title="nav.suggestions"><span aria-hidden="true">+</span><span data-i18n="nav.suggestions">Suggestions</span></a>
               <a class="header-link" href="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site/sign-in?return_to=%2Fauth%2Freturn-to-simulator" data-i18n-aria-label="nav.openAccount" data-i18n-title="nav.account"><span aria-hidden="true">&#9786;</span><span data-i18n="nav.account">Circle Commons account</span></a>
@@ -84,6 +91,90 @@
           </div>
         </aside>
       </header>
+
+      <section class="app-hub app-hub-home" data-app-hub data-i18n-aria-label="appHub.title" aria-label="Choose where the atelier will open">
+        <div class="app-hub-topbar">
+          <div class="app-hub-shortcuts" aria-hidden="false">
+            <a class="app-hub-shortcut app-hub-shortcut-primary" href="index.html" aria-current="page">
+              <span class="app-hub-card-icon" aria-hidden="true">&#9638;</span>
+              <span class="app-hub-card-text">
+                <strong data-i18n="appHub.canvases">My gallery</strong>
+              </span>
+            </a>
+            <button class="app-hub-shortcut" type="button" disabled>
+              <span class="app-hub-card-icon" aria-hidden="true">&#10002;</span>
+              <span class="app-hub-card-text">
+                <strong data-i18n="appHub.workshop">Workshop</strong>
+              </span>
+              <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
+            </button>
+            <button class="app-hub-shortcut" type="button" disabled>
+              <span class="app-hub-card-icon" aria-hidden="true">&#9678;</span>
+              <span class="app-hub-card-text">
+                <strong data-i18n="appHub.library">Library</strong>
+              </span>
+              <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
+            </button>
+            <button class="app-hub-shortcut" type="button" disabled>
+              <span class="app-hub-card-icon" aria-hidden="true">&#9673;</span>
+              <span class="app-hub-card-text">
+                <strong data-i18n="appHub.commons">Circle Commons</strong>
+              </span>
+              <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
+            </button>
+            <button class="app-hub-shortcut" type="button" disabled>
+              <span class="app-hub-card-icon" aria-hidden="true">?</span>
+              <span class="app-hub-card-text">
+                <strong data-i18n="appHub.tutorial">Learn</strong>
+              </span>
+              <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
+            </button>
+            <button class="app-hub-shortcut" type="button" disabled>
+              <span class="app-hub-card-icon" aria-hidden="true">&#9881;</span>
+              <span class="app-hub-card-text">
+                <strong data-i18n="appHub.mods">Mods</strong>
+              </span>
+              <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
+            </button>
+            <button class="app-hub-shortcut" type="button" disabled>
+              <span class="app-hub-card-icon" aria-hidden="true">&#8759;</span>
+              <span class="app-hub-card-text">
+                <strong data-i18n="appHub.multiplayer">Shared canvases</strong>
+              </span>
+              <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
+            </button>
+            <button class="app-hub-shortcut" type="button" disabled>
+              <span class="app-hub-card-icon" aria-hidden="true">&#9733;</span>
+              <span class="app-hub-card-text">
+                <strong data-i18n="appHub.adventure">Adventure</strong>
+              </span>
+              <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
+            </button>
+          </div>
+        </div>
+        <section class="app-hub-gallery" aria-labelledby="appHubGalleryTitle">
+          <div class="app-hub-gallery-heading">
+            <div class="app-hub-gallery-title-group">
+              <a class="app-hub-new-canvas" href="index.html?view=atelier" data-i18n-aria-label="appHub.newCanvas" aria-label="New canvas">
+                <span aria-hidden="true">+</span>
+                <span data-i18n="appHub.newCanvas">New canvas</span>
+              </a>
+              <p class="app-hub-eyebrow" data-i18n="appHub.galleryEyebrow">My gallery</p>
+              <h3 id="appHubGalleryTitle" data-i18n="appHub.galleryTitle">Your spell canvases</h3>
+            </div>
+            <p data-i18n="appHub.galleryDescription">Saved canvases will appear here. Start with a new canvas.</p>
+          </div>
+          <div class="app-hub-gallery-grid" id="appHubGalleryGrid">
+            <div class="app-hub-gallery-empty">
+              <span class="app-hub-empty-mark" aria-hidden="true">+</span>
+              <div>
+                <strong data-i18n="appHub.emptyGallery">No canvases yet</strong>
+                <p data-i18n="appHub.emptyGalleryDetail">Create a canvas to open the Atelier and start drawing.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
 
       <section class="workspace" data-i18n-aria-label="atelier.region" aria-label="Creation workshop">
         <div class="canvas-wrap">
@@ -194,6 +285,18 @@
             <textarea id="circleJsonInput" rows="7" spellcheck="false" data-i18n-placeholder="import.jsonPlaceholder" placeholder="Paste JSON or a simulator link with communityCircle=..."></textarea>
             <button id="circleJsonImportButton" type="button" data-i18n="import.jsonImport">Import JSON</button>
           </div>
+          <div
+            id="photoImportDropzone"
+            class="photo-import-dropzone"
+            role="button"
+            tabindex="0"
+            data-i18n-aria-label="photo.pasteHint"
+            aria-label="Paste or drop an image here"
+          >
+            <span class="photo-import-dropzone-icon" aria-hidden="true">+</span>
+            <strong data-i18n="photo.pasteHint">Paste or drop an image here</strong>
+            <small id="photoPasteStatus" data-i18n="photo.pasteReady">Copy an image, then press Cmd+V or Ctrl+V</small>
+          </div>
           <div class="photo-preview-frame" id="photoPreviewFrame">
             <img id="photoPreviewImage" alt="">
             <div class="photo-preview-overlay" id="photoPreviewOverlay" aria-hidden="false"></div>
@@ -292,15 +395,11 @@
         <aside class="sidebar gallery-drawer" id="galleryDrawer" data-community-url="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site" data-i18n-aria-label="drawer.galleryChoice" aria-label="Circle gallery" aria-hidden="true">
           <div class="panel-heading">
             <div>
-              <h2 data-i18n="guides.spells">My spells</h2>
+              <h2 data-i18n="drawer.gallery">Gallery</h2>
               <p data-i18n="drawer.galleryDescription">Browse public circles. Sign in on Circle Commons to keep yours.</p>
             </div>
             <button class="drawer-close" id="closeGalleryButton" type="button" data-i18n-aria-label="drawer.closeGallery" aria-label="Close gallery">&times;</button>
           </div>
-          <section class="saved-spells-section" aria-labelledby="savedSpellsHeading">
-            <h3 id="savedSpellsHeading" data-i18n="guides.spells">My spells</h3>
-            <div class="guide-list saved-spells-list" id="guideSpellsList" role="list"></div>
-          </section>
           <div class="gallery-actions">
             <a class="gallery-link" href="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site/gallery" data-i18n="drawer.openGallery">Open full gallery</a>
             <button id="publishGalleryButton" type="button" data-i18n="drawer.addCurrentCircle">Add current circle</button>
@@ -311,6 +410,7 @@
             <button id="galleryRefreshButton" type="button" data-i18n="gallery.refresh">Refresh</button>
           </div>
           <div class="gallery-feed" id="galleryFeed" aria-live="polite" aria-busy="false"></div>
+          <div class="guide-list" id="guideSpellsList" role="list"></div>
           <p class="gallery-note" data-i18n="drawer.gallerySignIn">Sign in on Circle Commons when you publish to keep the circle in your account.</p>
         </aside>
 
@@ -347,12 +447,8 @@
             <button id="clearGuideButton" type="button" data-i18n="guides.remove">Remove guide</button>
           </div>
 
-          <div class="guide-tabs" role="tablist" data-i18n-aria-label="guides.sources">
-            <button id="guideLibraryTab" class="is-active" type="button" role="tab" aria-selected="true" aria-controls="guideLibraryList" data-i18n="guides.library">Library</button>
-            <button id="guidePersonalTab" type="button" role="tab" aria-selected="false" aria-controls="guidePersonalList" data-i18n="guides.personal">My examples</button>
-          </div>
-          <div class="guide-list" id="guideLibraryList" role="tabpanel"></div>
-          <div class="guide-list" id="guidePersonalList" role="tabpanel" hidden></div>
+          <h3 class="guide-source-title" data-i18n="guides.personal">My examples</h3>
+          <div class="guide-list" id="guidePersonalList" role="list"></div>
         </aside>
 
         <dialog id="spellSaveDialog" class="photo-dialog spell-save-dialog" data-i18n-aria-label="spells.dialogTitle" aria-label="Save this spell">
@@ -477,7 +573,6 @@
             <button class="command-button command-danger" id="clearButton" type="button" data-i18n="commands.clear">Clear</button>
             <button class="command-button command-archive" id="saveButton" type="button" data-i18n="commands.savePng">Archive PNG</button>
             <button class="command-button command-archive" id="saveExampleButton" type="button" data-i18n="commands.saveExample">Save as example</button>
-            <button class="command-button command-tool" id="practiceToggleButton" type="button" aria-controls="practiceBar" aria-expanded="false" data-i18n="practice.toggle">Practice</button>
             <button class="command-button command-tool" id="circleImportButton" type="button" aria-controls="photoImportDialog" aria-expanded="false" data-i18n="import.toggle">Import circle</button>
             <button class="command-button command-archive" id="circleJsonExportButton" type="button" data-i18n="import.exportJson">Export JSON</button>
             <button class="command-button command-archive" id="saveSpellButton" type="button" aria-controls="spellSaveDialog" data-i18n="commands.saveSpell">Save spell</button>
@@ -488,7 +583,36 @@
           <output class="status" id="statusText" aria-live="polite" data-i18n="status.buttonMode">Button mode: draw a closed circle, then press Activate.</output>
         </div>
       </footer>
+      <aside class="simulator-ad-placement" id="simulatorAdPlacement" aria-label="Optional project-support advertisement" hidden>
+        <div class="project-ad-frame" id="simulatorAdFrame"></div>
+        <button class="project-ad-disable" id="simulatorAdDisable" type="button" data-i18n="supportProject.disableAds">Disable ads</button>
+      </aside>
     </main>
+    <dialog class="project-support-dialog" id="projectSupportDialog" aria-labelledby="projectSupportTitle">
+      <div class="project-support-heading">
+        <div>
+          <span class="project-support-kicker" data-i18n="supportProject.kicker">Optional workshop support</span>
+          <h2 id="projectSupportTitle" data-i18n="supportProject.title">Support the ongoing project</h2>
+        </div>
+        <button class="project-support-close" id="projectSupportClose" type="button" data-i18n-aria-label="supportProject.close" aria-label="Close">&times;</button>
+      </div>
+      <div class="project-support-copy">
+        <p data-i18n="supportProject.body">If you enjoy the experience and would like to support the project, you can enable discreet ads or make a donation.</p>
+        <p><span data-i18n="supportProject.costsBefore">The project is still being developed. Contributions help cover hosting, tools, and the </span><strong data-i18n="supportProject.aiTokens">tokens used by AI tools to help me generate, test, and improve the site's code</strong><span data-i18n="supportProject.costsAfter">.</span></p>
+        <p data-i18n="supportProject.thanks">More support means more bug fixes, features, and improvements for the community. Support is entirely optional. Thank you!</p>
+      </div>
+      <div class="project-support-options">
+        <div class="project-support-option">
+          <div><strong data-i18n="supportProject.donate">Make a donation</strong><small id="projectDonationStatus" data-i18n="supportProject.donationPending">Ko-fi is being configured.</small></div>
+          <a class="project-support-donate is-disabled" id="projectDonationLink" target="_blank" rel="noopener noreferrer" aria-disabled="true" tabindex="-1" data-i18n="supportProject.openKofi">Open Ko-fi</a>
+        </div>
+        <label class="project-support-option project-support-ad-choice">
+          <span><strong data-i18n="supportProject.ads">Enable discreet ads</strong><small id="projectAdsStatus" data-i18n="supportProject.adsPending">Advertising is not configured yet.</small></span>
+          <input id="projectAdsToggle" type="checkbox">
+        </label>
+      </div>
+      <p class="project-support-note" data-i18n="supportProject.filterNote">Sensitive categories will be blocked where supported, but no ad network can guarantee every creative. You can disable ads at any time.</p>
+    </dialog>
     <dialog class="symbol-search-dialog" id="symbolSearchDialog" aria-labelledby="symbolSearchTitle">
       <form method="dialog" class="symbol-search-head">
         <h2 id="symbolSearchTitle" data-i18n="search.title">Find an element</h2>

@@ -60,13 +60,15 @@ test("l'aide d'alignement et la barre reduite sont cablees dans l'atelier", asyn
 
 test("le tiroir unique et le transport sont styles", async () => {
   const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
+  const compositionPanelRule = css.match(/\.sigil-composition-panel\s*\{([\s\S]*?)\n\}/)?.[1] || "";
 
   assert.match(css, /\.simulator-page\.symbols-open/);
   assert.match(css, /\.symbol-drawer-tabs/);
   assert.match(css, /\.sigil-composition-panel/);
   assert.match(css, /\.ink-list\[hidden\]/);
-  const compositionPanelRule = css.match(/\.sigil-composition-panel\s*\{([\s\S]*?)\n\}/)?.[1] || "";
   assert.match(compositionPanelRule, /overflow-y:\s*auto/);
+  assert.match(compositionPanelRule, /min-height:\s*0/);
+  assert.match(compositionPanelRule, /overscroll-behavior:\s*contain/);
   assert.match(compositionPanelRule, /-webkit-overflow-scrolling:\s*touch/);
   assert.match(css, /\.composition-stage/);
   assert.match(css, /\.composition-slot/);

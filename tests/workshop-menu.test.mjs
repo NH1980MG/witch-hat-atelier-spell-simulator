@@ -21,6 +21,22 @@ test("every public page exposes the compact workshop navigation", async () => {
   }
 });
 
+test("the practice workflow is a menu feature beside the tutorial", async () => {
+  for (const page of publicPages) {
+    const html = await readFile(new URL(`../${page}`, import.meta.url), "utf8");
+    assert.match(html, /href="index\.html#practice"/, `${page}: missing practice menu link`);
+    assert.match(html, /href="index\.html#practice"[\s\S]*?data-i18n="nav\.practice"/, `${page}: missing practice menu label`);
+    assert.match(html, /data-i18n-aria-label="nav\.openPractice"/, `${page}: missing practice menu label`);
+  }
+
+  const index = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  assert.doesNotMatch(index, /id="practiceToggleButton"/);
+
+  const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
+  assert.doesNotMatch(app, /if \(!practiceBar \|\| !practiceToggleButton\)/);
+  assert.match(app, /location\.hash === "#practice"/);
+});
+
 test("the 3D view exposes a relaunch control", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
   const i18n = await readFile(new URL("../i18n.mjs", import.meta.url), "utf8");
