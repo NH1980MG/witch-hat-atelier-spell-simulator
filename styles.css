@@ -2086,6 +2086,18 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
     0 0 0 5px rgba(92, 139, 98, 0.2);
 }
 
+@media (min-width: 1181px) {
+  .simulator-page.symbols-open .symbol-drawer {
+    position: fixed;
+    z-index: 30;
+    top: 84px;
+    right: 12px;
+    bottom: 12px;
+    max-height: calc(100dvh - 96px);
+    overflow-y: auto;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .symbol-drag-ghost {
     transition: none;
@@ -2225,6 +2237,9 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
 .symbol-icon {
   display: grid;
   place-items: center;
+  justify-items: center;
+  align-items: center;
+  box-sizing: border-box;
   width: 42px;
   height: 42px;
   border: 1px solid var(--ink);
@@ -2234,14 +2249,20 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
 }
 
 .symbol-mark {
+  display: block;
+  flex: 0 0 auto;
   width: 36px;
   height: 36px;
+  margin: 0;
   overflow: hidden;
 }
 
 .symbol-board-glyph {
+  display: block;
+  flex: 0 0 auto;
   width: 36px;
   height: 36px;
+  margin: 0;
   background: currentColor;
   -webkit-mask-image: var(--symbol-mask);
   mask-image: var(--symbol-mask);
