@@ -2,14 +2,21 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-test("la page expose un seul tiroir de symboles sans les anciens outils de taille", async () => {
+test("la page expose le tiroir direct et la composition sigilaire", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
   for (const id of [
     "symbolToggleButton",
     "symbolDrawer",
-    "symbolComposition",
-    "symbolCompositionBoard",
+    "symbolDrawerTabs",
+    "directPaletteTab",
+    "sigilCompositionTab",
+    "sigilCompositionPanel",
     "inkList",
+    "compositionSigilTray",
+    "compositionSignTray",
+    "compositionStage",
+    "clearSigilCompositionButton",
+    "applySigilCompositionButton",
     "closeSymbolsButton",
     "symbolDragGhost",
     "selectToolButton",
@@ -21,7 +28,7 @@ test("la page expose un seul tiroir de symboles sans les anciens outils de taill
   assert.doesNotMatch(html, /id=["'](?:shrinkSelectionButton|growSelectionButton)["']/);
   assert.doesNotMatch(html, /id=["']placement(?:ToggleButton|Drawer|List)["']/);
   assert.doesNotMatch(html, /id=["']closePlacementButton["']/);
-  assert.match(html, /styles\.css\?v=20260812-project-support-v1/);
+  assert.match(html, /styles\.css\?v=20260815-sigil-composition-panel-v1/);
   assert.match(html, /app\.js\?v=\d{8}-[^"']+/);
 });
 
@@ -56,6 +63,12 @@ test("le tiroir unique et le transport sont styles", async () => {
   assert.match(css, /\.simulator-page\.symbols-open/);
   assert.match(css, /\.symbol-drag-ghost/);
   assert.match(css, /\.ink-button/);
+  assert.match(css, /\.symbol-drawer-tabs/);
+  assert.match(css, /\.sigil-composition-panel/);
+  assert.match(css, /\.ink-list\[hidden\]/);
+  assert.match(css, /\.composition-stage/);
+  assert.match(css, /\.composition-slot/);
+  assert.match(css, /\.composition-chip/);
   assert.match(css, /\.symbol-mark path,[\s\S]*stroke-width: 2\.2/);
   assert.match(css, /\.simulator-page\.symbols-open\.is-dragging-symbol \.symbol-drawer/);
   assert.doesNotMatch(css, /\.placement-(?:island|drawer|list|card)/);
@@ -181,15 +194,32 @@ test("la superposition de recherche est stylee", async () => {
   assert.match(css, /\.symbol-drawer-hint/);
 });
 
-test("la planche de composition est synchronisee avec le parchemin et les glyphes restent centres", async () => {
+test("la composition sigilaire expose ses fonctions de transport et les glyphes restent centres", async () => {
   const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
   const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
 
-  assert.match(app, /const symbolCompositionBoard = document\.querySelector\("#symbolCompositionBoard"\)/);
-  assert.match(app, /function renderSymbolCompositionBoard\(\)/);
-  assert.match(app, /symbolCompositionContext\.drawImage\(canvas, 0, 0, width, height\)/);
-  assert.match(app, /const isOpen = document\.body\.classList\.contains\("symbols-open"\)/);
-  assert.match(css, /\.symbol-composition\s*\{/);
+  for (const functionName of [
+    "renderInkList",
+    "renderSigilCompositionPanel",
+    "setSymbolDrawerMode",
+    "selectCompositionSlot",
+    "setCompositionSlotElement",
+    "resolveSigilCompositionAnchor",
+    "applySigilComposition",
+    "startSymbolDrag",
+    "moveSymbolDrag",
+    "finishSymbolDrag",
+    "cancelSymbolDrag",
+  ]) {
+    assert.match(app, new RegExp("function " + functionName + "\\("));
+  }
+  const renderBody = app.match(/function renderInkList\(\) \{([\s\S]*?)\n\}/)?.[1] || "";
+  assert.match(renderBody, /startSymbolDrag\(event, element\)/);
+  assert.match(app, /canDropGlyph/);
+  assert.match(app, /buildSigilCompositionPlacements/);
+  assert.match(app, /state\.circleCenter/);
+  assert.doesNotMatch(app, /function renderSymbolCompositionBoard\(/);
+  assert.doesNotMatch(css, /\.symbol-composition\s*\{/);
   assert.match(css, /\.symbol-icon\s*\{[\s\S]*?justify-items:\s*center/);
   assert.match(css, /\.symbol-board-glyph\s*\{[\s\S]*?display:\s*block/);
 });

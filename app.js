@@ -303,8 +303,6 @@ function actionDisplayLabel(action) {
 
 const canvas = document.querySelector("#magicCanvas");
 const ctx = canvas.getContext("2d");
-const symbolCompositionBoard = document.querySelector("#symbolCompositionBoard");
-const symbolCompositionContext = symbolCompositionBoard?.getContext("2d");
 const canvasWrap = document.querySelector(".canvas-wrap");
 const floatingTools = document.querySelector(".floating-tools");
 let previousCanvasViewport = null;
@@ -350,6 +348,16 @@ const close3dButton = document.querySelector("#close3dButton");
 const relaunch3dButton = document.querySelector("#relaunch3dButton");
 const symbolToggleButton = document.querySelector("#symbolToggleButton");
 const symbolDrawer = document.querySelector("#symbolDrawer");
+const symbolDrawerTabs = document.querySelector("#symbolDrawerTabs");
+const directPaletteTab = document.querySelector("#directPaletteTab");
+const sigilCompositionTab = document.querySelector("#sigilCompositionTab");
+const sigilCompositionPanel = document.querySelector("#sigilCompositionPanel");
+const compositionSigilTray = document.querySelector("#compositionSigilTray");
+const compositionSignTray = document.querySelector("#compositionSignTray");
+const compositionStage = document.querySelector("#compositionStage");
+const compositionSlots = [...document.querySelectorAll("[data-composition-slot]")];
+const clearSigilCompositionButton = document.querySelector("#clearSigilCompositionButton");
+const applySigilCompositionButton = document.querySelector("#applySigilCompositionButton");
 const spoilerToggle = document.querySelector("#spoilerToggle");
 const spoilerChapterRange = document.querySelector("#spoilerChapterRange");
 const spoilerChapterValue = document.querySelector("#spoilerChapterValue");
@@ -513,6 +521,15 @@ const state = {
   // never emits the retargeted trailing click, silently swallowing an
   // unrelated drawer tap minutes later; the record cannot.
   suppressNextDrawerClick: null,
+  symbolDrawerMode: "direct",
+  compositionSlot: "center",
+  sigilComposition: {
+    center: null,
+    north: null,
+    east: null,
+    south: null,
+    west: null,
+  },
 };
 
 const guideImageCache = new Map();
@@ -8252,19 +8269,6 @@ function render() {
   if (!state.exporting) {
     drawMeasureCounter(width, height);
   }
-  renderSymbolCompositionBoard();
-}
-
-function renderSymbolCompositionBoard() {
-  if (!symbolCompositionBoard || !symbolCompositionContext || !canvas.width || !canvas.height) {
-    return;
-  }
-  const width = symbolCompositionBoard.width;
-  const height = symbolCompositionBoard.height;
-  symbolCompositionContext.clearRect(0, 0, width, height);
-  symbolCompositionContext.fillStyle = colors.paper;
-  symbolCompositionContext.fillRect(0, 0, width, height);
-  symbolCompositionContext.drawImage(canvas, 0, 0, width, height);
 }
 
 function currentElementData() {
@@ -9630,6 +9634,132 @@ function symbolGroups() {
   ].filter(([, groupElements]) => groupElements.length > 0);
 }
 
+const COMPOSITION_SLOTS = ["center", "north", "east", "south", "west"];
+
+function setSymbolDrawerMode(mode) {
+  state.symbolDrawerMode = mode === "composition" ? "composition" : "direct";
+  const compositionOpen = state.symbolDrawerMode === "composition";
+  directPaletteTab?.setAttribute("aria-selected", String(!compositionOpen));
+  sigilCompositionTab?.setAttribute("aria-selected", String(compositionOpen));
+  inkList?.toggleAttribute("hidden", compositionOpen);
+  sigilCompositionPanel?.toggleAttribute("hidden", !compositionOpen);
+  symbolDrawerTabs?.setAttribute("data-mode", state.symbolDrawerMode);
+  renderSigilCompositionPanel();
+}
+
+function selectCompositionSlot(slot) {
+  if (!COMPOSITION_SLOTS.includes(slot)) return;
+  state.compositionSlot = slot;
+  compositionSlots.forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.compositionSlot === slot));
+    button.classList.toggle("is-selected", button.dataset.compositionSlot === slot);
+  });
+}
+
+function setCompositionSlotElement(slot, element) {
+  if (!COMPOSITION_SLOTS.includes(slot)) return;
+  if (element && ((slot === "center" && element.kind !== "sigil") || (slot !== "center" && element.kind !== "sign"))) {
+    return;
+  }
+  state.sigilComposition[slot] = element || null;
+  selectCompositionSlot(slot);
+  renderSigilCompositionPanel();
+}
+
+function resolveSigilCompositionAnchor() {
+  const bounds = primarySpellBounds();
+  const { width, height } = canvasSize();
+  const center = state.circleCenter || (bounds ? {
+    x: bounds.left + bounds.width / 2,
+    y: bounds.top + bounds.height / 2,
+  } : { x: width / 2, y: height / 2 });
+  const availableWidth = bounds?.width || width * 0.72;
+  const availableHeight = bounds?.height || height * 0.72;
+  return {
+    center,
+    radius: Math.max(42, Math.min(availableWidth, availableHeight) * 0.22),
+  };
+}
+
+function buildSigilCompositionPlacements() {
+  const { center, radius } = resolveSigilCompositionAnchor();
+  const offsets = {
+    center: { x: 0, y: 0 },
+    north: { x: 0, y: -radius },
+    east: { x: radius, y: 0 },
+    south: { x: 0, y: radius },
+    west: { x: -radius, y: 0 },
+  };
+  return COMPOSITION_SLOTS
+    .map((slot) => ({ slot, element: state.sigilComposition[slot] }))
+    .filter(({ element }) => element)
+    .map(({ slot, element }) => {
+      const offset = offsets[slot];
+      const size = slot === "center" ? Math.max(26, radius * 0.18) : Math.max(18, radius * 0.12);
+      return createGlyphAction(element, {
+        x: center.x + offset.x,
+        y: center.y + offset.y,
+      }, size);
+    });
+}
+
+function compositionTrayButton(element) {
+  const button = document.createElement("button");
+  button.className = "composition-palette-button";
+  button.type = "button";
+  button.dataset.symbol = element.name;
+  button.title = elementMechanicLabel(element, element.kind === "sign" ? SIGN_PROFILES[element.name] : SIGIL_PROFILES[element.name]);
+  button.setAttribute("aria-label", elementDisplayName(element));
+  button.innerHTML = `<span class="symbol-icon" style="--symbol-color:${element.color}">${elementIconMarkup(element)}</span><span class="composition-palette-name">${elementDisplayName(element)}</span>`;
+  button.addEventListener("click", () => {
+    const slot = element.kind === "sigil"
+      ? "center"
+      : state.compositionSlot === "center" ? "north" : state.compositionSlot;
+    setCompositionSlotElement(slot, element);
+  });
+  return button;
+}
+
+function renderSigilCompositionPanel() {
+  if (!compositionSigilTray || !compositionSignTray) return;
+  const visible = (element) => isSymbolVisibleAtChapter(element.name, state.spoilerChapter);
+  compositionSigilTray.replaceChildren(...elements.filter((element) => element.kind === "sigil" && visible(element)).map(compositionTrayButton));
+  compositionSignTray.replaceChildren(...elements.filter((element) => element.kind === "sign" && visible(element)).map(compositionTrayButton));
+  compositionSlots.forEach((slotButton) => {
+    const slot = slotButton.dataset.compositionSlot;
+    const chip = slotButton.querySelector("[data-composition-chip]");
+    const element = state.sigilComposition[slot];
+    if (!chip) return;
+    chip.replaceChildren();
+    if (element) {
+      const icon = document.createElement("span");
+      icon.className = "symbol-icon";
+      icon.style.setProperty("--symbol-color", element.color);
+      icon.innerHTML = elementIconMarkup(element);
+      icon.title = elementDisplayName(element);
+      chip.append(icon);
+    }
+    slotButton.setAttribute("aria-pressed", String(state.compositionSlot === slot));
+    slotButton.classList.toggle("is-selected", state.compositionSlot === slot);
+  });
+  if (compositionStage) {
+    compositionStage.dataset.hasCenter = String(Boolean(state.sigilComposition.center));
+  }
+}
+
+function applySigilComposition() {
+  if (!state.sigilComposition.center) {
+    setStatus(t("composition.emptySign"));
+    selectCompositionSlot("center");
+    return;
+  }
+  const placements = buildSigilCompositionPlacements();
+  placements.forEach(commitAction);
+  setTool("select");
+  setStatus(t("status.sigilCompositionApplied"));
+  setSymbolDrawer(false);
+}
+
 function renderInkList() {
   inkList.innerHTML = "";
   const groups = symbolGroups();
@@ -9691,6 +9821,7 @@ function renderInkList() {
     inkList.append(section);
   }
   updateInkSelection();
+  renderSigilCompositionPanel();
 }
 
 // How far the pointer must travel during a drawer-button press before the
@@ -11414,6 +11545,17 @@ symbolToggleButton?.addEventListener("click", () => {
   setSymbolDrawer(!isOpen);
 });
 closeSymbolsButton?.addEventListener("click", () => setSymbolDrawer(false));
+directPaletteTab?.addEventListener("click", () => setSymbolDrawerMode("direct"));
+sigilCompositionTab?.addEventListener("click", () => setSymbolDrawerMode("composition"));
+compositionSlots.forEach((button) => {
+  button.addEventListener("click", () => selectCompositionSlot(button.dataset.compositionSlot));
+});
+clearSigilCompositionButton?.addEventListener("click", () => {
+  COMPOSITION_SLOTS.forEach((slot) => { state.sigilComposition[slot] = null; });
+  selectCompositionSlot("center");
+  renderSigilCompositionPanel();
+});
+applySigilCompositionButton?.addEventListener("click", applySigilComposition);
 detailsToggleButton?.addEventListener("click", () => setDetailsDrawer(true));
 closeDetailsButton?.addEventListener("click", () => setDetailsDrawer(false));
 supportToggleButton?.addEventListener("click", () => setSupportDrawer(true));

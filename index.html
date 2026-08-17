@@ -39,7 +39,7 @@
         document.documentElement.dataset.appView = "atelier";
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260812-project-support-v1">
+    <link rel="stylesheet" href="styles.css?v=20260815-sigil-composition-panel-v1">
     <script type="importmap">
       {
         "imports": {
@@ -357,13 +357,47 @@
             <p class="spoiler-note" data-i18n="spoiler.note">Symbols first seen after this chapter stay hidden here, in search, and in the library.</p>
           </div>
 
-          <details class="symbol-composition" id="symbolComposition" open>
-            <summary data-i18n="drawer.symbolComposition">Symbol composition</summary>
-            <div class="symbol-composition-content">
-              <canvas id="symbolCompositionBoard" width="640" height="420" data-i18n-aria-label="drawer.symbolCompositionBoard" aria-label="Symbol composition board"></canvas>
-              <p data-i18n="drawer.symbolCompositionDescription">The board mirrors the current parchment so you can place and inspect sigils without losing sight of the composition.</p>
+          <div class="symbol-drawer-tabs" id="symbolDrawerTabs" role="tablist" data-i18n-aria-label="symbols.mode.label" aria-label="Symbol modes">
+            <button id="directPaletteTab" type="button" role="tab" aria-selected="true" aria-controls="inkList" data-i18n="symbols.mode.directPalette">Direct palette</button>
+            <button id="sigilCompositionTab" type="button" role="tab" aria-selected="false" aria-controls="sigilCompositionPanel" data-i18n="symbols.mode.sigilComposition">Sigil composition</button>
+          </div>
+
+          <section class="sigil-composition-panel" id="sigilCompositionPanel" role="tabpanel" aria-labelledby="sigilCompositionTab" hidden>
+            <div class="composition-stage" id="compositionStage" data-i18n-aria-label="composition.preview" aria-label="Sigil composition preview">
+              <button class="composition-slot" type="button" data-composition-slot="center" aria-pressed="true">
+                <span class="composition-slot-label" data-i18n="composition.slot.center">Center sigil</span>
+                <span class="composition-chip" data-composition-chip="center"></span>
+              </button>
+              <button class="composition-slot" type="button" data-composition-slot="north" aria-pressed="false">
+                <span class="composition-slot-label" data-i18n="composition.slot.north">North sign</span>
+                <span class="composition-chip" data-composition-chip="north"></span>
+              </button>
+              <button class="composition-slot" type="button" data-composition-slot="east" aria-pressed="false">
+                <span class="composition-slot-label" data-i18n="composition.slot.east">East sign</span>
+                <span class="composition-chip" data-composition-chip="east"></span>
+              </button>
+              <button class="composition-slot" type="button" data-composition-slot="south" aria-pressed="false">
+                <span class="composition-slot-label" data-i18n="composition.slot.south">South sign</span>
+                <span class="composition-chip" data-composition-chip="south"></span>
+              </button>
+              <button class="composition-slot" type="button" data-composition-slot="west" aria-pressed="false">
+                <span class="composition-slot-label" data-i18n="composition.slot.west">West sign</span>
+                <span class="composition-chip" data-composition-chip="west"></span>
+              </button>
             </div>
-          </details>
+            <div class="composition-tray-group">
+              <h3 data-i18n="composition.sigilTray">Sigils</h3>
+              <div class="composition-tray" id="compositionSigilTray"></div>
+            </div>
+            <div class="composition-tray-group">
+              <h3 data-i18n="composition.signTray">Signs</h3>
+              <div class="composition-tray" id="compositionSignTray"></div>
+            </div>
+            <div class="composition-actions">
+              <button id="clearSigilCompositionButton" type="button" data-i18n="composition.clear">Clear composition</button>
+              <button id="applySigilCompositionButton" class="command-primary" type="button" data-i18n="composition.apply">Apply to parchment</button>
+            </div>
+          </section>
 
           <div class="ink-list" id="inkList"></div>
         </aside>
