@@ -1,6 +1,6 @@
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import { buildRecipeHref } from "./recipe-link.mjs?v=20260811-exact-schematic-v1";
-import { t } from "./site-i18n.mjs?v=20260816-sigil-composition-scroll-v1";
+import { t } from "./site-i18n.mjs?v=20260817-seal-composition-editor-v1";
 
 const byId = new Map(LIBRARY_CIRCLES.map((circle) => [circle.id, circle]));
 

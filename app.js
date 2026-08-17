@@ -8,7 +8,7 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260812-particle-field-v1";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260814-crosshair-sides-v1";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260816-sigil-composition-scroll-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260817-seal-composition-editor-v1";
 import {
   SIGIL_COMPOSITION_SLOTS,
   buildSigilCompositionCommitPlan,
@@ -16,7 +16,7 @@ import {
   createDefaultSigilComposition,
   extractSigilComposition,
   normalizeCompositionCircleSize,
-} from "./sigil-composition-layout.mjs?v=20260816-sigil-composition-scroll-v1";
+} from "./sigil-composition-layout.mjs?v=20260817-seal-composition-editor-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260809-handoff-layout-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -10353,8 +10353,8 @@ function applySigilComposition() {
   if (draft.mode === "existing" && Number.isInteger(draft.anchorIndex)) {
     const removed = new Set(
       SIGIL_COMPOSITION_SLOTS
-        .map((slot) => draftSlotIndices[slot.id])
-        .filter((index) => Number.isInteger(index) && !state.sigilComposition.slots[Object.keys(draftSlotIndices).find((slotId) => draftSlotIndices[slotId] === index)]),
+        .filter((slot) => Number.isInteger(draftSlotIndices[slot.id]) && !state.sigilComposition.slots[slot.id])
+        .map((slot) => draftSlotIndices[slot.id]),
     );
     const indexMap = new Map();
     const retained = [];
@@ -10374,7 +10374,10 @@ function applySigilComposition() {
       anchorAction.sealId ||= draft.id;
       touched.push(anchorIndex);
     }
-    const originalRadius = Math.max(1, draft.radius || 1);
+    const originalRadius = Math.max(
+      1,
+      draft.rings?.find((ring) => ring.actionIndex === draft.anchorIndex)?.radius || draft.radius || 1,
+    );
     for (const ring of draft.rings || []) {
       const ringIndex = mapIndex(ring.actionIndex);
       const ringAction = state.actions[ringIndex];
