@@ -19,6 +19,8 @@ test("la version app retire le mode entrainement des commandes de rituel", async
   const scoreMarkup = html.match(/<output id="practiceScore"[^>]*>/)?.[0] || "";
   assert.doesNotMatch(scoreMarkup, /aria-live/);
   assert.match(html, /id="practiceCloseButton"/);
+  assert.match(html, /href="index\.html#practice"/);
+  assert.match(html, /data-i18n="nav\.practice"/);
   assert.match(html, /data-i18n="practice\.target"/);
   assert.match(html, /data-i18n="practice\.verify"/);
 });
