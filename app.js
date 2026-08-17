@@ -558,7 +558,7 @@ function setGrimoireOpen(open, { persist = true } = {}) {
   grimoirePanel?.classList.toggle("is-open", expanded);
   grimoireToggle?.setAttribute("aria-expanded", String(expanded));
   if (grimoireContent) {
-    grimoireContent.inert = compactGrimoireMedia.matches && !expanded;
+    grimoireContent.inert = !expanded;
   }
 }
 
