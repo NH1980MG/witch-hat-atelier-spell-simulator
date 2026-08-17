@@ -29,7 +29,7 @@ test("la page expose un seul tiroir de symboles sans les anciens outils de taill
   assert.doesNotMatch(html, /id=["']placement(?:ToggleButton|Drawer|List)["']/);
   assert.doesNotMatch(html, /id=["']closePlacementButton["']/);
   assert.doesNotMatch(html, /id=["']composition(?:Sigil|FirstSign|SecondSign)Select["']/);
-  assert.match(html, /styles\.css\?v=20260815-sigil-composition-panel-v1/);
+  assert.match(html, /styles\.css\?v=20260816-sigil-composition-scroll-v1/);
   assert.match(html, /app\.js\?v=\d{8}-[^"']+/);
 });
 
@@ -60,11 +60,16 @@ test("l'aide d'alignement et la barre reduite sont cablees dans l'atelier", asyn
 
 test("le tiroir unique et le transport sont styles", async () => {
   const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
+  const compositionPanelRule = css.match(/\.sigil-composition-panel\s*\{([\s\S]*?)\n\}/)?.[1] || "";
 
   assert.match(css, /\.simulator-page\.symbols-open/);
   assert.match(css, /\.symbol-drawer-tabs/);
   assert.match(css, /\.sigil-composition-panel/);
   assert.match(css, /\.ink-list\[hidden\]/);
+  assert.match(compositionPanelRule, /min-height:\s*0/);
+  assert.match(compositionPanelRule, /overflow-y:\s*auto/);
+  assert.match(compositionPanelRule, /overscroll-behavior:\s*contain/);
+  assert.match(compositionPanelRule, /-webkit-overflow-scrolling:\s*touch/);
   assert.match(css, /\.composition-stage/);
   assert.match(css, /\.composition-slot/);
   assert.match(css, /\.composition-chip/);

@@ -31,6 +31,6 @@ test("tablet and phone layouts keep controls touchable", () => {
 
 
 test("desktop viewports can lower the Grimoire into a bottom rail", () => {
-  assert.match(css, /@media \\(min-width: 1181px\\)[\\s\\S]*\\.grimoire-toggle\\s*\\{[\\s\\S]*display:\\s*flex/);
-  assert.match(css, /@media \\(min-width: 1181px\\)[\\s\\S]*\\.grimoire\\.is-open\\s*\\{[\\s\\S]*max-height:/);
+  assert.match(css, /@media \(min-width: 1181px\)[\s\S]*\.grimoire-toggle\s*\{[\s\S]*display:\s*flex/);
+  assert.match(css, /@media \(min-width: 1181px\)[\s\S]*\.grimoire\.is-open\s*\{[\s\S]*max-height:/);
 });
