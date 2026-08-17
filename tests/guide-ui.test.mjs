@@ -8,6 +8,7 @@ test("l'atelier expose le tiroir de guides et la sauvegarde d'exemple", async ()
   for (const id of [
     "guideToggleButton",
     "guideDrawer",
+    "guideLibraryList",
     "guidePersonalList",
     "guideVisibleInput",
     "guideOpacityInput",
@@ -16,8 +17,6 @@ test("l'atelier expose le tiroir de guides et la sauvegarde d'exemple", async ()
   ]) {
     assert.match(html, new RegExp(`id=[\"']${id}[\"']`));
   }
-
-  assert.doesNotMatch(html, /guideLibrary(?:Tab|List)/);
 });
 
 test("l'application cable les guides officiels et personnels sous le dessin", async () => {
@@ -34,8 +33,6 @@ test("l'application cable les guides officiels et personnels sous le dessin", as
   assert.match(app, /function beginGuideResize\(/);
   assert.match(app, /function moveGuideResize\(/);
   assert.match(app, /drawActiveGuide\([\s\S]*for \(const action of state\.actions\)/);
-  assert.doesNotMatch(app, /guideLibrary(?:Tab|List)/);
-  assert.doesNotMatch(app, /selectGuide\("library"/);
 });
 
 test("les guides possedent des styles de carte, d'onglet et d'etat actif", async () => {
