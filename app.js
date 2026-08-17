@@ -8,7 +8,11 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260812-particle-field-v1";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260812-particle-field-v1";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260812-project-support-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260816-sigil-composition-scroll-v1";
+import {
+  SIGIL_COMPOSITION_SLOTS,
+  buildSigilCompositionPlacements,
+} from "./sigil-composition-layout.mjs?v=20260816-sigil-composition-scroll-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260809-handoff-layout-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -94,7 +98,7 @@ import {
 import {
   createSpellPhysicsRuntime,
   loadRapier3dCompat,
-} from "./rapier-physics-world.mjs?v=20260812-rapier-collisions-v1";
+} from "./rapier-physics-world.mjs?v=20260814-material-consequences-v1";
 
 const libraryCircleById = new Map(LIBRARY_CIRCLES.map((circle) => [circle.id, circle]));
 
@@ -348,14 +352,12 @@ const close3dButton = document.querySelector("#close3dButton");
 const relaunch3dButton = document.querySelector("#relaunch3dButton");
 const symbolToggleButton = document.querySelector("#symbolToggleButton");
 const symbolDrawer = document.querySelector("#symbolDrawer");
-const symbolDrawerTabs = document.querySelector("#symbolDrawerTabs");
 const directPaletteTab = document.querySelector("#directPaletteTab");
 const sigilCompositionTab = document.querySelector("#sigilCompositionTab");
 const sigilCompositionPanel = document.querySelector("#sigilCompositionPanel");
 const compositionSigilTray = document.querySelector("#compositionSigilTray");
 const compositionSignTray = document.querySelector("#compositionSignTray");
 const compositionStage = document.querySelector("#compositionStage");
-const compositionSlots = [...document.querySelectorAll("[data-composition-slot]")];
 const clearSigilCompositionButton = document.querySelector("#clearSigilCompositionButton");
 const applySigilCompositionButton = document.querySelector("#applySigilCompositionButton");
 const spoilerToggle = document.querySelector("#spoilerToggle");
@@ -420,7 +422,6 @@ const gallerySortButtons = [...document.querySelectorAll("[data-gallery-sort]")]
 const appHubGalleryGrid = document.querySelector("#appHubGalleryGrid");
 const guideLibraryTab = document.querySelector("#guideLibraryTab");
 const guidePersonalTab = document.querySelector("#guidePersonalTab");
-const guideSpellsTab = document.querySelector("#guideSpellsTab");
 const guideLibraryList = document.querySelector("#guideLibraryList");
 const guidePersonalList = document.querySelector("#guidePersonalList");
 const guideSpellsList = document.querySelector("#guideSpellsList");
@@ -474,6 +475,17 @@ const state = {
   toolbarDock: readToolbarDock(),
   toolbarDrag: null,
   suppressToolbarToggle: false,
+  symbolDrawerMode: "direct",
+  sigilComposition: {
+    activeSlot: "center",
+    slots: {
+      center: null,
+      north: null,
+      east: null,
+      south: null,
+      west: null,
+    },
+  },
   closedSeal: true,
   autoActivation: false,
   actions: [],
@@ -521,15 +533,6 @@ const state = {
   // never emits the retargeted trailing click, silently swallowing an
   // unrelated drawer tap minutes later; the record cannot.
   suppressNextDrawerClick: null,
-  symbolDrawerMode: "direct",
-  compositionSlot: "center",
-  sigilComposition: {
-    center: null,
-    north: null,
-    east: null,
-    south: null,
-    west: null,
-  },
 };
 
 const guideImageCache = new Map();
@@ -2466,6 +2469,11 @@ function resetTargetPose(target) {
 function animateEnvironmentTargets() {
   const elapsed = performance.now() / 1000;
   for (const target of threeView.environmentTargets) {
+    const reactionEffect = target.userData.reactionEffect;
+    if (reactionEffect?.visible) {
+      const pulse = 0.82 + Math.sin(elapsed * 5.6) * 0.12;
+      reactionEffect.scale.setScalar(Math.max(0.2, pulse));
+    }
     const impact = target.userData.impact;
     if (!impact) continue;
     resetTargetPose(target);
@@ -5479,6 +5487,7 @@ function clearExpiredManifestation() {
   manifestation && disposeObject3d(manifestation);
   group && (group.userData.manifestation = null);
   group && (group.userData.animators = []);
+  threeView.physicsRuntime = null;
   threeView.selectedSpell = false;
   threeView.spellDrag = null;
   threeView.controls && (threeView.controls.enabled = true);
@@ -5617,6 +5626,18 @@ function threeSpellForcesForPhysics(forces = []) {
   });
 }
 
+function updateThreeSpellPhysicsField() {
+  const runtime = threeView.physicsRuntime;
+  const profile = currentSpellInfluenceProfile();
+  if (!runtime || !profile?.spellForces?.length || !threeView.spellGroup) return;
+  runtime.setSpellFieldPosition(threeVectorObject(threeView.spellGroup.position));
+  runtime.setSpellField({
+    position: threeVectorObject(threeView.spellGroup.position),
+    radiusMeters: Math.max(0.05, profile.diameter * 0.75),
+    forces: threeSpellForcesForPhysics(profile.spellForces),
+  });
+}
+
 async function rebuildThreePhysicsRuntime() {
   const token = threeView.physicsLoadToken + 1;
   threeView.physicsLoadToken = token;
@@ -5637,11 +5658,81 @@ async function rebuildThreePhysicsRuntime() {
       gravity: { x: 0, y: 0, z: 0 },
       targets: descriptors,
     });
+    runtime.setSpellField({
+      position: threeVectorObject(threeView.spellGroup.position),
+      radiusMeters: Math.max(0.05, profile.diameter * 0.75),
+      forces: threeSpellForcesForPhysics(profile.spellForces),
+    });
     runtime.applySpellForces(threeSpellForcesForPhysics(profile.spellForces));
     threeView.physicsRuntime = runtime;
     threeView.physicsTargetMap = targetMap;
   } catch (error) {
     console.warn("Rapier physics runtime unavailable", error);
+  }
+}
+
+function ensureThreeTargetReactionEffect(target, kind) {
+  let reactionEffect = target.userData.reactionEffect;
+  if (reactionEffect?.userData?.kind === kind) {
+    reactionEffect.visible = true;
+    return reactionEffect;
+  }
+  if (reactionEffect) {
+    reactionEffect.parent?.remove(reactionEffect);
+    disposeObject3d(reactionEffect);
+  }
+  reactionEffect = new THREE.Group();
+  reactionEffect.name = `target-reaction-${kind}`;
+  reactionEffect.userData.kind = kind;
+  const materialByKind = {
+    crystallized: new THREE.MeshStandardMaterial({ color: 0xbfe8ff, emissive: 0x6aa9c8, emissiveIntensity: 0.35, transparent: true, opacity: 0.68 }),
+    stuck: new THREE.MeshStandardMaterial({ color: 0x6f5a32, roughness: 1, transparent: true, opacity: 0.62 }),
+    illuminated: new THREE.MeshBasicMaterial({ color: 0xffdf78, transparent: true, opacity: 0.5, depthWrite: false }),
+    restored: new THREE.MeshBasicMaterial({ color: 0x9fd391, transparent: true, opacity: 0.46, depthWrite: false }),
+  };
+  const geometryByKind = {
+    crystallized: new THREE.OctahedronGeometry(0.28, 0),
+    stuck: new THREE.TorusGeometry(0.34, 0.035, 8, 32),
+    illuminated: new THREE.SphereGeometry(0.36, 18, 12),
+    restored: new THREE.TorusGeometry(0.32, 0.018, 8, 36),
+  };
+  const marker = new THREE.Mesh(geometryByKind[kind] || geometryByKind.illuminated, materialByKind[kind] || materialByKind.illuminated);
+  marker.name = `target-reaction-marker-${kind}`;
+  marker.position.y = kind === "stuck" ? 0.02 : 0.42;
+  marker.rotation.x = kind === "stuck" || kind === "restored" ? Math.PI / 2 : 0;
+  reactionEffect.add(marker);
+  target.add(reactionEffect);
+  target.userData.reactionEffect = reactionEffect;
+  return reactionEffect;
+}
+
+function clearThreeTargetReactionEffect(target) {
+  const reactionEffect = target.userData.reactionEffect;
+  if (!reactionEffect) return;
+  reactionEffect.parent?.remove(reactionEffect);
+  disposeObject3d(reactionEffect);
+  target.userData.reactionEffect = null;
+}
+
+function renderThreeTargetReaction(target, snapshot) {
+  switch (snapshot?.reactionState || target?.userData?.reactionState || "idle") {
+    case "crystallized":
+    case "frosted":
+      ensureThreeTargetReactionEffect(target, "crystallized");
+      break;
+    case "stuck":
+    case "damped":
+    case "loaded":
+      ensureThreeTargetReactionEffect(target, "stuck");
+      break;
+    case "illuminated":
+      ensureThreeTargetReactionEffect(target, "illuminated");
+      break;
+    case "restored":
+      ensureThreeTargetReactionEffect(target, "restored");
+      break;
+    default:
+      clearThreeTargetReactionEffect(target);
   }
 }
 
@@ -5667,6 +5758,7 @@ function syncThreePhysicsTargets() {
     if (snapshot) {
       target.userData.persistentPhysicsState = snapshot;
       target.userData.reactionState = snapshot.reactionState;
+      renderThreeTargetReaction(target, snapshot);
     }
   }
 }
@@ -5727,13 +5819,13 @@ function finishSpell3dDrag(event) {
   if (spell3dCanvas.hasPointerCapture?.(drag.pointerId)) {
     spell3dCanvas.releasePointerCapture(drag.pointerId);
   }
-  applySpellToEnvironment();
+  updateThreeSpellPhysicsField();
 }
 
 function rotateSelectedSpell3d(amount) {
   if (!threeView.selectedSpell || !threeView.spellGroup) return false;
   threeView.spellGroup.rotation.y += amount;
-  applySpellToEnvironment();
+  updateThreeSpellPhysicsField();
   return true;
 }
 
@@ -9634,133 +9726,6 @@ function symbolGroups() {
   ].filter(([, groupElements]) => groupElements.length > 0);
 }
 
-
-const COMPOSITION_SLOTS = ["center", "north", "east", "south", "west"];
-
-function setSymbolDrawerMode(mode) {
-  state.symbolDrawerMode = mode === "composition" ? "composition" : "direct";
-  const compositionOpen = state.symbolDrawerMode === "composition";
-  directPaletteTab?.setAttribute("aria-selected", String(!compositionOpen));
-  sigilCompositionTab?.setAttribute("aria-selected", String(compositionOpen));
-  inkList?.toggleAttribute("hidden", compositionOpen);
-  sigilCompositionPanel?.toggleAttribute("hidden", !compositionOpen);
-  symbolDrawerTabs?.setAttribute("data-mode", state.symbolDrawerMode);
-  renderSigilCompositionPanel();
-}
-
-function selectCompositionSlot(slot) {
-  if (!COMPOSITION_SLOTS.includes(slot)) return;
-  state.compositionSlot = slot;
-  compositionSlots.forEach((button) => {
-    button.setAttribute("aria-pressed", String(button.dataset.compositionSlot === slot));
-    button.classList.toggle("is-selected", button.dataset.compositionSlot === slot);
-  });
-}
-
-function setCompositionSlotElement(slot, element) {
-  if (!COMPOSITION_SLOTS.includes(slot)) return;
-  if (element && ((slot === "center" && element.kind !== "sigil") || (slot !== "center" && element.kind !== "sign"))) {
-    return;
-  }
-  state.sigilComposition[slot] = element || null;
-  selectCompositionSlot(slot);
-  renderSigilCompositionPanel();
-}
-
-function resolveSigilCompositionAnchor() {
-  const bounds = primarySpellBounds();
-  const { width, height } = canvasSize();
-  const center = state.circleCenter || (bounds ? {
-    x: bounds.left + bounds.width / 2,
-    y: bounds.top + bounds.height / 2,
-  } : { x: width / 2, y: height / 2 });
-  const availableWidth = bounds?.width || width * 0.72;
-  const availableHeight = bounds?.height || height * 0.72;
-  return {
-    center,
-    radius: Math.max(42, Math.min(availableWidth, availableHeight) * 0.22),
-  };
-}
-
-function buildSigilCompositionPlacements() {
-  const { center, radius } = resolveSigilCompositionAnchor();
-  const offsets = {
-    center: { x: 0, y: 0 },
-    north: { x: 0, y: -radius },
-    east: { x: radius, y: 0 },
-    south: { x: 0, y: radius },
-    west: { x: -radius, y: 0 },
-  };
-  return COMPOSITION_SLOTS
-    .map((slot) => ({ slot, element: state.sigilComposition[slot] }))
-    .filter(({ element }) => element)
-    .map(({ slot, element }) => {
-      const offset = offsets[slot];
-      const size = slot === "center" ? Math.max(26, radius * 0.18) : Math.max(18, radius * 0.12);
-      return createGlyphAction(element, {
-        x: center.x + offset.x,
-        y: center.y + offset.y,
-      }, size);
-    });
-}
-
-function compositionTrayButton(element) {
-  const button = document.createElement("button");
-  button.className = "composition-palette-button";
-  button.type = "button";
-  button.dataset.symbol = element.name;
-  button.title = elementMechanicLabel(element, element.kind === "sign" ? SIGN_PROFILES[element.name] : SIGIL_PROFILES[element.name]);
-  button.setAttribute("aria-label", elementDisplayName(element));
-  button.innerHTML = '<span class="symbol-icon" style="--symbol-color:' + element.color + '">' + elementIconMarkup(element) + '</span><span class="composition-palette-name">' + elementDisplayName(element) + '</span>';
-  button.addEventListener("click", () => {
-    const slot = element.kind === "sigil"
-      ? "center"
-      : state.compositionSlot === "center" ? "north" : state.compositionSlot;
-    setCompositionSlotElement(slot, element);
-  });
-  return button;
-}
-
-function renderSigilCompositionPanel() {
-  if (!compositionSigilTray || !compositionSignTray) return;
-  const visible = (element) => isSymbolVisibleAtChapter(element.name, state.spoilerChapter);
-  compositionSigilTray.replaceChildren(...elements.filter((element) => element.kind === "sigil" && visible(element)).map(compositionTrayButton));
-  compositionSignTray.replaceChildren(...elements.filter((element) => element.kind === "sign" && visible(element)).map(compositionTrayButton));
-  compositionSlots.forEach((slotButton) => {
-    const slot = slotButton.dataset.compositionSlot;
-    const chip = slotButton.querySelector("[data-composition-chip]");
-    const element = state.sigilComposition[slot];
-    if (!chip) return;
-    chip.replaceChildren();
-    if (element) {
-      const icon = document.createElement("span");
-      icon.className = "symbol-icon";
-      icon.style.setProperty("--symbol-color", element.color);
-      icon.innerHTML = elementIconMarkup(element);
-      icon.title = elementDisplayName(element);
-      chip.append(icon);
-    }
-    slotButton.setAttribute("aria-pressed", String(state.compositionSlot === slot));
-    slotButton.classList.toggle("is-selected", state.compositionSlot === slot);
-  });
-  if (compositionStage) {
-    compositionStage.dataset.hasCenter = String(Boolean(state.sigilComposition.center));
-  }
-}
-
-function applySigilComposition() {
-  if (!state.sigilComposition.center) {
-    setStatus(t("composition.emptySign"));
-    selectCompositionSlot("center");
-    return;
-  }
-  const placements = buildSigilCompositionPlacements();
-  placements.forEach(commitAction);
-  setTool("select");
-  setStatus(t("status.sigilCompositionApplied"));
-  setSymbolDrawer(false);
-}
-
 function renderInkList() {
   inkList.innerHTML = "";
   const groups = symbolGroups();
@@ -9822,7 +9787,233 @@ function renderInkList() {
     inkList.append(section);
   }
   updateInkSelection();
-  renderSigilCompositionPanel();
+}
+
+function setSymbolDrawerMode(mode) {
+  state.symbolDrawerMode = mode === "composition" ? "composition" : "direct";
+  const compositionActive = state.symbolDrawerMode === "composition";
+  directPaletteTab?.classList.toggle("is-active", !compositionActive);
+  sigilCompositionTab?.classList.toggle("is-active", compositionActive);
+  directPaletteTab?.setAttribute("aria-selected", String(!compositionActive));
+  sigilCompositionTab?.setAttribute("aria-selected", String(compositionActive));
+  inkList.hidden = compositionActive;
+  sigilCompositionPanel.hidden = !compositionActive;
+  if (compositionActive) {
+    renderSigilCompositionPanel();
+  }
+}
+
+function visibleCompositionElements(kind) {
+  return elements.filter((element) => {
+    return element.kind === kind && isSymbolVisibleAtChapter(element.name, state.spoilerChapter);
+  });
+}
+
+function compositionElementByName(name, kind = null) {
+  if (!name) return null;
+  return elements.find((element) => element.name === name && (!kind || element.kind === kind)) || null;
+}
+
+function compositionSlotDefinition(slotId) {
+  return SIGIL_COMPOSITION_SLOTS.find((slot) => slot.id === slotId) || SIGIL_COMPOSITION_SLOTS[0];
+}
+
+function selectCompositionSlot(slotId) {
+  state.sigilComposition.activeSlot = compositionSlotDefinition(slotId).id;
+  renderSigilCompositionStage();
+  renderCompositionChipSelection();
+}
+
+function nextCompositionSlot(kind, currentSlotId) {
+  const matchingSlots = SIGIL_COMPOSITION_SLOTS.filter((slot) => slot.kind === kind);
+  const currentIndex = matchingSlots.findIndex((slot) => slot.id === currentSlotId);
+  const firstEmptyAfterCurrent = matchingSlots
+    .slice(Math.max(0, currentIndex + 1))
+    .find((slot) => !state.sigilComposition.slots[slot.id]);
+  if (firstEmptyAfterCurrent) {
+    return firstEmptyAfterCurrent.id;
+  }
+  const firstEmpty = matchingSlots.find((slot) => !state.sigilComposition.slots[slot.id]);
+  return firstEmpty?.id || matchingSlots[(currentIndex + 1 + matchingSlots.length) % matchingSlots.length]?.id || "center";
+}
+
+function setCompositionSlotElement(element) {
+  if (!element) return;
+  let slot = compositionSlotDefinition(state.sigilComposition.activeSlot);
+  if (slot.kind !== element.kind) {
+    slot = SIGIL_COMPOSITION_SLOTS.find((candidate) => {
+      return candidate.kind === element.kind && !state.sigilComposition.slots[candidate.id];
+    }) || SIGIL_COMPOSITION_SLOTS.find((candidate) => candidate.kind === element.kind);
+  }
+  if (!slot) return;
+  state.sigilComposition.slots[slot.id] = element.name;
+  state.sigilComposition.activeSlot = nextCompositionSlot(element.kind, slot.id);
+  renderSigilCompositionStage();
+  renderCompositionChipSelection();
+}
+
+function clearSigilComposition() {
+  for (const slot of SIGIL_COMPOSITION_SLOTS) {
+    state.sigilComposition.slots[slot.id] = null;
+  }
+  state.sigilComposition.activeSlot = "center";
+  renderSigilCompositionStage();
+  renderCompositionChipSelection();
+}
+
+function renderCompositionChipSelection() {
+  const activeSlot = compositionSlotDefinition(state.sigilComposition.activeSlot);
+  for (const button of sigilCompositionPanel?.querySelectorAll(".composition-chip") || []) {
+    const name = button.dataset.symbolName;
+    const selected = Boolean(name && Object.values(state.sigilComposition.slots).includes(name));
+    const compatible = button.dataset.symbolKind === activeSlot.kind;
+    button.classList.toggle("is-active", selected && compatible);
+    button.setAttribute("aria-pressed", String(selected && compatible));
+  }
+}
+
+function renderCompositionTray(tray, options) {
+  if (!tray) return;
+  tray.replaceChildren();
+  for (const element of options) {
+    const button = document.createElement("button");
+    button.className = "composition-chip";
+    button.type = "button";
+    button.dataset.symbolName = element.name;
+    button.dataset.symbolKind = element.kind;
+    button.style.setProperty("--symbol-color", element.color);
+    button.setAttribute("aria-pressed", "false");
+    button.setAttribute("aria-label", elementDisplayName(element));
+    button.innerHTML = elementIconMarkup(element);
+    button.addEventListener("click", () => setCompositionSlotElement(element));
+    tray.append(button);
+  }
+}
+
+function renderSigilCompositionPanel() {
+  renderCompositionTray(compositionSigilTray, visibleCompositionElements("sigil"));
+  renderCompositionTray(compositionSignTray, visibleCompositionElements("sign"));
+  renderSigilCompositionStage();
+  renderCompositionChipSelection();
+}
+
+function renderSigilCompositionStage() {
+  if (!compositionStage) return;
+  const activeSlotId = state.sigilComposition.activeSlot;
+  compositionStage.innerHTML = `
+    <div class="composition-preview-title">${t("composition.preview")}</div>
+    <div class="composition-preview-seal" aria-hidden="true"></div>
+  `;
+  for (const slot of SIGIL_COMPOSITION_SLOTS) {
+    const name = state.sigilComposition.slots[slot.id];
+    const element = compositionElementByName(name, slot.kind);
+    const button = document.createElement("button");
+    button.className = "composition-slot";
+    button.type = "button";
+    button.dataset.slotId = slot.id;
+    button.dataset.slotKind = slot.kind;
+    button.style.left = `${slot.stageX}%`;
+    button.style.top = `${slot.stageY}%`;
+    button.classList.toggle("is-active", slot.id === activeSlotId);
+    button.setAttribute("aria-pressed", String(slot.id === activeSlotId));
+    button.setAttribute("aria-label", t(slot.labelKey));
+    if (element) {
+      button.style.setProperty("--symbol-color", element.color);
+      button.innerHTML = elementIconMarkup(element);
+    } else {
+      button.innerHTML = `<span class="composition-slot-empty">${t("composition.emptySign")}</span>`;
+    }
+    button.addEventListener("click", () => selectCompositionSlot(slot.id));
+    compositionStage.append(button);
+  }
+}
+
+function sealAnchorFromAction(action) {
+  if (!action) return null;
+  const bounds = actionBounds(action);
+  const center = ["circle", "ring", "spiral"].includes(action.type)
+    ? { x: action.cx, y: action.cy }
+    : actionCenter(action);
+  return {
+    center,
+    radius: Math.max(42, action.radius || Math.min(bounds.width, bounds.height) / 2 || BASE_GRID_STEP * 2),
+    hasSeal: isCompleteSeal(action),
+  };
+}
+
+function resolveSigilCompositionAnchor() {
+  const selectedSeal = state.selectedActionIndices
+    .map((index) => state.actions[index])
+    .find((action) => action && isCompleteSeal(action));
+  if (selectedSeal) {
+    return sealAnchorFromAction(selectedSeal);
+  }
+
+  const lastSeal = [...state.actions].reverse().find((action) => isCompleteSeal(action));
+  if (lastSeal) {
+    return sealAnchorFromAction(lastSeal);
+  }
+
+  if (state.circleCenter) {
+    return {
+      center: { ...state.circleCenter },
+      radius: BASE_GRID_STEP * 2,
+      hasSeal: false,
+    };
+  }
+
+  const { width, height } = canvasSize();
+  return {
+    center: clampPointToDrawingLimit({ x: (width || 800) / 2, y: (height || 600) / 2 }, BASE_GRID_STEP * 2.4),
+    radius: BASE_GRID_STEP * 2,
+    hasSeal: false,
+  };
+}
+
+function applySigilComposition() {
+  const anchor = resolveSigilCompositionAnchor();
+  const placements = buildSigilCompositionPlacements({
+    anchor,
+    slots: state.sigilComposition.slots,
+  });
+  const glyphPlacements = placements.filter((placement) => placement.type === "glyph");
+  if (glyphPlacements.length === 0) {
+    setStatus(t("status.selectionEmpty"));
+    return false;
+  }
+
+  const added = [];
+  recordHistory();
+  state.circleCenter = { ...anchor.center };
+  for (const placement of placements) {
+    if (placement.type !== "ring") continue;
+    added.push({
+      type: "ring",
+      label: labels.ring,
+      element: "Structure",
+      charge: 0,
+      color: state.drawingColor,
+      width: lineWidth(),
+      cx: placement.x,
+      cy: placement.y,
+      radius: placement.radius,
+    });
+  }
+  for (const placement of glyphPlacements) {
+    const element = compositionElementByName(placement.name, placement.kind);
+    if (!element) continue;
+    added.push(createGlyphAction(element, { x: placement.x, y: placement.y }, placement.size));
+  }
+
+  const firstNewIndex = state.actions.length;
+  state.actions.push(...added);
+  state.selectedActionIndices = added.map((_, index) => firstNewIndex + index);
+  state.activeSpell = null;
+  updateUsedList();
+  updateSpellState();
+  setStatus(t("status.sigilCompositionApplied", { count: added.length }));
+  render();
+  return true;
 }
 
 // How far the pointer must travel during a drawer-button press before the
@@ -10138,21 +10329,16 @@ function selectGuide(source, id) {
 }
 
 function setGuideTab(tab) {
-  state.guideTab = ["library", "personal", "spells"].includes(tab) ? tab : "library";
+  state.guideTab = ["library", "personal"].includes(tab) ? tab : "library";
   guideLibraryTab?.classList.toggle("is-active", state.guideTab === "library");
   guidePersonalTab?.classList.toggle("is-active", state.guideTab === "personal");
-  guideSpellsTab?.classList.toggle("is-active", state.guideTab === "spells");
   guideLibraryTab?.setAttribute("aria-selected", String(state.guideTab === "library"));
   guidePersonalTab?.setAttribute("aria-selected", String(state.guideTab === "personal"));
-  guideSpellsTab?.setAttribute("aria-selected", String(state.guideTab === "spells"));
   if (guideLibraryList) {
     guideLibraryList.hidden = state.guideTab !== "library";
   }
   if (guidePersonalList) {
     guidePersonalList.hidden = state.guideTab !== "personal";
-  }
-  if (guideSpellsList) {
-    guideSpellsList.hidden = state.guideTab !== "spells";
   }
 }
 
@@ -11541,21 +11727,11 @@ saveButton.addEventListener("click", saveCanvas);
 saveExampleButton?.addEventListener("click", saveCurrentCircleAsGuide);
 close3dButton.addEventListener("click", close3dView);
 relaunch3dButton?.addEventListener("click", relaunchThreeSpell);
-symbolToggleButton?.addEventListener("click", () => {
-  const isOpen = document.body.classList.contains("symbols-open");
-  setSymbolDrawer(!isOpen);
-});
+symbolToggleButton?.addEventListener("click", () => setSymbolDrawer(true));
 closeSymbolsButton?.addEventListener("click", () => setSymbolDrawer(false));
 directPaletteTab?.addEventListener("click", () => setSymbolDrawerMode("direct"));
 sigilCompositionTab?.addEventListener("click", () => setSymbolDrawerMode("composition"));
-compositionSlots.forEach((button) => {
-  button.addEventListener("click", () => selectCompositionSlot(button.dataset.compositionSlot));
-});
-clearSigilCompositionButton?.addEventListener("click", () => {
-  COMPOSITION_SLOTS.forEach((slot) => { state.sigilComposition[slot] = null; });
-  selectCompositionSlot("center");
-  renderSigilCompositionPanel();
-});
+clearSigilCompositionButton?.addEventListener("click", clearSigilComposition);
 applySigilCompositionButton?.addEventListener("click", applySigilComposition);
 detailsToggleButton?.addEventListener("click", () => setDetailsDrawer(true));
 closeDetailsButton?.addEventListener("click", () => setDetailsDrawer(false));
@@ -11569,7 +11745,6 @@ galleryRefreshButton?.addEventListener("click", () => loadGalleryPosts());
 gallerySortButtons.forEach((button) => button.addEventListener("click", () => loadGalleryPosts(button.dataset.gallerySort)));
 guideLibraryTab?.addEventListener("click", () => setGuideTab("library"));
 guidePersonalTab?.addEventListener("click", () => setGuideTab("personal"));
-guideSpellsTab?.addEventListener("click", () => setGuideTab("spells"));
 saveSpellButton?.addEventListener("click", saveCurrentSpell);
 publishCommunityButton?.addEventListener("click", publishCurrentCircle);
 publishGalleryButton?.addEventListener("click", publishCurrentCircle);
@@ -11757,6 +11932,7 @@ function applySpoilerSetting(enabled, chapter) {
   state.spoilerChapter = readSpoilerChapter(localStorage);
   syncSpoilerControls();
   renderInkList();
+  renderSigilCompositionPanel();
   renderSymbolSearchResults();
 }
 
@@ -12770,6 +12946,7 @@ if (typeof ResizeObserver === "function") {
 }
 window.addEventListener("wha:localechange", () => {
   renderInkList();
+  renderSigilCompositionPanel();
   renderSupportList();
   renderGuideLists();
   updateUsedList();
@@ -12891,6 +13068,7 @@ function loadRecipeFromUrl() {
 }
 
 renderInkList();
+renderSigilCompositionPanel();
 renderSupportList();
 renderGuideLists();
 updateToolButtons();
@@ -12904,6 +13082,7 @@ if (measureInput) {
 setGrimoireOpen(preferredGrimoireOpen, { persist: false });
 close3dView();
 setSymbolDrawer(false);
+setSymbolDrawerMode("direct");
 setSupportDrawer(false);
 setGuideDrawer(false);
 if (guideVisibleInput) {
