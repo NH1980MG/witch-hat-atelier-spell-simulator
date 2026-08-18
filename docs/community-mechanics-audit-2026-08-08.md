@@ -18,7 +18,7 @@ levels: documented, inferred or experimental.
 | Convergence | Concentrates and densifies without adding elemental power | inferred |
 | Aeriforme | Creates/manipulates air but does not move it | documented |
 | Vent | Moves/manipulates existing air but does not create it | documented |
-| Viseur | Short ends face the intended target | inferred |
+| Viseur | Long side forms the sight line; short side faces the intended target | inferred |
 | Cible | Adds a target lock; without it aiming remains manual | inferred |
 | Enveloppe | Shapes the material around a target | inferred |
 | Arret | Holds material together/in place; no undocumented inverse is generated | inferred |

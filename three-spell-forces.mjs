@@ -58,6 +58,7 @@ function baseForce({ response, snapshot }) {
     radiusMeters: round(clamp(response.radiusMeters || diameter * 0.45, 0.05, diameter)),
     magnitude: round(clamp(response.intensity * (0.55 + force * 0.7), 0, 3.5)),
     pulse: response.pulse || { mode: "continuous", rateHz: 0 },
+    channels: [...(response.channels || [])],
     medicalClaim: "none",
   };
 }
@@ -103,6 +104,22 @@ export function spellForcesFromSnapshot(snapshot = {}) {
       heat: round(clamp(response.heat || 0, 0, 1.4)),
       physicalImpulse: round(clamp(base.magnitude * 0.08, 0, 0.28)),
       affects: ["surface", "flammable-props"],
+    });
+  } else if (response.primary === "crystallization") {
+    forces.push({
+      ...base,
+      type: "crystal-field",
+      crystal: round(clamp(response.crystal || base.magnitude * 0.35, 0, 1.4)),
+      physicalImpulse: round(clamp(base.magnitude * 0.08, 0, 0.28)),
+      affects: ["surface", "wet-props", "stone", "loose-props"],
+    });
+  } else if (response.primary === "restoration") {
+    forces.push({
+      ...base,
+      type: "restoration-field",
+      restoration: round(clamp(response.restoration || base.magnitude * 0.3, 0, 1.2)),
+      physicalImpulse: 0,
+      affects: ["reversible-state", "surface", "loose-props"],
     });
   } else if (response.primary === "impact") {
     forces.push({

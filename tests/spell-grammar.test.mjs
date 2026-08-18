@@ -342,6 +342,9 @@ test("crosshair direction and target lock are explicit sequential stages", () =>
   });
 
   assert.equal(SIGN_PROFILES.Viseur.directional, true);
+  assert.match(SIGN_PROFILES.Viseur.mechanic, /cote long/i);
+  assert.match(SIGN_PROFILES.Viseur.mechanic, /cote court/i);
+  assert.match(SIGN_PROFILES.Viseur.mechanic, /cote court.*cible/i);
   assert.deepEqual(recipe.effectPlan.targeting, {
     mode: "locked-directional",
     directional: true,

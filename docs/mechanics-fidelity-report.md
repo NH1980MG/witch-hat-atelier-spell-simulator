@@ -38,7 +38,8 @@ The Details drawer exposes the level, applied rules, ignored marks and warnings.
 - Convergence changes concentration and density without increasing elemental
   power.
 - Aeriforme creates air without moving it; Vent moves air without creating it.
-- Crosshair orientation contributes a direction and Cible adds a target lock.
+- Crosshair's long side forms the sight line; its short side contributes the
+  direction toward the target. Cible adds a target lock.
 - Radial is retained as an unresolved experimental operation and does not
   silently change power.
 - Unknown support identifiers are rejected.

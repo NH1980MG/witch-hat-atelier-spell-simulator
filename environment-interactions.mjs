@@ -1,5 +1,5 @@
 import { environmentalResponseFromSpell } from "./environmental-response.mjs";
-import { spellForcesFromSnapshot } from "./three-spell-forces.mjs";
+import { spellForcesFromSnapshot } from "./three-spell-forces.mjs?v=20260814-material-consequences-v1";
 
 const WIND_FAMILIES = new Set(["wind", "air", "underfoot-wind", "whorling-wind", "fire-vortex", "driven-mist"]);
 

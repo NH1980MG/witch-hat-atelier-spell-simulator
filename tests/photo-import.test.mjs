@@ -268,6 +268,24 @@ test("un anneau complet reste detecte avec de grandes marges autour", () => {
   assert.ok(result.rings[0].radius > 95);
 });
 
+test("un anneau epais ne laisse pas de grandes regions courbes parasites", () => {
+  const photo = blankPhoto(600, 600);
+  inkCircleOutline(photo, 300, 300, 245, 8);
+  inkGlyphWithDisconnectedStrokes(photo, "Feu", 245, 68, 110);
+  inkGlyphWithDisconnectedStrokes(photo, "Feu", 245, 422, 110, 180);
+  inkGlyphWithDisconnectedStrokes(photo, "Viseur", 80, 245, 100);
+  inkGlyphWithDisconnectedStrokes(photo, "Viseur", 420, 245, 100);
+
+  const result = analyzePhoto(photo, SYMBOL_PATHS);
+
+  assert.equal(result.rings.length, 1);
+  assert.ok(result.regions.length >= 4, `regions insuffisantes: ${JSON.stringify(result.regions)}`);
+  assert.ok(
+    result.regions.every((region) => region.width < photo.width * 0.45 && region.height < photo.height * 0.45),
+    `un residu d'anneau a cree une grande region: ${JSON.stringify(result.regions)}`,
+  );
+});
+
 test("un trait raccorde a l'anneau reste une region reconnaissable", () => {
   const photo = blankPhoto(300, 300);
   for (let angle = 0; angle < Math.PI * 2; angle += 0.004) {
@@ -358,6 +376,19 @@ test("les traits deconnectes d'un sigil d'eau forment une seule region", () => {
   assert.equal(result.regions[0].candidates[0].name, "Eau");
 });
 
+test("les traits deconnectes d'un viseur forment une seule region", () => {
+  const photo = blankPhoto(300, 300);
+  inkLine(photo, 150, 65, 150, 120, 2.5);
+  inkLine(photo, 150, 180, 150, 235, 2.5);
+  inkLine(photo, 65, 150, 120, 150, 2.5);
+  inkLine(photo, 180, 150, 235, 150, 2.5);
+
+  const result = analyzePhoto(photo, SYMBOL_PATHS);
+
+  assert.equal(result.regions.length, 1, JSON.stringify(result.regions));
+  assert.equal(result.regions[0].candidates[0].name, "Viseur");
+});
+
 test("le regroupement ne traverse pas la frontiere d'un anneau", () => {
   const components = [
     { id: 1, size: 40, left: 144, top: 96, right: 151, bottom: 103, width: 8, height: 8 },
@@ -392,22 +423,22 @@ test("le seuil de regroupement suit l'epaisseur d'encre mesuree", () => {
   assert.equal(groupComponents(thick, width, height, []).length, 1);
 });
 
-test("la reconnaissance couvre les bornes de rotation de moins douze a douze degres", () => {
-  for (const degrees of [-12, 12]) {
+test("la reconnaissance couvre les rotations autour du cercle", () => {
+  for (const degrees of [-90, -12, 12, 90, 180]) {
     const photo = blankPhoto(240, 240);
-    inkGlyphWithDisconnectedStrokes(photo, "Eau", 50, 50, 140, degrees);
+    inkGlyphWithDisconnectedStrokes(photo, "Feu", 50, 50, 140, degrees);
     const result = analyzePhoto(photo, SYMBOL_PATHS);
     assert.equal(result.regions.length, 1);
     assert.equal(result.regions[0].status, "accepted", `${degrees} degres: ${JSON.stringify(result.regions[0])}`);
-    assert.equal(result.regions[0].candidates[0].name, "Eau");
+    assert.equal(result.regions[0].candidates[0].name, "Feu");
     const detectedRotation = result.regions[0].candidates[0].rotation;
-    assert.equal(Math.sign(detectedRotation), Math.sign(degrees));
-    assert.ok(Math.abs(detectedRotation) >= 6 * Math.PI / 180);
-    assert.ok(Math.abs(detectedRotation) <= 12 * Math.PI / 180);
+    const expectedRotation = degrees * Math.PI / 180;
+    const angleError = Math.atan2(
+      Math.sin(detectedRotation - expectedRotation),
+      Math.cos(detectedRotation - expectedRotation),
+    );
+    assert.ok(Math.abs(angleError) <= 12 * Math.PI / 180, `${degrees} degres detecte en ${detectedRotation * 180 / Math.PI}`);
   }
-  const outsidePhoto = blankPhoto(240, 240);
-  inkGlyphWithDisconnectedStrokes(outsidePhoto, "Eau", 50, 50, 140, 24);
-  assert.notEqual(analyzePhoto(outsidePhoto, SYMBOL_PATHS).regions[0].status, "accepted");
 });
 
 test("deux meilleurs candidats egaux rendent la region ambigue", () => {
