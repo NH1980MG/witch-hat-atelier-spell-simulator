@@ -5014,6 +5014,13 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
   }
 }
 
+/* Keep the desktop rail toggle visible after the base display rule. */
+@media (min-width: 1181px) {
+  .grimoire-toggle {
+    display: flex;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .workshop-menu,
   .workshop-menu-toggle,

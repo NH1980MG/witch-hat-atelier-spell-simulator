@@ -33,3 +33,12 @@ test("desktop viewports can lower the Grimoire into a bottom rail", () => {
   assert.match(css, /@media \(min-width: 1181px\)[\s\S]*\.grimoire-toggle\s*\{[\s\S]*display:\s*flex/);
   assert.match(css, /@media \(min-width: 1181px\)[\s\S]*\.grimoire\.is-open\s*\{[\s\S]*max-height:/);
 });
+
+test("desktop Grimoire keeps its reopen toggle after closing", () => {
+  const baseToggleRule = css.indexOf(".grimoire-toggle {\n  display: none;");
+  const desktopToggleOverride = css.lastIndexOf("@media (min-width: 1181px)");
+
+  assert.notEqual(baseToggleRule, -1);
+  assert.ok(desktopToggleOverride > baseToggleRule);
+  assert.match(css.slice(desktopToggleOverride), /\.grimoire-toggle\s*\{[\s\S]*display:\s*flex/);
+});
