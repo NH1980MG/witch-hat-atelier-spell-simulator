@@ -17,7 +17,7 @@ test("every public page uses the same shared asset revision", async () => {
   for (const page of publicPages) {
     const source = await readFile(new URL(`../${page}`, import.meta.url), "utf8");
     assert.match(source, new RegExp(`styles\\.css\\?v=${publicAssetRevision}`), `${page}: stale styles revision`);
-    assert.match(source, new RegExp(`site-i18n\\.mjs\\?v=${publicAssetRevision}`), `${page}: stale i18n runtime revision`);
+    assert.match(source, new RegExp(`site-i18n\\.mjs\\?v=${sharedRevision}`), `${page}: stale i18n runtime revision`);
   }
 });
 
