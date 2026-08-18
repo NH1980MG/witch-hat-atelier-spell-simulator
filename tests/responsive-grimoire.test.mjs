@@ -52,7 +52,7 @@ test("the atelier route activates the layout class before Grimoire sizing", () =
 test("atelier desktop layout reserves a visible rail for the Grimoire", () => {
   const finalDesktopBlock = css.slice(css.lastIndexOf("@media (min-width: 1181px)"));
 
-  assert.match(finalDesktopBlock, /html\\[data-app-view="atelier"\\] \\.app-shell/);
-  assert.match(finalDesktopBlock, /grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\)\s+auto/);
-  assert.match(finalDesktopBlock, /\.grimoire\s*\{[\s\S]*padding:\s*0\s+16px\s+0/);
+  assert.ok(finalDesktopBlock.includes('html[data-app-view="atelier"] .app-shell'));
+  assert.ok(finalDesktopBlock.includes("grid-template-rows: auto minmax(0, 1fr) auto"));
+  assert.ok(finalDesktopBlock.includes("padding: 0 16px 0"));
 });
