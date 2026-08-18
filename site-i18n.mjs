@@ -2,7 +2,7 @@ import {
   DEFAULT_LOCALE,
   resolveLocale,
   translate,
-} from "./i18n.mjs?v=20260817-seal-composition-editor-v1";
+} from "./i18n.mjs?v=20260818-grimoire-toggle-v1";
 
 let currentLocale = DEFAULT_LOCALE;
 
