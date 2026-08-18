@@ -286,6 +286,8 @@ function initializeLocalAppView() {
   if (new URLSearchParams(window.location.search).get("view") !== "atelier") {
     return;
   }
+  // Ensure the atelier layout class is present before Grimoire sizing runs.
+  document.body.classList.add("app-home-page");
   document.documentElement.dataset.appView = "atelier";
   const title = document.querySelector(".top-title h1");
   if (title) {
