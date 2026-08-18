@@ -42,3 +42,15 @@ test("desktop Grimoire keeps its reopen toggle after closing", () => {
   assert.ok(desktopToggleOverride > baseToggleRule);
   assert.match(css.slice(desktopToggleOverride), /\.grimoire-toggle\s*\{[\s\S]*display:\s*flex/);
 });
+
+test("the atelier route activates the layout class before Grimoire sizing", () => {
+  assert.match(app, /document\.body\.classList\.add\("app-home-page"\)/);
+});
+
+test("atelier desktop layout reserves a visible rail for the Grimoire", () => {
+  const finalDesktopBlock = css.slice(css.lastIndexOf("@media (min-width: 1181px)"));
+
+  assert.match(finalDesktopBlock, /html\[data-app-view="atelier"\] \.app-shell/);
+  assert.match(finalDesktopBlock, /grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\)\s+auto/);
+  assert.match(finalDesktopBlock, /\.grimoire\s*\{[\s\S]*padding:\s*0\s+16px\s+0/);
+});

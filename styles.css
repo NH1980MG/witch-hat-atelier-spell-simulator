@@ -5035,3 +5035,18 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
     transition: none;
   }
 }
+
+/* The atelier route has a dedicated bottom track so the collapsed rail stays clickable. */
+@media (min-width: 1181px) {
+  html[data-app-view="atelier"] .app-shell {
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  html[data-app-view="atelier"] .grimoire {
+    padding: 0 16px 0;
+  }
+
+  html[data-app-view="atelier"] .grimoire-toggle {
+    display: flex;
+  }
+}

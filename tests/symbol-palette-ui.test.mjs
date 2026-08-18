@@ -28,7 +28,7 @@ test("la page expose le tiroir direct et la composition sigilaire", async () => 
   assert.doesNotMatch(html, /id=["'](?:shrinkSelectionButton|growSelectionButton)["']/);
   assert.doesNotMatch(html, /id=["']placement(?:ToggleButton|Drawer|List)["']/);
   assert.doesNotMatch(html, /id=["']closePlacementButton["']/);
-  assert.match(html, /styles\.css\?v=20260818-grimoire-toggle-v1/);
+  assert.match(html, /styles\.css\?v=20260818-grimoire-rail-v1/);
   assert.match(html, /app\.js\?v=\d{8}-[^"']+/);
 });
 

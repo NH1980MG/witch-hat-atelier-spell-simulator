@@ -278,6 +278,9 @@ function initializeLocalAppView() {
   if (new URLSearchParams(window.location.search).get("view") !== "atelier") {
     return;
   }
+  // The published workshop page can start without the app-shell mode class.
+  // Add it before layout-dependent initialization, including the Grimoire.
+  document.body.classList.add("app-home-page");
   document.documentElement.dataset.appView = "atelier";
   const title = document.querySelector(".top-title h1");
   if (title) {
