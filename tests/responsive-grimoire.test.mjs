@@ -56,3 +56,11 @@ test("atelier desktop layout reserves a visible rail for the Grimoire", () => {
   assert.ok(finalDesktopBlock.includes("grid-template-rows: auto minmax(0, 1fr) auto"));
   assert.ok(finalDesktopBlock.includes("padding: 0 16px 0"));
 });
+
+test("the Grimoire rail stays anchored and clickable outside the page grid", () => {
+  const finalStyles = css.slice(css.lastIndexOf("/* The atelier route"));
+
+  assert.match(finalStyles, /\.grimoire\s*\{[\s\S]*position:\s*fixed/);
+  assert.match(finalStyles, /\.grimoire\s*\{[\s\S]*bottom:\s*0/);
+  assert.match(finalStyles, /\.grimoire-toggle\s*\{[\s\S]*pointer-events:\s*auto/);
+});
