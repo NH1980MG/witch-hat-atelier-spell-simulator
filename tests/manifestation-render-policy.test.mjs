@@ -63,3 +63,13 @@ test("the scalewolf family renders a creature instead of the generic floating or
   assert.match(rebuild, /if \(decorativeCreatureRendered\)/);
   assert.match(rebuild, /else if \(!floatingCore\)/);
 });
+
+test("other documented decorative creatures receive dedicated procedural silhouettes", () => {
+  assert.match(app, /function addSimpleDecorativeCreature3d\(/);
+  for (const family of ["torchstag", "liongoat", "owlcat", "owlcat-head", "dragon", "horse", "bird-a", "bird-b"]) {
+    assert.match(app, new RegExp(`"${family}"`));
+  }
+  assert.match(app, /creature-wing/);
+  assert.match(app, /creature-horn/);
+  assert.match(app, /creature-beak/);
+});

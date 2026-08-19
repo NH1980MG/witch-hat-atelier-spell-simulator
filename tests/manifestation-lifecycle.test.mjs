@@ -49,7 +49,7 @@ test("timeout, replacement, and view close use the cleanup path", () => {
 });
 
 test("the 3D view prepares a Rapier runtime from spell forces and environment targets", () => {
-  assert.match(app, /from "\.\/rapier-physics-world\.mjs\?v=20260814-material-consequences-v1"/);
+  assert.match(app, /from "\.\/rapier-physics-world\.mjs\?v=20260819-immersive-v1"/);
   assert.match(app, /function threePhysicsTargetDescriptor\(/);
   assert.match(app, /function rebuildThreePhysicsRuntime\(/);
   assert.match(app, /loadRapier3dCompat\(\)/);
@@ -82,6 +82,10 @@ test("the 3D target reaction renderer exposes visible material consequences", ()
   assert.match(renderReaction, /case "stuck"/);
   assert.match(renderReaction, /case "illuminated"/);
   assert.match(renderReaction, /case "restored"/);
+  assert.match(renderReaction, /reactionVisualProfile\(/);
+  for (const state of ["pushed", "heated", "scorched", "burning", "wet", "extinguished", "frosted", "loaded"]) {
+    assert.match(app, new RegExp(`\\b${state}\\b`));
+  }
   assert.match(app, /function ensureThreeTargetReactionEffect\(/);
   assert.match(app, /reactionEffect\.userData\.kind/);
 });

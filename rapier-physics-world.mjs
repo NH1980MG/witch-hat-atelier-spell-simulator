@@ -164,6 +164,11 @@ function restoreTarget(entry) {
   if (typeof entry.body.setAngvel === "function") entry.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
 }
 
+function resetTarget(entry) {
+  restoreTarget(entry);
+  entry.reactionState = "idle";
+}
+
 function materialReaction(entry, forces, deltaSeconds) {
   if (forces.some(forceRestoresTarget)) {
     restoreTarget(entry);
@@ -216,6 +221,7 @@ function materialReaction(entry, forces, deltaSeconds) {
   ), 0);
   if (adhesion > 0) {
     entry.adhesion = Math.min(1, entry.adhesion + adhesion * deltaSeconds);
+    entry.wetness = Math.max(0, entry.wetness - adhesion * deltaSeconds * 0.45);
     entry.reactionState = entry.adhesion >= 0.2 ? "stuck" : "damped";
     return true;
   }
@@ -363,6 +369,48 @@ export function createSpellPhysicsRuntime(RAPIER, options = {}) {
     setSpellFieldPosition(position = {}) {
       if (spellField) spellField.position = vector3(position, spellField.position);
     },
+    moveTarget(id, position = {}) {
+      const entry = targets.get(id);
+      if (!entry || entry.target.anchored || typeof entry.body.setTranslation !== "function") return false;
+      entry.body.setTranslation(vector3(position, entry.body.translation?.() || entry.initialPosition), true);
+      if (typeof entry.body.setLinvel === "function") entry.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      if (typeof entry.body.setAngvel === "function") entry.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+      entry.settled = false;
+      return true;
+    },
+    resetTarget(id) {
+      const entry = targets.get(id);
+      if (!entry) return false;
+      resetTarget(entry);
+      return true;
+    },
+    resetAllTargets() {
+      for (const entry of targets.values()) resetTarget(entry);
+      contacts = new Set();
+    },
+    restoreSnapshots(snapshots = []) {
+      let restoredCount = 0;
+      for (const snapshot of snapshots) {
+        const entry = targets.get(snapshot?.id);
+        if (!entry) continue;
+        const position = vector3(snapshot.position, entry.initialPosition);
+        const rotation = snapshot.rotation || entry.initialRotation;
+        if (typeof entry.body.setTranslation === "function") entry.body.setTranslation(position, true);
+        if (typeof entry.body.setRotation === "function") entry.body.setRotation(rotation, true);
+        if (typeof entry.body.setLinvel === "function") entry.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        if (typeof entry.body.setAngvel === "function") entry.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+        entry.reactionState = snapshot.reactionState || "idle";
+        entry.heatExposure = Math.max(0, Math.min(1, finiteNumber(snapshot.heatExposure)));
+        entry.wetness = Math.max(0, Math.min(1, finiteNumber(snapshot.wetness)));
+        entry.crystalExposure = Math.max(0, Math.min(1, finiteNumber(snapshot.crystalExposure)));
+        entry.adhesion = Math.max(0, Math.min(1, finiteNumber(snapshot.adhesion)));
+        entry.illumination = Math.max(0, Math.min(1, finiteNumber(snapshot.illumination)));
+        entry.settled = Boolean(snapshot.settled);
+        restoredCount += 1;
+      }
+      contacts = new Set();
+      return restoredCount;
+    },
     step(deltaSeconds = 1 / 60) {
       const delta = Math.max(1 / 240, Math.min(1 / 20, finiteNumber(deltaSeconds, 1 / 60)));
       world.timestep = delta;
@@ -373,8 +421,11 @@ export function createSpellPhysicsRuntime(RAPIER, options = {}) {
       return {
         targets: [...targets].map(([id, entry]) => ({
           id,
+          kind: entry.target.kind || "prop",
           material: entry.material,
+          anchored: Boolean(entry.target.anchored),
           position: roundVector3(entry.body.translation?.() || entry.target.position),
+          initialPosition: roundVector3(entry.initialPosition),
           rotation: roundQuaternion(entry.body.rotation?.()),
           reactionState: entry.reactionState,
           heatExposure: roundPhysicsValue(entry.heatExposure),

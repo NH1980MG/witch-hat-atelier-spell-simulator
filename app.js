@@ -102,7 +102,14 @@ import {
 import {
   createSpellPhysicsRuntime,
   loadRapier3dCompat,
-} from "./rapier-physics-world.mjs?v=20260814-material-consequences-v1";
+} from "./rapier-physics-world.mjs?v=20260819-immersive-v1";
+import {
+  cameraPreset,
+  canManipulateTarget,
+  evaluateWorkshopExperiments,
+  nextCameraMode,
+  reactionVisualProfile,
+} from "./immersive-3d.mjs?v=20260819-immersive-v1";
 
 const libraryCircleById = new Map(LIBRARY_CIRCLES.map((circle) => [circle.id, circle]));
 
@@ -356,6 +363,15 @@ const spell3dCanvas = document.querySelector("#spell3dCanvas");
 const view3dPanel = document.querySelector("#view3dPanel");
 const close3dButton = document.querySelector("#close3dButton");
 const relaunch3dButton = document.querySelector("#relaunch3dButton");
+const interaction3dButton = document.querySelector("#interaction3dButton");
+const camera3dButton = document.querySelector("#camera3dButton");
+const sound3dButton = document.querySelector("#sound3dButton");
+const resetTarget3dButton = document.querySelector("#resetTarget3dButton");
+const resetScene3dButton = document.querySelector("#resetScene3dButton");
+const view3dInspector = document.querySelector("#view3dInspector");
+const view3dInspectorName = document.querySelector("#view3dInspectorName");
+const view3dInspectorState = document.querySelector("#view3dInspectorState");
+const view3dExperimentList = document.querySelector("#view3dExperimentList");
 const symbolToggleButton = document.querySelector("#symbolToggleButton");
 const symbolDrawer = document.querySelector("#symbolDrawer");
 const directPaletteTab = document.querySelector("#directPaletteTab");
@@ -562,6 +578,15 @@ const threeView = {
   physicsLoadToken: 0,
   lastPhysicsAt: 0,
   selectedSpell: false,
+  selectedTarget: null,
+  selectedTargetOutline: null,
+  targetDrag: null,
+  interactionMode: false,
+  cameraMode: "orbit",
+  soundEnabled: localStorage.getItem("wha3dSound") === "true",
+  audioContext: null,
+  lastReactionSounds: new Map(),
+  experimentSignature: null,
   spellDrag: null,
   animationFrame: 0,
   lastRenderAt: 0,
@@ -2481,8 +2506,13 @@ function animateEnvironmentTargets() {
   for (const target of threeView.environmentTargets) {
     const reactionEffect = target.userData.reactionEffect;
     if (reactionEffect?.visible) {
-      const pulse = 0.82 + Math.sin(elapsed * 5.6) * 0.12;
+      const intensity = reactionEffect.userData.intensity || 0.5;
+      const speed = reactionEffect.userData.kind === "flame" ? 10.5 : 5.6;
+      const pulse = 0.72 + intensity * 0.28 + Math.sin(elapsed * speed) * (0.06 + intensity * 0.08);
       reactionEffect.scale.setScalar(Math.max(0.2, pulse));
+      if (["steam", "water", "heat-haze", "restore"].includes(reactionEffect.userData.kind)) {
+        reactionEffect.rotation.y = elapsed * (0.18 + intensity * 0.32);
+      }
     }
     const impact = target.userData.impact;
     if (!impact) continue;
@@ -3068,7 +3098,14 @@ function makeExteriorScene(sceneScale = 1) {
   return group;
 }
 
-function applyThreeCamera(mode) {
+function updateThreeCameraButton() {
+  if (!camera3dButton) return;
+  camera3dButton.textContent = t("atelier.camera3d", {
+    mode: t(`atelier.camera.${threeView.cameraMode}`),
+  });
+}
+
+function applyThreeCamera(environment = threeView.environment || "interior") {
   if (!threeView.camera || !threeView.controls) {
     return;
   }
@@ -3080,22 +3117,25 @@ function applyThreeCamera(mode) {
     threeView.controls.maxDistance = 3.2;
     threeView.controls.maxPolarAngle = Math.PI * 0.86;
     threeView.controls.update();
+    updateThreeCameraButton();
     return;
   }
-  if (mode === "exterior") {
-    threeView.camera.position.set(0, 6.8, 10.8);
-    threeView.controls.target.set(0, 0.7, 0);
+  const preset = cameraPreset(threeView.cameraMode, environment);
+  threeView.camera.position.set(...preset.position);
+  threeView.controls.target.set(...preset.target);
+  threeView.camera.fov = preset.fov;
+  threeView.camera.updateProjectionMatrix();
+  if (environment === "exterior") {
     threeView.controls.minDistance = 4;
     threeView.controls.maxDistance = 22;
-    threeView.controls.maxPolarAngle = Math.PI * 0.48;
   } else {
-    threeView.camera.position.set(0, 4.2, 7.2);
-    threeView.controls.target.set(0, 0.65, 0);
     threeView.controls.minDistance = 3;
     threeView.controls.maxDistance = 13;
-    threeView.controls.maxPolarAngle = Math.PI * 0.48;
   }
+  threeView.controls.maxPolarAngle = threeView.cameraMode === "firstPerson" ? Math.PI * 0.58 : Math.PI * 0.48;
+  threeView.controls.enableRotate = threeView.cameraMode !== "photo";
   threeView.controls.update();
+  updateThreeCameraButton();
 }
 
 function applySoftShadows(group) {
@@ -3113,6 +3153,7 @@ function useThreeEnvironment(mode, sceneScale = 1) {
     return;
   }
   if (threeView.environmentGroup) {
+    selectThreeTarget(null);
     threeView.scene.remove(threeView.environmentGroup);
   }
   threeView.environment = mode;
@@ -4344,9 +4385,115 @@ function manifestationConsumes(plan, operation) {
   return Boolean(plan?.consumedOperations?.some((entry) => entry.endsWith(`.${operation}`)));
 }
 
+function addSimpleDecorativeCreature3d(group, family, auraRadius, elementColor, supportId = "none") {
+  const supported = new Set(["torchstag", "liongoat", "owlcat", "owlcat-head", "dragon", "horse", "bird-a", "bird-b"]);
+  if (!supported.has(family)) return false;
+  const creature = new THREE.Group();
+  creature.name = `${family}-projection`;
+  const material = new THREE.MeshStandardMaterial({
+    color: elementColor,
+    emissive: elementColor,
+    emissiveIntensity: 0.26,
+    roughness: 0.62,
+    transparent: true,
+    opacity: 0.78,
+  });
+  const accent = new THREE.MeshStandardMaterial({
+    color: 0xe8dfc8,
+    emissive: elementColor,
+    emissiveIntensity: 0.18,
+    roughness: 0.48,
+    transparent: true,
+    opacity: 0.88,
+  });
+  const add = (name, geometry, parent = creature, source = material) => {
+    const mesh = new THREE.Mesh(geometry, source.clone());
+    mesh.name = name;
+    parent.add(mesh);
+    return mesh;
+  };
+  const headOnly = family === "owlcat-head";
+  const flying = family === "dragon" || family.startsWith("bird") || family.startsWith("owlcat");
+  const body = headOnly ? null : add("creature-body", new THREE.IcosahedronGeometry(0.31, 1));
+  if (body) {
+    body.scale.set(family === "dragon" ? 0.72 : 0.86, flying ? 0.7 : 0.9, family === "dragon" ? 1.75 : 1.28);
+    body.position.y = 0.68;
+  }
+  const head = add("creature-head", new THREE.IcosahedronGeometry(family.startsWith("owlcat") ? 0.3 : 0.2, 1));
+  head.position.set(0, headOnly ? 0.72 : 0.88, headOnly ? 0 : -0.42);
+  head.scale.set(family.startsWith("bird") ? 0.78 : 1, family.startsWith("owlcat") ? 0.92 : 1, 1);
+
+  const wingFamilies = new Set(["dragon", "owlcat", "bird-a", "bird-b"]);
+  const wings = [];
+  if (wingFamilies.has(family)) {
+    for (const side of [-1, 1]) {
+      const wing = add("creature-wing", new THREE.ConeGeometry(family === "dragon" ? 0.32 : 0.24, family === "dragon" ? 0.82 : 0.58, 3));
+      wing.position.set(side * 0.36, 0.76, 0.02);
+      wing.rotation.z = side * Math.PI / 2;
+      wing.scale.z = 0.35;
+      wing.userData.side = side;
+      wings.push(wing);
+    }
+  }
+
+  if (["torchstag", "liongoat"].includes(family)) {
+    for (const side of [-1, 1]) {
+      const horn = add("creature-horn", new THREE.ConeGeometry(0.045, family === "torchstag" ? 0.46 : 0.3, 7), head, accent);
+      horn.position.set(side * 0.12, 0.25, 0);
+      horn.rotation.z = side * -0.22;
+    }
+  }
+  if (family === "torchstag") {
+    const flame = add("creature-antler-flame", new THREE.ConeGeometry(0.1, 0.34, 9), head, accent);
+    flame.position.y = 0.42;
+  }
+
+  if (family.startsWith("bird") || family.startsWith("owlcat")) {
+    const beak = add("creature-beak", new THREE.ConeGeometry(0.07, family === "bird-b" ? 0.24 : 0.17, 4), head, accent);
+    beak.rotation.x = -Math.PI / 2;
+    beak.position.set(0, -0.03, -0.23);
+    if (family.startsWith("owlcat")) {
+      for (const side of [-1, 1]) {
+        const ear = add("creature-owl-ear", new THREE.ConeGeometry(0.08, 0.2, 4), head, accent);
+        ear.position.set(side * 0.14, 0.21, 0);
+      }
+    }
+  }
+
+  if (!headOnly && !flying) {
+    for (const z of [-0.22, 0.24]) {
+      for (const side of [-1, 1]) {
+        const leg = add("creature-leg", new THREE.CylinderGeometry(0.04, 0.035, family === "horse" ? 0.55 : 0.42, 7));
+        leg.position.set(side * 0.16, family === "horse" ? 0.34 : 0.4, z);
+      }
+    }
+  }
+
+  if (family === "dragon") {
+    const tailCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0, 0.68, 0.34),
+      new THREE.Vector3(0.18, 0.72, 0.7),
+      new THREE.Vector3(-0.08, 0.76, 1.02),
+    ]);
+    add("creature-dragon-tail", new THREE.TubeGeometry(tailCurve, 24, 0.035, 6, false));
+  }
+
+  const creatureScale = Math.max(1.1, Math.min(2.4, auraRadius * 1.55));
+  const baseY = supportId === "shoe" ? 0.56 : THREE_LOW_EFFECT_Y;
+  creature.userData.wings = wings;
+  addAnimatedObject(group, creature, (object, elapsed) => {
+    const reveal = 0.2 + easeOutCubic(spellProgress3d(elapsed)) * 0.8;
+    object.scale.setScalar(creatureScale * reveal);
+    object.position.set(0, baseY + (flying ? 0.24 : 0) + Math.sin(elapsed * 1.8) * (flying ? 0.06 : 0.015), -auraRadius * 0.28);
+    object.rotation.y = Math.sin(elapsed * 0.55) * 0.16;
+    for (const wing of object.userData.wings) wing.rotation.y = wing.userData.side * (0.35 + Math.sin(elapsed * 5.2) * 0.42);
+  });
+  return true;
+}
+
 function addDecorativeCreatureEffect3d(group, family, auraRadius, elementColor, supportId = "none", recipe = null) {
   if (family !== "scalewolf") {
-    return false;
+    return addSimpleDecorativeCreature3d(group, family, auraRadius, elementColor, supportId);
   }
 
   const profile = createScalewolfMotionProfile(recipe);
@@ -5440,7 +5587,7 @@ function rebuildThreeSpell() {
   threeView.spellGroup = group;
   applySoftShadows(group);
   threeView.scene.add(group);
-  void rebuildThreePhysicsRuntime();
+  void rebuildThreePhysicsRuntime({ preserveState: preserveEnvironment });
 }
 
 function disposeObject3d(root) {
@@ -5480,6 +5627,8 @@ function clearActiveManifestation(reason = "manual", clearSpell = true) {
     threeView.spellGroup = null;
   }
   threeView.selectedSpell = false;
+  selectThreeTarget(null);
+  threeView.targetDrag = null;
   threeView.spellDrag = null;
   if (threeView.controls) {
     threeView.controls.enabled = true;
@@ -5527,6 +5676,118 @@ function hitActiveSpell(event) {
   return threeRaycaster.intersectObject(threeView.spellGroup, true).length > 0;
 }
 
+function hitEnvironmentTarget(event) {
+  if (!threeView.camera || threeView.environmentTargets.length === 0) return null;
+  updateThreePointer(event);
+  const hits = threeRaycaster.intersectObjects(threeView.environmentTargets, true);
+  for (const hit of hits) {
+    let object = hit.object;
+    while (object && object !== threeView.environmentGroup) {
+      if (object.userData?.interactiveTarget) return object;
+      object = object.parent;
+    }
+  }
+  return null;
+}
+
+function updateThreeInspector(snapshot = null) {
+  const target = threeView.selectedTarget;
+  if (!view3dInspector || !target) {
+    if (view3dInspector) view3dInspector.hidden = true;
+    if (resetTarget3dButton) resetTarget3dButton.disabled = true;
+    return;
+  }
+  const descriptor = target.userData.interactiveTarget || {};
+  const stateLabel = snapshot?.reactionState || target.userData.reactionState || "idle";
+  view3dInspector.hidden = false;
+  view3dInspectorName.textContent = String(descriptor.kind || "object").replaceAll("-", " ");
+  view3dInspectorState.textContent = t("atelier.targetState3d", {
+    material: snapshot?.material || threePhysicsMaterialForTarget(descriptor),
+    state: `${stateLabel}, ${t(descriptor.anchored ? "atelier.targetAnchored3d" : "atelier.targetMovable3d")}`,
+  });
+  resetTarget3dButton.disabled = false;
+}
+
+function selectThreeTarget(target) {
+  if (threeView.selectedTargetOutline) {
+    threeView.scene?.remove(threeView.selectedTargetOutline);
+    threeView.selectedTargetOutline.geometry?.dispose?.();
+    threeView.selectedTargetOutline.material?.dispose?.();
+    threeView.selectedTargetOutline = null;
+  }
+  threeView.selectedTarget = target || null;
+  if (target && threeView.scene) {
+    const outline = new THREE.BoxHelper(target, 0xd7a63e);
+    outline.name = "selected-environment-target";
+    threeView.scene.add(outline);
+    threeView.selectedTargetOutline = outline;
+  }
+  updateThreeInspector(target?.userData?.persistentPhysicsState || null);
+}
+
+function updateThreeExperiments(targets = []) {
+  if (!view3dExperimentList) return;
+  const results = evaluateWorkshopExperiments(targets);
+  const signature = `${getLocale()}|${results.map((result) => `${result.id}:${result.complete}`).join("|")}`;
+  if (signature === threeView.experimentSignature) return;
+  threeView.experimentSignature = signature;
+  view3dExperimentList.textContent = "";
+  for (const result of results) {
+    const item = document.createElement("li");
+    item.textContent = t(result.titleKey);
+    item.classList.toggle("is-complete", result.complete);
+    view3dExperimentList.append(item);
+  }
+}
+
+function ensureThreeAudioContext() {
+  if (threeView.audioContext) return threeView.audioContext;
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+  threeView.audioContext = new AudioContextClass();
+  return threeView.audioContext;
+}
+
+function playThreeReactionSound(profile, target) {
+  if (!threeView.soundEnabled || !profile) return;
+  const audioContext = ensureThreeAudioContext();
+  if (!audioContext) return;
+  const frequencies = {
+    impact: 105,
+    "heat-haze": 170,
+    scorch: 120,
+    flame: 240,
+    water: 390,
+    steam: 310,
+    frost: 520,
+    crystal: 660,
+    drag: 92,
+    adhesion: 82,
+    weight: 70,
+    light: 780,
+    restore: 560,
+  };
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  const panner = audioContext.createStereoPanner?.();
+  oscillator.type = ["water", "steam", "restore"].includes(profile.kind) ? "sine" : "triangle";
+  oscillator.frequency.value = frequencies[profile.kind] || 220;
+  gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.025 + profile.intensity * 0.035, audioContext.currentTime + 0.015);
+  gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.22);
+  if (panner) {
+    panner.pan.value = Math.max(-1, Math.min(1, (target?.position?.x || 0) / 5));
+    oscillator.connect(gain).connect(panner).connect(audioContext.destination);
+  } else {
+    oscillator.connect(gain).connect(audioContext.destination);
+  }
+  oscillator.start();
+  oscillator.stop(audioContext.currentTime + 0.24);
+  if (["impact", "flame", "crystal", "steam"].includes(profile.kind)) {
+    navigator.vibrate?.(profile.kind === "impact" ? 28 : [14, 18, 14]);
+  }
+}
+
 function currentSpellInfluenceProfile() {
   if (!state.activeSpell) return null;
   return spellInfluenceProfile({
@@ -5566,9 +5827,13 @@ function threePhysicsMaterialForTarget(interactiveTarget = {}) {
   const kind = interactiveTarget.kind || "prop";
   if (kind.includes("house")) return "wood";
   if (kind === "tree") return "wood";
+  if (kind === "book") return "paper";
+  if (kind === "hat" || kind === "cloth") return "cloth";
+  if (kind === "plant") return "plant";
+  if (kind === "candle") return "wax";
+  if (kind === "bottle") return "glass";
   if (kind === "rock" || kind === "stone") return "stone";
-  if (kind === "grass" || kind === "plant") return "plant";
-  if (kind === "cloth") return "cloth";
+  if (kind === "grass") return "plant";
   return "generic";
 }
 
@@ -5610,6 +5875,7 @@ function threePhysicsTargetDescriptor(target, index) {
   target.userData.physicsBodyStart = center.clone();
   return {
     id,
+    kind: interactiveTarget.kind || "prop",
     anchored: Boolean(interactiveTarget.anchored),
     mass: interactiveTarget.mass,
     material: threePhysicsMaterialForTarget(interactiveTarget),
@@ -5648,7 +5914,10 @@ function updateThreeSpellPhysicsField() {
   });
 }
 
-async function rebuildThreePhysicsRuntime() {
+async function rebuildThreePhysicsRuntime({ preserveState = false } = {}) {
+  const previousSnapshots = preserveState
+    ? threeView.physicsRuntime?.snapshot?.().targets || []
+    : [];
   const token = threeView.physicsLoadToken + 1;
   threeView.physicsLoadToken = token;
   threeView.physicsRuntime = null;
@@ -5665,7 +5934,7 @@ async function rebuildThreePhysicsRuntime() {
     const RAPIER = await loadRapier3dCompat();
     if (token !== threeView.physicsLoadToken) return;
     const runtime = createSpellPhysicsRuntime(RAPIER, {
-      gravity: { x: 0, y: 0, z: 0 },
+      gravity: { x: 0, y: -9.81, z: 0 },
       targets: descriptors,
     });
     runtime.setSpellField({
@@ -5673,7 +5942,11 @@ async function rebuildThreePhysicsRuntime() {
       radiusMeters: Math.max(0.05, profile.diameter * 0.75),
       forces: threeSpellForcesForPhysics(profile.spellForces),
     });
-    runtime.applySpellForces(threeSpellForcesForPhysics(profile.spellForces));
+    if (previousSnapshots.length > 0) {
+      runtime.restoreSnapshots(previousSnapshots);
+    } else {
+      runtime.applySpellForces(threeSpellForcesForPhysics(profile.spellForces));
+    }
     threeView.physicsRuntime = runtime;
     threeView.physicsTargetMap = targetMap;
   } catch (error) {
@@ -5681,10 +5954,42 @@ async function rebuildThreePhysicsRuntime() {
   }
 }
 
-function ensureThreeTargetReactionEffect(target, kind) {
+function reactionMarkerGeometry(kind) {
+  if (kind === "impact" || kind === "adhesion" || kind === "restore") return new THREE.TorusGeometry(0.34, kind === "adhesion" ? 0.04 : 0.022, 8, 36);
+  if (kind === "scorch") return new THREE.CylinderGeometry(0.3, 0.36, 0.018, 32);
+  if (kind === "flame") return new THREE.ConeGeometry(0.22, 0.62, 10);
+  if (kind === "crystal" || kind === "frost") return new THREE.OctahedronGeometry(0.3, 0);
+  if (kind === "weight") return new THREE.BoxGeometry(0.46, 0.08, 0.46);
+  return new THREE.SphereGeometry(0.36, 18, 12);
+}
+
+function reactionMarkerMaterial(profile) {
+  const emissiveKinds = new Set(["flame", "light", "restore", "crystal"]);
+  if (["water", "steam", "heat-haze", "light", "restore"].includes(profile.kind)) {
+    return new THREE.MeshBasicMaterial({
+      color: profile.color,
+      transparent: true,
+      opacity: 0.18 + profile.intensity * 0.38,
+      depthWrite: false,
+      wireframe: profile.kind === "heat-haze",
+    });
+  }
+  return new THREE.MeshStandardMaterial({
+    color: profile.color,
+    emissive: emissiveKinds.has(profile.kind) ? profile.color : 0x000000,
+    emissiveIntensity: emissiveKinds.has(profile.kind) ? 0.24 + profile.intensity * 0.44 : 0,
+    roughness: profile.kind === "scorch" ? 1 : 0.7,
+    transparent: true,
+    opacity: 0.44 + profile.intensity * 0.38,
+  });
+}
+
+function ensureThreeTargetReactionEffect(target, profile) {
+  const kind = profile.kind;
   let reactionEffect = target.userData.reactionEffect;
   if (reactionEffect?.userData?.kind === kind) {
     reactionEffect.visible = true;
+    reactionEffect.userData.intensity = profile.intensity;
     return reactionEffect;
   }
   if (reactionEffect) {
@@ -5694,23 +5999,28 @@ function ensureThreeTargetReactionEffect(target, kind) {
   reactionEffect = new THREE.Group();
   reactionEffect.name = `target-reaction-${kind}`;
   reactionEffect.userData.kind = kind;
-  const materialByKind = {
-    crystallized: new THREE.MeshStandardMaterial({ color: 0xbfe8ff, emissive: 0x6aa9c8, emissiveIntensity: 0.35, transparent: true, opacity: 0.68 }),
-    stuck: new THREE.MeshStandardMaterial({ color: 0x6f5a32, roughness: 1, transparent: true, opacity: 0.62 }),
-    illuminated: new THREE.MeshBasicMaterial({ color: 0xffdf78, transparent: true, opacity: 0.5, depthWrite: false }),
-    restored: new THREE.MeshBasicMaterial({ color: 0x9fd391, transparent: true, opacity: 0.46, depthWrite: false }),
-  };
-  const geometryByKind = {
-    crystallized: new THREE.OctahedronGeometry(0.28, 0),
-    stuck: new THREE.TorusGeometry(0.34, 0.035, 8, 32),
-    illuminated: new THREE.SphereGeometry(0.36, 18, 12),
-    restored: new THREE.TorusGeometry(0.32, 0.018, 8, 36),
-  };
-  const marker = new THREE.Mesh(geometryByKind[kind] || geometryByKind.illuminated, materialByKind[kind] || materialByKind.illuminated);
+  reactionEffect.userData.intensity = profile.intensity;
+  const marker = new THREE.Mesh(reactionMarkerGeometry(kind), reactionMarkerMaterial(profile));
   marker.name = `target-reaction-marker-${kind}`;
-  marker.position.y = kind === "stuck" ? 0.02 : 0.42;
-  marker.rotation.x = kind === "stuck" || kind === "restored" ? Math.PI / 2 : 0;
+  marker.position.y = ["impact", "adhesion", "restore", "scorch", "weight"].includes(kind) ? 0.03 : 0.42;
+  marker.rotation.x = ["impact", "adhesion", "restore"].includes(kind) ? Math.PI / 2 : 0;
   reactionEffect.add(marker);
+  if (kind === "flame") {
+    const innerFlame = new THREE.Mesh(
+      new THREE.ConeGeometry(0.11, 0.38, 9),
+      new THREE.MeshBasicMaterial({ color: 0xffd35a, transparent: true, opacity: 0.9 }),
+    );
+    innerFlame.position.y = 0.08;
+    reactionEffect.add(innerFlame);
+  }
+  if (kind === "steam" || kind === "water") {
+    for (let index = 0; index < 3; index += 1) {
+      const mote = marker.clone();
+      mote.scale.setScalar(0.26 + index * 0.08);
+      mote.position.set((index - 1) * 0.22, 0.3 + index * 0.16, (index % 2 ? -1 : 1) * 0.12);
+      reactionEffect.add(mote);
+    }
+  }
   target.add(reactionEffect);
   target.userData.reactionEffect = reactionEffect;
   return reactionEffect;
@@ -5725,21 +6035,22 @@ function clearThreeTargetReactionEffect(target) {
 }
 
 function renderThreeTargetReaction(target, snapshot) {
-  switch (snapshot?.reactionState || target?.userData?.reactionState || "idle") {
+  const profile = reactionVisualProfile(snapshot || { reactionState: target?.userData?.reactionState });
+  switch (profile?.state || "idle") {
+    case "pushed":
+    case "heated":
+    case "scorched":
+    case "burning":
+    case "wet":
+    case "extinguished":
     case "crystallized":
     case "frosted":
-      ensureThreeTargetReactionEffect(target, "crystallized");
-      break;
     case "stuck":
     case "damped":
     case "loaded":
-      ensureThreeTargetReactionEffect(target, "stuck");
-      break;
     case "illuminated":
-      ensureThreeTargetReactionEffect(target, "illuminated");
-      break;
     case "restored":
-      ensureThreeTargetReactionEffect(target, "restored");
+      ensureThreeTargetReactionEffect(target, profile);
       break;
     default:
       clearThreeTargetReactionEffect(target);
@@ -5749,7 +6060,8 @@ function renderThreeTargetReaction(target, snapshot) {
 function syncThreePhysicsTargets() {
   const runtime = threeView.physicsRuntime;
   if (!runtime) return;
-  const snapshotById = new Map((runtime.snapshot().targets || []).map((target) => [target.id, target]));
+  const snapshots = runtime.snapshot().targets || [];
+  const snapshotById = new Map(snapshots.map((target) => [target.id, target]));
   for (const [id, entry] of runtime.targets) {
     const target = threeView.physicsTargetMap.get(id);
     const start = target?.userData?.physicsBodyStart;
@@ -5766,11 +6078,18 @@ function syncThreePhysicsTargets() {
       target.quaternion.set(snapshot.rotation.x, snapshot.rotation.y, snapshot.rotation.z, snapshot.rotation.w);
     }
     if (snapshot) {
+      const previousState = target.userData.reactionState;
       target.userData.persistentPhysicsState = snapshot;
       target.userData.reactionState = snapshot.reactionState;
       renderThreeTargetReaction(target, snapshot);
+      if (previousState !== snapshot.reactionState && snapshot.reactionState !== "idle") {
+        playThreeReactionSound(reactionVisualProfile(snapshot), target);
+      }
+      if (target === threeView.selectedTarget) updateThreeInspector(snapshot);
     }
   }
+  threeView.selectedTargetOutline?.update?.();
+  updateThreeExperiments(snapshots);
 }
 
 function stepThreePhysicsRuntime(timestamp) {
@@ -5784,9 +6103,31 @@ function stepThreePhysicsRuntime(timestamp) {
 }
 
 function onSpell3dPointerDown(event) {
-  if (view3dPanel.hidden || !threeView.spellGroup || !hitActiveSpell(event)) {
+  if (view3dPanel.hidden) return;
+  if (threeView.interactionMode) {
+    const target = hitEnvironmentTarget(event);
+    selectThreeTarget(target);
+    if (!target) return;
+    event.preventDefault();
+    const descriptor = target.userData.interactiveTarget || {};
+    if (!canManipulateTarget(descriptor)) return;
+    const ground = spellGroundPoint(event);
+    const physicsPosition = target.userData.persistentPhysicsState?.position;
+    threeView.controls.enabled = false;
+    spell3dCanvas.setPointerCapture?.(event.pointerId);
+    threeView.targetDrag = {
+      pointerId: event.pointerId,
+      target,
+      id: target.userData.physicsTargetId,
+      startGround: ground,
+      startTargetPosition: target.position.clone(),
+      startBodyPosition: physicsPosition
+        ? new THREE.Vector3(physicsPosition.x, physicsPosition.y, physicsPosition.z)
+        : target.position.clone(),
+    };
     return;
   }
+  if (!threeView.spellGroup || !hitActiveSpell(event)) return;
   event.preventDefault();
   state.activePointers?.clear?.();
   state.threeSpellSelected = true;
@@ -5805,11 +6146,37 @@ function onSpell3dPointerDown(event) {
 }
 
 function onSpell3dPointerMove(event) {
+  const targetDrag = threeView.targetDrag;
+  if (targetDrag && targetDrag.pointerId === event.pointerId) {
+    event.preventDefault();
+    const ground = spellGroundPoint(event);
+    if (!ground || !targetDrag.startGround) return;
+    const dx = ground.x - targetDrag.startGround.x;
+    const dz = ground.z - targetDrag.startGround.z;
+    const nextBodyPosition = {
+      x: targetDrag.startBodyPosition.x + dx,
+      y: targetDrag.startBodyPosition.y,
+      z: targetDrag.startBodyPosition.z + dz,
+    };
+    if (threeView.physicsRuntime && targetDrag.id) {
+      threeView.physicsRuntime.moveTarget(targetDrag.id, nextBodyPosition);
+      syncThreePhysicsTargets();
+    } else {
+      targetDrag.target.position.set(
+        targetDrag.startTargetPosition.x + dx,
+        targetDrag.startTargetPosition.y,
+        targetDrag.startTargetPosition.z + dz,
+      );
+      threeView.selectedTargetOutline?.update?.();
+    }
+    return;
+  }
   const drag = threeView.spellDrag;
   if (!drag || drag.pointerId !== event.pointerId || !threeView.spellGroup) return;
   event.preventDefault();
   if (drag.mode === "rotate") {
     threeView.spellGroup.rotation.y = drag.startRotationY + (event.clientX - drag.startX) * 0.012;
+    updateThreeSpellPhysicsField();
     return;
   }
   const ground = spellGroundPoint(event);
@@ -5819,9 +6186,19 @@ function onSpell3dPointerMove(event) {
     drag.startPosition.y,
     drag.startPosition.z + ground.z - drag.startGround.z,
   );
+  updateThreeSpellPhysicsField();
 }
 
 function finishSpell3dDrag(event) {
+  const targetDrag = threeView.targetDrag;
+  if (targetDrag && (event?.pointerId === undefined || targetDrag.pointerId === event.pointerId)) {
+    threeView.targetDrag = null;
+    threeView.controls.enabled = true;
+    if (spell3dCanvas.hasPointerCapture?.(targetDrag.pointerId)) {
+      spell3dCanvas.releasePointerCapture(targetDrag.pointerId);
+    }
+    return;
+  }
   const drag = threeView.spellDrag;
   if (!drag || (event?.pointerId !== undefined && drag.pointerId !== event.pointerId)) return;
   threeView.spellDrag = null;
@@ -5830,6 +6207,62 @@ function finishSpell3dDrag(event) {
     spell3dCanvas.releasePointerCapture(drag.pointerId);
   }
   updateThreeSpellPhysicsField();
+}
+
+function resetSelectedThreeTarget() {
+  const target = threeView.selectedTarget;
+  if (!target) return;
+  const id = target.userData.physicsTargetId;
+  if (threeView.physicsRuntime && id) {
+    threeView.physicsRuntime.resetTarget(id);
+    syncThreePhysicsTargets();
+  } else {
+    resetTargetPose(target);
+    clearThreeTargetReactionEffect(target);
+  }
+  target.userData.impact = null;
+  target.userData.reactionState = "idle";
+  updateThreeInspector(target.userData.persistentPhysicsState || null);
+  threeView.selectedTargetOutline?.update?.();
+}
+
+function resetThreeScene() {
+  if (threeView.physicsRuntime) threeView.physicsRuntime.resetAllTargets();
+  for (const target of threeView.environmentTargets) {
+    if (!threeView.physicsRuntime) resetTargetPose(target);
+    target.userData.impact = null;
+    target.userData.reactionState = "idle";
+    clearThreeTargetReactionEffect(target);
+  }
+  if (threeView.physicsRuntime) syncThreePhysicsTargets();
+  selectThreeTarget(null);
+  updateThreeExperiments(threeView.physicsRuntime?.snapshot?.().targets || []);
+}
+
+function toggleThreeInteraction() {
+  threeView.interactionMode = !threeView.interactionMode;
+  interaction3dButton?.setAttribute("aria-pressed", String(threeView.interactionMode));
+  if (interaction3dButton) {
+    interaction3dButton.textContent = t(threeView.interactionMode ? "atelier.interact3dOn" : "atelier.interact3d");
+  }
+  if (!threeView.interactionMode) selectThreeTarget(null);
+}
+
+function cycleThreeCamera() {
+  threeView.cameraMode = nextCameraMode(threeView.cameraMode);
+  applyThreeCamera();
+}
+
+function toggleThreeSound() {
+  threeView.soundEnabled = !threeView.soundEnabled;
+  localStorage.setItem("wha3dSound", String(threeView.soundEnabled));
+  sound3dButton?.setAttribute("aria-pressed", String(threeView.soundEnabled));
+  if (threeView.soundEnabled) ensureThreeAudioContext()?.resume?.();
+  if (sound3dButton) {
+    sound3dButton.textContent = t("atelier.sound3d", {
+      state: t(`atelier.sound.${threeView.soundEnabled ? "on" : "off"}`),
+    });
+  }
 }
 
 function rotateSelectedSpell3d(amount) {
@@ -5883,6 +6316,15 @@ function open3dView() {
   resizeThreeView();
   rebuildThreeSpell();
   applyThreeCamera(threeView.environment || "interior");
+  interaction3dButton?.setAttribute("aria-pressed", String(threeView.interactionMode));
+  sound3dButton?.setAttribute("aria-pressed", String(threeView.soundEnabled));
+  if (interaction3dButton) interaction3dButton.textContent = t(threeView.interactionMode ? "atelier.interact3dOn" : "atelier.interact3d");
+  if (sound3dButton) {
+    sound3dButton.textContent = t("atelier.sound3d", {
+      state: t(`atelier.sound.${threeView.soundEnabled ? "on" : "off"}`),
+    });
+  }
+  updateThreeExperiments();
   cancelAnimationFrame(threeView.animationFrame);
   threeView.lastRenderAt = 0;
   renderThreeView();
@@ -5891,6 +6333,7 @@ function open3dView() {
 function close3dView() {
   view3dPanel.hidden = true;
   cancelAnimationFrame(threeView.animationFrame);
+  threeView.interactionMode = false;
   clearActiveManifestation("close");
   render();
 }
@@ -11885,6 +12328,11 @@ saveButton.addEventListener("click", saveCanvas);
 saveExampleButton?.addEventListener("click", saveCurrentCircleAsGuide);
 close3dButton.addEventListener("click", close3dView);
 relaunch3dButton?.addEventListener("click", relaunchThreeSpell);
+interaction3dButton?.addEventListener("click", toggleThreeInteraction);
+camera3dButton?.addEventListener("click", cycleThreeCamera);
+sound3dButton?.addEventListener("click", toggleThreeSound);
+resetTarget3dButton?.addEventListener("click", resetSelectedThreeTarget);
+resetScene3dButton?.addEventListener("click", resetThreeScene);
 symbolToggleButton?.addEventListener("click", () => setSymbolDrawer(true));
 closeSymbolsButton?.addEventListener("click", () => setSymbolDrawer(false));
 directPaletteTab?.addEventListener("click", () => setSymbolDrawerMode("direct"));
@@ -13079,7 +13527,7 @@ spell3dCanvas?.addEventListener("pointermove", onSpell3dPointerMove);
 spell3dCanvas?.addEventListener("pointerup", finishSpell3dDrag);
 spell3dCanvas?.addEventListener("pointercancel", finishSpell3dDrag);
 spell3dCanvas?.addEventListener("contextmenu", (event) => {
-  if (threeView.selectedSpell || hitActiveSpell(event)) {
+  if (threeView.selectedSpell || threeView.interactionMode || hitActiveSpell(event)) {
     event.preventDefault();
   }
 });
@@ -13111,6 +13559,14 @@ window.addEventListener("wha:localechange", () => {
   updateUsedList();
   updateSpellState();
   syncSelectionGrimoire();
+  updateThreeCameraButton();
+  if (interaction3dButton) interaction3dButton.textContent = t(threeView.interactionMode ? "atelier.interact3dOn" : "atelier.interact3d");
+  if (sound3dButton) {
+    sound3dButton.textContent = t("atelier.sound3d", {
+      state: t(`atelier.sound.${threeView.soundEnabled ? "on" : "off"}`),
+    });
+  }
+  updateThreeExperiments(threeView.physicsRuntime?.snapshot?.().targets || []);
   if (galleryLoaded) renderGalleryPosts();
   if (state.actions.length > 0) {
     analyzeSpell();
