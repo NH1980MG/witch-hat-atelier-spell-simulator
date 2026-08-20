@@ -36,7 +36,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260818-grimoire-rail-v1">
+    <link rel="stylesheet" href="styles.css?v=20260819-composition-editor-v3">
     <script type="importmap">
       {
         "imports": {
@@ -45,9 +45,9 @@
         }
       }
     </script>
-    <script type="module" src="site-i18n.mjs?v=20260818-grimoire-toggle-v1"></script>
+    <script type="module" src="site-i18n.mjs?v=20260819-composition-editor-v1"></script>
     <script type="module" src="site-nav.mjs?v=20260810-workshop-menu-v1"></script>
-    <script type="module" src="app.js?v=20260818-grimoire-rail-v1"></script>
+    <script type="module" src="app.js?v=20260819-composition-editor-v5"></script>
   </head>
   <body class="simulator-page">
     <main class="app-shell">
@@ -285,6 +285,37 @@
                 <output id="compositionCircleSizeValue" for="compositionCircleSizeInput">240</output>
                 <input id="compositionCircleSizeInput" type="range" min="80" max="720" step="1" value="240">
               </label>
+            </div>
+            <div class="composition-editor-shell" id="compositionEditorShell">
+              <section class="composition-seal-browser" aria-labelledby="compositionSealBrowserTitle">
+                <div class="composition-editor-heading">
+                  <h3 id="compositionSealBrowserTitle" data-i18n="composition.seals">Seals</h3>
+                  <button id="addCompositionSealButton" type="button" data-i18n="composition.addSeal">Add seal</button>
+                </div>
+                <div id="compositionSealList" class="composition-seal-list" role="list"></div>
+                <div class="composition-editor-actions">
+                  <button id="detectCompositionSymbolsButton" type="button" data-i18n="composition.detect">Detect symbols</button>
+                  <button id="calibrateCompositionButton" type="button" data-i18n="composition.calibrate">Center selected</button>
+                </div>
+              </section>
+              <section class="composition-inspector" id="compositionInspector" aria-labelledby="compositionInspectorTitle">
+                <div class="composition-editor-heading">
+                  <h3 id="compositionInspectorTitle" data-i18n="composition.inspector">Inspector</h3>
+                  <span id="compositionSelectionLabel" class="composition-selection-label"></span>
+                </div>
+                <div id="compositionInspectorContent" class="composition-inspector-content"></div>
+                <label class="composition-texture-field" for="compositionTextureKind">
+                  <span data-i18n="composition.texture">Texture</span>
+                  <select id="compositionTextureKind">
+                    <option value="solid" data-i18n="composition.textureSolid">Solid</option>
+                    <option value="zigzag" data-i18n="composition.textureZigzag">Zigzag</option>
+                    <option value="wave" data-i18n="composition.textureWave">Wave</option>
+                    <option value="dashed" data-i18n="composition.textureDashed">Dashed</option>
+                    <option value="dotted" data-i18n="composition.textureDotted">Dotted</option>
+                    <option value="hatch" data-i18n="composition.textureHatch">Hatch</option>
+                  </select>
+                </label>
+              </section>
             </div>
             <div class="composition-tool-tray" id="compositionToolTray">
               <section class="composition-tool-group" data-composition-kind="sigil">

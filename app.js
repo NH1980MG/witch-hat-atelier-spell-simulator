@@ -8,7 +8,7 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260812-particle-field-v1";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260812-particle-field-v1";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260818-grimoire-toggle-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260819-composition-editor-v1";
 import {
   SIGIL_COMPOSITION_SLOTS,
   buildSigilCompositionCommitPlan,
@@ -17,6 +17,13 @@ import {
   extractSigilComposition,
   normalizeCompositionCircleSize,
 } from "./sigil-composition-layout.mjs?v=20260817-seal-composition-editor-v1";
+import {
+  applyCompositionTexture,
+  calibrateCompositionElement,
+  compileCompositionDocument,
+  extractCompositionDocument,
+  normalizeCompositionDocument,
+} from "./sigil-composition-model.mjs?v=20260819-composition-model-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260809-handoff-layout-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -367,6 +374,14 @@ const compositionStage = document.querySelector("#compositionStage");
 const compositionDraftMode = document.querySelector("#compositionDraftMode");
 const compositionCircleSizeInput = document.querySelector("#compositionCircleSizeInput");
 const compositionCircleSizeValue = document.querySelector("#compositionCircleSizeValue");
+const compositionSealList = document.querySelector("#compositionSealList");
+const compositionInspector = document.querySelector("#compositionInspector");
+const compositionInspectorContent = document.querySelector("#compositionInspectorContent");
+const compositionSelectionLabel = document.querySelector("#compositionSelectionLabel");
+const addCompositionSealButton = document.querySelector("#addCompositionSealButton");
+const detectCompositionSymbolsButton = document.querySelector("#detectCompositionSymbolsButton");
+const calibrateCompositionButton = document.querySelector("#calibrateCompositionButton");
+const compositionTextureKind = document.querySelector("#compositionTextureKind");
 const cancelSigilCompositionButton = document.querySelector("#cancelSigilCompositionButton");
 const clearSigilCompositionButton = document.querySelector("#clearSigilCompositionButton");
 const applySigilCompositionButton = document.querySelector("#applySigilCompositionButton");
@@ -488,6 +503,9 @@ const state = {
   sigilComposition: {
     activeSlot: "center",
     draft: null,
+    document: null,
+    selectedType: "seal",
+    selectedId: null,
     source: "tab",
     slots: {
       center: null,
@@ -1470,9 +1488,16 @@ function tintedSymbolBoardGlyph(name, color) {
 
 function drawGlyph(action) {
   const { x, y, size, color, rune, element } = action;
+  const texture = action.texture?.kind && action.texture.kind !== "solid" ? action.texture : null;
   ctx.strokeStyle = color;
   ctx.fillStyle = color;
   ctx.lineWidth = visibleLineWidth(action.width || 2);
+  if (texture?.kind === "dashed") {
+    ctx.setLineDash([visibleLineWidth(size * 0.34), visibleLineWidth(size * 0.2)]);
+  } else if (texture?.kind === "dotted") {
+    ctx.lineCap = "round";
+    ctx.setLineDash([visibleLineWidth(1), visibleLineWidth(size * 0.22)]);
+  }
 
   const tintedGlyph = tintedSymbolBoardGlyph(element, color);
   if (tintedGlyph) {
@@ -1512,6 +1537,7 @@ function drawGlyph(action) {
     for (const pathData of catalogPaths) {
       ctx.stroke(new Path2D(pathData));
     }
+    drawGlyphTextureOverlay(texture, size, color);
     ctx.restore();
     return;
   }
@@ -1868,6 +1894,48 @@ function drawGlyph(action) {
   ctx.fillText(rune, x, y + size * 0.1);
 }
 
+function drawGlyphTextureOverlay(texture, size, fallbackColor) {
+  if (!texture || ["dashed", "dotted"].includes(texture.kind)) return;
+  const spacing = Math.max(2, Number(texture.spacing) || 8);
+  const amplitude = Math.max(0, Number(texture.amplitude) || 3);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(-size, -size, size * 2, size * 2);
+  ctx.clip();
+  ctx.strokeStyle = texture.color || fallbackColor;
+  ctx.lineWidth = visibleLineWidth(texture.thickness || 2);
+  ctx.globalAlpha = 0.72;
+  if (texture.kind === "zigzag" || texture.kind === "hatch") {
+    for (let x = -size * 1.4; x <= size * 1.4; x += spacing) {
+      ctx.beginPath();
+      if (texture.kind === "zigzag") {
+        ctx.moveTo(x, -size);
+        ctx.lineTo(x + amplitude, -size + spacing / 2);
+        ctx.lineTo(x - amplitude, -size + spacing);
+        ctx.lineTo(x + amplitude, -size + spacing * 1.5);
+        ctx.lineTo(x - amplitude, -size + spacing * 2);
+        ctx.lineTo(x + amplitude, size);
+      } else {
+        ctx.moveTo(x - size, -size);
+        ctx.lineTo(x + size, size);
+      }
+      ctx.stroke();
+    }
+  } else if (texture.kind === "wave") {
+    for (let y = -size; y <= size; y += spacing) {
+      ctx.beginPath();
+      ctx.moveTo(-size, y);
+      for (let x = -size; x <= size; x += Math.max(4, spacing / 2)) {
+        ctx.lineTo(x, y + Math.sin((x / Math.max(1, amplitude)) * 0.45) * amplitude);
+      }
+      ctx.stroke();
+    }
+  } else if (texture.kind === "double") {
+    ctx.strokeRect(-size * 0.86, -size * 0.86, size * 1.72, size * 1.72);
+  }
+  ctx.restore();
+}
+
 function drawSpiral(action, dashed = false) {
   const points = [];
   const steps = 130;
@@ -1884,6 +1952,9 @@ function drawSpiral(action, dashed = false) {
 }
 
 function drawAction(action, dashed = false) {
+  if (action?.visible === false && !dashed) {
+    return;
+  }
   ctx.save();
   ctx.strokeStyle = action.color;
   ctx.fillStyle = action.color;
@@ -9866,6 +9937,23 @@ function openSigilCompositionEditor(anchorIndex = null, source = "tab") {
   const draft = resolvedAnchorIndex === null
     ? createDefaultSigilComposition(canvasSize())
     : extractSigilComposition({ actions: state.actions, anchorIndex: resolvedAnchorIndex });
+  state.sigilComposition.document = resolvedAnchorIndex === null
+    ? normalizeCompositionDocument({
+      seals: [{
+        id: `seal-${state.actions.length + 1}`,
+        center: { x: canvasSize().width / 2, y: canvasSize().height / 2 },
+        radius: draft.radius,
+        rings: [{
+          id: `ring-${state.actions.length + 1}`,
+          radius: draft.radius,
+          color: state.drawingColor,
+          lineWeight: lineWidth(),
+        }],
+      }],
+    })
+    : extractCompositionDocument({ actions: state.actions, anchorIndex: resolvedAnchorIndex });
+  state.sigilComposition.selectedType = "seal";
+  state.sigilComposition.selectedId = state.sigilComposition.document.seals[0]?.id || null;
   state.selectedCompositionAnchorIndex = resolvedAnchorIndex;
   state.sigilComposition.draft = draft;
   state.sigilComposition.source = source;
@@ -9880,6 +9968,9 @@ function cancelSigilComposition() {
   const source = state.sigilComposition.source;
   state.selectedCompositionAnchorIndex = null;
   state.sigilComposition.draft = null;
+  state.sigilComposition.document = null;
+  state.sigilComposition.selectedType = "seal";
+  state.sigilComposition.selectedId = null;
   state.sigilComposition.source = "tab";
   clearSigilComposition();
   setSymbolDrawerMode("direct", { openEditor: false });
@@ -9930,6 +10021,32 @@ function setCompositionSlotElement(element) {
   }
   if (!slot) return;
   state.sigilComposition.slots[slot.id] = element.name;
+  const seal = compositionEditorSeal();
+  if (seal) {
+    const collection = element.kind === "sigil" ? seal.sigils : seal.signs;
+    const selected = compositionEditorItem();
+    const selectedMatches = selected && selected.type === element.kind;
+    const item = selectedMatches
+      ? selected
+      : {
+        id: `${element.kind}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+        type: element.kind,
+        visible: true,
+        tinted: false,
+        prefix: "",
+        symbol: element.name,
+        x: seal.center.x,
+        y: element.kind === "sign" ? seal.center.y - seal.radius * 0.8 : seal.center.y,
+        size: element.kind === "sign" ? 20 : 30,
+        rotation: 0,
+        texture: null,
+      };
+    item.symbol = element.name;
+    item.color ||= element.color;
+    if (!selectedMatches) collection.push(item);
+    state.sigilComposition.selectedType = element.kind;
+    state.sigilComposition.selectedId = item.id;
+  }
   if (state.sigilComposition.draft) {
     state.sigilComposition.draft.slots = { ...state.sigilComposition.slots };
   }
@@ -9941,6 +10058,13 @@ function setCompositionSlotElement(element) {
 function clearSigilComposition() {
   for (const slot of SIGIL_COMPOSITION_SLOTS) {
     state.sigilComposition.slots[slot.id] = null;
+  }
+  const seal = compositionEditorSeal();
+  if (seal) {
+    seal.rings = [];
+    seal.sigils = [];
+    seal.signs = [];
+    seal.lines = [];
   }
   if (state.sigilComposition.draft) {
     state.sigilComposition.draft.slots = { ...state.sigilComposition.slots };
@@ -10000,9 +10124,296 @@ function renderSigilCompositionPanel() {
   }
   renderCompositionTray(compositionSigilTray, visibleCompositionElements("sigil"));
   renderCompositionTray(compositionSignTray, visibleCompositionElements("sign"));
+  renderCompositionEditor();
   renderSigilCompositionStage();
   renderCompositionChipSelection();
 }
+
+function compositionEditorDocument() {
+  if (!state.sigilComposition.document) {
+    state.sigilComposition.document = normalizeCompositionDocument({ seals: [] });
+  }
+  return state.sigilComposition.document;
+}
+
+function compositionEditorSeal() {
+  const document = compositionEditorDocument();
+  return document.seals.find(({ id }) => id === state.sigilComposition.selectedId)
+    || document.seals[0]
+    || null;
+}
+
+function compositionEditorItem() {
+  const seal = compositionEditorSeal();
+  if (!seal || state.sigilComposition.selectedType === "seal") return seal;
+  const collections = {
+    ring: seal.rings,
+    sigil: seal.sigils,
+    sign: seal.signs,
+    line: seal.lines,
+  };
+  return collections[state.sigilComposition.selectedType]?.find(({ id }) => id === state.sigilComposition.selectedId) || null;
+}
+
+function compositionEditorField(label, field, value, type = "text", options = {}) {
+  const wrapper = document.createElement("label");
+  wrapper.className = "composition-inspector-field";
+  const caption = document.createElement("span");
+  caption.textContent = label;
+  const input = document.createElement(type === "select" ? "select" : "input");
+  input.dataset.compositionField = field;
+  if (type !== "select") input.type = type;
+  if (type === "select") {
+    for (const option of options.options || []) {
+      const optionNode = document.createElement("option");
+      optionNode.value = option.value;
+      optionNode.textContent = option.label;
+      input.append(optionNode);
+    }
+  }
+  if (type === "number") {
+    input.step = options.step || "0.1";
+    if (options.min !== undefined) input.min = String(options.min);
+  }
+  input.value = value ?? "";
+  wrapper.append(caption, input);
+  return wrapper;
+}
+
+function compositionElementOptions(kind) {
+  return elements
+    .filter((element) => element.kind === kind && isSymbolVisibleAtChapter(element.name, state.spoilerChapter))
+    .map((element) => ({ value: element.name, label: elementDisplayName(element.name) }));
+}
+
+function compositionCollectionLabel(type) {
+  return {
+    ring: getLocale() === "fr" ? "Anneaux" : "Rings",
+    sigil: getLocale() === "fr" ? "Sigils" : "Sigils",
+    sign: getLocale() === "fr" ? "Signes" : "Signs",
+    line: getLocale() === "fr" ? "Lignes" : "Lines",
+  }[type] || type;
+}
+
+function compositionAddItem(type) {
+  const seal = compositionEditorSeal();
+  if (!seal) return;
+  const id = `${type}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  if (type === "ring") {
+    seal.rings.push({ id, type, visible: true, name: "", color: state.drawingColor, filled: false, radius: seal.radius, lineWeight: lineWidth(), openingSize: 0, openingAngle: 0, offsetX: 0, offsetY: 0 });
+  } else if (type === "sigil") {
+    const element = elements.find((entry) => entry.kind === "sigil");
+    seal.sigils.push({ id, type, visible: true, tinted: false, prefix: "", symbol: element?.name || "", x: seal.center.x, y: seal.center.y, size: 30, rotation: 0, texture: null });
+  } else if (type === "sign") {
+    const element = elements.find((entry) => entry.kind === "sign");
+    seal.signs.push({ id, type, visible: true, tinted: false, prefix: "", symbol: element?.name || "", x: seal.center.x, y: seal.center.y - seal.radius * 0.8, size: 20, rotation: 0, strafeOffset: 0, circleRadius: seal.radius * 0.8, circleSymmetry: 8, skipped: 0, circleRotation: 0, offsetX: 0, offsetY: 0, texture: null });
+  } else if (type === "line") {
+    seal.lines.push({ id, type, visible: true, name: "", color: state.drawingColor, lineWeight: lineWidth(), points: [{ x: seal.center.x - 20, y: seal.center.y }, { x: seal.center.x + 20, y: seal.center.y }] });
+  }
+  state.sigilComposition.selectedType = type;
+  state.sigilComposition.selectedId = id;
+  renderSigilCompositionPanel();
+}
+
+function renderCompositionEditor() {
+  if (!compositionSealList || !compositionInspectorContent) return;
+  const compositionDocument = compositionEditorDocument();
+  compositionSealList.replaceChildren();
+  for (const [index, seal] of compositionDocument.seals.entries()) {
+    const sealButton = document.createElement("button");
+    sealButton.type = "button";
+    sealButton.className = "composition-tree-item";
+    sealButton.dataset.compositionSelectType = "seal";
+    sealButton.dataset.compositionSelectId = seal.id;
+    sealButton.textContent = seal.name || `${getLocale() === "fr" ? "Sceau" : "Seal"} ${index + 1}`;
+    sealButton.classList.toggle("is-active", state.sigilComposition.selectedType === "seal" && state.sigilComposition.selectedId === seal.id);
+    compositionSealList.append(sealButton);
+    for (const type of ["ring", "sigil", "sign", "line"]) {
+      const heading = document.createElement("div");
+      heading.className = "composition-tree-heading";
+      heading.textContent = compositionCollectionLabel(type);
+      compositionSealList.append(heading);
+      for (const [itemIndex, item] of seal[`${type}s`].entries()) {
+        const itemButton = document.createElement("button");
+        itemButton.type = "button";
+        itemButton.className = "composition-tree-item composition-tree-child";
+        itemButton.dataset.compositionSelectType = type;
+        itemButton.dataset.compositionSelectId = item.id;
+        itemButton.textContent = item.symbol || item.name || `${compositionCollectionLabel(type)} ${itemIndex + 1}`;
+        itemButton.classList.toggle("is-active", state.sigilComposition.selectedType === type && state.sigilComposition.selectedId === item.id);
+        compositionSealList.append(itemButton);
+      }
+      const addButton = document.createElement("button");
+      addButton.type = "button";
+      addButton.className = "composition-tree-add";
+      addButton.dataset.compositionAdd = type;
+      addButton.textContent = `+ ${getLocale() === "fr" ? "Ajouter" : "Add"}`;
+      compositionSealList.append(addButton);
+    }
+  }
+
+  const selected = compositionEditorItem();
+  compositionInspectorContent.replaceChildren();
+  if (!selected) {
+    compositionInspectorContent.textContent = getLocale() === "fr" ? "Ajoutez ou sélectionnez un sceau." : "Add or select a seal.";
+    return;
+  }
+  const isSeal = state.sigilComposition.selectedType === "seal";
+  const fields = [];
+  if (isSeal) {
+    fields.push(compositionEditorField(getLocale() === "fr" ? "Nom" : "Name", "name", selected.name));
+    fields.push(compositionEditorField("Angle", "angle", selected.angle, "number", { step: "1" }));
+    fields.push(compositionEditorField(getLocale() === "fr" ? "Échelle" : "Scale", "scale", selected.scale, "number", { min: 0.01, step: "0.01" }));
+    fields.push(compositionEditorField("X", "offsetX", selected.offsetX, "number"));
+    fields.push(compositionEditorField("Y", "offsetY", selected.offsetY, "number"));
+    fields.push(compositionEditorField(getLocale() === "fr" ? "Rayon" : "Radius", "radius", selected.radius, "number", { min: 1 }));
+  } else {
+    if (selected.type === "sigil" || selected.type === "sign") {
+      fields.push(compositionEditorField(getLocale() === "fr" ? "Symbole" : "Symbol", "symbol", selected.symbol, "select", { options: compositionElementOptions(selected.type === "sigil" ? "sigil" : "sign") }));
+    }
+    if (selected.name !== undefined) fields.push(compositionEditorField(getLocale() === "fr" ? "Nom" : "Name", "name", selected.name));
+    for (const field of ["x", "y", "size", "rotation"]) {
+      fields.push(compositionEditorField(field.toUpperCase(), field, selected[field], "number", { min: field === "size" ? 1 : undefined }));
+    }
+    if (selected.type === "ring") {
+      fields.push(compositionEditorField(getLocale() === "fr" ? "Épaisseur" : "Line weight", "lineWeight", selected.lineWeight, "number", { min: 1 }));
+      fields.push(compositionEditorField(getLocale() === "fr" ? "Ouverture" : "Opening", "openingSize", selected.openingSize, "number", { min: 0 }));
+      fields.push(compositionEditorField(getLocale() === "fr" ? "Angle ouverture" : "Opening angle", "openingAngle", selected.openingAngle, "number"));
+    }
+    if (selected.type === "sign") {
+      fields.push(compositionEditorField(getLocale() === "fr" ? "Rayon du cercle" : "Sign circle radius", "circleRadius", selected.circleRadius, "number", { min: 0 }));
+      fields.push(compositionEditorField(getLocale() === "fr" ? "Symétrie" : "Symmetry", "circleSymmetry", selected.circleSymmetry, "number", { min: 1, step: "1" }));
+      fields.push(compositionEditorField(getLocale() === "fr" ? "Signes ignorés" : "Signs skipped", "skipped", selected.skipped, "number", { min: 0, step: "1" }));
+      fields.push(compositionEditorField(getLocale() === "fr" ? "Rotation cercle" : "Circle rotation", "circleRotation", selected.circleRotation, "number"));
+    }
+    if (selected.type === "line") {
+      fields.push(compositionEditorField("Points JSON", "points", JSON.stringify(selected.points), "text"));
+    }
+  }
+  for (const field of fields) compositionInspectorContent.append(field);
+  const visible = document.createElement("label");
+  visible.className = "composition-inspector-check";
+  visible.innerHTML = `<input type="checkbox" data-composition-field="visible" ${selected.visible !== false ? "checked" : ""}><span>${getLocale() === "fr" ? "Visible" : "Visible"}</span>`;
+  compositionInspectorContent.append(visible);
+  const remove = document.createElement("button");
+  remove.type = "button";
+  remove.className = "composition-remove-item";
+  remove.dataset.compositionRemove = "true";
+  remove.textContent = getLocale() === "fr" ? "Supprimer l’élément" : "Remove element";
+  compositionInspectorContent.append(remove);
+  if (compositionSelectionLabel) compositionSelectionLabel.textContent = isSeal ? "Seal" : selected.type;
+  if (compositionTextureKind) compositionTextureKind.value = selected.texture?.kind || "solid";
+}
+
+function updateCompositionEditorField(field, value) {
+  const selected = compositionEditorItem();
+  if (!selected) return;
+  if (field === "visible") selected.visible = Boolean(value);
+  else if (field === "points") {
+    try {
+      selected.points = JSON.parse(value).map((point) => ({ x: Number(point.x) || 0, y: Number(point.y) || 0 }));
+    } catch {
+      return;
+    }
+  } else if (["angle", "scale", "offsetX", "offsetY", "radius", "x", "y", "size", "rotation", "lineWeight", "openingSize", "openingAngle", "circleRadius", "circleSymmetry", "skipped", "circleRotation"].includes(field)) {
+    selected[field] = Number(value);
+  } else {
+    selected[field] = value;
+  }
+  renderCompositionEditor();
+  renderSigilCompositionStage();
+}
+
+function removeCompositionEditorItem() {
+  const seal = compositionEditorSeal();
+  if (!seal) return;
+  const type = state.sigilComposition.selectedType;
+  if (type === "seal") {
+    const document = compositionEditorDocument();
+    document.seals = document.seals.filter(({ id }) => id !== state.sigilComposition.selectedId);
+    state.sigilComposition.selectedType = "seal";
+    state.sigilComposition.selectedId = document.seals[0]?.id || null;
+  } else {
+    const collection = { ring: seal.rings, sigil: seal.sigils, sign: seal.signs, line: seal.lines }[type];
+    if (!collection) return;
+    const index = collection.findIndex(({ id }) => id === state.sigilComposition.selectedId);
+    if (index >= 0) collection.splice(index, 1);
+    state.sigilComposition.selectedType = "seal";
+    state.sigilComposition.selectedId = seal.id;
+  }
+  renderSigilCompositionPanel();
+}
+
+function calibrateSelectedCompositionElement() {
+  const seal = compositionEditorSeal();
+  const selected = compositionEditorItem();
+  if (!seal || !selected) return;
+  if (state.sigilComposition.selectedType === "seal") {
+    seal.offsetX = 0;
+    seal.offsetY = 0;
+  } else if (selected.type === "ring") {
+    selected.offsetX = 0;
+    selected.offsetY = 0;
+  } else if (selected.type === "sigil" || selected.type === "sign") {
+    Object.assign(selected, calibrateCompositionElement(selected, { center: seal.center }));
+  }
+  renderSigilCompositionPanel();
+}
+
+function applyCompositionTextureSelection() {
+  const selected = compositionEditorItem();
+  if (!selected || (selected.type !== "sigil" && selected.type !== "sign")) return;
+  Object.assign(selected, applyCompositionTexture(selected, { kind: compositionTextureKind?.value || "solid" }));
+  renderCompositionEditor();
+  renderSigilCompositionStage();
+}
+
+compositionSealList?.addEventListener("click", (event) => {
+  const select = event.target.closest("[data-composition-select-type]");
+  const add = event.target.closest("[data-composition-add]");
+  if (select) {
+    state.sigilComposition.selectedType = select.dataset.compositionSelectType;
+    state.sigilComposition.selectedId = select.dataset.compositionSelectId;
+    renderCompositionEditor();
+    renderSigilCompositionStage();
+  } else if (add) {
+    compositionAddItem(add.dataset.compositionAdd);
+  }
+});
+
+compositionInspectorContent?.addEventListener("input", (event) => {
+  const field = event.target.closest("[data-composition-field]");
+  if (field) updateCompositionEditorField(field.dataset.compositionField, field.type === "checkbox" ? field.checked : field.value);
+});
+compositionInspectorContent?.addEventListener("click", (event) => {
+  if (event.target.closest("[data-composition-remove]")) removeCompositionEditorItem();
+});
+addCompositionSealButton?.addEventListener("click", () => {
+  const document = compositionEditorDocument();
+  const id = `seal-${Date.now().toString(36)}`;
+  const size = Number(compositionCircleSizeInput?.value) || 240;
+  document.seals.push({
+    id,
+    visible: true,
+    name: "",
+    angle: 0,
+    scale: 1,
+    offsetX: 0,
+    offsetY: 0,
+    center: { ...resolveSigilCompositionAnchor().center },
+    radius: size / 2,
+    rings: [{ id: `ring-${Date.now().toString(36)}`, radius: size / 2, color: state.drawingColor, lineWeight: lineWidth() }],
+    sigils: [],
+    signs: [],
+    lines: [],
+  });
+  state.sigilComposition.selectedType = "seal";
+  state.sigilComposition.selectedId = id;
+  renderSigilCompositionPanel();
+});
+detectCompositionSymbolsButton?.addEventListener("click", openCircleImportDialog);
+calibrateCompositionButton?.addEventListener("click", calibrateSelectedCompositionElement);
+compositionTextureKind?.addEventListener("change", applyCompositionTextureSelection);
 
 function updateSigilCompositionCircleSize(value) {
   const draft = compositionDraftFromState();
@@ -10017,6 +10428,11 @@ function updateSigilCompositionCircleSize(value) {
 
 function renderSigilCompositionStage() {
   if (!compositionStage) return;
+  const compositionDocument = state.sigilComposition.document;
+  if (compositionDocument?.seals?.length) {
+    renderCompositionDocumentStage(compositionDocument);
+    return;
+  }
   const activeSlotId = state.sigilComposition.activeSlot;
   compositionStage.innerHTML = `
     <div class="composition-preview-title">${t("composition.preview")}</div>
@@ -10043,6 +10459,75 @@ function renderSigilCompositionStage() {
     }
     button.addEventListener("click", () => selectCompositionSlot(slot.id));
     compositionStage.append(button);
+  }
+}
+
+function renderCompositionDocumentStage(compositionDocument) {
+  compositionStage.innerHTML = `<div class="composition-preview-title">${getLocale() === "fr" ? "Prévisualisation" : "Preview"}</div>`;
+  const sealCount = compositionDocument.seals.length;
+  for (const [sealIndex, seal] of compositionDocument.seals.entries()) {
+    const sealNode = document.createElement("div");
+    sealNode.className = "composition-document-seal";
+    const position = sealCount === 1 ? 50 : 18 + (sealIndex / Math.max(1, sealCount - 1)) * 64;
+    sealNode.style.left = `${position}%`;
+    sealNode.style.top = "54%";
+    sealNode.style.width = sealCount === 1 ? "min(230px, 72%)" : "min(150px, 34%)";
+    sealNode.style.setProperty("--seal-scale", String(seal.scale || 1));
+    sealNode.style.transform = `translate(-50%, -50%) rotate(${seal.angle || 0}deg)`;
+    sealNode.setAttribute("aria-label", seal.name || `${getLocale() === "fr" ? "Sceau" : "Seal"} ${sealIndex + 1}`);
+    sealNode.addEventListener("click", () => {
+      state.sigilComposition.selectedType = "seal";
+      state.sigilComposition.selectedId = seal.id;
+      renderCompositionEditor();
+      renderCompositionDocumentStage(compositionDocument);
+    });
+
+    const outline = document.createElement("div");
+    outline.className = "composition-document-outline";
+    sealNode.append(outline);
+    for (const [ringIndex, ring] of seal.rings.entries()) {
+      const ringNode = document.createElement("div");
+      ringNode.className = "composition-document-ring";
+      const ringSize = Math.max(5, Math.min(100, (ring.radius / Math.max(1, seal.radius)) * 100));
+      ringNode.style.width = `${ringSize}%`;
+      ringNode.style.height = `${ringSize}%`;
+      ringNode.style.borderColor = ring.color || state.drawingColor;
+      ringNode.style.borderWidth = `${Math.max(1, ring.lineWeight || 1)}px`;
+      ringNode.style.transform = `translate(-50%, -50%) rotate(${ring.openingAngle || 0}deg)`;
+      ringNode.classList.toggle("is-active", state.sigilComposition.selectedType === "ring" && state.sigilComposition.selectedId === ring.id);
+      ringNode.setAttribute("aria-label", `${compositionCollectionLabel("ring")} ${ringIndex + 1}`);
+      ringNode.addEventListener("click", (event) => {
+        event.stopPropagation();
+        state.sigilComposition.selectedType = "ring";
+        state.sigilComposition.selectedId = ring.id;
+        renderCompositionEditor();
+        renderCompositionDocumentStage(compositionDocument);
+      });
+      sealNode.append(ringNode);
+    }
+    for (const item of [...seal.sigils, ...seal.signs]) {
+      const element = compositionElementByName(item.symbol, item.type);
+      const itemNode = document.createElement("button");
+      itemNode.type = "button";
+      itemNode.className = "composition-document-element composition-slot";
+      itemNode.dataset.slotKind = item.type;
+      itemNode.style.left = `${50 + ((item.x - seal.center.x) / Math.max(1, seal.radius)) * 50}%`;
+      itemNode.style.top = `${50 + ((item.y - seal.center.y) / Math.max(1, seal.radius)) * 50}%`;
+      itemNode.style.setProperty("--symbol-color", item.color || element?.color || state.drawingColor);
+      itemNode.style.transform = `translate(-50%, -50%) rotate(${item.rotation || 0}deg)`;
+      itemNode.classList.toggle("is-active", state.sigilComposition.selectedType === item.type && state.sigilComposition.selectedId === item.id);
+      itemNode.setAttribute("aria-label", element ? elementDisplayName(element) : item.symbol || item.type);
+      itemNode.innerHTML = element ? elementIconMarkup(element) : `<span class="composition-slot-empty">${item.symbol || "?"}</span>`;
+      itemNode.addEventListener("click", (event) => {
+        event.stopPropagation();
+        state.sigilComposition.selectedType = item.type;
+        state.sigilComposition.selectedId = item.id;
+        renderCompositionEditor();
+        renderCompositionDocumentStage(compositionDocument);
+      });
+      sealNode.append(itemNode);
+    }
+    compositionStage.append(sealNode);
   }
 }
 
@@ -10096,7 +10581,80 @@ function resolveSigilCompositionAnchor() {
   };
 }
 
+function decorateCompositionActions(actions) {
+  return actions.map((action) => {
+    if (action.type === "glyph") {
+      const element = compositionElementByName(action.element, action.kind);
+      if (element) {
+        action.label = labels.glyph;
+        action.charge = element.charge;
+        action.category = element.category;
+        action.rune = element.rune;
+        action.color ||= element.color || state.drawingColor;
+        action.width ||= lineWidth();
+      }
+    } else if (["circle", "ring", "spiral"].includes(action.type)) {
+      action.label ||= action.type === "ring" ? labels.ring : labels.circle;
+      action.element ||= "Structure";
+      action.charge ||= 0;
+      action.color ||= state.drawingColor;
+      action.width ||= lineWidth();
+      if (action.type === "circle") action.closed = action.closed !== false;
+    }
+    return action;
+  });
+}
+
+function applyCompositionDocumentToCanvas() {
+  const compositionDocument = state.sigilComposition.document;
+  if (!compositionDocument?.seals?.length) return false;
+  const sealItems = compositionDocument.seals.flatMap((seal) => [
+    ...seal.rings,
+    ...seal.sigils,
+    ...seal.signs,
+    ...seal.lines,
+  ]);
+  const sourceIndices = new Set(sealItems
+    .map((item) => item.sourceIndex)
+    .filter((index) => Number.isInteger(index)));
+  const replacingExisting = sourceIndices.size > 0;
+  const compiledDocument = {
+    ...compositionDocument,
+    unclassified: [],
+  };
+  const compiled = decorateCompositionActions(compileCompositionDocument(compiledDocument));
+  if (compiled.length === 0) {
+    setStatus(t("status.selectionEmpty"));
+    return false;
+  }
+  recordHistory();
+  const firstSourceIndex = replacingExisting ? Math.min(...sourceIndices) : state.actions.length;
+  const retained = replacingExisting
+    ? state.actions.filter((_, index) => !sourceIndices.has(index))
+    : state.actions.slice();
+  const insertAt = replacingExisting
+    ? Math.min(firstSourceIndex, retained.length)
+    : retained.length;
+  retained.splice(insertAt, 0, ...compiled);
+  state.actions = retained;
+  state.selectedActionIndices = compiled.map((_, index) => insertAt + index);
+  state.circleCenter = { ...compositionDocument.seals[0].center };
+  state.activeSpell = null;
+  state.sigilComposition.draft = null;
+  state.sigilComposition.document = null;
+  state.sigilComposition.source = "tab";
+  state.selectedCompositionAnchorIndex = null;
+  updateUsedList();
+  updateSpellState();
+  setStatus(t("status.sigilCompositionApplied", { count: compiled.length }));
+  render();
+  return true;
+}
+
 function applySigilComposition() {
+  if (state.sigilComposition.document) {
+    return applyCompositionDocumentToCanvas();
+  }
   const draft = state.sigilComposition.draft || createDefaultSigilComposition(canvasSize());
   const plan = buildSigilCompositionCommitPlan({
     draft,
@@ -11488,7 +12046,7 @@ function shareableAction(action) {
     return { type: "ray", cx: action.cx, cy: action.cy, x: action.x, y: action.y, width: action.width };
   }
   if (action.type === "glyph") {
-    return {
+    const shared = {
       type: "glyph",
       element: action.element,
       kind: action.kind === "sign" ? "sign" : "sigil",
@@ -11497,6 +12055,11 @@ function shareableAction(action) {
       size: action.size,
       rotation: action.rotation || 0,
     };
+    if (action.visible === false) shared.visible = false;
+    if (action.tinted) shared.tinted = true;
+    if (action.prefix) shared.prefix = action.prefix;
+    if (action.texture) shared.texture = action.texture;
+    return shared;
   }
   const shared = {
     type: action.type,
@@ -11506,6 +12069,10 @@ function shareableAction(action) {
     width: action.width,
   };
   if (action.type === "circle") shared.closed = action.closed !== false;
+  if (action.visible === false) shared.visible = false;
+  if (action.filled) shared.filled = true;
+  if (action.openingSize) shared.openingSize = action.openingSize;
+  if (action.openingAngle) shared.openingAngle = action.openingAngle;
   if (action.type === "spiral") shared.turns = action.turns;
   if (action.ritualId) shared.ritualId = action.ritualId;
   if (action.sealPatternId) shared.sealPatternId = action.sealPatternId;
@@ -12774,6 +13341,8 @@ function recreatePhotoImport() {
   }
   const mapped = mapPhotoAnalysis(pending.analysis, photoPlacementTarget());
   if (mapped.rings.length === 0 && mapped.symbols.length === 0 && mapped.patterns.length === 0) return;
+  const compositionEditing = Boolean(state.sigilComposition.document);
+  const importedActionStart = state.actions.length;
   recordHistory();
   if (mapped.patterns.length > 0) {
     for (const pattern of mapped.patterns) {
@@ -12804,9 +13373,23 @@ function recreatePhotoImport() {
       state.actions.push(glyphAction);
     }
   }
+  if (compositionEditing) {
+    const importedAnchorIndex = state.actions.findIndex((action, index) => {
+      return index >= importedActionStart && isCompleteSeal(action);
+    });
+    if (importedAnchorIndex >= 0) {
+      state.sigilComposition.document = extractCompositionDocument({
+        actions: state.actions,
+        anchorIndex: importedAnchorIndex,
+      });
+      state.sigilComposition.selectedType = "seal";
+      state.sigilComposition.selectedId = state.sigilComposition.document.seals[0]?.id || null;
+    }
+  }
   pendingPhotoImport = null;
   photoImportDialog?.close();
   render();
+  if (compositionEditing) renderSigilCompositionPanel();
   setStatus(t("photo.status.imported", {
     count: mapped.symbols.length,
     ring: mapped.rings.length + mapped.patterns.length,
