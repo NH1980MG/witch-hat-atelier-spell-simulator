@@ -29,6 +29,7 @@ test("tablet and phone layouts keep controls touchable", () => {
   assert.match(css, /min-height:\s*44px/);
 });
 
+
 test("desktop viewports can lower the Grimoire into a bottom rail", () => {
   assert.match(css, /@media \(min-width: 1181px\)[\s\S]*\.grimoire-toggle\s*\{[\s\S]*display:\s*flex/);
   assert.match(css, /@media \(min-width: 1181px\)[\s\S]*\.grimoire\.is-open\s*\{[\s\S]*max-height:/);
@@ -43,6 +44,7 @@ test("desktop Grimoire keeps its reopen toggle after closing", () => {
   assert.match(css.slice(desktopToggleOverride), /\.grimoire-toggle\s*\{[\s\S]*display:\s*flex/);
 });
 
+
 test("the atelier route activates the layout class before Grimoire sizing", () => {
   assert.match(app, /document\.body\.classList\.add\("app-home-page"\)/);
 });
@@ -50,9 +52,9 @@ test("the atelier route activates the layout class before Grimoire sizing", () =
 test("atelier desktop layout reserves a visible rail for the Grimoire", () => {
   const finalDesktopBlock = css.slice(css.lastIndexOf("@media (min-width: 1181px)"));
 
-  assert.match(finalDesktopBlock, /html\[data-app-view="atelier"\] \.app-shell/);
-  assert.match(finalDesktopBlock, /grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\)\s+auto/);
-  assert.match(finalDesktopBlock, /\.grimoire\s*\{[\s\S]*padding:\s*0\s+16px\s+0/);
+  assert.ok(finalDesktopBlock.includes('html[data-app-view="atelier"] .app-shell'));
+  assert.ok(finalDesktopBlock.includes("grid-template-rows: auto minmax(0, 1fr) auto"));
+  assert.ok(finalDesktopBlock.includes("padding: 0 16px 0"));
 });
 
 test("the Grimoire rail stays anchored and clickable outside the page grid", () => {

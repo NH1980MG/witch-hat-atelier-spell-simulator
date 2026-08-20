@@ -19,11 +19,11 @@
         window.location.replace("http://127.0.0.1:8000/tutoriel.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260818-grimoire-rail-v1">
+    <link rel="stylesheet" href="styles.css?v=20260819-composition-editor-v3">
     <link rel="icon" type="image/svg+xml" href="assets/brand/atelier-mark.svg">
     <link rel="apple-touch-icon" sizes="180x180" href="assets/brand/atelier-mark-180.png">
     <link rel="icon" type="image/png" sizes="512x512" href="assets/brand/atelier-mark-512.png">
-    <script type="module" src="site-i18n.mjs?v=20260812-project-support-v1"></script>
+    <script type="module" src="site-i18n.mjs?v=20260819-composition-editor-v1"></script>
     <script type="module" src="site-nav.mjs?v=20260810-workshop-menu-v1"></script>
   </head>
   <body>
@@ -113,6 +113,8 @@
             <li data-i18n="tutorial.placement.palette">Sigils and signs combines the complete reference catalog with the direct placement palette.</li>
             <li data-i18n="tutorial.placement.drag">Open Sigils and signs, pick up a symbol like a Scratch block, and drag it to the desired position on the parchment. Release only when the preview indicates a valid drop.</li>
             <li data-i18n="tutorial.placement.select">Right-click a placed symbol to select it. On a touch screen, use a long press.</li>
+            <li data-i18n="tutorial.placement.composition">Open Sigil composition from the Sigils and signs tab to create a default seal, or use the right-click action on a selected circle to edit its detected sigils and signs.</li>
+            <li data-i18n="tutorial.placement.compositionSize">Set Circle size before inscription. The new seal is placed at the center of the visible parchment; an existing seal keeps its position while its radius is adjusted.</li>
             <li data-i18n="tutorial.placement.resize">Use the − and + buttons in the drawing toolbar to shrink or enlarge the selected symbol.</li>
             <li data-i18n="tutorial.placement.moveDelete">Choose the selection tool to drag a selected symbol to a new position. Press Delete or Backspace to remove it, or Escape to clear the selection.</li>
           </ul>
@@ -121,7 +123,7 @@
         <article class="settings-card tutorial-card tutorial-reference-card" id="tracing-guides">
           <h2 data-i18n="tutorial.guides.title">Trace with an onion guide</h2>
           <ul>
-            <li data-i18n="tutorial.guides.library">Open Guides and choose Library to place one of the real reference circles faintly below the drawing.</li>
+            <li data-i18n="tutorial.guides.library">The simulator no longer places unverified library circles as guides. Use My examples for circles you saved yourself.</li>
             <li data-i18n="tutorial.guides.controls">Adjust opacity or hide and show the guide without changing the spell or the archived PNG.</li>
             <li data-i18n="tutorial.guides.personal">Use Save as example beside Archive PNG to keep the current vector circle in My examples. Personal examples can be reused or deleted.</li>
           </ul>
@@ -219,8 +221,8 @@
         <article class="settings-card tutorial-card">
           <span class="step-number">8</span>
           <h2 data-i18n="tutorial.step8.title">Stabilize and target</h2>
-          <p data-i18n="tutorial.step8.body">Orb creates a spherical volume above the seal. Crosshair targets a precise magical aspect. Strengthen increases durability. Solidification makes magic more solid. Stillness holds an effect in place.</p>
-          <p data-i18n="tutorial.step8.examples">Examples: Water Orb = Water + Orb; Rainflinger uses Crosshair to target rain; Snowfending uses Stillness to retain heat.</p>
+          <p data-i18n="tutorial.step8.body">Orb creates a spherical volume above the seal. Crosshair has a long side and a short side: the long side forms the sight line, and the short side points toward the target. Strengthen increases durability. Solidification makes magic more solid. Stillness holds an effect in place.</p>
+          <p data-i18n="tutorial.step8.examples">Examples: Water Orb = Water + Orb; Rainflinger uses Crosshair's short side to point at the rain target; Snowfending uses Stillness to retain heat.</p>
         </article>
 
         <article class="settings-card tutorial-card">

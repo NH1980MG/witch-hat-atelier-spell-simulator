@@ -1348,20 +1348,6 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
   transform: translateX(0);
 }
 
-/* The composition board needs more room than the canvas row when the
-   Grimoire is expanded. Keep the symbol drawer usable without shrinking its
-   panel to the few pixels left above the bottom controls. */
-@media (min-width: 1181px) {
-  .simulator-page.symbols-open .symbol-drawer {
-    position: fixed;
-    z-index: 30;
-    top: 84px;
-    bottom: 12px;
-    max-height: calc(100dvh - 96px);
-    overflow-y: auto;
-  }
-}
-
 .simulator-page.symbols-open .details-drawer,
 .simulator-page.symbols-open .support-drawer,
 .simulator-page.details-open .symbol-drawer,
@@ -1451,6 +1437,8 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
   display: grid;
   gap: 7px;
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   border: 1px solid rgba(140, 107, 63, 0.46);
   border-radius: 12px;
   padding: 8px;
@@ -1468,6 +1456,8 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
 .guide-card-preview {
   display: block;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   aspect-ratio: 1;
   border: 1px solid rgba(140, 107, 63, 0.24);
   border-radius: 8px;
@@ -1509,18 +1499,27 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
 
 .guide-card-actions {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto);
   gap: 6px;
+  min-width: 0;
 }
 
 .guide-card-actions button {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: 34px;
   padding: 5px 8px;
+  overflow-wrap: anywhere;
 }
 
 .guide-card > button:first-child {
   display: grid;
   gap: 7px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   min-height: 0;
   border: 0;
   padding: 0;
@@ -1801,177 +1800,441 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
   overscroll-behavior: contain;
 }
 
+.ink-list[hidden] {
+  display: none !important;
+}
+
 .symbol-drawer-tabs {
   display: grid;
-  flex: 0 0 auto;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin: 2px 0 8px;
+  border-bottom: 1px solid rgba(140, 107, 63, 0.45);
 }
 
 .symbol-drawer-tabs button {
-  min-width: 0;
-  min-height: 38px;
+  min-height: 34px;
   padding: 7px 8px;
-  border: 1px solid rgba(140, 107, 63, 0.48);
-  border-radius: 8px;
-  background: rgba(255, 248, 234, 0.76);
+  border: 1px solid rgba(140, 107, 63, 0.42);
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  background: rgba(159, 133, 88, 0.18);
   color: var(--edge);
-  font-size: 0.75rem;
+  font-size: 0.88rem;
   font-weight: 700;
+  text-align: center;
 }
 
-.symbol-drawer-tabs button[aria-selected="true"] {
-  border-color: var(--gold);
-  background: var(--button-active);
+.symbol-drawer-tabs button.is-active {
+  background: rgba(199, 151, 54, 0.24);
   color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .sigil-composition-panel {
   display: grid;
+  grid-template-rows: auto auto auto minmax(260px, 1fr) auto;
   flex: 1 1 auto;
-  gap: 10px;
+  gap: 9px;
   min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
-  padding-right: 3px;
+  padding-right: 4px;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
-.sigil-composition-panel[hidden],
-.ink-list[hidden] {
-  display: none;
+.sigil-composition-panel[hidden] {
+  display: none !important;
 }
 
-.composition-stage {
+.composition-meta {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: repeat(3, minmax(74px, 1fr));
-  gap: 6px;
-  min-height: 250px;
-  padding: 10px;
-  border: 1px solid rgba(140, 107, 63, 0.46);
-  border-radius: 10px;
-  background:
-    linear-gradient(rgba(199, 151, 54, 0.1), rgba(199, 151, 54, 0.1)),
-    var(--paper);
+  gap: 7px;
+  padding: 8px 9px;
+  border: 1px solid rgba(140, 107, 63, 0.42);
+  border-radius: 7px;
+  background: rgba(255, 248, 234, 0.58);
 }
 
-.composition-stage::before {
-  content: "";
-  grid-column: 2;
-  grid-row: 2;
-  place-self: center;
-  width: 74px;
-  height: 74px;
-  border: 1px dashed rgba(140, 107, 63, 0.56);
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-.composition-slot {
-  z-index: 1;
+.composition-editor-shell {
   display: grid;
-  place-items: center;
-  align-content: center;
-  gap: 4px;
+  grid-template-columns: minmax(150px, 0.72fr) minmax(220px, 1.28fr);
+  gap: 8px;
+  min-height: 360px;
+  align-items: start;
+}
+
+.composition-seal-browser,
+.composition-inspector {
+  display: grid;
+  align-content: start;
+  gap: 7px;
   min-width: 0;
-  min-height: 64px;
-  padding: 5px;
-  border: 1px solid rgba(140, 107, 63, 0.36);
-  border-radius: 8px;
-  background: rgba(255, 252, 244, 0.78);
-  color: var(--ink);
+  max-height: 360px;
+  overflow: auto;
+  padding: 8px;
+  border: 1px solid rgba(140, 107, 63, 0.42);
+  border-radius: 7px;
+  background: rgba(255, 248, 234, 0.58);
 }
 
-.composition-slot[data-composition-slot="center"] { grid-column: 2; grid-row: 2; }
-.composition-slot[data-composition-slot="north"] { grid-column: 2; grid-row: 1; }
-.composition-slot[data-composition-slot="east"] { grid-column: 3; grid-row: 2; }
-.composition-slot[data-composition-slot="south"] { grid-column: 2; grid-row: 3; }
-.composition-slot[data-composition-slot="west"] { grid-column: 1; grid-row: 2; }
-
-.composition-slot.is-selected {
-  border-color: var(--gold);
-  box-shadow: 0 0 0 2px rgba(199, 151, 54, 0.2);
+.composition-editor-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
 }
 
-.composition-slot-label {
-  max-width: 100%;
-  overflow: hidden;
+.composition-editor-heading h3 {
+  margin: 0;
   color: var(--edge);
-  font-size: 0.64rem;
+  font-size: 0.7rem;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.composition-editor-heading button,
+.composition-editor-actions button,
+.composition-tree-add,
+.composition-remove-item {
+  min-height: 30px;
+  padding: 5px 8px;
+  border: 1px solid rgba(140, 107, 63, 0.52);
+  border-radius: 6px;
+  background: rgba(255, 248, 234, 0.94);
+  color: var(--ink);
+  font-size: 0.72rem;
   font-weight: 700;
-  line-height: 1.05;
-  text-align: center;
+}
+
+.composition-seal-list {
+  display: grid;
+  gap: 3px;
+  max-height: 230px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.composition-tree-item,
+.composition-tree-add {
+  width: 100%;
+  min-height: 28px;
+  text-align: left;
+}
+
+.composition-tree-item {
+  padding: 5px 7px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.74rem;
+  font-weight: 700;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.composition-tree-item.is-active {
+  border-color: var(--gold);
+  background: rgba(199, 151, 54, 0.15);
+}
+
+.composition-tree-child {
+  padding-left: 14px;
+  font-weight: 600;
+}
+
+.composition-tree-heading {
+  padding: 3px 5px 1px;
+  color: var(--edge);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.composition-tree-add {
+  min-height: 24px;
+  padding: 3px 7px;
+  color: var(--edge);
+  font-size: 0.67rem;
+}
+
+.composition-editor-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+
+.composition-selection-label {
+  color: var(--edge);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.composition-inspector-content {
+  display: grid;
+  gap: 5px;
+  max-height: 280px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.composition-inspector-field,
+.composition-texture-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(74px, 1.25fr);
+  align-items: center;
+  gap: 6px;
+  color: var(--edge);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.composition-inspector-field input,
+.composition-inspector-field select,
+.composition-texture-field select {
+  width: 100%;
+  min-width: 0;
+  min-height: 28px;
+  padding: 4px 5px;
+  border: 1px solid rgba(140, 107, 63, 0.45);
+  border-radius: 5px;
+  background: rgba(255, 252, 243, 0.92);
+  color: var(--ink);
+  font: inherit;
+}
+
+.composition-inspector-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.composition-remove-item {
+  color: #8b3b32;
+}
+
+.composition-texture-field {
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+.composition-draft-mode {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.composition-size-control {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 8px;
+  align-items: center;
+  color: var(--edge);
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.composition-size-control output {
+  color: var(--ink);
+  font-size: 0.82rem;
+  text-transform: none;
+}
+
+.composition-size-control input {
+  grid-column: 1 / -1;
+  width: 100%;
+  accent-color: var(--gold);
+}
+
+.composition-tool-tray {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.composition-tool-group {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.composition-tool-group h3 {
+  margin: 0;
+  color: var(--edge);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.composition-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(34px, 1fr));
+  gap: 4px;
+  max-height: 82px;
+  overflow: auto;
+  padding-right: 2px;
 }
 
 .composition-chip {
   display: grid;
   place-items: center;
-  box-sizing: border-box;
-  width: 44px;
-  height: 44px;
-  border: 1px dashed rgba(140, 107, 63, 0.46);
-  border-radius: 7px;
-  overflow: hidden;
+  min-width: 0;
+  min-height: 34px;
+  padding: 4px;
+  border: 1px solid rgba(140, 107, 63, 0.5);
+  border-radius: 6px;
+  background: rgba(255, 248, 234, 0.9);
+  color: var(--symbol-color, var(--ink));
 }
 
-.composition-chip .symbol-icon,
-.composition-palette-button .symbol-icon {
-  width: 38px;
-  height: 38px;
-  border: 0;
-  background: transparent;
+.composition-chip.is-active,
+.composition-chip:focus-visible {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(199, 151, 54, 0.24);
 }
 
-.composition-tray-group {
-  display: grid;
-  gap: 5px;
+.composition-stage {
+  position: relative;
+  min-height: 300px;
+  padding: 12px;
+  border: 1px solid rgba(140, 107, 63, 0.45);
+  border-radius: 8px;
+  background:
+    linear-gradient(rgba(255, 248, 234, 0.76), rgba(244, 228, 191, 0.58)),
+    repeating-linear-gradient(0deg, transparent 0 31px, rgba(140, 107, 63, 0.12) 32px);
+  text-align: center;
 }
 
-.composition-tray-group h3 {
-  margin: 0;
+.composition-preview-title {
+  position: absolute;
+  left: 12px;
+  top: 10px;
   color: var(--edge);
   font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
-.composition-tray {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-  max-height: 168px;
-  overflow-y: auto;
-  padding: 2px;
+.composition-preview-seal {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(210px, var(--composition-circle-size, 68%));
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--edge);
+  border-radius: 50%;
 }
 
-.composition-palette-button {
+.composition-document-seal {
+  position: absolute;
+  aspect-ratio: 1;
+  transform-origin: center;
+  cursor: pointer;
+}
+
+.composition-document-outline,
+.composition-document-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  pointer-events: auto;
+}
+
+.composition-document-outline {
+  width: 100%;
+  border: 1px solid rgba(140, 107, 63, 0.52);
+  transform: translate(-50%, -50%);
+}
+
+.composition-document-ring {
+  background: transparent;
+  cursor: pointer;
+}
+
+.composition-document-ring.is-active {
+  box-shadow: 0 0 0 3px rgba(199, 151, 54, 0.2);
+}
+
+.composition-document-element {
+  z-index: 2;
+  width: 48px;
+  min-width: 48px;
+  border-style: solid;
+  background: rgba(255, 248, 234, 0.93);
+}
+
+.composition-document-element[data-slot-kind="sigil"],
+.composition-document-element.is-sigil {
+  width: 58px;
+  min-width: 58px;
+}
+
+.composition-slot {
+  position: absolute;
   display: grid;
   place-items: center;
-  gap: 3px;
-  min-width: 0;
-  min-height: 62px;
-  padding: 5px 3px;
-  border: 1px solid rgba(140, 107, 63, 0.38);
-  border-radius: 7px;
-  background: rgba(255, 248, 234, 0.82);
+  width: 58px;
+  min-width: 58px;
+  aspect-ratio: 1;
+  padding: 5px;
+  border: 1px dashed rgba(140, 107, 63, 0.66);
+  border-radius: 50%;
+  background: rgba(255, 248, 234, 0.8);
+  color: var(--symbol-color, var(--edge));
+  transform: translate(-50%, -50%);
 }
 
-.composition-palette-name {
-  max-width: 100%;
-  overflow: hidden;
+.composition-slot.is-active {
+  border-style: solid;
+  border-color: var(--gold);
+  background: rgba(255, 248, 234, 0.96);
+  box-shadow: 0 0 0 3px rgba(199, 151, 54, 0.2);
+}
+
+.composition-slot[data-slot-kind="sigil"] {
+  width: 70px;
+  min-width: 70px;
+}
+
+.composition-slot-empty {
   color: var(--edge);
-  font-size: 0.62rem;
-  line-height: 1;
-  text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
-.composition-actions {
+.composition-stage .symbol-mark {
+  width: 100%;
+  height: 100%;
+}
+
+.composition-action-row {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 8px;
+}
+
+.composition-clear,
+.composition-cancel,
+.composition-apply {
+  width: 100%;
+  min-height: 40px;
+  border-radius: 7px;
+  font-weight: 700;
 }
 
 .symbol-section {
@@ -2077,85 +2340,21 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
     0 0 0 5px rgba(92, 139, 98, 0.2);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .symbol-drag-ghost {
-    transition: none;
+@media (min-width: 1181px) {
+  .simulator-page.symbols-open .symbol-drawer {
+    position: fixed;
+    z-index: 50;
+    top: 84px;
+    right: 12px;
+    bottom: 12px;
+    max-height: calc(100dvh - 96px);
+    overflow-y: auto;
   }
 }
 
-/* Wide workshops keep the same bottom-sheet behavior as compact layouts. */
-@media (min-width: 1181px) {
-  .grimoire {
-    position: relative;
-    z-index: 18;
-    max-height: 52px;
-    padding: 0 16px 14px;
-    overflow: hidden;
-    transition: max-height 220ms ease;
-  }
-
-  .grimoire.is-open {
-    max-height: min(46dvh, 460px);
-  }
-
-  .grimoire-toggle {
-    display: flex;
-    position: sticky;
-    z-index: 2;
-    top: 0;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    width: 100%;
-    min-height: 50px;
-    border: 0;
-    border-radius: 0;
-    padding: 10px 12px;
-    background: var(--paper);
-    box-shadow: none;
-    color: var(--ink);
-    font-weight: 700;
-  }
-
-  .grimoire-handle {
-    position: absolute;
-    top: 5px;
-    left: 50%;
-    width: 46px;
-    height: 4px;
-    border-radius: 999px;
-    background: rgba(140, 107, 63, 0.54);
-    transform: translateX(-50%);
-  }
-
-  .grimoire-chevron {
-    display: inline-block;
-    font-family: "Courier New", monospace;
-    transform: rotate(0deg);
-    transition: transform 180ms ease;
-  }
-
-  .grimoire.is-open .grimoire-chevron {
-    transform: rotate(180deg);
-  }
-
-  .grimoire-content {
-    min-width: 0;
-    max-height: 0;
-    overflow: hidden;
-    padding: 0 2px;
-    opacity: 0;
-    transition: opacity 150ms ease;
-  }
-
-  .grimoire.is-open .grimoire-content {
-    max-height: calc(min(46dvh, 460px) - 52px);
-    overflow-x: hidden;
-    overflow-y: auto;
-    padding: 4px 2px 14px;
-    opacity: 1;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
+@media (prefers-reduced-motion: reduce) {
+  .symbol-drag-ghost {
+    transition: none;
   }
 }
 
@@ -2327,7 +2526,6 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
   mask-repeat: no-repeat;
   -webkit-mask-size: contain;
   mask-size: contain;
-  transform: translate(0, 0);
 }
 
 .symbol-mark path,
@@ -5036,6 +5234,84 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
   }
 }
 
+
+/* Wide workshops keep the same bottom-sheet behavior as compact layouts. */
+@media (min-width: 1181px) {
+  .grimoire {
+    position: relative;
+    z-index: 18;
+    max-height: 52px;
+    padding: 0 16px 14px;
+    overflow: hidden;
+    transition: max-height 220ms ease;
+  }
+
+  .grimoire.is-open {
+    max-height: min(46dvh, 460px);
+  }
+
+  .grimoire-toggle {
+    display: flex;
+    position: sticky;
+    z-index: 2;
+    top: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 50px;
+    border: 0;
+    border-radius: 0;
+    padding: 10px 12px;
+    background: var(--paper);
+    box-shadow: none;
+    color: var(--ink);
+    font-weight: 700;
+  }
+
+  .grimoire-handle {
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    width: 46px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(140, 107, 63, 0.54);
+    transform: translateX(-50%);
+  }
+
+  .grimoire-chevron {
+    display: inline-block;
+    font-family: "Courier New", monospace;
+    transform: rotate(0deg);
+    transition: transform 180ms ease;
+  }
+
+  .grimoire.is-open .grimoire-chevron {
+    transform: rotate(180deg);
+  }
+
+  .grimoire-content {
+    min-width: 0;
+    max-height: 0;
+    overflow: hidden;
+    padding: 0 2px;
+    opacity: 0;
+    transition: opacity 150ms ease;
+  }
+
+  .grimoire.is-open .grimoire-content {
+    max-height: calc(min(46dvh, 460px) - 52px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 4px 2px 14px;
+    opacity: 1;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+
 /* The atelier route has a dedicated bottom track so the collapsed rail stays clickable. */
 @media (min-width: 1181px) {
   html[data-app-view="atelier"] .app-shell {
@@ -5064,4 +5340,18 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
 
 .grimoire-toggle {
   pointer-events: auto;
+}
+
+@media (max-width: 619px) {
+  .composition-editor-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .composition-seal-list {
+    max-height: 170px;
+  }
+
+  .composition-inspector-content {
+    max-height: none;
+  }
 }

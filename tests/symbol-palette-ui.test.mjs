@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-test("la page expose le tiroir direct et la composition sigilaire", async () => {
+test("la page expose un seul tiroir de symboles sans les anciens outils de taille", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
   for (const id of [
     "symbolToggleButton",
@@ -10,8 +10,8 @@ test("la page expose le tiroir direct et la composition sigilaire", async () => 
     "symbolDrawerTabs",
     "directPaletteTab",
     "sigilCompositionTab",
-    "sigilCompositionPanel",
     "inkList",
+    "sigilCompositionPanel",
     "compositionSigilTray",
     "compositionSignTray",
     "compositionStage",
@@ -28,7 +28,8 @@ test("la page expose le tiroir direct et la composition sigilaire", async () => 
   assert.doesNotMatch(html, /id=["'](?:shrinkSelectionButton|growSelectionButton)["']/);
   assert.doesNotMatch(html, /id=["']placement(?:ToggleButton|Drawer|List)["']/);
   assert.doesNotMatch(html, /id=["']closePlacementButton["']/);
-  assert.match(html, /styles\.css\?v=20260818-grimoire-rail-v1/);
+  assert.doesNotMatch(html, /id=["']composition(?:Sigil|FirstSign|SecondSign)Select["']/);
+  assert.match(html, /styles\.css\?v=20260819-composition-editor-v3/);
   assert.match(html, /app\.js\?v=\d{8}-[^"']+/);
 });
 
@@ -59,16 +60,21 @@ test("l'aide d'alignement et la barre reduite sont cablees dans l'atelier", asyn
 
 test("le tiroir unique et le transport sont styles", async () => {
   const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
+  const compositionPanelRule = css.match(/\.sigil-composition-panel\s*\{([\s\S]*?)\n\}/)?.[1] || "";
 
   assert.match(css, /\.simulator-page\.symbols-open/);
-  assert.match(css, /\.symbol-drag-ghost/);
-  assert.match(css, /\.ink-button/);
   assert.match(css, /\.symbol-drawer-tabs/);
   assert.match(css, /\.sigil-composition-panel/);
   assert.match(css, /\.ink-list\[hidden\]/);
+  assert.match(compositionPanelRule, /overflow-y:\s*auto/);
+  assert.match(compositionPanelRule, /min-height:\s*0/);
+  assert.match(compositionPanelRule, /overscroll-behavior:\s*contain/);
+  assert.match(compositionPanelRule, /-webkit-overflow-scrolling:\s*touch/);
   assert.match(css, /\.composition-stage/);
   assert.match(css, /\.composition-slot/);
   assert.match(css, /\.composition-chip/);
+  assert.match(css, /\.symbol-drag-ghost/);
+  assert.match(css, /\.ink-button/);
   assert.match(css, /\.symbol-mark path,[\s\S]*stroke-width: 2\.2/);
   assert.match(css, /\.simulator-page\.symbols-open\.is-dragging-symbol \.symbol-drawer/);
   assert.doesNotMatch(css, /\.placement-(?:island|drawer|list|card)/);
@@ -107,6 +113,12 @@ test("la palette cable le transport Scratch jusqu'au canevas", async () => {
 
   for (const functionName of [
     "renderInkList",
+    "renderSigilCompositionPanel",
+    "setSymbolDrawerMode",
+    "selectCompositionSlot",
+    "setCompositionSlotElement",
+    "resolveSigilCompositionAnchor",
+    "applySigilComposition",
     "startSymbolDrag",
     "moveSymbolDrag",
     "finishSymbolDrag",
@@ -119,9 +131,78 @@ test("la palette cable le transport Scratch jusqu'au canevas", async () => {
   assert.doesNotMatch(app, /function renderPlacementList\(/);
   assert.doesNotMatch(app, /setPlacementDrawer/);
   assert.match(app, /canDropGlyph/);
+  assert.match(app, /selectedActionIndices[\s\S]*isCompleteSeal/);
+  assert.match(app, /buildSigilCompositionPlacements/);
+  assert.match(app, /state\.circleCenter/);
   assert.match(app, /state\.exporting = true/);
   assert.match(app, /state\.exporting = false/);
   assert.match(readme, /glisser.*Scratch/i);
+});
+
+test("la composition sigillaire possede ses libelles bilingues", async () => {
+  const { translate } = await import("../i18n.mjs");
+
+  for (const key of [
+    "symbols.mode.directPalette",
+    "symbols.mode.sigilComposition",
+    "composition.sigil",
+    "composition.firstSign",
+    "composition.secondSign",
+    "composition.sigilTray",
+    "composition.signTray",
+    "composition.apply",
+    "composition.clear",
+    "composition.emptySign",
+    "composition.preview",
+    "composition.slot.center",
+    "composition.slot.north",
+    "composition.slot.east",
+    "composition.slot.south",
+    "composition.slot.west",
+    "status.sigilCompositionApplied",
+  ]) {
+    assert.notEqual(translate("en", key), key);
+    assert.notEqual(translate("fr", key), key);
+  }
+});
+
+test("la composition expose le mode du sceau, sa taille et l'action du clic droit", async () => {
+  const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  for (const id of [
+    "compositionDraftMode",
+    "compositionCircleSizeInput",
+    "compositionCircleSizeValue",
+    "cancelSigilCompositionButton",
+  ]) {
+    assert.match(html, new RegExp("id=[\\\"']" + id + "[\\\"']"));
+  }
+  assert.match(html, /data-selection-action=["']composition["']/);
+});
+
+test("les libelles du nouveau sceau et de la taille existent en anglais et en francais", async () => {
+  const { translate } = await import("../i18n.mjs");
+  for (const key of [
+    "composition.newSeal",
+    "composition.selectedSeal",
+    "composition.circleSize",
+    "composition.cancel",
+    "selectionMenu.composition",
+  ]) {
+    assert.notEqual(translate("en", key), key);
+    assert.notEqual(translate("fr", key), key);
+  }
+});
+
+test("l'editeur ouvre un brouillon ou le sceau selectionne depuis le clic droit", async () => {
+  const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
+  assert.match(app, /createDefaultSigilComposition/);
+  assert.match(app, /extractSigilComposition/);
+  assert.match(app, /function openSigilCompositionEditor\(/);
+  assert.match(app, /selectedCompositionAnchorIndex/);
+  assert.match(app, /function isCompositionCircleCandidate\(/);
+  assert.match(app, /selectedIndices\.find\(\(index\) => isCompositionCircleCandidate/);
+  assert.match(app, /data-selection-action.*composition|composition.*data-selection-action/);
+  assert.match(app, /isCompleteSeal/);
 });
 
 test("le defilement tactile vertical ne demarre pas le transport d'un symbole", async () => {
@@ -192,34 +273,4 @@ test("la superposition de recherche est stylee", async () => {
   assert.match(css, /\.symbol-search-result\[aria-selected="true"\]/);
   assert.match(css, /\.symbol-drag-ghost\.is-armed/);
   assert.match(css, /\.symbol-drawer-hint/);
-});
-
-test("la composition sigilaire expose ses fonctions de transport et les glyphes restent centres", async () => {
-  const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
-  const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
-
-  for (const functionName of [
-    "renderInkList",
-    "renderSigilCompositionPanel",
-    "setSymbolDrawerMode",
-    "selectCompositionSlot",
-    "setCompositionSlotElement",
-    "resolveSigilCompositionAnchor",
-    "applySigilComposition",
-    "startSymbolDrag",
-    "moveSymbolDrag",
-    "finishSymbolDrag",
-    "cancelSymbolDrag",
-  ]) {
-    assert.match(app, new RegExp("function " + functionName + "\\("));
-  }
-  const renderBody = app.match(/function renderInkList\(\) \{([\s\S]*?)\n\}/)?.[1] || "";
-  assert.match(renderBody, /startSymbolDrag\(event, element\)/);
-  assert.match(app, /canDropGlyph/);
-  assert.match(app, /buildSigilCompositionPlacements/);
-  assert.match(app, /state\.circleCenter/);
-  assert.doesNotMatch(app, /function renderSymbolCompositionBoard\(/);
-  assert.doesNotMatch(css, /\.symbol-composition\s*\{/);
-  assert.match(css, /\.symbol-icon\s*\{[\s\S]*?justify-items:\s*center/);
-  assert.match(css, /\.symbol-board-glyph\s*\{[\s\S]*?display:\s*block/);
 });

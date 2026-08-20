@@ -6,8 +6,8 @@ import { catalogKeys, translate } from "../i18n.mjs";
 const appSource = await readFile(new URL("../app.js", import.meta.url), "utf8");
 const siteI18nSource = await readFile(new URL("../site-i18n.mjs", import.meta.url), "utf8");
 const publicPages = ["index.html", "bibliotheque.html", "tutoriel.html", "parametres.html", "fonctionnement.html"];
-const sharedRevision = "20260812-project-support-v1";
-const styleRevision = "20260818-grimoire-rail-v1";
+const sharedRevision = "20260819-composition-editor-v1";
+const publicAssetRevision = "20260819-composition-editor-v3";
 
 test("the language controller imports the current catalog revision", () => {
   assert.match(siteI18nSource, new RegExp(`from "\\./i18n\\.mjs\\?v=${sharedRevision}"`));
@@ -16,7 +16,7 @@ test("the language controller imports the current catalog revision", () => {
 test("every public page uses the same shared asset revision", async () => {
   for (const page of publicPages) {
     const source = await readFile(new URL(`../${page}`, import.meta.url), "utf8");
-    assert.match(source, new RegExp(`styles\\.css\\?v=${styleRevision}`), `${page}: stale styles revision`);
+    assert.match(source, new RegExp(`styles\\.css\\?v=${publicAssetRevision}`), `${page}: stale styles revision`);
     assert.match(source, new RegExp(`site-i18n\\.mjs\\?v=${sharedRevision}`), `${page}: stale i18n runtime revision`);
   }
 });

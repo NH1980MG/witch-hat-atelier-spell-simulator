@@ -7,7 +7,7 @@ test("l'atelier expose l'onglet Mes sorts et le bouton d'enregistrement", async 
   assert.match(html, /id="galleryToggleButton"[\s\S]*data-i18n="guides\.spells"/);
   assert.match(html, /id="galleryDrawer"[\s\S]*id="guideSpellsList"/);
   assert.match(html, /id="galleryDrawer"[\s\S]*id="publishGalleryButton"/);
-  assert.doesNotMatch(html, /id="guideSpellsTab"/);
+  assert.match(html, /id="guideSpellsTab"/);
   assert.match(html, /id="saveSpellButton"[^>]*data-i18n="commands\.saveSpell"/);
   assert.match(html, /id="spellSaveDialog"/);
   assert.match(html, /id="spellNameInput"/);
@@ -23,8 +23,8 @@ test("app.js branche la bibliotheque de sorts", async () => {
   assert.match(source, /function confirmSaveSpell\(\)/);
   assert.match(source, /function loadMySpell\(id\)/);
   assert.match(source, /function removeMySpell\(id\)/);
-  assert.match(source, /state\.guideTab = \["library", "personal"\]/);
-  assert.doesNotMatch(source, /guideSpellsTab\?\.addEventListener/);
+  assert.match(source, /guideTab/);
+  assert.match(source, /guideSpellsTab\?\.addEventListener/);
   assert.match(source, /saveSpellButton\?\.addEventListener\("click", saveCurrentSpell\)/);
   assert.match(source, /recordHistory\(\);/);
 });
@@ -59,4 +59,13 @@ test("les cles spells existent dans les deux locales, fr sans accents", async ()
   }
   assert.match(source, /"guides\.spells": "Mes sorts"/);
   assert.match(source, /"commands\.saveSpell": "Enregistrer le sort"/);
+});
+
+
+test("les cartes Mes sorts contiennent leurs apercus et leurs actions", async () => {
+  const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
+  assert.match(css, /\.guide-card \{[\s\S]*?min-width: 0;[\s\S]*?overflow: hidden;/);
+  assert.match(css, /\.guide-card img,[\s\S]*?\.guide-card-preview \{[\s\S]*?max-width: 100%;/);
+  assert.match(css, /\.guide-card-actions \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\) minmax\(0, auto\);/);
+  assert.match(css, /\.guide-card-actions button \{[\s\S]*?min-width: 0;/);
 });
