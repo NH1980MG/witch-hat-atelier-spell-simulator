@@ -102,14 +102,14 @@ import {
 import {
   createSpellPhysicsRuntime,
   loadRapier3dCompat,
-} from "./rapier-physics-world.mjs?v=20260819-immersive-v1";
+} from "./rapier-physics-world.mjs?v=20260821-particle-material-v1";
 import {
   cameraPreset,
   canManipulateTarget,
   evaluateWorkshopExperiments,
   nextCameraMode,
   reactionVisualProfile,
-} from "./immersive-3d.mjs?v=20260819-immersive-v1";
+} from "./immersive-3d.mjs?v=20260821-particle-material-v1";
 
 const libraryCircleById = new Map(LIBRARY_CIRCLES.map((circle) => [circle.id, circle]));
 
@@ -575,6 +575,7 @@ const threeView = {
   environmentTargets: [],
   physicsRuntime: null,
   physicsTargetMap: new Map(),
+  particleSummary: { count: 0, byKind: {}, events: [] },
   physicsLoadToken: 0,
   lastPhysicsAt: 0,
   selectedSpell: false,
@@ -5617,6 +5618,7 @@ function clearActiveManifestation(reason = "manual", clearSpell = true) {
   threeView.physicsRuntime = null;
   threeView.physicsTargetMap = new Map();
   threeView.lastPhysicsAt = 0;
+  threeView.particleSummary = { count: 0, byKind: {}, events: [] };
   const group = threeView.spellGroup;
   if (group) {
     if (threeView.scene) {
@@ -5647,6 +5649,7 @@ function clearExpiredManifestation() {
   group && (group.userData.manifestation = null);
   group && (group.userData.animators = []);
   threeView.physicsRuntime = null;
+  threeView.particleSummary = { count: 0, byKind: {}, events: [] };
   threeView.selectedSpell = false;
   threeView.spellDrag = null;
   threeView.controls && (threeView.controls.enabled = true);
@@ -5956,7 +5959,7 @@ async function rebuildThreePhysicsRuntime({ preserveState = false } = {}) {
 
 function reactionMarkerGeometry(kind) {
   if (kind === "impact" || kind === "adhesion" || kind === "restore") return new THREE.TorusGeometry(0.34, kind === "adhesion" ? 0.04 : 0.022, 8, 36);
-  if (kind === "scorch") return new THREE.CylinderGeometry(0.3, 0.36, 0.018, 32);
+  if (kind === "scorch" || kind === "char" || kind === "ash") return new THREE.CylinderGeometry(0.3, 0.36, 0.018, 32);
   if (kind === "flame") return new THREE.ConeGeometry(0.22, 0.62, 10);
   if (kind === "crystal" || kind === "frost") return new THREE.OctahedronGeometry(0.3, 0);
   if (kind === "weight") return new THREE.BoxGeometry(0.46, 0.08, 0.46);
@@ -5978,7 +5981,7 @@ function reactionMarkerMaterial(profile) {
     color: profile.color,
     emissive: emissiveKinds.has(profile.kind) ? profile.color : 0x000000,
     emissiveIntensity: emissiveKinds.has(profile.kind) ? 0.24 + profile.intensity * 0.44 : 0,
-    roughness: profile.kind === "scorch" ? 1 : 0.7,
+    roughness: ["scorch", "char", "ash"].includes(profile.kind) ? 1 : 0.7,
     transparent: true,
     opacity: 0.44 + profile.intensity * 0.38,
   });
@@ -6002,7 +6005,7 @@ function ensureThreeTargetReactionEffect(target, profile) {
   reactionEffect.userData.intensity = profile.intensity;
   const marker = new THREE.Mesh(reactionMarkerGeometry(kind), reactionMarkerMaterial(profile));
   marker.name = `target-reaction-marker-${kind}`;
-  marker.position.y = ["impact", "adhesion", "restore", "scorch", "weight"].includes(kind) ? 0.03 : 0.42;
+  marker.position.y = ["impact", "adhesion", "restore", "scorch", "char", "ash", "weight"].includes(kind) ? 0.03 : 0.42;
   marker.rotation.x = ["impact", "adhesion", "restore"].includes(kind) ? Math.PI / 2 : 0;
   reactionEffect.add(marker);
   if (kind === "flame") {
@@ -6050,6 +6053,9 @@ function renderThreeTargetReaction(target, snapshot) {
     case "loaded":
     case "illuminated":
     case "restored":
+    case "steaming":
+    case "smothered":
+    case "charred":
       ensureThreeTargetReactionEffect(target, profile);
       break;
     default:
@@ -6060,7 +6066,9 @@ function renderThreeTargetReaction(target, snapshot) {
 function syncThreePhysicsTargets() {
   const runtime = threeView.physicsRuntime;
   if (!runtime) return;
-  const snapshots = runtime.snapshot().targets || [];
+  const physicsSnapshot = runtime.snapshot();
+  const snapshots = physicsSnapshot.targets || [];
+  threeView.particleSummary = physicsSnapshot.particles || { count: 0, byKind: {}, events: [] };
   const snapshotById = new Map(snapshots.map((target) => [target.id, target]));
   for (const [id, entry] of runtime.targets) {
     const target = threeView.physicsTargetMap.get(id);

@@ -17,6 +17,9 @@ const REACTION_VISUALS = Object.freeze({
   loaded: { kind: "weight", color: "#50463a", source: "adhesion" },
   illuminated: { kind: "light", color: "#ffe385", source: "illumination" },
   restored: { kind: "restore", color: "#a6db9d", source: "restoration" },
+  steaming: { kind: "steam", color: "#e3efec", source: "steamExposure" },
+  smothered: { kind: "ash", color: "#756b5c", source: "damage" },
+  charred: { kind: "char", color: "#261d19", source: "damage" },
 });
 
 export function reactionVisualProfile(snapshot = {}) {

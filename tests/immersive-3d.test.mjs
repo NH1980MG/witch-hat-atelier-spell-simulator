@@ -14,7 +14,7 @@ test("every Rapier material state has a bounded visual profile", () => {
   const states = [
     "pushed", "heated", "scorched", "burning", "wet", "extinguished",
     "frosted", "crystallized", "damped", "stuck", "loaded",
-    "illuminated", "restored",
+    "illuminated", "restored", "steaming", "smothered", "charred",
   ];
   for (const state of states) {
     const profile = reactionVisualProfile({
@@ -24,6 +24,8 @@ test("every Rapier material state has a bounded visual profile", () => {
       crystalExposure: 4,
       adhesion: 4,
       illumination: 4,
+      steamExposure: 4,
+      damage: 4,
     });
     assert.equal(profile.state, state);
     assert.ok(profile.kind);

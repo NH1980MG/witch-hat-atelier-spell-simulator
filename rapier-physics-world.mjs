@@ -1,5 +1,17 @@
+import { createMaterialParticleRuntime } from "./material-particle-runtime.mjs";
+
 export const RAPIER_COMPAT_VERSION = "0.19.3";
 export const RAPIER_COMPAT_MODULE = "./vendor/rapier/rapier3d-compat.module.js";
+
+const AMBIENT_TEMPERATURE_C = 20;
+const COMBUSTIBLE_MATERIALS = new Set(["cloth", "paper", "plant", "wax", "wood"]);
+const MATERIAL_BURN_RATES = Object.freeze({ cloth: 0.08, paper: 0.18, plant: 0.12, wax: 0.05, wood: 0.04 });
+const PARTICLE_DIRECTIONS = Object.freeze([
+  Object.freeze({ x: 1, y: 0, z: 0 }),
+  Object.freeze({ x: -1, y: 0, z: 0 }),
+  Object.freeze({ x: 0, y: 0, z: 1 }),
+  Object.freeze({ x: 0, y: 0, z: -1 }),
+]);
 
 let rapierLoadPromise = null;
 
@@ -112,8 +124,6 @@ function reactionStateForForce(force = {}) {
   return "pushed";
 }
 
-const COMBUSTIBLE_MATERIALS = new Set(["cloth", "paper", "plant", "wax", "wood"]);
-
 function forceWetsTarget(force = {}) {
   return force.type === "water-field"
     || force.type === "wetting-field"
@@ -149,6 +159,11 @@ function restoreTarget(entry) {
   entry.crystalExposure = 0;
   entry.adhesion = 0;
   entry.illumination = 0;
+  entry.temperatureC = AMBIENT_TEMPERATURE_C;
+  entry.fuel = entry.initialFuel;
+  entry.damage = 0;
+  entry.steamExposure = 0;
+  entry.particleEmissionAccumulator = 0;
   entry.settled = true;
   if (typeof entry.body.setTranslation === "function") {
     entry.body.setTranslation(entry.initialPosition, true);
@@ -176,8 +191,11 @@ function materialReaction(entry, forces, deltaSeconds) {
   }
 
   if (forces.some(forceWetsTarget)) {
+    const wasHot = entry.temperatureC >= 80 || ["heated", "scorched", "burning"].includes(entry.reactionState);
     entry.wetness = Math.min(1, entry.wetness + deltaSeconds * 2.5);
     entry.adhesion = Math.max(0, entry.adhesion - deltaSeconds * 0.5);
+    entry.temperatureC = Math.max(AMBIENT_TEMPERATURE_C, entry.temperatureC - deltaSeconds * 260);
+    if (wasHot) entry.steamExposure = Math.min(1, entry.steamExposure + deltaSeconds * 3);
     if (entry.heatExposure > 0 || ["heated", "scorched", "burning"].includes(entry.reactionState)) {
       entry.heatExposure = 0;
       entry.reactionState = "extinguished";
@@ -194,10 +212,14 @@ function materialReaction(entry, forces, deltaSeconds) {
     entry.wetness = Math.max(0, entry.wetness - deltaSeconds * heat);
     entry.crystalExposure = Math.max(0, entry.crystalExposure - deltaSeconds * heat * 0.25);
     entry.heatExposure += heat * deltaSeconds * (1 - entry.wetness * 0.75);
+    entry.temperatureC = Math.min(900, entry.temperatureC + heat * deltaSeconds * 180);
     if (!COMBUSTIBLE_MATERIALS.has(entry.material)) {
       entry.reactionState = "heated";
+    } else if (entry.fuel <= 0) {
+      entry.reactionState = "charred";
     } else if (entry.heatExposure >= 0.45) {
       entry.reactionState = "burning";
+      entry.damage = Math.min(1, entry.damage + heat * deltaSeconds * 0.03);
     } else if (entry.heatExposure >= 0.2) {
       entry.reactionState = "scorched";
     } else {
@@ -260,8 +282,13 @@ export function createSpellPhysicsRuntime(RAPIER, options = {}) {
   const world = new RAPIER.World(gravity);
   const targets = new Map();
   const colliderTargets = new Map();
+  const particleRuntime = createMaterialParticleRuntime({
+    maxParticles: options.maxInteractionParticles ?? 192,
+    cellSize: options.particleCellSize ?? 0.6,
+  });
   let spellField = null;
   let contacts = new Set();
+  let spellParticleAccumulator = 0;
 
   const groundBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, -0.05, 0));
   world.createCollider(RAPIER.ColliderDesc.cuboid(80, 0.05, 80), groundBody);
@@ -276,6 +303,9 @@ export function createSpellPhysicsRuntime(RAPIER, options = {}) {
     const collider = world.createCollider(colliderForTarget(RAPIER, target), body);
     const initialPosition = body.translation?.() || vector3(target.position, { x: 0, y: 0.35, z: 0 });
     const initialRotation = body.rotation?.() || { x: 0, y: 0, z: 0, w: 1 };
+    const initialFuel = COMBUSTIBLE_MATERIALS.has(target.material)
+      ? Math.max(0, Math.min(1, finiteNumber(target.fuel, 1)))
+      : 0;
     const entry = {
       body,
       collider,
@@ -289,6 +319,12 @@ export function createSpellPhysicsRuntime(RAPIER, options = {}) {
       crystalExposure: 0,
       adhesion: 0,
       illumination: 0,
+      temperatureC: Math.max(AMBIENT_TEMPERATURE_C, finiteNumber(target.temperatureC, AMBIENT_TEMPERATURE_C)),
+      initialFuel,
+      fuel: initialFuel,
+      damage: Math.max(0, Math.min(1, finiteNumber(target.damage, 0))),
+      steamExposure: 0,
+      particleEmissionAccumulator: 0,
       initialPosition: { ...initialPosition },
       initialRotation: { ...initialRotation },
     };
@@ -344,6 +380,181 @@ export function createSpellPhysicsRuntime(RAPIER, options = {}) {
     contacts = nextContacts;
   }
 
+  function entryCollisionRadius(entry) {
+    const collider = entry.target.collider || {};
+    if (collider.type === "cuboid") {
+      const half = vector3(collider.halfExtents, { x: 0.25, y: 0.25, z: 0.25 });
+      return Math.hypot(half.x, half.y, half.z);
+    }
+    if (collider.type === "capsule") {
+      return Math.max(0.05, finiteNumber(collider.radius, 0.2) + finiteNumber(collider.halfHeight, 0.5));
+    }
+    return Math.max(0.05, finiteNumber(entry.target.radius, finiteNumber(collider.radius, 0.3)));
+  }
+
+  function emitRadialPackets({ kind, position, energy, sourceId = null, startRadius = 0, speed = 1.4 }) {
+    for (const direction of PARTICLE_DIRECTIONS) {
+      particleRuntime.emit({
+        kind,
+        sourceId,
+        position: {
+          x: position.x + direction.x * startRadius,
+          y: position.y,
+          z: position.z + direction.z * startRadius,
+        },
+        velocity: { x: direction.x * speed, y: 0, z: direction.z * speed },
+        energy,
+        radius: 0.07,
+        lifeSeconds: 2,
+      });
+    }
+  }
+
+  function particleKindForForce(force) {
+    if (force.type === "thermal-field") return "heat";
+    if (forceWetsTarget(force)) return "water";
+    if (forceCrystallizesTarget(force)) return "frost";
+    if (forceAdheresTarget(force) && !(force.channels || []).includes("wetting")) return "earth";
+    return null;
+  }
+
+  function emitSpellParticles(deltaSeconds) {
+    if (!spellField) return;
+    spellParticleAccumulator += deltaSeconds;
+    while (spellParticleAccumulator >= 0.1) {
+      spellParticleAccumulator -= 0.1;
+      for (const force of spellField.forces) {
+        const kind = particleKindForForce(force);
+        if (!kind) continue;
+        const energy = kind === "heat"
+          ? Math.max(0.08, finiteNumber(force.heat, force.magnitude) * 0.22)
+          : Math.max(0.08, finiteNumber(force.crystal, finiteNumber(force.magnitude, 0.8)) * 0.2);
+        emitRadialPackets({ kind, position: spellField.position, energy, speed: kind === "water" ? 1.1 : 1.5 });
+      }
+    }
+  }
+
+  function advanceMaterialStates(deltaSeconds) {
+    for (const entry of targets.values()) {
+      entry.steamExposure = Math.max(0, entry.steamExposure - deltaSeconds * 0.18);
+      if (entry.reactionState === "burning") {
+        const burnRate = MATERIAL_BURN_RATES[entry.material] || 0.06;
+        const effectiveRate = burnRate * Math.max(0.1, 1 - entry.wetness);
+        entry.fuel = Math.max(0, entry.fuel - effectiveRate * deltaSeconds);
+        entry.damage = Math.min(1, entry.damage + effectiveRate * deltaSeconds * 1.5);
+        entry.temperatureC = Math.max(320, entry.temperatureC);
+        entry.heatExposure = Math.max(0.45, entry.heatExposure);
+        if (entry.fuel <= 0) entry.reactionState = "charred";
+      } else if (entry.temperatureC > AMBIENT_TEMPERATURE_C) {
+        entry.temperatureC = Math.max(
+          AMBIENT_TEMPERATURE_C,
+          entry.temperatureC - deltaSeconds * (6 + entry.wetness * 34),
+        );
+      }
+      if (entry.temperatureC > 45) {
+        entry.wetness = Math.max(0, entry.wetness - deltaSeconds * 0.04);
+      }
+    }
+  }
+
+  function emitBurningTargetParticles(deltaSeconds) {
+    for (const [id, entry] of targets) {
+      if (entry.reactionState !== "burning" || entry.fuel <= 0) continue;
+      entry.particleEmissionAccumulator += deltaSeconds;
+      while (entry.particleEmissionAccumulator >= 0.1) {
+        entry.particleEmissionAccumulator -= 0.1;
+        const position = vector3(entry.body.translation?.() || entry.target.position);
+        emitRadialPackets({
+          kind: "heat",
+          position,
+          sourceId: id,
+          startRadius: entryCollisionRadius(entry) + 0.08,
+          energy: entry.material === "paper" ? 0.35 : 0.28,
+          speed: 1.45,
+        });
+        particleRuntime.emit({
+          kind: "smoke",
+          sourceId: id,
+          position: { x: position.x, y: position.y + entryCollisionRadius(entry), z: position.z },
+          velocity: { x: 0, y: 0.35, z: 0 },
+          energy: 0.15,
+          lifeSeconds: 1.4,
+        });
+      }
+    }
+  }
+
+  function particleWind() {
+    if (!spellField) return { x: 0, y: 0, z: 0 };
+    return spellField.forces.reduce((wind, force) => {
+      if (force.type !== "directed-impulse" && !(force.channels || []).includes("movement")) return wind;
+      const direction = vector3(force.direction, { x: 0, y: 0, z: -1 });
+      const strength = Math.min(4, forceMagnitude(force));
+      wind.x += direction.x * strength;
+      wind.y += direction.y * strength;
+      wind.z += direction.z * strength;
+      return wind;
+    }, { x: 0, y: 0, z: 0 });
+  }
+
+  function particleTargets() {
+    return [...targets].map(([id, entry]) => ({
+      id,
+      material: entry.material,
+      position: vector3(entry.body.translation?.() || entry.target.position),
+      radius: entryCollisionRadius(entry),
+      collider: entry.target.collider,
+    }));
+  }
+
+  function applyParticleEffects(effects = {}) {
+    for (const [id, effect] of Object.entries(effects)) {
+      const entry = targets.get(id);
+      if (!entry) continue;
+      if (effect.water > 0) {
+        const wasHot = entry.temperatureC >= 80 || ["heated", "scorched", "burning"].includes(entry.reactionState);
+        entry.wetness = Math.min(1, entry.wetness + effect.water * 0.22);
+        entry.temperatureC = Math.max(AMBIENT_TEMPERATURE_C, entry.temperatureC - effect.water * 90);
+        entry.heatExposure = Math.max(0, entry.heatExposure - effect.water * 0.3);
+        if (wasHot) entry.steamExposure = Math.min(1, entry.steamExposure + effect.water * 0.4);
+        entry.reactionState = wasHot ? "extinguished" : "wet";
+      }
+      if (effect.smother > 0) {
+        entry.heatExposure = Math.max(0, entry.heatExposure - effect.smother * 0.22);
+        if (entry.reactionState === "burning") entry.reactionState = "smothered";
+      }
+      if (effect.frost > 0) {
+        entry.crystalExposure = Math.min(1, entry.crystalExposure + effect.frost * 0.2);
+        entry.temperatureC = Math.max(-40, entry.temperatureC - effect.frost * 65);
+        entry.reactionState = entry.crystalExposure >= 0.25 ? "crystallized" : "frosted";
+      }
+      if (effect.heat > 0) {
+        entry.temperatureC = Math.min(900, entry.temperatureC + effect.heat * 48);
+        entry.wetness = Math.max(0, entry.wetness - effect.heat * 0.08);
+        entry.heatExposure += effect.heat * 0.14 * (1 - entry.wetness * 0.8);
+        if (!COMBUSTIBLE_MATERIALS.has(entry.material)) {
+          entry.reactionState = "heated";
+        } else if (entry.fuel <= 0) {
+          entry.reactionState = "charred";
+        } else if (entry.heatExposure >= 0.45) {
+          entry.reactionState = "burning";
+        } else if (entry.heatExposure >= 0.2) {
+          entry.reactionState = "scorched";
+        } else {
+          entry.reactionState = "heated";
+        }
+      }
+    }
+  }
+
+  function stepParticlePhysics(deltaSeconds) {
+    emitSpellParticles(deltaSeconds);
+    emitBurningTargetParticles(deltaSeconds);
+    const indirectTargets = particleTargets().filter((target) => !contacts.has(target.id));
+    const result = particleRuntime.step(deltaSeconds, indirectTargets, { wind: particleWind() });
+    applyParticleEffects(result.effects);
+  }
+
   return Object.freeze({
     world,
     targets,
@@ -365,6 +576,7 @@ export function createSpellPhysicsRuntime(RAPIER, options = {}) {
         forces: [...(field.forces || [])],
       };
       contacts = new Set();
+      spellParticleAccumulator = 0;
     },
     setSpellFieldPosition(position = {}) {
       if (spellField) spellField.position = vector3(position, spellField.position);
@@ -387,6 +599,8 @@ export function createSpellPhysicsRuntime(RAPIER, options = {}) {
     resetAllTargets() {
       for (const entry of targets.values()) resetTarget(entry);
       contacts = new Set();
+      particleRuntime.clear();
+      spellParticleAccumulator = 0;
     },
     restoreSnapshots(snapshots = []) {
       let restoredCount = 0;
@@ -405,10 +619,17 @@ export function createSpellPhysicsRuntime(RAPIER, options = {}) {
         entry.crystalExposure = Math.max(0, Math.min(1, finiteNumber(snapshot.crystalExposure)));
         entry.adhesion = Math.max(0, Math.min(1, finiteNumber(snapshot.adhesion)));
         entry.illumination = Math.max(0, Math.min(1, finiteNumber(snapshot.illumination)));
+        entry.temperatureC = Math.max(-40, Math.min(900, finiteNumber(snapshot.temperatureC, AMBIENT_TEMPERATURE_C)));
+        entry.fuel = Math.max(0, Math.min(1, finiteNumber(snapshot.fuel, entry.initialFuel)));
+        entry.damage = Math.max(0, Math.min(1, finiteNumber(snapshot.damage, 0)));
+        entry.steamExposure = Math.max(0, Math.min(1, finiteNumber(snapshot.steamExposure, 0)));
+        entry.particleEmissionAccumulator = 0;
         entry.settled = Boolean(snapshot.settled);
         restoredCount += 1;
       }
       contacts = new Set();
+      particleRuntime.clear();
+      spellParticleAccumulator = 0;
       return restoredCount;
     },
     step(deltaSeconds = 1 / 60) {
@@ -416,6 +637,8 @@ export function createSpellPhysicsRuntime(RAPIER, options = {}) {
       world.timestep = delta;
       world.step();
       applySpellContacts(delta);
+      advanceMaterialStates(delta);
+      stepParticlePhysics(delta);
     },
     snapshot() {
       return {
@@ -433,9 +656,14 @@ export function createSpellPhysicsRuntime(RAPIER, options = {}) {
           crystalExposure: roundPhysicsValue(entry.crystalExposure),
           adhesion: roundPhysicsValue(entry.adhesion),
           illumination: roundPhysicsValue(entry.illumination),
+          temperatureC: roundPhysicsValue(entry.temperatureC),
+          fuel: roundPhysicsValue(entry.fuel),
+          damage: roundPhysicsValue(entry.damage),
+          steamExposure: roundPhysicsValue(entry.steamExposure),
           settled: entry.settled,
         })),
         contacts: [...contacts],
+        particles: particleRuntime.snapshot(),
       };
     },
   });
