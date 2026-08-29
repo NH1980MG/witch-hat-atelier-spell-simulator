@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { translate } from "../i18n.mjs";
 
 test("l'atelier expose le tiroir de guides et la sauvegarde d'exemple", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
@@ -17,9 +18,20 @@ test("l'atelier expose le tiroir de guides et la sauvegarde d'exemple", async ()
     assert.match(html, new RegExp(`id=[\"']${id}[\"']`));
   }
 
-  for (const id of ["guideLibraryTab", "guideSpellsTab", "guideLibraryList", "guideSpellsList"]) {
+  for (const id of [
+    "guideLibraryTab",
+    "guideSpellsTab",
+    "guideLibraryList",
+    "guideSpellsList",
+    "guideSearchInput",
+    "guideCategoryFilter",
+    "guideLibraryTools",
+    "guideLibraryStatus",
+  ]) {
     assert.match(html, new RegExp(`id=[\"']${id}[\"']`));
   }
+  assert.match(html, /role="tablist"/);
+  assert.match(html, /option value="ancient-forbidden"/);
 });
 
 test("l'application cable les guides officiels et personnels sous le dessin", async () => {
@@ -37,6 +49,12 @@ test("l'application cable les guides officiels et personnels sous le dessin", as
   assert.match(app, /function moveGuideResize\(/);
   assert.match(app, /drawActiveGuide\([\s\S]*for \(const action of state\.actions\)/);
   assert.match(app, /guideLibraryTab/);
+  assert.match(app, /guideLibraryQuery/);
+  assert.match(app, /guideLibraryCategory/);
+  assert.match(app, /guideLibraryStatus/);
+  assert.match(app, /guideLibraryTools\.hidden/);
+  assert.match(app, /circle\.alt\?\.\[getLocale\(\)\]/);
+  assert.match(app, /guideLibraryList\.append\(empty\)/);
   assert.match(app, /selectGuide\("library"/);
 });
 
@@ -47,6 +65,27 @@ test("les guides possedent des styles de carte, d'onglet et d'etat actif", async
   assert.match(css, /\.guide-tabs/);
   assert.match(css, /\.guide-card\.is-active/);
   assert.match(css, /\.guide-controls/);
+  assert.match(css, /\.guide-tabs\s*\{[\s\S]*grid-template-columns:\s*repeat\(3/);
+  assert.match(css, /\.guide-library-tools/);
+});
+
+test("les controles de bibliotheque restent traduits dans les deux locales", () => {
+  for (const locale of ["en", "fr"]) {
+    for (const key of [
+      "guides.librarySearch",
+      "guides.librarySearchPlaceholder",
+      "guides.libraryCategory",
+      "guides.category.all",
+      "guides.category.ancientforbidden",
+      "guides.libraryResults",
+      "guides.libraryNoResults",
+      "guides.libraryMeta",
+      "guides.libraryImageMissing",
+      "guides.useNamed",
+    ]) {
+      assert.notEqual(translate(locale, key), key, `${locale}:${key}`);
+    }
+  }
 });
 
 test("tout le tiroir des guides defile sans zone de defilement imbriquee", async () => {

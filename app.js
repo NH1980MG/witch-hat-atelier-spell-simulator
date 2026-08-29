@@ -8,7 +8,7 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260812-particle-field-v1";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260812-particle-field-v1";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260819-composition-editor-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260829-guide-library-v1";
 import {
   SIGIL_COMPOSITION_SLOTS,
   buildSigilCompositionCommitPlan,
@@ -450,6 +450,10 @@ const guideLibraryTab = document.querySelector("#guideLibraryTab");
 const guidePersonalTab = document.querySelector("#guidePersonalTab");
 const guideSpellsTab = document.querySelector("#guideSpellsTab");
 const guideLibraryList = document.querySelector("#guideLibraryList");
+const guideLibraryTools = document.querySelector("#guideLibraryTools");
+const guideSearchInput = document.querySelector("#guideSearchInput");
+const guideCategoryFilter = document.querySelector("#guideCategoryFilter");
+const guideLibraryStatus = document.querySelector("#guideLibraryStatus");
 const guidePersonalList = document.querySelector("#guidePersonalList");
 const guideSpellsList = document.querySelector("#guideSpellsList");
 const guideVisibleInput = document.querySelector("#guideVisibleInput");
@@ -550,6 +554,8 @@ const state = {
   redoStack: [],
   activeGuide: null,
   librarySchematicId: null,
+  guideLibraryQuery: "",
+  guideLibraryCategory: "all",
   guideVisible: localStorage.getItem("whaGuideVisible") !== "false",
   guideOpacity: Math.max(10, Math.min(70, Number(localStorage.getItem("whaGuideOpacity") || 28))),
   userGuides: loadUserGuides(localStorage),
@@ -11100,6 +11106,8 @@ function setGuideTab(tab) {
   if (guideLibraryList) guideLibraryList.hidden = state.guideTab !== "library";
   if (guidePersonalList) guidePersonalList.hidden = state.guideTab !== "personal";
   if (guideSpellsList) guideSpellsList.hidden = state.guideTab !== "spells";
+  if (guideLibraryTools) guideLibraryTools.hidden = state.guideTab !== "library";
+  if (guideLibraryStatus) guideLibraryStatus.hidden = state.guideTab !== "library";
 }
 
 function captureCurrentCanvasRaster() {
@@ -11307,70 +11315,129 @@ function removeMySpell(id) {
 
 
 function renderGuideLists() {
-  if (!guidePersonalList) {
-    return;
-  }
   if (guideLibraryList) {
     guideLibraryList.replaceChildren();
-    for (const circle of LIBRARY_CIRCLES) {
+    const query = state.guideLibraryQuery.trim().toLocaleLowerCase(getLocale());
+    const category = state.guideLibraryCategory;
+    const circles = LIBRARY_CIRCLES.filter((circle) => {
+      if (category !== "all" && circle.category !== category) {
+        return false;
+      }
+      if (!query) {
+        return true;
+      }
+      const searchable = [
+        circle.name,
+        circle.category,
+        ...circle.preview.sigils,
+        ...circle.preview.signs,
+      ].join(" ").toLocaleLowerCase(getLocale());
+      return searchable.includes(query);
+    });
+    if (guideLibraryStatus) {
+      guideLibraryStatus.textContent = circles.length > 0
+        ? t("guides.libraryResults", { count: circles.length, total: LIBRARY_CIRCLES.length })
+        : t("guides.libraryNoResults");
+    }
+    if (circles.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "guide-empty";
+      empty.textContent = t("guides.libraryNoResults");
+      guideLibraryList.append(empty);
+    }
+    for (const circle of circles) {
       const card = document.createElement("article");
-      card.className = "guide-card";
+      const active = state.activeGuide?.source === "library" && state.activeGuide.id === circle.id;
+      card.className = `guide-card${active ? " is-active" : ""}`;
       const button = document.createElement("button");
       button.type = "button";
+      button.dataset.guideAction = "use";
+      button.setAttribute("aria-label", t("guides.useNamed", { name: circle.name }));
       const preview = document.createElement("img");
       preview.className = "guide-card-preview";
       preview.src = guideAssetPath(circle.id);
-      preview.alt = circle.name;
+      preview.alt = circle.alt?.[getLocale()] || circle.name;
+      preview.addEventListener("error", () => {
+        const fallback = document.createElement("span");
+        fallback.className = "guide-card-preview guide-card-missing";
+        fallback.textContent = "◇";
+        fallback.setAttribute("role", "img");
+        fallback.setAttribute("aria-label", t("guides.libraryImageMissing", { name: circle.name }));
+        preview.replaceWith(fallback);
+      }, { once: true });
       const name = document.createElement("span");
       name.className = "guide-card-name";
       name.textContent = circle.name;
       button.append(preview, name);
       button.addEventListener("click", () => selectGuide("library", circle.id));
-      card.append(button);
+      const meta = document.createElement("p");
+      meta.className = "guide-card-meta";
+      meta.textContent = t("guides.libraryMeta", {
+        category: t(`guides.category.${circle.category.replaceAll("-", "")}`),
+        sigils: circle.preview.sigils.map(elementDisplayName).join(", "),
+        signs: circle.preview.signs.map(elementDisplayName).join(", "),
+      });
+      const actions = document.createElement("div");
+      actions.className = "guide-card-actions guide-card-actions-single";
+      const useButton = document.createElement("button");
+      useButton.type = "button";
+      useButton.textContent = t("guides.use");
+      useButton.addEventListener("click", () => selectGuide("library", circle.id));
+      actions.append(useButton);
+      card.append(button, meta, actions);
       guideLibraryList.append(card);
     }
   }
-  guidePersonalList.innerHTML = "";
-  if (state.userGuides.length === 0) {
-    const empty = document.createElement("p");
-    empty.className = "guide-empty";
-    empty.textContent = t("guides.empty");
-    guidePersonalList.append(empty);
-  }
-  for (const guide of state.userGuides) {
-    const card = document.createElement("article");
-    const active = state.activeGuide?.source === "personal" && state.activeGuide.id === guide.id;
-    card.className = `guide-card${active ? " is-active" : ""}`;
-    const useButton = document.createElement("button");
-    useButton.type = "button";
-    const previewSource = guide.raster?.src || buildSpellPreviewDataUrl(guide.actions);
-    if (previewSource) {
-      const preview = document.createElement("img");
-      preview.className = "guide-card-preview";
-      preview.src = previewSource;
-      preview.alt = guide.name;
-      const name = document.createElement("span");
-      name.className = "guide-card-name";
-      name.textContent = guide.name;
-      useButton.append(preview, name);
-    } else {
-      useButton.innerHTML = `<span class="guide-card-preview" aria-hidden="true">&#9678;</span><span class="guide-card-name">${guide.name}</span>`;
+  if (guidePersonalList) {
+    guidePersonalList.replaceChildren();
+    if (state.userGuides.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "guide-empty";
+      empty.textContent = t("guides.empty");
+      guidePersonalList.append(empty);
     }
-    useButton.addEventListener("click", () => selectGuide("personal", guide.id));
-    const actions = document.createElement("div");
-    actions.className = "guide-card-actions";
-    const useTextButton = document.createElement("button");
-    useTextButton.type = "button";
-    useTextButton.textContent = t("guides.use");
-    useTextButton.addEventListener("click", () => selectGuide("personal", guide.id));
-    const deleteButton = document.createElement("button");
-    deleteButton.type = "button";
-    deleteButton.textContent = t("guides.delete");
-    deleteButton.setAttribute("aria-label", t("guides.deleteNamed", { name: guide.name }));
-    deleteButton.addEventListener("click", () => deletePersonalGuide(guide.id));
-    actions.append(useTextButton, deleteButton);
-    card.append(useButton, actions);
-    guidePersonalList.append(card);
+    for (const guide of state.userGuides) {
+      const card = document.createElement("article");
+      const active = state.activeGuide?.source === "personal" && state.activeGuide.id === guide.id;
+      card.className = `guide-card${active ? " is-active" : ""}`;
+      const useButton = document.createElement("button");
+      useButton.type = "button";
+      const previewSource = guide.raster?.src || buildSpellPreviewDataUrl(guide.actions);
+      if (previewSource) {
+        const preview = document.createElement("img");
+        preview.className = "guide-card-preview";
+        preview.src = previewSource;
+        preview.alt = guide.name;
+        const name = document.createElement("span");
+        name.className = "guide-card-name";
+        name.textContent = guide.name;
+        useButton.append(preview, name);
+      } else {
+        const fallback = document.createElement("span");
+        fallback.className = "guide-card-preview";
+        fallback.textContent = "◇";
+        fallback.setAttribute("aria-hidden", "true");
+        const name = document.createElement("span");
+        name.className = "guide-card-name";
+        name.textContent = guide.name;
+        useButton.append(fallback, name);
+      }
+      useButton.addEventListener("click", () => selectGuide("personal", guide.id));
+      const actions = document.createElement("div");
+      actions.className = "guide-card-actions";
+      const useTextButton = document.createElement("button");
+      useTextButton.type = "button";
+      useTextButton.textContent = t("guides.use");
+      useTextButton.addEventListener("click", () => selectGuide("personal", guide.id));
+      const deleteButton = document.createElement("button");
+      deleteButton.type = "button";
+      deleteButton.textContent = t("guides.delete");
+      deleteButton.setAttribute("aria-label", t("guides.deleteNamed", { name: guide.name }));
+      deleteButton.addEventListener("click", () => deletePersonalGuide(guide.id));
+      actions.append(useTextButton, deleteButton);
+      card.append(useButton, actions);
+      guidePersonalList.append(card);
+    }
   }
   setGuideTab(state.guideTab);
   renderSpellList();
@@ -12513,6 +12580,14 @@ gallerySortButtons.forEach((button) => button.addEventListener("click", () => lo
 guideLibraryTab?.addEventListener("click", () => setGuideTab("library"));
 guidePersonalTab?.addEventListener("click", () => setGuideTab("personal"));
 guideSpellsTab?.addEventListener("click", () => setGuideTab("spells"));
+guideSearchInput?.addEventListener("input", () => {
+  state.guideLibraryQuery = guideSearchInput.value;
+  renderGuideLists();
+});
+guideCategoryFilter?.addEventListener("change", () => {
+  state.guideLibraryCategory = guideCategoryFilter.value;
+  renderGuideLists();
+});
 saveSpellButton?.addEventListener("click", saveCurrentSpell);
 publishCommunityButton?.addEventListener("click", publishCurrentCircle);
 publishGalleryButton?.addEventListener("click", publishCurrentCircle);
