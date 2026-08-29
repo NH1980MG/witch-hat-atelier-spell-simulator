@@ -50,7 +50,6 @@
     </script>
     <script type="module" src="site-i18n.mjs?v=20260829-guide-library-v1"></script>
     <script type="module" src="site-nav.mjs?v=20260810-workshop-menu-v1"></script>
-    <script type="module" src="support-project.mjs?v=20260812-project-support-v1"></script>
     <script type="module" src="app.js?v=20260829-guide-library-v1"></script>
   </head>
   <body class="simulator-page app-home-page" data-app-view-title="Atelier">
@@ -188,6 +187,21 @@
                 <button id="close3dButton" type="button" data-i18n-aria-label="atelier.close3d" aria-label="Close the 3D view">&times;</button>
               </div>
             </div>
+            <div class="view3d-workshop-tools" role="toolbar" data-i18n-aria-label="atelier.immersiveTools3d" aria-label="3D workshop tools">
+              <button id="interaction3dButton" type="button" aria-pressed="false" data-i18n="atelier.interact3d">Interact</button>
+              <button id="camera3dButton" type="button" data-i18n="atelier.camera3d">Camera: orbit</button>
+              <button id="sound3dButton" type="button" aria-pressed="false" data-i18n="atelier.sound3d">Sound: off</button>
+              <button id="resetTarget3dButton" type="button" disabled data-i18n="atelier.resetTarget3d">Reset object</button>
+              <button id="resetScene3dButton" type="button" data-i18n="atelier.resetScene3d">Reset scene</button>
+            </div>
+            <aside class="view3d-inspector" id="view3dInspector" aria-live="polite" hidden>
+              <strong id="view3dInspectorName"></strong>
+              <span id="view3dInspectorState"></span>
+            </aside>
+            <aside class="view3d-experiments" id="view3dExperiments">
+              <strong data-i18n="atelier.experiments3d">Workshop experiments</strong>
+              <ol id="view3dExperimentList"></ol>
+            </aside>
             <canvas id="spell3dCanvas" data-i18n-aria-label="atelier.canvas3d" aria-label="Magic circle in 3D"></canvas>
           </div>
           <div class="floating-tools" data-i18n-aria-label="atelier.drawingTools" aria-label="Drawing tools">
