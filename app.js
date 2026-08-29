@@ -34,6 +34,13 @@ import {
   saveUserGuides,
 } from "./guide-storage.mjs?v=20260809-handoff-layout-v2";
 import {
+  normalizeGuideTransform,
+  readGuideTransforms,
+  rotateGuideTransform,
+  translateGuideTransform,
+  writeGuideTransforms,
+} from "./guide-transform.mjs?v=20260829-guide-edit-v1";
+import {
   createSpell,
   deleteMySpell,
   loadMySpells,
@@ -61,10 +68,8 @@ import {
   isSelectableAction,
   planDuplication,
   reorderSelectedActions,
-  resizeGuideScaleFromCorner,
   rotateSelectedActions,
   scaleSelectedActions,
-  scaledGuideBounds,
   selectableIndicesInRect,
   shouldArmLongPress,
   shouldDeferTouchTool,
@@ -459,6 +464,11 @@ const guideSpellsList = document.querySelector("#guideSpellsList");
 const guideVisibleInput = document.querySelector("#guideVisibleInput");
 const guideOpacityInput = document.querySelector("#guideOpacityInput");
 const clearGuideButton = document.querySelector("#clearGuideButton");
+const guideRotationValue = document.querySelector("#guideRotationValue");
+const guideRotateLeftButton = document.querySelector("#guideRotateLeftButton");
+const guideRotateRightButton = document.querySelector("#guideRotateRightButton");
+const guideCenterButton = document.querySelector("#guideCenterButton");
+const guideResetButton = document.querySelector("#guideResetButton");
 const saveExampleButton = document.querySelector("#saveExampleButton");
 const saveSpellButton = document.querySelector("#saveSpellButton");
 const publishCommunityButton = document.querySelector("#publishCommunityButton");
@@ -560,10 +570,14 @@ const state = {
   guideOpacity: Math.max(10, Math.min(70, Number(localStorage.getItem("whaGuideOpacity") || 28))),
   userGuides: loadUserGuides(localStorage),
   mySpells: loadMySpells(localStorage),
+  editingSpellId: null,
   guideTab: "library",
   guideScale: 1,
   guideSelected: false,
   guideResize: null,
+  guideMove: null,
+  guideTransforms: readGuideTransforms(localStorage),
+  guideTransform: normalizeGuideTransform(),
   previousTool: "select",
   ghostOwner: null,
   ghostOwnerBeforeDrag: null,
@@ -8324,9 +8338,117 @@ function activeVectorGuide() {
   return state.userGuides.find((item) => item.id === state.activeGuide.id) || null;
 }
 
+function activeGuideTransformKey() {
+  return state.activeGuide ? `${state.activeGuide.source}:${state.activeGuide.id}` : null;
+}
+
+function guideRotationDegrees(rotation) {
+  const degrees = ((Number(rotation) * 180 / Math.PI) % 360 + 360) % 360;
+  return Math.round(degrees);
+}
+
+function updateGuideTransformControls() {
+  if (!guideRotationValue) return;
+  const active = Boolean(state.activeGuide);
+  guideRotationValue.textContent = active ? `${guideRotationDegrees(state.guideTransform.rotation)} deg` : "-";
+  for (const button of [guideRotateLeftButton, guideRotateRightButton, guideCenterButton, guideResetButton]) {
+    if (button) button.disabled = !active;
+  }
+}
+
+function persistActiveGuideTransform() {
+  const key = activeGuideTransformKey();
+  if (!key) return;
+  state.guideTransforms[key] = normalizeGuideTransform({ ...state.guideTransform, scale: state.guideScale });
+  try {
+    state.guideTransforms = writeGuideTransforms(localStorage, state.guideTransforms);
+  } catch {
+    // The guide remains editable for this session when browser storage is full.
+  }
+}
+
+function setGuideTransform(transform, { persist = true } = {}) {
+  state.guideTransform = normalizeGuideTransform(transform);
+  state.guideScale = state.guideTransform.scale;
+  if (persist) persistActiveGuideTransform();
+  updateGuideTransformControls();
+  render();
+}
+
+function guideTransformForActive() {
+  return normalizeGuideTransform({ ...state.guideTransform, scale: state.guideScale });
+}
+
+function resetGuideTransform({ center = false } = {}) {
+  if (!state.activeGuide) return;
+  const current = guideTransformForActive();
+  setGuideTransform(center ? { ...current, x: 0, y: 0 } : { x: 0, y: 0, rotation: 0, scale: 1 });
+  setStatus(t(center ? "status.guideCentered" : "status.guideReset"));
+}
+
+function rotateActiveGuide(radians) {
+  if (!state.activeGuide) return;
+  setGuideTransform(rotateGuideTransform(guideTransformForActive(), radians));
+  setStatus(t("status.guideRotated", { degrees: guideRotationDegrees(state.guideTransform.rotation) }));
+}
+
+function guideTransformCenter(bounds) {
+  return {
+    x: (bounds.left + bounds.right) / 2,
+    y: (bounds.top + bounds.bottom) / 2,
+  };
+}
+
+function transformedGuideBounds(bounds, transform) {
+  const center = guideTransformCenter(bounds);
+  const current = normalizeGuideTransform(transform);
+  const halfWidth = bounds.width * current.scale / 2;
+  const halfHeight = bounds.height * current.scale / 2;
+  const cosine = Math.cos(current.rotation);
+  const sine = Math.sin(current.rotation);
+  const extentX = Math.abs(halfWidth * cosine) + Math.abs(halfHeight * sine);
+  const extentY = Math.abs(halfWidth * sine) + Math.abs(halfHeight * cosine);
+  const transformedCenter = { x: center.x + current.x, y: center.y + current.y };
+  return {
+    left: transformedCenter.x - extentX,
+    right: transformedCenter.x + extentX,
+    top: transformedCenter.y - extentY,
+    bottom: transformedCenter.y + extentY,
+    width: extentX * 2,
+    height: extentY * 2,
+  };
+}
+
+function guidePointInside(point, bounds, transform) {
+  const center = guideTransformCenter(bounds);
+  const current = normalizeGuideTransform(transform);
+  const dx = point.x - center.x - current.x;
+  const dy = point.y - center.y - current.y;
+  const cosine = Math.cos(current.rotation);
+  const sine = Math.sin(current.rotation);
+  const localX = (dx * cosine + dy * sine) / current.scale;
+  const localY = (-dx * sine + dy * cosine) / current.scale;
+  return Math.abs(localX) <= bounds.width / 2 && Math.abs(localY) <= bounds.height / 2;
+}
+
+function guideScaleForPoint(point, bounds, transform) {
+  const current = normalizeGuideTransform(transform);
+  const center = guideTransformCenter(bounds);
+  const dx = point.x - center.x - current.x;
+  const dy = point.y - center.y - current.y;
+  const cosine = Math.cos(current.rotation);
+  const sine = Math.sin(current.rotation);
+  const localX = Math.abs(dx * cosine + dy * sine);
+  const localY = Math.abs(-dx * sine + dy * cosine);
+  return Math.max(
+    0.25,
+    Math.round(Math.max(localX / Math.max(0.5, bounds.width / 2), localY / Math.max(0.5, bounds.height / 2)) * 100) / 100,
+  );
+}
+
 function activeGuideBounds(width, height) {
   const base = activeGuideBaseBounds(width, height);
-  return base ? scaledGuideBounds(base, state.guideScale) : null;
+  return base ? transformedGuideBounds(base, { ...state.guideTransform, scale: state.guideScale }) : null;
 }
 
 function drawActiveGuide(width, height) {
@@ -8336,7 +8458,8 @@ function drawActiveGuide(width, height) {
   ctx.save();
   ctx.globalAlpha = state.guideOpacity / 100;
   const baseBounds = activeGuideBaseBounds(width, height);
-  const scaledBounds = baseBounds ? scaledGuideBounds(baseBounds, state.guideScale) : null;
+  const guideTransform = guideTransformForActive();
+  const scaledBounds = baseBounds ? transformedGuideBounds(baseBounds, guideTransform) : null;
   if (!baseBounds || !scaledBounds) {
     ctx.restore();
     return;
@@ -8344,20 +8467,29 @@ function drawActiveGuide(width, height) {
   if (state.activeGuide.source === "library") {
     const image = libraryGuideImage(state.activeGuide.id);
     if (image.complete && image.naturalWidth > 0) {
-      ctx.drawImage(image, scaledBounds.left, scaledBounds.top, scaledBounds.width, scaledBounds.height);
+      const center = guideTransformCenter(baseBounds);
+      ctx.translate(center.x + guideTransform.x, center.y + guideTransform.y);
+      ctx.rotate(guideTransform.rotation);
+      ctx.scale(guideTransform.scale, guideTransform.scale);
+      ctx.drawImage(image, -baseBounds.width / 2, -baseBounds.height / 2, baseBounds.width, baseBounds.height);
     }
   } else {
     const guide = activeVectorGuide();
     if (guide?.raster) {
       const image = personalGuideImage(guide);
       if (image?.complete && image.naturalWidth > 0) {
-        ctx.drawImage(image, scaledBounds.left, scaledBounds.top, scaledBounds.width, scaledBounds.height);
+        const center = guideTransformCenter(baseBounds);
+        ctx.translate(center.x + guideTransform.x, center.y + guideTransform.y);
+        ctx.rotate(guideTransform.rotation);
+        ctx.scale(guideTransform.scale, guideTransform.scale);
+        ctx.drawImage(image, -baseBounds.width / 2, -baseBounds.height / 2, baseBounds.width, baseBounds.height);
       }
     } else {
       const centerX = (baseBounds.left + baseBounds.right) / 2;
       const centerY = (baseBounds.top + baseBounds.bottom) / 2;
-      ctx.translate(centerX, centerY);
-      ctx.scale(state.guideScale, state.guideScale);
+      ctx.translate(centerX + guideTransform.x, centerY + guideTransform.y);
+      ctx.rotate(guideTransform.rotation);
+      ctx.scale(guideTransform.scale, guideTransform.scale);
       ctx.translate(-centerX, -centerY);
       for (const action of guide?.actions || []) {
         drawAction(action);
@@ -8820,6 +8952,7 @@ function beginGuideResize(event, point) {
     pointerId: event.pointerId,
     handle,
     startScale: state.guideScale,
+    startTransform: guideTransformForActive(),
   };
   canvas.style.cursor = ["nw", "se"].includes(handle) ? "nwse-resize" : "nesw-resize";
   return true;
@@ -8834,7 +8967,9 @@ function moveGuideResize(point) {
   if (!baseBounds) {
     return;
   }
-  state.guideScale = resizeGuideScaleFromCorner(baseBounds, point);
+  state.guideScale = guideScaleForPoint(point, baseBounds, state.guideResize.startTransform);
+  state.guideTransform = normalizeGuideTransform({ ...state.guideTransform, scale: state.guideScale });
+  updateGuideTransformControls();
   render();
 }
 
@@ -8847,6 +8982,7 @@ function finishGuideResize(point) {
   state.pointerDown = false;
   state.start = null;
   canvas.style.cursor = "default";
+  persistActiveGuideTransform();
   setStatus(t("status.guideResized", { scale: Math.round(state.guideScale * 100) }));
   render();
 }
@@ -8856,10 +8992,81 @@ function cancelGuideResize() {
     return;
   }
   state.guideScale = state.guideResize.startScale;
+  state.guideTransform = state.guideResize.startTransform;
   state.guideResize = null;
   state.pointerDown = false;
   state.start = null;
   canvas.style.cursor = "default";
+  render();
+}
+
+function beginGuideMove(event, point) {
+  if (!state.guideSelected || !state.activeGuide) return false;
+  const { width, height } = canvasSize();
+  const bounds = activeGuideBaseBounds(width, height);
+  if (!bounds || !guidePointInside(point, bounds, guideTransformForActive())) return false;
+  state.guideMove = {
+    pointerId: event.pointerId,
+    start: point,
+    startTransform: guideTransformForActive(),
+    moved: false,
+  };
+  canvas.style.cursor = "move";
+  return true;
+}
+
+function moveGuide(point) {
+  if (!state.guideMove) return;
+  const drag = state.guideMove;
+  const nextTransform = translateGuideTransform(
+    drag.startTransform,
+    point.x - drag.start.x,
+    point.y - drag.start.y,
+  );
+  const { width, height } = canvasSize();
+  const baseBounds = activeGuideBaseBounds(width, height);
+  if (baseBounds) {
+    const limit = drawingLimitBounds(width, height);
+    const candidate = transformedGuideBounds(baseBounds, nextTransform);
+    const center = guideTransformCenter(baseBounds);
+    const minX = limit.left + candidate.width / 2 - center.x;
+    const maxX = limit.right - candidate.width / 2 - center.x;
+    const minY = limit.top + candidate.height / 2 - center.y;
+    const maxY = limit.bottom - candidate.height / 2 - center.y;
+    nextTransform.x = Math.max(Math.min(minX, maxX), Math.min(maxX, Math.max(minX, nextTransform.x)));
+    nextTransform.y = Math.max(Math.min(minY, maxY), Math.min(maxY, Math.max(minY, nextTransform.y)));
+  }
+  state.guideTransform = normalizeGuideTransform(nextTransform);
+  state.guideScale = state.guideTransform.scale;
+  drag.moved = Math.hypot(point.x - drag.start.x, point.y - drag.start.y) > 2;
+  updateGuideTransformControls();
+  render();
+}
+
+function finishGuideMove(point) {
+  if (!state.guideMove) return;
+  moveGuide(point);
+  const moved = state.guideMove.moved;
+  state.guideMove = null;
+  state.pointerDown = false;
+  state.start = null;
+  canvas.style.cursor = "default";
+  if (moved) {
+    persistActiveGuideTransform();
+    setStatus(t("status.guideMoved"));
+  }
+  render();
+}
+
+function cancelGuideMove() {
+  if (!state.guideMove) return;
+  state.guideTransform = state.guideMove.startTransform;
+  state.guideScale = state.guideTransform.scale;
+  state.guideMove = null;
+  state.pointerDown = false;
+  state.start = null;
+  canvas.style.cursor = "default";
+  updateGuideTransformControls();
   render();
 }
 
@@ -9431,12 +9638,7 @@ function onPointerDown(event) {
     }
     const { width, height } = canvasSize();
     const guideBounds = state.guideSelected ? activeGuideBounds(width, height) : null;
-    if (guideBounds && point.x >= guideBounds.left && point.x <= guideBounds.right &&
-      point.y >= guideBounds.top && point.y <= guideBounds.bottom) {
-      state.pointerDown = false;
-      state.start = null;
-      setStatus(t("status.guideResizeReady"));
-      render();
+    if (guideBounds && beginGuideMove(event, point)) {
       return;
     }
     beginSelectionDrag(event, point);
@@ -9527,12 +9729,20 @@ function onPointerMove(event) {
           : ["ne", "sw"].includes(handle)
             ? "nesw-resize"
             : "default";
+      if (!handle && state.guideSelected && state.activeGuide) {
+        const baseBounds = activeGuideBaseBounds(width, height);
+        if (baseBounds && guidePointInside(hoverPoint, baseBounds, guideTransformForActive())) {
+          canvas.style.cursor = "move";
+        }
+      }
     }
     return;
   }
 
   const point = clampPointToDrawingLimit(pointFromEvent(event));
-  if (state.tool === "select" && state.guideResize?.pointerId === event.pointerId) {
+  if (state.tool === "select" && state.guideMove?.pointerId === event.pointerId) {
+    moveGuide(point);
+  } else if (state.tool === "select" && state.guideResize?.pointerId === event.pointerId) {
     moveGuideResize(point);
   } else if (state.tool === "free" && state.currentAction) {
     state.currentAction.points.push(point);
@@ -9588,6 +9798,11 @@ function onPointerUp(event) {
     return;
   }
 
+  if (state.guideMove?.pointerId === event.pointerId) {
+    finishGuideMove(clampPointToDrawingLimit(pointFromEvent(event)));
+    return;
+  }
+
   if (!state.pointerDown) {
     return;
   }
@@ -9625,6 +9840,9 @@ function onPointerCancel(event) {
   }
   if (state.guideResize?.pointerId === event.pointerId) {
     cancelGuideResize();
+  }
+  if (state.guideMove?.pointerId === event.pointerId) {
+    cancelGuideMove();
   }
   if (state.deferredTouchTool?.pointerId === event.pointerId) {
     state.deferredTouchTool = null;
@@ -11078,7 +11296,9 @@ function guideAssetPath(id) {
 
 function selectGuide(source, id) {
   state.activeGuide = { source, id };
-  state.guideScale = 1;
+  const savedTransform = state.guideTransforms[activeGuideTransformKey()] || normalizeGuideTransform();
+  state.guideTransform = normalizeGuideTransform(savedTransform);
+  state.guideScale = state.guideTransform.scale;
   state.guideSelected = true;
   state.selectedActionIndices = [];
   setTool("select");
@@ -11089,6 +11309,7 @@ function selectGuide(source, id) {
   }
   updateToolButtons();
   updateSelectionControls();
+  updateGuideTransformControls();
   renderGuideLists();
   setGuideDrawer(false);
   render();
@@ -11108,6 +11329,7 @@ function setGuideTab(tab) {
   if (guideSpellsList) guideSpellsList.hidden = state.guideTab !== "spells";
   if (guideLibraryTools) guideLibraryTools.hidden = state.guideTab !== "library";
   if (guideLibraryStatus) guideLibraryStatus.hidden = state.guideTab !== "library";
+  updateGuideTransformControls();
 }
 
 function captureCurrentCanvasRaster() {
@@ -11242,12 +11464,17 @@ function renderSpellList() {
     loadButton.dataset.guideAction = "load";
     loadButton.textContent = t("spells.load");
     loadButton.addEventListener("click", () => loadMySpell(spell.id));
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.dataset.guideAction = "edit";
+    editButton.textContent = t("spells.edit");
+    editButton.addEventListener("click", () => editMySpell(spell.id));
     const deleteButton = document.createElement("button");
     deleteButton.type = "button";
     deleteButton.textContent = t("spells.delete");
     deleteButton.setAttribute("aria-label", t("spells.deleteNamed", { name: spell.name }));
     deleteButton.addEventListener("click", () => removeMySpell(spell.id));
-    actions.append(guideButton, loadButton, deleteButton);
+    actions.append(guideButton, loadButton, editButton, deleteButton);
     card.append(useButton, meta, actions);
     guideSpellsList.append(card);
   }
@@ -11260,7 +11487,8 @@ function saveCurrentSpell() {
     return;
   }
   if (spellNameInput) {
-    spellNameInput.value = t("spells.defaultName", { count: state.mySpells.length + 1 });
+    const editingSpell = state.mySpells.find(({ id }) => id === state.editingSpellId);
+    spellNameInput.value = editingSpell?.name || t("spells.defaultName", { count: state.mySpells.length + 1 });
   }
   spellSaveDialog?.showModal();
   spellNameInput?.focus();
@@ -11270,14 +11498,19 @@ function saveCurrentSpell() {
 function confirmSaveSpell() {
   const name = spellNameInput?.value.trim() || t("spells.defaultName", { count: state.mySpells.length + 1 });
   try {
+    const editingSpell = state.mySpells.find(({ id }) => id === state.editingSpellId);
     const spell = createSpell({
       name,
       actions: state.actions,
       intensity: diameterPowerLevel(estimatedCircleDiameterMeters()),
       stroke: state.strokeSize,
       raster: captureCurrentCanvasRaster(),
-    });
-    state.mySpells = saveMySpells(localStorage, [spell, ...state.mySpells]);
+    }, editingSpell ? { id: editingSpell.id, createdAt: editingSpell.createdAt } : {});
+    const nextSpells = editingSpell
+      ? state.mySpells.map((item) => item.id === editingSpell.id ? spell : item)
+      : [spell, ...state.mySpells];
+    state.mySpells = saveMySpells(localStorage, nextSpells);
+    state.editingSpellId = null;
     renderSpellList();
     spellSaveDialog?.close();
     setStatus(t("spells.status.saved", { name: spell.name }));
@@ -11294,6 +11527,7 @@ function loadMySpell(id) {
   }
   recordHistory();
   state.actions = structuredClone(spell.actions);
+  state.editingSpellId = id;
   state.librarySchematicId = null;
   state.activeSpell = null;
   state.pendingSpell = null;
@@ -11306,9 +11540,19 @@ function loadMySpell(id) {
   setStatus(t("spells.status.loaded", { name: spell.name }));
 }
 
+function editMySpell(id) {
+  const spell = state.mySpells.find((entry) => entry.id === id);
+  if (!spell) return;
+  loadMySpell(id);
+  const anchorIndex = state.actions.findIndex((action) => isCompositionCircleCandidate(action));
+  openSigilCompositionEditor(anchorIndex >= 0 ? anchorIndex : null, "spell");
+  setStatus(t("spells.status.editing", { name: spell.name }));
+}
+
 function removeMySpell(id) {
   const spell = state.mySpells.find((entry) => entry.id === id);
   state.mySpells = saveMySpells(localStorage, deleteMySpell(state.mySpells, id));
+  if (state.editingSpellId === id) state.editingSpellId = null;
   renderSpellList();
   setStatus(t("spells.status.deleted", { name: spell?.name || "" }));
 }
@@ -11455,7 +11699,8 @@ function saveCurrentCircleAsGuide() {
     });
     state.userGuides = saveUserGuides(localStorage, [guide, ...state.userGuides]);
     state.activeGuide = { source: "personal", id: guide.id };
-    state.guideScale = 1;
+    state.guideTransform = normalizeGuideTransform(state.guideTransforms[activeGuideTransformKey()]);
+    state.guideScale = state.guideTransform.scale;
     state.guideSelected = true;
     state.selectedActionIndices = [];
     setTool("select");
@@ -11483,6 +11728,7 @@ function deletePersonalGuide(id) {
     state.activeGuide = null;
     state.guideSelected = false;
     state.guideScale = 1;
+    state.guideTransform = normalizeGuideTransform();
   }
   renderGuideLists();
   render();
@@ -12613,11 +12859,17 @@ guideOpacityInput?.addEventListener("input", () => {
   localStorage.setItem("whaGuideOpacity", String(state.guideOpacity));
   render();
 });
+guideRotateLeftButton?.addEventListener("click", () => rotateActiveGuide(-Math.PI / 2));
+guideRotateRightButton?.addEventListener("click", () => rotateActiveGuide(Math.PI / 2));
+guideCenterButton?.addEventListener("click", () => resetGuideTransform({ center: true }));
+guideResetButton?.addEventListener("click", () => resetGuideTransform());
 clearGuideButton?.addEventListener("click", () => {
   state.activeGuide = null;
   state.guideSelected = false;
   state.guideResize = null;
   state.guideScale = 1;
+  state.guideTransform = normalizeGuideTransform();
+  updateGuideTransformControls();
   renderGuideLists();
   render();
   setStatus(t("status.guideRemoved"));
@@ -13516,7 +13768,8 @@ function recreatePhotoImport() {
 
 function activateRasterGuide(guide) {
   state.activeGuide = { source: "personal", id: guide.id };
-  state.guideScale = 1;
+  state.guideTransform = normalizeGuideTransform(state.guideTransforms[activeGuideTransformKey()]);
+  state.guideScale = state.guideTransform.scale;
   state.guideSelected = true;
   state.selectedActionIndices = [];
   setTool("select");
@@ -13530,6 +13783,7 @@ function activateRasterGuide(guide) {
   renderGuideLists();
   updateToolButtons();
   updateSelectionControls();
+  updateGuideTransformControls();
   render();
 }
 
@@ -13931,6 +14185,7 @@ renderInkList();
 renderSigilCompositionPanel();
 renderSupportList();
 renderGuideLists();
+updateGuideTransformControls();
 updateToolButtons();
 syncWorkspaceModes();
 updateSelectionControls();

@@ -56,6 +56,10 @@ test("l'application cable les guides officiels et personnels sous le dessin", as
   assert.match(app, /circle\.alt\?\.\[getLocale\(\)\]/);
   assert.match(app, /guideLibraryList\.append\(empty\)/);
   assert.match(app, /selectGuide\("library"/);
+  assert.match(app, /function beginGuideMove\(/);
+  assert.match(app, /function rotateActiveGuide\(/);
+  assert.match(app, /readGuideTransforms/);
+  assert.match(app, /function editMySpell\(/);
 });
 
 test("les guides possedent des styles de carte, d'onglet et d'etat actif", async () => {
