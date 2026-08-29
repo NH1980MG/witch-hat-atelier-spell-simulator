@@ -221,6 +221,9 @@ function normalizeSymbol(symbol = {}, type = "sigil") {
     y: finiteOr(symbol.y, 0),
     size: positiveOr(symbol.size, 1),
     rotation: finiteOr(symbol.rotation, 0),
+    orbitRadius: Math.max(0, finiteOr(symbol.orbitRadius, 0)),
+    repeatCount: Math.max(1, Math.round(finiteOr(symbol.repeatCount, 1))),
+    ringRotation: finiteOr(symbol.ringRotation, 0),
     color: symbol.color || null,
     texture: symbol.texture ? normalizeTexture(symbol.texture) : null,
     ...("sourceIndex" in symbol ? { sourceIndex: symbol.sourceIndex } : {}),
@@ -236,6 +239,31 @@ function normalizeSymbol(symbol = {}, type = "sigil") {
     normalized.offsetY = finiteOr(symbol.offsetY, 0);
   }
   return normalized;
+}
+
+export function buildCompositionSymbolPlacements(symbol = {}, seal = {}) {
+  const center = {
+    x: finiteOr(seal.center?.x, 0),
+    y: finiteOr(seal.center?.y, 0),
+  };
+  const repeatCount = Math.max(1, Math.round(finiteOr(symbol.repeatCount, 1)));
+  const orbitRadius = Math.max(0, finiteOr(symbol.orbitRadius, 0));
+  const ringRotation = finiteOr(symbol.ringRotation, 0);
+  if (repeatCount === 1 && orbitRadius === 0) {
+    return [{
+      x: finiteOr(symbol.x, center.x),
+      y: finiteOr(symbol.y, center.y),
+      rotation: finiteOr(symbol.rotation, 0),
+    }];
+  }
+  return Array.from({ length: repeatCount }, (_, index) => {
+    const angle = ringRotation + (Math.PI * 2 * index) / repeatCount;
+    return {
+      x: center.x + Math.cos(angle) * orbitRadius,
+      y: center.y + Math.sin(angle) * orbitRadius,
+      rotation: finiteOr(symbol.rotation, 0),
+    };
+  });
 }
 
 function normalizeLine(line = {}) {
@@ -349,7 +377,9 @@ function compileSymbol(item, kind, seal = null) {
       ? item.angle
       : Math.atan2(finiteOr(item.y, 0) - finiteOr(seal?.center?.y, 0), finiteOr(item.x, 0) - finiteOr(seal?.center?.x, 0));
     const radius = finiteOr(item.circleRadius, 0);
-    if (seal && radius > 0) {
+    const usesParametricRing = Math.max(1, Math.round(finiteOr(item.repeatCount, 1))) > 1
+      || finiteOr(item.orbitRadius, 0) > 0;
+    if (!usesParametricRing && seal && radius > 0) {
       const angle = currentAngle + finiteOr(item.circleRotation, 0);
       action.x = seal.center.x + Math.cos(angle) * radius + finiteOr(item.offsetX, 0);
       action.y = seal.center.y + Math.sin(angle) * radius + finiteOr(item.offsetY, 0);
@@ -392,11 +422,22 @@ export function compileCompositionDocument(document = {}) {
       return leftIndex - rightIndex;
     });
     items.forEach((item) => {
-      const action = item.type === "ring"
-        ? compileRing(item)
-        : item.type === "line"
-          ? compileLine(item)
-          : compileSymbol(item, item.type, seal);
+      if (item.type === "sigil" || item.type === "sign") {
+        const placements = buildCompositionSymbolPlacements(item, seal);
+        placements.forEach((placement, index) => {
+          const repeated = placements.length > 1;
+          const instance = {
+            ...item,
+            ...placement,
+            ...(repeated ? { id: `${item.id}-${index + 1}` } : {}),
+          };
+          const action = compileSymbol(instance, item.type, seal);
+          if (!item.sourceAction || repeated) action.sealId = seal.id;
+          ordered.push(action);
+        });
+        return;
+      }
+      const action = item.type === "ring" ? compileRing(item) : compileLine(item);
       if (!item.sourceAction) action.sealId = seal.id;
       ordered.push(action);
     });

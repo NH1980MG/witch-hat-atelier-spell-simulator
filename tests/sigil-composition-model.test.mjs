@@ -3,11 +3,65 @@ import assert from "node:assert/strict";
 
 import {
   applyCompositionTexture,
+  buildCompositionSymbolPlacements,
   calibrateCompositionElement,
   compileCompositionDocument,
   extractCompositionDocument,
   normalizeCompositionDocument,
 } from "../sigil-composition-model.mjs";
+
+test("buildCompositionSymbolPlacements distributes sigils on a configurable ring", () => {
+  const placements = buildCompositionSymbolPlacements({
+    id: "water-ring",
+    type: "sigil",
+    symbol: "Eau",
+    x: 100,
+    y: 100,
+    size: 24,
+    rotation: Math.PI / 6,
+    orbitRadius: 60,
+    repeatCount: 4,
+    ringRotation: Math.PI / 2,
+  }, { center: { x: 100, y: 100 } });
+
+  assert.equal(placements.length, 4);
+  assert.deepEqual(placements.map(({ x, y }) => [Math.round(x), Math.round(y)]), [
+    [100, 160],
+    [40, 100],
+    [100, 40],
+    [160, 100],
+  ]);
+  assert.ok(placements.every(({ rotation }) => rotation === Math.PI / 6));
+});
+
+test("compileCompositionDocument emits every repeated symbol as a native glyph", () => {
+  const actions = compileCompositionDocument({
+    seals: [{
+      id: "seal-ring",
+      center: { x: 200, y: 180 },
+      radius: 120,
+      rings: [],
+      sigils: [{
+        id: "sigil-water",
+        type: "sigil",
+        symbol: "Eau",
+        x: 200,
+        y: 180,
+        size: 30,
+        rotation: 0,
+        orbitRadius: 80,
+        repeatCount: 3,
+        ringRotation: 0,
+      }],
+      signs: [],
+      lines: [],
+    }],
+  });
+
+  assert.equal(actions.length, 3);
+  assert.deepEqual(actions.map(({ id }) => id), ["sigil-water-1", "sigil-water-2", "sigil-water-3"]);
+  assert.ok(actions.every(({ type, kind, element }) => type === "glyph" && kind === "sigil" && element === "Eau"));
+});
 
 test("extractCompositionDocument preserves every action and groups a seal", () => {
   const document = extractCompositionDocument({

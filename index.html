@@ -39,7 +39,7 @@
         document.documentElement.dataset.appView = "atelier";
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260829-guide-library-v1">
+    <link rel="stylesheet" href="styles.css?v=20260829-parametric-rings-v1">
     <script type="importmap">
       {
         "imports": {
@@ -48,9 +48,9 @@
         }
       }
     </script>
-    <script type="module" src="site-i18n.mjs?v=20260829-guide-library-v1"></script>
+    <script type="module" src="site-i18n.mjs?v=20260829-parametric-rings-v1"></script>
     <script type="module" src="site-nav.mjs?v=20260810-workshop-menu-v1"></script>
-    <script type="module" src="app.js?v=20260829-guide-library-v1"></script>
+    <script type="module" src="app.js?v=20260829-parametric-rings-v1"></script>
   </head>
   <body class="simulator-page app-home-page" data-app-view-title="Atelier">
     <main class="app-shell">
@@ -419,16 +419,29 @@
                 </label>
               </section>
             </div>
-            <div class="composition-tool-tray" id="compositionToolTray">
-              <section class="composition-tool-group" data-composition-kind="sigil">
+            <div class="composition-add-bar" role="group" data-i18n-aria-label="composition.addElements" aria-label="Add elements">
+              <button id="addCompositionRingButton" type="button" data-i18n="composition.addCircle">+ Circle</button>
+              <button id="openCompositionSigilPickerButton" type="button" data-i18n="composition.addSigil">+ Sigil</button>
+              <button id="openCompositionSignPickerButton" type="button" data-i18n="composition.addSign">+ Sign</button>
+            </div>
+            <section class="composition-symbol-picker" id="compositionSymbolPicker" aria-labelledby="compositionSymbolPickerTitle" hidden>
+              <div class="composition-editor-heading">
+                <h3 id="compositionSymbolPickerTitle" data-i18n="composition.chooseSymbol">Choose a symbol</h3>
+                <button id="compositionSymbolPickerClose" type="button" data-i18n-aria-label="composition.closePicker" aria-label="Close symbol list">&times;</button>
+              </div>
+              <label class="composition-symbol-search" for="compositionSymbolSearch">
+                <span data-i18n="composition.searchSymbols">Search</span>
+                <input id="compositionSymbolSearch" type="search" autocomplete="off" data-i18n-placeholder="composition.searchPlaceholder" placeholder="Search symbols">
+              </label>
+              <section class="composition-tool-group" id="compositionSigilPickerGroup" data-composition-kind="sigil" hidden>
                 <h3 data-i18n="composition.sigilTray">Sigils</h3>
                 <div class="composition-chip-grid" id="compositionSigilTray"></div>
               </section>
-              <section class="composition-tool-group" data-composition-kind="sign">
+              <section class="composition-tool-group" id="compositionSignPickerGroup" data-composition-kind="sign" hidden>
                 <h3 data-i18n="composition.signTray">Signs</h3>
                 <div class="composition-chip-grid" id="compositionSignTray"></div>
               </section>
-            </div>
+            </section>
             <div class="composition-stage" id="compositionStage" aria-live="polite"></div>
             <div class="composition-action-row">
               <button class="composition-cancel" id="cancelSigilCompositionButton" type="button" data-i18n="composition.cancel">Cancel</button>

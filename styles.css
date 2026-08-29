@@ -2238,6 +2238,70 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
   accent-color: var(--gold);
 }
 
+.composition-add-bar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.composition-add-bar button {
+  min-height: 38px;
+  border: 1px solid rgba(140, 107, 63, 0.58);
+  border-radius: 999px;
+  background: rgba(255, 248, 234, 0.94);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.composition-add-bar button:hover,
+.composition-add-bar button:focus-visible {
+  border-color: var(--gold);
+  background: rgba(199, 151, 54, 0.16);
+}
+
+.composition-symbol-picker {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(140, 107, 63, 0.5);
+  border-radius: 9px;
+  background: rgba(255, 248, 234, 0.96);
+  box-shadow: 0 10px 24px rgba(76, 55, 30, 0.13);
+}
+
+.composition-symbol-picker[hidden],
+.composition-symbol-picker [hidden] {
+  display: none !important;
+}
+
+.composition-symbol-picker .composition-editor-heading button {
+  width: 32px;
+  min-height: 32px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 1.2rem;
+}
+
+.composition-symbol-search {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  color: var(--edge);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.composition-symbol-search input {
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 9px;
+  border: 1px solid rgba(140, 107, 63, 0.45);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
 .composition-tool-tray {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -2266,6 +2330,54 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
   max-height: 82px;
   overflow: auto;
   padding-right: 2px;
+}
+
+.composition-symbol-picker .composition-chip-grid {
+  max-height: 190px;
+  grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+}
+
+.composition-range-field {
+  display: grid;
+  gap: 5px;
+  padding: 7px 8px;
+  border: 1px solid rgba(140, 107, 63, 0.28);
+  border-radius: 7px;
+  background: rgba(255, 252, 243, 0.66);
+}
+
+.composition-range-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--edge);
+  font-size: 0.69rem;
+  font-weight: 700;
+}
+
+.composition-range-heading output {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.composition-range-field input {
+  width: 100%;
+  accent-color: var(--gold);
+}
+
+.composition-orientation-joystick {
+  padding-bottom: 10px;
+  background: linear-gradient(90deg, rgba(36, 48, 68, 0.06), rgba(199, 151, 54, 0.16), rgba(36, 48, 68, 0.06));
+}
+
+.composition-orientation-joystick input {
+  height: 26px;
+  cursor: ew-resize;
+}
+
+.composition-orientation-joystick input::-webkit-slider-thumb {
+  width: 24px;
+  height: 24px;
 }
 
 .composition-chip {
