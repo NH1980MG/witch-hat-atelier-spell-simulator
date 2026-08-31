@@ -2,10 +2,10 @@ export const USER_GUIDE_STORAGE_KEY = "whaUserGuidesV1";
 export const MAX_USER_GUIDES = 24;
 export const MAX_USER_GUIDE_STORAGE_CHARS = 2_500_000;
 
-const DRAWING_ACTION_TYPES = new Set(["free", "circle", "ring", "ray", "glyph", "spiral"]);
+const DRAWING_ACTION_TYPES = new Set(["free", "circle", "ring", "ray", "glyph", "spiral", "annotation"]);
 const ACTION_KEYS = [
   "type", "label", "element", "charge", "color", "width", "x", "y", "cx", "cy",
-  "radius", "turns", "size", "rotation", "kind", "closed", "seal", "boundary", "userAdjusted",
+  "radius", "turns", "size", "rotation", "kind", "closed", "seal", "boundary", "userAdjusted", "text",
 ];
 
 function sanitizePoint(point) {
@@ -30,6 +30,16 @@ function sanitizeAction(action) {
     clean.points = Array.isArray(action.points) ? action.points.map(sanitizePoint).filter(Boolean) : [];
     if (clean.points.length < 2) {
       return null;
+    }
+  }
+  if (action.type === "annotation") {
+    if (!["drawing", "text"].includes(clean.kind)) return null;
+    if (clean.kind === "text") {
+      clean.text = typeof action.text === "string" ? action.text.trim().slice(0, 500) : "";
+      if (!clean.text || !Number.isFinite(clean.x) || !Number.isFinite(clean.y)) return null;
+    } else {
+      clean.points = Array.isArray(action.points) ? action.points.map(sanitizePoint).filter(Boolean).slice(0, 2000) : [];
+      if (clean.points.length < 2) return null;
     }
   }
   return clean;

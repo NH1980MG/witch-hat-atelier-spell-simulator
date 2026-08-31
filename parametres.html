@@ -22,8 +22,9 @@
         window.location.replace("http://127.0.0.1:8000/parametres.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260829-parametric-rings-v1">
-    <script type="module" src="site-i18n.mjs?v=20260829-parametric-rings-v1"></script>
+    <link rel="stylesheet" href="styles.css?v=20260830-stroke-annotations-v1">
+    <script type="module" src="site-i18n.mjs?v=20260830-stroke-annotations-v1"></script>
+    <script type="module" src="settings-controls.mjs?v=20260830-stroke-annotations-v1"></script>
     <script type="module" src="site-nav.mjs?v=20260830-auth-return-v1"></script>
   </head>
   <body>
@@ -64,6 +65,16 @@
       </header>
 
       <section class="settings-board" data-i18n-aria-label="settings.region">
+        <article class="settings-card settings-control-card">
+          <h2 data-i18n="settings.stroke.title">Stroke fluidity</h2>
+          <p data-i18n="settings.stroke.body">Stabilize freehand strokes while preserving the first and last points. Geometric tools are unchanged.</p>
+          <label class="settings-range" for="strokeSmoothingInput">
+            <span data-i18n="settings.stroke.label">Fluidity</span>
+            <output id="strokeSmoothingValue" for="strokeSmoothingInput">0%</output>
+            <input id="strokeSmoothingInput" type="range" min="0" max="100" value="0" step="1" data-i18n-aria-label="settings.stroke.control" aria-label="Stroke fluidity" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          </label>
+          <p class="settings-note" data-i18n="settings.stroke.note">Use 0% for the current direct trace. Higher values smooth only new freehand strokes.</p>
+        </article>
         <article class="settings-card">
           <h2 data-i18n="settings.display.title">Display</h2>
           <p data-i18n="settings.display.body">The main controls remain in the workshop so they stay visible while drawing.</p>

@@ -98,7 +98,7 @@ export function topmostGlyphIndexAtPoint(actions, point, padding = 10) {
 }
 
 export function isSelectableAction(action) {
-  return ["glyph", "circle", "ring", "free", "ray", "spiral"].includes(action?.type);
+  return ["glyph", "circle", "ring", "free", "ray", "spiral", "annotation"].includes(action?.type);
 }
 
 function stableCoordinate(value) {
@@ -120,7 +120,7 @@ export function selectableActionBounds(action) {
       height: stableCoordinate(half * 2),
     };
   }
-  if (action.type === "free") {
+  if (action.type === "free" || (action.type === "annotation" && action.kind === "drawing")) {
     if (!Array.isArray(action.points) || action.points.length === 0) {
       return null;
     }
@@ -137,6 +137,18 @@ export function selectableActionBounds(action) {
       bottom: stableCoordinate(bottom),
       width: stableCoordinate(right - left),
       height: stableCoordinate(bottom - top),
+    };
+  }
+  if (action.type === "annotation" && action.kind === "text") {
+    const size = Math.max(12, Number(action.size) || 18);
+    const width = Math.max(size, String(action.text || "").length * size * 0.58);
+    return {
+      left: stableCoordinate(action.x),
+      right: stableCoordinate(action.x + width),
+      top: stableCoordinate(action.y - size),
+      bottom: stableCoordinate(action.y + size * 0.25),
+      width: stableCoordinate(width),
+      height: stableCoordinate(size * 1.25),
     };
   }
   if (action.type === "ray") {
@@ -222,7 +234,7 @@ export function topmostSelectableIndexAtPoint(actions, point, padding = 10) {
       }
       continue;
     }
-    if (action.type === "free") {
+    if (action.type === "free" || (action.type === "annotation" && action.kind === "drawing")) {
       const points = Array.isArray(action.points) ? action.points : [];
       if (points.length === 1 && Math.hypot(point.x - points[0].x, point.y - points[0].y) <= padding) {
         return index;
@@ -232,6 +244,14 @@ export function topmostSelectableIndexAtPoint(actions, point, padding = 10) {
         return distanceToSegment(point, start, points[pointIndex + 1]) <= padding;
       });
       if (hit) {
+        return index;
+      }
+      continue;
+    }
+    if (action.type === "annotation" && action.kind === "text") {
+      const bounds = selectableActionBounds(action);
+      if (bounds && point.x >= bounds.left - padding && point.x <= bounds.right + padding &&
+        point.y >= bounds.top - padding && point.y <= bounds.bottom + padding) {
         return index;
       }
       continue;
@@ -268,8 +288,11 @@ export function translateSelectedActions(actions, indices, dx, dy) {
     if (action.type === "glyph") {
       action.x += dx;
       action.y += dy;
-    } else if (action.type === "free") {
+    } else if (action.type === "free" || (action.type === "annotation" && action.kind === "drawing")) {
       action.points = action.points.map((point) => ({ x: point.x + dx, y: point.y + dy }));
+    } else if (action.type === "annotation" && action.kind === "text") {
+      action.x += dx;
+      action.y += dy;
     } else if (action.type === "ray") {
       action.cx += dx;
       action.cy += dy;
@@ -377,11 +400,15 @@ export function scaleSelectedActions(actions, indices, origin, scale) {
       action.y = origin.y + (action.y - origin.y) * scale;
       action.size = Math.max(MIN_GLYPH_SIZE, action.size * scale);
       action.userAdjusted = true;
-    } else if (action.type === "free") {
+    } else if (action.type === "free" || (action.type === "annotation" && action.kind === "drawing")) {
       action.points = action.points.map((point) => ({
         x: origin.x + (point.x - origin.x) * scale,
         y: origin.y + (point.y - origin.y) * scale,
       }));
+    } else if (action.type === "annotation" && action.kind === "text") {
+      action.x = origin.x + (action.x - origin.x) * scale;
+      action.y = origin.y + (action.y - origin.y) * scale;
+      action.size = Math.max(MIN_GLYPH_SIZE, (Number(action.size) || 18) * scale);
     } else if (action.type === "ray") {
       action.cx = origin.x + (action.cx - origin.x) * scale;
       action.cy = origin.y + (action.cy - origin.y) * scale;
@@ -435,8 +462,12 @@ export function rotateSelectedActions(actions, indices, origin, angleDelta) {
       action.x = position.x;
       action.y = position.y;
       action.userAdjusted = true;
-    } else if (action.type === "free") {
+    } else if (action.type === "free" || (action.type === "annotation" && action.kind === "drawing")) {
       action.points = action.points.map((point) => rotate(point.x, point.y));
+    } else if (action.type === "annotation" && action.kind === "text") {
+      const position = rotate(action.x, action.y);
+      action.x = position.x;
+      action.y = position.y;
     } else if (action.type === "ray") {
       const center = rotate(action.cx, action.cy);
       const tip = rotate(action.x, action.y);

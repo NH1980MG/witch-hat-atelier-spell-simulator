@@ -24,6 +24,18 @@ function actionBounds(action) {
     const ys = action.points.map((point) => safeNumber(point.y));
     return { left: Math.min(...xs), right: Math.max(...xs), top: Math.min(...ys), bottom: Math.max(...ys) };
   }
+  if (action?.type === "annotation" && action.kind === "drawing" && Array.isArray(action.points) && action.points.length > 0) {
+    const xs = action.points.map((point) => safeNumber(point.x));
+    const ys = action.points.map((point) => safeNumber(point.y));
+    return { left: Math.min(...xs), right: Math.max(...xs), top: Math.min(...ys), bottom: Math.max(...ys) };
+  }
+  if (action?.type === "annotation" && action.kind === "text") {
+    const size = Math.max(12, Math.abs(safeNumber(action.size, 18)));
+    const x = safeNumber(action.x);
+    const y = safeNumber(action.y);
+    const width = Math.max(size, String(action.text || "").length * size * 0.58);
+    return { left: x, right: x + width, top: y - size, bottom: y + size * 0.25 };
+  }
   if (["circle", "ring", "spiral"].includes(action?.type)) {
     const radius = Math.max(1, Math.abs(safeNumber(action.radius, 1)));
     const cx = safeNumber(action.cx);
@@ -65,6 +77,17 @@ function actionMarkup(action) {
   if (action.type === "free" && Array.isArray(action.points)) {
     const points = action.points.map((point) => `${safeNumber(point.x)},${safeNumber(point.y)}`).join(" ");
     return `<polyline points="${points}" ${line}/>`;
+  }
+  if (action.type === "annotation" && action.kind === "drawing" && Array.isArray(action.points)) {
+    const points = action.points.map((point) => `${safeNumber(point.x)},${safeNumber(point.y)}`).join(" ");
+    return `<polyline points="${points}" ${line} stroke-dasharray="3 4"/>`;
+  }
+  if (action.type === "annotation" && action.kind === "text") {
+    const x = safeNumber(action.x);
+    const y = safeNumber(action.y);
+    const size = Math.max(12, Math.abs(safeNumber(action.size, 18)));
+    const label = escapeXml(action.text || "");
+    return `<text x="${x}" y="${y}" font-family="Georgia,serif" font-size="${size}" fill="${color}" text-decoration="underline">${label}</text>`;
   }
   if (["circle", "ring"].includes(action.type)) {
     const rings = action.type === "ring" ? [1, 0.72, 0.46] : [1];
