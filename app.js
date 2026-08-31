@@ -8,7 +8,9 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260812-particle-field-v1";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260812-particle-field-v1";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260829-parametric-rings-v1";
+import { isAnnotationAction, isSpellAction } from "./action-semantics.mjs";
+import { loadStrokeSmoothing, smoothStroke } from "./stroke-smoothing.mjs";
+import { getLocale, t } from "./site-i18n.mjs?v=20260830-stroke-annotations-v1";
 import {
   SIGIL_COMPOSITION_SLOTS,
   buildSigilCompositionCommitPlan,
@@ -299,6 +301,7 @@ const labels = {
   ray: "Trait directeur",
   glyph: "Glyphe",
   spiral: "Spire",
+  annotation: "Commentaire",
   eraser: "Grattoir",
 };
 
@@ -326,6 +329,7 @@ function actionDisplayLabel(action) {
     ray: "ray",
     glyph: "glyph",
     spiral: "spiral",
+    annotation: "annotation",
     eraser: "eraser",
   }[action.type];
   return toolKey ? t(`tool.${toolKey}`) : action.label;
@@ -357,6 +361,8 @@ const fidelityWarnings = document.querySelector("#fidelityWarnings");
 const architectureStages = document.querySelector("#architectureStages");
 const architectureSymbols = document.querySelector("#architectureSymbols");
 const strokeInput = document.querySelector("#strokeInput");
+const annotationModeInput = document.querySelector("#annotationModeInput");
+const annotationTextInput = document.querySelector("#annotationTextInput");
 const inkColorInput = document.querySelector("#inkColorInput");
 const selectionScaleInput = document.querySelector("#selectionScaleInput");
 const selectionScaleLabel = document.querySelector("#selectionScaleLabel");
@@ -528,6 +534,8 @@ const state = {
   element: elements[0],
   supportId: "none",
   strokeSize: 3,
+  strokeSmoothing: loadStrokeSmoothing(localStorage),
+  annotationKind: "drawing",
   drawingColor: colors.normalInk,
   canvasScale: Number(localStorage.getItem("whaCanvasScale") || 100),
   spoilerChapter: readSpoilerChapter(localStorage),
@@ -2012,6 +2020,33 @@ function drawSpiral(action, dashed = false) {
   drawStroke(points, action.color, action.width, dashed);
 }
 
+function drawAnnotation(action, dashed = false) {
+  ctx.save();
+  ctx.globalAlpha = dashed ? 0.62 : 0.9;
+  ctx.strokeStyle = action.color || colors.edge;
+  ctx.fillStyle = action.color || colors.edge;
+  ctx.lineWidth = visibleLineWidth(action.width || 2);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.setLineDash(dashed ? [6, 4] : [3, 4]);
+  if (action.kind === "text") {
+    const size = Math.max(12, Number(action.size) || 18);
+    ctx.font = `600 ${size}px Georgia, "Times New Roman", serif`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.translate(action.x, action.y);
+    ctx.rotate(Number(action.rotation) || 0);
+    ctx.fillText(String(action.text || ""), 0, 0);
+    ctx.beginPath();
+    ctx.moveTo(0, 4);
+    ctx.lineTo(Math.max(size, String(action.text || "").length * size * 0.58), 4);
+    ctx.stroke();
+  } else {
+    drawStroke(action.points || [], action.color || colors.edge, action.width || 2, true);
+  }
+  ctx.restore();
+}
+
 function drawAction(action, dashed = false) {
   if (action?.visible === false && !dashed) {
     return;
@@ -2024,7 +2059,9 @@ function drawAction(action, dashed = false) {
   ctx.lineJoin = "round";
   ctx.setLineDash(dashed ? [6, 4] : []);
 
-  if (action.type === "free") {
+  if (action.type === "annotation") {
+    drawAnnotation(action, dashed);
+  } else if (action.type === "free") {
     drawStroke(action.points, action.color, action.width, dashed);
   } else if (action.type === "circle") {
     ctx.beginPath();
@@ -7668,7 +7705,8 @@ function hasSpellBoundary() {
 }
 
 function signModel() {
-  const actionTypes = state.actions.map((action) => action.type);
+  const spellDrawingActions = state.actions.filter(isSpellAction);
+  const actionTypes = spellDrawingActions.map((action) => action.type);
   const boundary = hasSpellBoundary() ? primarySpellBounds() : null;
   const disconnectedGlyphs = manualGlyphs({ includeDisconnected: true })
     .filter((glyph) => !glyph.connectedToRing);
@@ -7678,13 +7716,13 @@ function signModel() {
   const glyphs = [...sigils, ...signs];
   const sigilCounts = countByElement(sigils);
   const signCounts = countByElement(signs);
-  const rays = state.actions.filter((action) => action.type === "ray");
-  const rings = state.actions.filter((action) => action.type === "ring");
-  const spirals = state.actions.filter((action) => action.type === "spiral");
-  const closedCircles = state.actions.filter((action) => action.type === "circle" && action.closed);
-  const openCircles = state.actions.filter((action) => action.type === "circle" && !action.closed);
-  const freeSeals = state.actions.filter((action) => action.seal);
-  const freeMarks = state.actions.filter((action) => action.type === "free" && !action.boundary && !action.seal);
+  const rays = spellDrawingActions.filter((action) => action.type === "ray");
+  const rings = spellDrawingActions.filter((action) => action.type === "ring");
+  const spirals = spellDrawingActions.filter((action) => action.type === "spiral");
+  const closedCircles = spellDrawingActions.filter((action) => action.type === "circle" && action.closed);
+  const openCircles = spellDrawingActions.filter((action) => action.type === "circle" && !action.closed);
+  const freeSeals = spellDrawingActions.filter((action) => action.seal);
+  const freeMarks = spellDrawingActions.filter((action) => action.type === "free" && !action.boundary && !action.seal);
   const hasBoundary = hasSpellBoundary();
   const ignoredMarkCount = disconnectedGlyphs.length + disconnectedFreeActionCount(boundary);
   const geometry = analyzeSignGeometry(signs, ignoredMarkCount);
@@ -9236,6 +9274,26 @@ function createGlyphAction(element, point, size = 25) {
   };
 }
 
+function createTextAnnotation(point, text) {
+  return {
+    type: "annotation",
+    kind: "text",
+    label: labels.annotation,
+    text: text.trim().slice(0, 500),
+    color: colors.edge,
+    width: lineWidth(),
+    x: point.x,
+    y: point.y,
+    size: 18,
+    rotation: 0,
+  };
+}
+
+function smoothCurrentStroke(action) {
+  if (!action?.rawPoints) return;
+  action.points = smoothStroke(action.rawPoints, state.strokeSmoothing);
+}
+
 function actionBounds(action) {
   const withSize = (bounds) => ({
     ...bounds,
@@ -9243,14 +9301,29 @@ function actionBounds(action) {
     height: bounds.bottom - bounds.top,
   });
 
-  if (action.type === "free") {
-    const xs = action.points.map((point) => point.x);
-    const ys = action.points.map((point) => point.y);
+  if (action.type === "free" || (isAnnotationAction(action) && action.kind === "drawing")) {
+    const points = action.points || [];
+    if (points.length === 0) {
+      return withSize({ left: 0, right: 0, top: 0, bottom: 0 });
+    }
+    const xs = points.map((point) => point.x);
+    const ys = points.map((point) => point.y);
     return withSize({
       left: Math.min(...xs),
       right: Math.max(...xs),
       top: Math.min(...ys),
       bottom: Math.max(...ys),
+    });
+  }
+
+  if (isAnnotationAction(action) && action.kind === "text") {
+    const size = Math.max(12, Number(action.size) || 18);
+    const width = Math.max(size, String(action.text || "").length * size * 0.58);
+    return withSize({
+      left: action.x,
+      right: action.x + width,
+      top: action.y - size,
+      bottom: action.y + size * 0.25,
     });
   }
 
@@ -9285,7 +9358,9 @@ function spellBounds() {
     return null;
   }
 
-  const bounds = state.actions.map(actionBounds);
+  const actions = state.actions.filter(isSpellAction);
+  if (actions.length === 0) return null;
+  const bounds = actions.map(actionBounds);
   const left = Math.min(...bounds.map((bound) => bound.left));
   const right = Math.max(...bounds.map((bound) => bound.right));
   const top = Math.min(...bounds.map((bound) => bound.top));
@@ -9302,7 +9377,9 @@ function primarySpellBounds() {
     return null;
   }
 
-  const boundaryActions = state.actions.filter((action) => {
+  const spellActions = state.actions.filter(isSpellAction);
+  if (spellActions.length === 0) return null;
+  const boundaryActions = spellActions.filter((action) => {
     return isCompleteSeal(action) || action.seal || action.boundary;
   });
   if (boundaryActions.length > 0) {
@@ -9311,11 +9388,11 @@ function primarySpellBounds() {
       .sort((a, b) => boundsArea(b) - boundsArea(a))[0];
   }
 
-  const significantActions = state.actions.filter((action) => {
+  const significantActions = spellActions.filter((action) => {
     const bounds = actionBounds(action);
     return boundsArea(bounds) >= 900 || action.type !== "free";
   });
-  const candidates = significantActions.length > 0 ? significantActions : state.actions;
+  const candidates = significantActions.length > 0 ? significantActions : spellActions;
   return candidates
     .map(actionBounds)
     .sort((a, b) => boundsArea(b) - boundsArea(a))[0];
@@ -9335,13 +9412,19 @@ function nearSegment(point, start, end, tolerance) {
 
 function hitsAction(point, action) {
   const tolerance = Math.max(10, action.width + 6);
-  if (action.type === "free") {
+  if (action.type === "free" || (isAnnotationAction(action) && action.kind === "drawing")) {
     return action.points.some((current, index) => {
       if (index === 0) {
         return false;
       }
       return nearSegment(point, action.points[index - 1], current, tolerance);
     });
+  }
+
+  if (isAnnotationAction(action) && action.kind === "text") {
+    const bounds = actionBounds(action);
+    return point.x >= bounds.left - tolerance && point.x <= bounds.right + tolerance &&
+      point.y >= bounds.top - tolerance && point.y <= bounds.bottom + tolerance;
   }
 
   if (action.type === "circle" || action.type === "ring") {
@@ -10116,16 +10199,29 @@ function onPointerDown(event) {
     return;
   }
 
-  if (state.tool === "free") {
+  if (state.tool === "free" || (state.tool === "annotation" && state.annotationKind === "drawing")) {
     state.currentAction = {
-      type: "free",
-      label: labels.free,
-      element: "Trace",
-      charge: 0,
+      type: state.tool === "free" ? "free" : "annotation",
+      ...(state.tool === "free"
+        ? { label: labels.free, element: "Trace", charge: 0 }
+        : { kind: "drawing", label: labels.annotation }),
       color: state.drawingColor,
       width: lineWidth(),
       points: [point],
+      rawPoints: [point],
     };
+  } else if (state.tool === "annotation" && state.annotationKind === "text") {
+    const text = annotationTextInput?.value.trim() || "";
+    state.pointerDown = false;
+    state.start = null;
+    if (text?.trim()) {
+      commitAction(createTextAnnotation(point, text));
+      setStatus(t("status.annotationAdded"));
+    } else {
+      setStatus(t("status.annotationTextRequired"));
+    }
+    render();
+    return;
   } else if (state.tool === "glyph") {
     state.currentAction = createGlyphAction(currentElementData(), point);
   } else if (state.tool === "eraser") {
@@ -10205,8 +10301,9 @@ function onPointerMove(event) {
     moveGuide(point);
   } else if (state.tool === "select" && state.guideResize?.pointerId === event.pointerId) {
     moveGuideResize(point);
-  } else if (state.tool === "free" && state.currentAction) {
-    state.currentAction.points.push(point);
+  } else if ((state.tool === "free" || state.tool === "annotation") && state.currentAction) {
+    state.currentAction.rawPoints.push(point);
+    smoothCurrentStroke(state.currentAction);
     render();
   } else if (state.tool === "glyph" && state.currentAction) {
     const dragX = point.x - state.start.x;
@@ -10273,9 +10370,11 @@ function onPointerUp(event) {
   state.pointerDown = false;
   state.preview = null;
 
-  if (tool === "free" && state.currentAction) {
+  if ((tool === "free" || tool === "annotation") && state.currentAction) {
     if (state.currentAction.points.length > 1) {
-      commitAction(state.currentAction);
+      const action = { ...state.currentAction };
+      delete action.rawPoints;
+      commitAction(action);
     }
     state.currentAction = null;
   } else if (tool === "glyph" && state.currentAction) {
@@ -12298,7 +12397,8 @@ function updateSupportSelection() {
 
 function updateUsedList() {
   usedList.innerHTML = "";
-  if (state.actions.length === 0) {
+  const semanticActions = state.actions.filter(isSpellAction);
+  if (semanticActions.length === 0) {
     const item = document.createElement("li");
     item.textContent = t("details.noMarks");
     usedList.append(item);
@@ -12310,7 +12410,7 @@ function updateUsedList() {
   const centralFree = new Set(recognized ? freeSymbolActions() : []);
   const inferredSigns = freeSignGlyphs();
   const inferredSignActions = new Set(inferredSigns.flatMap((sign) => sign.sourceActions || [sign.sourceAction]));
-  for (const action of state.actions) {
+  for (const action of semanticActions) {
     if (action.boundary && !action.seal) {
       continue;
     }
@@ -12497,7 +12597,7 @@ function updateFidelityDetails(recipe) {
 }
 
 function analyzeSpell() {
-  if (state.actions.length === 0) {
+  if (state.actions.filter(isSpellAction).length === 0) {
     setStatus(t("status.noRitualToRead"));
     return;
   }
@@ -12562,9 +12662,9 @@ function analyzeSpell() {
   const signNames = [...new Set(model.signs.map((action) => action.element))];
   const symbolCharge = model.glyphs.reduce((total, action) => total + action.charge, 0);
   const symbolQuality = Math.max(...glyphs.map((glyph) => glyph.quality || 100));
-  const power = Math.max(1, diameterPowerLevel(metrics.diameter) + state.actions.length + symbolCharge);
-  const stability = guessStability(model, power);
   const metrics = spellMetrics();
+  const power = Math.max(1, diameterPowerLevel(metrics.diameter) + state.actions.filter(isSpellAction).length + symbolCharge);
+  const stability = guessStability(model, power);
   const metricsSizeIssue = activationSizeIssue(metrics.diameter);
   const combinationText = model.recipe.combinations.length > 0
     ? model.recipe.combinations.map((combination) => combination.label).join(", ")
@@ -12861,7 +12961,7 @@ function activateCircle() {
       supportName: support.name,
       diameter,
       center: { ...state.circleCenter },
-      actions: cloneActions(state.actions),
+      actions: cloneActions(state.actions.filter(isSpellAction)),
       bounds: { ...bounds },
       radius,
       quality,
@@ -12937,6 +13037,28 @@ function saveCanvas() {
 }
 
 function shareableAction(action) {
+  if (isAnnotationAction(action)) {
+    if (action.kind === "text") {
+      return {
+        type: "annotation",
+        kind: "text",
+        text: String(action.text || "").slice(0, 500),
+        x: action.x,
+        y: action.y,
+        size: action.size,
+        rotation: action.rotation || 0,
+        color: action.color,
+        width: action.width,
+      };
+    }
+    return {
+      type: "annotation",
+      kind: "drawing",
+      points: (action.points || []).map((point) => ({ x: point.x, y: point.y })),
+      color: action.color,
+      width: action.width,
+    };
+  }
   if (action.type === "free") {
     return { type: "free", width: action.width, points: action.points.map(({ x, y }) => ({ x, y })) };
   }
@@ -13200,6 +13322,14 @@ async function publishCurrentCircle() {
 
 function hydrateSharedAction(action) {
   const base = { color: colors.normalInk, width: action.width };
+  if (action.type === "annotation") {
+    return {
+      ...base,
+      ...action,
+      label: labels.annotation,
+      color: action.color || colors.edge,
+    };
+  }
   if (action.type === "free") {
     return { ...base, ...action, label: labels.free, element: "Trace", charge: 0 };
   }
@@ -13285,6 +13415,11 @@ inkColorInput?.addEventListener("input", () => {
 inkColorInput?.addEventListener("pointerdown", beginStyleGesture);
 inkColorInput?.addEventListener("change", endStyleGesture);
 inkColorInput?.addEventListener("blur", endStyleGesture);
+
+annotationModeInput?.addEventListener("change", () => {
+  state.annotationKind = annotationModeInput.value === "text" ? "text" : "drawing";
+  setStatus(t("status.annotationMode", { mode: t(`annotation.kind.${state.annotationKind}`) }));
+});
 
 function setCanvasScale(scale, announce = true) {
   state.canvasScale = safeCanvasScale(scale);

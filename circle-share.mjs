@@ -1,6 +1,6 @@
 export const MAX_CIRCLE_ACTIONS = 500;
 
-const ACTION_TYPES = new Set(["free", "circle", "ring", "ray", "glyph", "spiral"]);
+const ACTION_TYPES = new Set(["free", "circle", "ring", "ray", "glyph", "spiral", "annotation"]);
 
 export function parseCircleShare(input, options = {}) {
   if (!isRecord(input) || input.version !== 1) throw new TypeError("Unsupported circle version");
@@ -69,6 +69,13 @@ export function fitCircleShare(circle, targetCanvas) {
   const offsetY = (height - parsed.canvas.height * scale) / 2;
   const point = ({ x, y }) => ({ x: x * scale + offsetX, y: y * scale + offsetY });
   return parsed.actions.map((action) => {
+    if (action.type === "annotation") {
+      if (action.kind === "drawing") {
+        return { ...action, width: action.width * scale, points: action.points.map(point) };
+      }
+      const position = point(action);
+      return { ...action, ...position, size: action.size * scale, width: action.width * scale };
+    }
     if (action.type === "free") return { ...action, width: action.width * scale, points: action.points.map(point) };
     if (action.type === "ray") {
       const start = point({ x: action.cx, y: action.cy });
@@ -90,6 +97,34 @@ function parseAction(value, glyphNames) {
       throw new TypeError("Freehand points are invalid");
     }
     return { type: "free", width, points: value.points.map(parsePoint), ...ritualFields };
+  }
+  if (value.type === "annotation") {
+    const kind = value.kind === "text" ? "text" : value.kind === "drawing" ? "drawing" : null;
+    if (!kind) throw new TypeError("Annotation kind is invalid");
+    if (kind === "text") {
+      return {
+        type: "annotation",
+        kind,
+        text: text(value.text, 500, "Annotation text"),
+        x: finite(value.x),
+        y: finite(value.y),
+        size: positive(value.size, "annotation size"),
+        rotation: value.rotation === undefined ? 0 : finite(value.rotation),
+        ...(optionalColor(value.color) ? { color: optionalColor(value.color) } : {}),
+        width,
+      };
+    }
+    if (!Array.isArray(value.points) || value.points.length < 2 || value.points.length > 2000) {
+      throw new TypeError("Annotation points are invalid");
+    }
+    return {
+      type: "annotation",
+      kind,
+      width,
+      ...(optionalColor(value.color) ? { color: optionalColor(value.color) } : {}),
+      points: value.points.map(parsePoint),
+      ...ritualFields,
+    };
   }
   if (value.type === "ray") {
     return { type: "ray", cx: finite(value.cx), cy: finite(value.cy), x: finite(value.x), y: finite(value.y), width, ...ritualFields };
@@ -162,6 +197,10 @@ function text(value, max, label) {
   const normalized = value.trim();
   if (!normalized || normalized.length > max) throw new RangeError(`${label} is invalid`);
   return normalized;
+}
+
+function optionalColor(value) {
+  return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value) ? value : null;
 }
 
 function isRecord(value) {

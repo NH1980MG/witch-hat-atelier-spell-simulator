@@ -39,7 +39,7 @@
         document.documentElement.dataset.appView = "atelier";
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260829-parametric-rings-v1">
+    <link rel="stylesheet" href="styles.css?v=20260830-stroke-annotations-v1">
     <script type="importmap">
       {
         "imports": {
@@ -48,9 +48,9 @@
         }
       }
     </script>
-    <script type="module" src="site-i18n.mjs?v=20260829-parametric-rings-v1"></script>
+    <script type="module" src="site-i18n.mjs?v=20260830-stroke-annotations-v1"></script>
     <script type="module" src="site-nav.mjs?v=20260831-auth-session-v1"></script>
-    <script type="module" src="app.js?v=20260829-parametric-rings-v1"></script>
+    <script type="module" src="app.js?v=20260830-stroke-annotations-v1"></script>
   </head>
   <body class="simulator-page app-home-page" data-app-view-title="Atelier">
     <main class="app-shell">
@@ -213,6 +213,9 @@
             </button>
             <button class="tool-button toolbar-keep" id="selectToolButton" data-tool="select" type="button" data-i18n-aria-label="tool.select" data-i18n-title="tool.select" aria-label="Select and move a symbol" title="Select and move a symbol">
               <span aria-hidden="true">&#8598;</span>
+            </button>
+            <button class="tool-button" data-tool="annotation" type="button" data-i18n-aria-label="tool.annotation" data-i18n-title="tool.annotation" aria-label="Annotation" title="Annotation">
+              <span aria-hidden="true">&#9998;</span>
             </button>
             <button class="tool-button is-active" data-tool="free" type="button" data-i18n-aria-label="tool.pen" data-i18n-title="tool.pen" aria-label="Pen" title="Pen">
               <span aria-hidden="true">&#10002;</span>
@@ -635,6 +638,17 @@
             <label class="range-field color-field">
               <span data-i18n="grimoire.inkColor">Ink color</span>
               <input id="inkColorInput" type="color" value="#201a16">
+            </label>
+            <label class="select-field">
+              <span data-i18n="grimoire.annotationMode">Comment mode</span>
+              <select id="annotationModeInput" data-i18n-aria-label="grimoire.annotationMode">
+                <option value="drawing" data-i18n="annotation.kind.drawing">Drawing</option>
+                <option value="text" data-i18n="annotation.kind.text">Text</option>
+              </select>
+            </label>
+            <label class="text-field">
+              <span data-i18n="annotation.textLabel">Annotation text</span>
+              <input id="annotationTextInput" type="text" maxlength="500" data-i18n-placeholder="annotation.textPlaceholder" placeholder="Write a note, then click the parchment">
             </label>
             <label class="range-field scale-field">
               <span><span id="selectionScaleLabel" data-i18n="grimoire.scale">Scale</span> <strong id="selectionScaleValue">x1</strong></span>

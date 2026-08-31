@@ -3977,6 +3977,67 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
   padding-left: 18px;
 }
 
+.settings-control-card {
+  grid-column: 1 / -1;
+}
+
+.settings-range {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 14px;
+  align-items: center;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.settings-range input {
+  grid-column: 1 / -1;
+  width: 100%;
+  accent-color: var(--gold);
+}
+
+.settings-range output {
+  min-width: 4ch;
+  text-align: right;
+  color: var(--edge);
+  font-variant-numeric: tabular-nums;
+}
+
+.select-field {
+  display: grid;
+  gap: 5px;
+  align-content: start;
+  font-weight: 700;
+}
+
+.select-field select {
+  min-height: 34px;
+  border: 1px solid rgba(140, 107, 63, 0.5);
+  border-radius: 6px;
+  padding: 5px 8px;
+  background: rgba(255, 248, 234, 0.9);
+  color: var(--ink);
+  font: inherit;
+}
+
+.text-field {
+  display: grid;
+  gap: 5px;
+  align-content: start;
+  font-weight: 700;
+}
+
+.text-field input {
+  min-height: 34px;
+  min-width: 0;
+  border: 1px solid rgba(140, 107, 63, 0.5);
+  border-radius: 6px;
+  padding: 5px 8px;
+  background: rgba(255, 248, 234, 0.9);
+  color: var(--ink);
+  font: inherit;
+}
+
 .settings-meter {
   display: grid;
   gap: 8px;
