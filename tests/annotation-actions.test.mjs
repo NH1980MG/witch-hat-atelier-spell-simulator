@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { isAnnotationAction, isSpellAction, spellActions } from "../action-semantics.mjs";
+import {
+  isAnnotationAction,
+  isSpellAction,
+  spellActions,
+  toggleSelectedCommentState,
+} from "../action-semantics.mjs";
 import { createSpell, loadMySpells, saveMySpells } from "../spell-library.mjs";
 import { createUserGuide, loadUserGuides, saveUserGuides } from "../guide-storage.mjs";
 import { decodeCircleShare, encodeCircleShare } from "../circle-share.mjs";
@@ -8,6 +13,7 @@ import {
   combinedSelectionBounds,
   rotateSelectedActions,
   scaleSelectedActions,
+  styleSelectedActions,
   topmostSelectableIndexAtPoint,
   translateSelectedActions,
 } from "../symbol-interactions.mjs";
@@ -46,6 +52,38 @@ test("une annotation est visible mais n'appartient pas au sort", () => {
   assert.deepEqual(spellActions([annotation, circle]), [circle]);
 });
 
+test("un objet ou un groupe peut devenir commentaire puis redevenir un element du sort", () => {
+  const actions = [circle, { type: "glyph", x: 180, y: 120, rotation: 0 }];
+  const commented = toggleSelectedCommentState(actions, [0, 1]);
+
+  assert.equal(commented[0].comment, true);
+  assert.equal(commented[1].comment, true);
+  assert.deepEqual(spellActions(commented), []);
+
+  const restored = toggleSelectedCommentState(commented, [0, 1]);
+  assert.equal(restored[0].comment, undefined);
+  assert.equal(restored[1].comment, undefined);
+  assert.deepEqual(spellActions(restored), restored);
+});
+
+test("une selection mixte est convertie sans perdre la geometrie des objets", () => {
+  const actions = [
+    { ...circle, comment: true },
+    { type: "ray", x1: 20, y1: 30, x2: 80, y2: 90, width: 4 },
+    annotation,
+  ];
+  const commented = toggleSelectedCommentState(actions, [0, 1, 2]);
+
+  assert.deepEqual(commented[0], { ...circle, comment: true });
+  assert.deepEqual(commented[1], { ...actions[1], comment: true });
+  assert.deepEqual(commented[2], annotation);
+
+  const restored = toggleSelectedCommentState(commented, [0, 1, 2]);
+  assert.equal(restored[0].comment, undefined);
+  assert.equal(restored[1].comment, undefined);
+  assert.deepEqual(restored[2], annotation);
+});
+
 test("une annotation reste manipulable comme un objet visuel", () => {
   const actions = [annotation, drawingAnnotation];
   assert.equal(topmostSelectableIndexAtPoint(actions, { x: 126, y: 76 }), 0);
@@ -57,6 +95,14 @@ test("une annotation reste manipulable comme un objet visuel", () => {
   assert.equal(scaled[0].size, 36);
   const rotated = rotateSelectedActions(actions, [0], { x: 120, y: 80 }, Math.PI / 2);
   assert.equal(rotated[0].rotation, Math.PI / 2);
+});
+
+test("le poids du texte est modifiable sans changer les autres types d'objet", () => {
+  const styled = styleSelectedActions([annotation, circle], [0, 1], { fontWeight: 900, color: "#123456" });
+  assert.equal(styled[0].fontWeight, 900);
+  assert.equal(styled[0].color, "#123456");
+  assert.equal(styled[1].fontWeight, undefined);
+  assert.equal(styled[1].color, "#123456");
 });
 
 test("les annotations texte et dessin traversent les trois formats de sauvegarde", () => {

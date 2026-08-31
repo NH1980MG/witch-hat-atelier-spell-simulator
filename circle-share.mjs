@@ -110,6 +110,7 @@ function parseAction(value, glyphNames) {
         y: finite(value.y),
         size: positive(value.size, "annotation size"),
         rotation: value.rotation === undefined ? 0 : finite(value.rotation),
+        ...(value.fontWeight === undefined ? {} : { fontWeight: optionalFontWeight(value.fontWeight) }),
         ...(optionalColor(value.color) ? { color: optionalColor(value.color) } : {}),
         width,
       };
@@ -160,7 +161,14 @@ function parseRitualFields(value) {
   const fields = {};
   if (value.ritualId === "opening-petrification") fields.ritualId = "opening-petrification";
   if (value.sealPatternId === "opening-petrification-seal") fields.sealPatternId = "opening-petrification-seal";
+  if (value.comment === true) fields.comment = true;
   return fields;
+}
+
+function optionalFontWeight(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) throw new TypeError("Annotation font weight is invalid");
+  return Math.max(100, Math.min(900, Math.round(number / 100) * 100));
 }
 
 function parseCanvas(value) {

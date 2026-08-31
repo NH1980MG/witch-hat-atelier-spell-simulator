@@ -8,7 +8,12 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260812-particle-field-v1";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260812-particle-field-v1";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { isAnnotationAction, isSpellAction } from "./action-semantics.mjs";
+import {
+  isAnnotationAction,
+  isCommentableAction,
+  isSpellAction,
+  toggleSelectedCommentState,
+} from "./action-semantics.mjs";
 import { loadStrokeSmoothing, smoothStroke } from "./stroke-smoothing.mjs";
 import { getLocale, t } from "./site-i18n.mjs?v=20260831-canvas-gestures-v2";
 import {
@@ -364,6 +369,8 @@ const strokeInput = document.querySelector("#strokeInput");
 const annotationModeInput = document.querySelector("#annotationModeInput");
 const annotationTextInput = document.querySelector("#annotationTextInput");
 const inkColorInput = document.querySelector("#inkColorInput");
+const annotationColorInput = document.querySelector("#annotationColorInput");
+const annotationWeightInput = document.querySelector("#annotationWeightInput");
 const selectionScaleInput = document.querySelector("#selectionScaleInput");
 const selectionScaleLabel = document.querySelector("#selectionScaleLabel");
 const selectionScaleValue = document.querySelector("#selectionScaleValue");
@@ -469,9 +476,11 @@ const selectionRotationValue = document.querySelector("#selectionRotationValue")
 const rotateSelectionQuarterLeftButton = document.querySelector("#rotateSelectionQuarterLeftButton");
 const rotateSelectionQuarterRightButton = document.querySelector("#rotateSelectionQuarterRightButton");
 const alignmentToggleButton = document.querySelector("#alignmentToggleButton");
+const toolbarDockButton = document.querySelector("#toolbarDockButton");
 const toolbarCompactButton = document.querySelector("#toolbarCompactButton");
 const selectionContextMenu = document.querySelector("#selectionContextMenu");
-const compositionContextMenuItem = selectionContextMenu?.querySelector('[data-selection-action="composition"]');
+const commentToggleMenuItem = selectionContextMenu?.querySelector('[data-selection-action="comment-toggle"]');
+const editCommentMenuItem = selectionContextMenu?.querySelector('[data-selection-action="edit-comment"]');
 const guideToggleButton = document.querySelector("#guideToggleButton");
 const guideDrawer = document.querySelector("#guideDrawer");
 const closeGuidesButton = document.querySelector("#closeGuidesButton");
@@ -521,11 +530,12 @@ function readToolbarDock() {
   try {
     const saved = JSON.parse(localStorage.getItem("whaToolbarDock") || "null");
     return {
+      layout: saved?.layout === "side" ? "side" : "top",
       side: saved?.side === "right" ? "right" : "left",
       yRatio: Math.max(0, Math.min(1, Number(saved?.yRatio) || 0.5)),
     };
   } catch {
-    return { side: "left", yRatio: 0.5 };
+    return { layout: "top", side: "left", yRatio: 0.5 };
   }
 }
 
@@ -537,6 +547,8 @@ const state = {
   strokeSmoothing: loadStrokeSmoothing(localStorage),
   annotationKind: "drawing",
   drawingColor: colors.normalInk,
+  annotationColor: colors.edge,
+  annotationWeight: 600,
   canvasScale: Number(localStorage.getItem("whaCanvasScale") || 100),
   spoilerChapter: readSpoilerChapter(localStorage),
   practiceOpen: false,
@@ -583,6 +595,7 @@ const state = {
   lastActiveSpell: null,
   recognizedSymbol: null,
   selectedActionIndices: [],
+  annotationEditingIndex: null,
   selectionScaleKey: null,
   selectionScaleRatio: 1,
   scaleGestureLast: 0,
@@ -2093,7 +2106,8 @@ function drawAnnotation(action, dashed = false) {
   ctx.setLineDash(dashed ? [6, 4] : [3, 4]);
   if (action.kind === "text") {
     const size = Math.max(12, Number(action.size) || 18);
-    ctx.font = `600 ${size}px Georgia, "Times New Roman", serif`;
+    const weight = Math.max(300, Math.min(900, Number(action.fontWeight) || 600));
+    ctx.font = `${weight} ${size}px Georgia, "Times New Roman", serif`;
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
     ctx.translate(action.x, action.y);
@@ -8588,6 +8602,7 @@ function openSelectionContextMenu(event) {
     return;
   }
   updateCompositionContextAction();
+  updateCommentContextActions();
   selectionContextMenu.hidden = false;
   const rect = selectionContextMenu.getBoundingClientRect();
   const left = Math.max(10, Math.min(event.clientX + 8, window.innerWidth - rect.width - 10));
@@ -8595,6 +8610,20 @@ function openSelectionContextMenu(event) {
   selectionContextMenu.style.left = `${left}px`;
   selectionContextMenu.style.top = `${top}px`;
   selectionContextMenu.querySelector("button")?.focus({ preventScroll: true });
+}
+
+function onCanvasDoubleClick(event) {
+  const point = clampPointToDrawingLimit(pointFromEvent(event));
+  const index = topmostSelectableIndexAtPoint(state.actions, point);
+  const action = index >= 0 ? state.actions[index] : null;
+  if (action?.type !== "annotation" || action.kind !== "text") return;
+  event.preventDefault();
+  setTool("select");
+  state.guideSelected = false;
+  state.selectedActionIndices = [index];
+  updateSelectionControls();
+  beginTextCommentEdit();
+  render();
 }
 
 function setSelectionStatus() {
@@ -8625,6 +8654,7 @@ function updateSelectionControls() {
   syncSelectionGrimoire();
   syncSelectionRotationDock();
   updateCompositionContextAction();
+  updateCommentContextActions();
 }
 
 function relativeScaleLabel(ratio) {
@@ -8649,6 +8679,14 @@ function syncSelectionGrimoire() {
     inkColorInput.value = /^#[0-9a-f]{6}$/i.test(selectedAction?.color || "")
       ? selectedAction.color
       : state.drawingColor;
+  }
+  if (!state.styleGestureActive && annotationColorInput) {
+    annotationColorInput.value = /^#[0-9a-f]{6}$/i.test(selectedAction?.color || "")
+      ? selectedAction.color
+      : state.annotationColor;
+  }
+  if (!state.styleGestureActive && annotationWeightInput) {
+    annotationWeightInput.value = String(Math.max(300, Math.min(900, Number(selectedAction?.fontWeight) || state.annotationWeight)));
   }
   if (selectionScaleLabel) {
     selectionScaleLabel.textContent = t(key ? "grimoire.objectScale" : "grimoire.scale");
@@ -8677,10 +8715,15 @@ function applySelectedStyle(style) {
   if (indices.length === 0) {
     if (style.width !== undefined) state.strokeSize = style.width;
     if (style.color !== undefined) state.drawingColor = style.color;
+    if (style.annotationColor !== undefined) state.annotationColor = style.annotationColor;
+    if (style.fontWeight !== undefined) state.annotationWeight = style.fontWeight;
     return;
   }
   if (!state.styleGestureActive) beginStyleGesture();
-  state.actions = styleSelectedActions(state.actions, indices, style);
+  const selectedStyle = style.annotationColor === undefined
+    ? style
+    : { ...style, color: style.annotationColor };
+  state.actions = styleSelectedActions(state.actions, indices, selectedStyle);
   state.activeSpell = null;
   updateUsedList();
   updateSpellState();
@@ -9342,11 +9385,12 @@ function createTextAnnotation(point, text) {
     kind: "text",
     label: labels.annotation,
     text: text.trim().slice(0, 500),
-    color: colors.edge,
+    color: state.annotationColor,
     width: lineWidth(),
     x: point.x,
     y: point.y,
     size: 18,
+    fontWeight: state.annotationWeight,
     rotation: 0,
   };
 }
@@ -10514,7 +10558,9 @@ function updateToolButtons() {
     if (!button.dataset.tool) {
       continue;
     }
-    const isActive = button.dataset.tool === state.tool;
+    const isActive = button.dataset.tool === state.tool && (
+      !button.dataset.annotationKind || button.dataset.annotationKind === state.annotationKind
+    );
     button.classList.toggle("is-active", isActive);
     button.setAttribute("aria-pressed", String(isActive));
   }
@@ -10524,6 +10570,7 @@ function updateToolButtons() {
 function syncWorkspaceModes() {
   document.body.classList.toggle("alignment-assist-on", state.alignmentAssist);
   document.body.classList.toggle("toolbar-compact", state.toolbarCompact);
+  document.body.classList.toggle("toolbar-side", state.toolbarDock.layout === "side");
   if (alignmentToggleButton) {
     alignmentToggleButton.classList.toggle("is-active", state.alignmentAssist);
     alignmentToggleButton.setAttribute("aria-pressed", String(state.alignmentAssist));
@@ -10537,6 +10584,13 @@ function syncWorkspaceModes() {
     const key = state.toolbarCompact ? "tool.expandToolbar" : "tool.compactToolbar";
     toolbarCompactButton.setAttribute("aria-label", t(key));
     toolbarCompactButton.title = t(key);
+  }
+  if (toolbarDockButton) {
+    const key = state.toolbarDock.layout === "side" ? "tool.toolbarTop" : "tool.toolbarSide";
+    toolbarDockButton.classList.toggle("is-active", state.toolbarDock.layout === "side");
+    toolbarDockButton.setAttribute("aria-pressed", String(state.toolbarDock.layout === "side"));
+    toolbarDockButton.setAttribute("aria-label", t(key));
+    toolbarDockButton.title = t(key);
   }
   window.requestAnimationFrame(applyToolbarDockPosition);
 }
@@ -10561,7 +10615,7 @@ function toolbarDockBounds() {
 
 function applyToolbarDockPosition() {
   if (!floatingTools) return;
-  if (!state.toolbarCompact) {
+  if (state.toolbarDock.layout !== "side") {
     floatingTools.classList.remove("is-dragging");
     floatingTools.removeAttribute("data-dock-side");
     for (const property of ["top", "left", "right", "bottom"]) floatingTools.style.removeProperty(property);
@@ -10578,7 +10632,7 @@ function applyToolbarDockPosition() {
 }
 
 function beginToolbarDrag(event) {
-  if (!state.toolbarCompact || event.button !== 0 || !floatingTools || !canvasWrap) return;
+  if (state.toolbarDock.layout !== "side" || !state.toolbarCompact || event.button !== 0 || !floatingTools || !canvasWrap) return;
   const bounds = toolbarDockBounds();
   if (!bounds) return;
   const toolbarRect = floatingTools.getBoundingClientRect();
@@ -10622,6 +10676,7 @@ function finishToolbarDrag(event) {
     const top = Math.max(bounds.minTop, Math.min(bounds.maxTop, toolbarRect.top - bounds.parent.top));
     const range = bounds.maxTop - bounds.minTop;
     state.toolbarDock = {
+      layout: "side",
       side: centerX < bounds.width / 2 ? "left" : "right",
       yRatio: range > 0 ? (top - bounds.minTop) / range : 0,
     };
@@ -10651,6 +10706,16 @@ function toggleToolbarCompact() {
   localStorage.setItem("whaToolbarCompact", String(state.toolbarCompact));
   syncWorkspaceModes();
   setStatus(t(state.toolbarCompact ? "status.toolbarCompact" : "status.toolbarExpanded"));
+}
+
+function toggleToolbarLayout() {
+  state.toolbarDock = {
+    ...state.toolbarDock,
+    layout: state.toolbarDock.layout === "side" ? "top" : "side",
+  };
+  localStorage.setItem("whaToolbarDock", JSON.stringify(state.toolbarDock));
+  syncWorkspaceModes();
+  setStatus(t(state.toolbarDock.layout === "side" ? "status.toolbarSide" : "status.toolbarTop"));
 }
 
 function elementIconMarkup(element) {
@@ -10785,10 +10850,66 @@ function compositionSelectionAnchorIndex() {
 }
 
 function updateCompositionContextAction() {
-  if (!compositionContextMenuItem) return;
   const anchorIndex = compositionSelectionAnchorIndex();
-  compositionContextMenuItem.hidden = anchorIndex === null;
   state.selectedCompositionAnchorIndex = anchorIndex;
+}
+
+function selectedCommentableActions() {
+  return normalizeSelection().filter((index) => isCommentableAction(state.actions[index]));
+}
+
+function updateCommentContextActions() {
+  const indices = normalizeSelection();
+  const commentableIndices = selectedCommentableActions();
+  const selectedTextComment = indices.some((index) => {
+    const action = state.actions[index];
+    return action?.type === "annotation" && action.kind === "text";
+  });
+  if (commentToggleMenuItem) {
+    commentToggleMenuItem.hidden = commentableIndices.length === 0;
+    if (commentableIndices.length > 0) {
+      const restore = commentableIndices.every((index) => state.actions[index]?.comment === true);
+      commentToggleMenuItem.dataset.i18n = restore ? "selectionMenu.toSpell" : "selectionMenu.toComment";
+      commentToggleMenuItem.textContent = t(commentToggleMenuItem.dataset.i18n);
+    }
+  }
+  if (editCommentMenuItem) {
+    editCommentMenuItem.hidden = !selectedTextComment;
+  }
+}
+
+function toggleSelectedComments() {
+  const indices = normalizeSelection();
+  if (selectedCommentableActions().length === 0) return false;
+  recordHistory();
+  state.actions = toggleSelectedCommentState(state.actions, indices);
+  state.activeSpell = null;
+  state.activation = null;
+  updateSelectionControls();
+  updateUsedList();
+  updateSpellState();
+  setStatus(t("status.selectionCommentToggled", { count: indices.length }));
+  render();
+  return true;
+}
+
+function beginTextCommentEdit() {
+  const index = normalizeSelection().find((selectedIndex) => {
+    const action = state.actions[selectedIndex];
+    return action?.type === "annotation" && action.kind === "text";
+  });
+  if (index === undefined || !annotationTextInput) return false;
+  if (state.annotationEditingIndex !== index) {
+    recordHistory();
+    state.annotationEditingIndex = index;
+  }
+  annotationModeInput && (annotationModeInput.value = "text");
+  state.annotationKind = "text";
+  annotationTextInput.value = String(state.actions[index].text || "");
+  annotationTextInput.focus({ preventScroll: true });
+  annotationTextInput.select();
+  setStatus(t("status.commentEditing"));
+  return true;
 }
 
 function compositionDraftFromState() {
@@ -13472,9 +13593,16 @@ for (const button of toolButtons) {
       armSymbol(state.element);
       return;
     }
+    if (button.dataset.annotationKind) {
+      state.annotationKind = button.dataset.annotationKind === "text" ? "text" : "drawing";
+      if (annotationModeInput) annotationModeInput.value = state.annotationKind;
+    }
     // setTool already calls updateToolButtons; no second call here.
     setTool(button.dataset.tool);
-    setStatus(t("status.toolSelected", { name: t(`tool.${state.tool}`) }));
+    const toolName = button.dataset.annotationKind === "text"
+      ? t("tool.textAnnotation")
+      : t(`tool.${state.tool}`);
+    setStatus(t("status.toolSelected", { name: toolName }));
   });
 }
 
@@ -13492,9 +13620,43 @@ inkColorInput?.addEventListener("pointerdown", beginStyleGesture);
 inkColorInput?.addEventListener("change", endStyleGesture);
 inkColorInput?.addEventListener("blur", endStyleGesture);
 
+annotationColorInput?.addEventListener("input", () => {
+  applySelectedStyle({ annotationColor: annotationColorInput.value });
+});
+annotationColorInput?.addEventListener("pointerdown", beginStyleGesture);
+annotationColorInput?.addEventListener("change", endStyleGesture);
+annotationColorInput?.addEventListener("blur", endStyleGesture);
+
+annotationWeightInput?.addEventListener("input", () => {
+  applySelectedStyle({ fontWeight: Number(annotationWeightInput.value) });
+});
+annotationWeightInput?.addEventListener("pointerdown", beginStyleGesture);
+annotationWeightInput?.addEventListener("change", endStyleGesture);
+annotationWeightInput?.addEventListener("blur", endStyleGesture);
+
 annotationModeInput?.addEventListener("change", () => {
   state.annotationKind = annotationModeInput.value === "text" ? "text" : "drawing";
+  updateToolButtons();
   setStatus(t("status.annotationMode", { mode: t(`annotation.kind.${state.annotationKind}`) }));
+});
+
+annotationTextInput?.addEventListener("input", () => {
+  const index = state.annotationEditingIndex;
+  const action = Number.isInteger(index) ? state.actions[index] : null;
+  if (!action || action.type !== "annotation" || action.kind !== "text") return;
+  action.text = annotationTextInput.value.slice(0, 500);
+  state.activeSpell = null;
+  updateSpellState();
+  render();
+});
+annotationTextInput?.addEventListener("blur", () => {
+  state.annotationEditingIndex = null;
+});
+annotationTextInput?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    annotationTextInput.blur();
+  }
 });
 
 function setCanvasScale(scale, announce = true) {
@@ -13641,6 +13803,7 @@ rotateSelectionRightButton?.addEventListener("click", () => rotateSelection(SELE
 rotateSelectionQuarterLeftButton?.addEventListener("click", () => rotateSelection(-SELECTION_QUARTER_TURN));
 rotateSelectionQuarterRightButton?.addEventListener("click", () => rotateSelection(SELECTION_QUARTER_TURN));
 alignmentToggleButton?.addEventListener("click", toggleAlignmentAssist);
+toolbarDockButton?.addEventListener("click", toggleToolbarLayout);
 toolbarCompactButton?.addEventListener("click", toggleToolbarCompact);
 toolbarCompactButton?.addEventListener("pointerdown", beginToolbarDrag);
 toolbarCompactButton?.addEventListener("pointermove", moveToolbarDrag);
@@ -14755,8 +14918,10 @@ selectionContextMenu?.addEventListener("click", (event) => {
   closeSelectionContextMenu();
   if (action === "search") {
     openSymbolSearch();
-  } else if (action === "composition") {
-    openSigilCompositionEditor(state.selectedCompositionAnchorIndex, "context");
+  } else if (action === "comment-toggle") {
+    toggleSelectedComments();
+  } else if (action === "edit-comment") {
+    beginTextCommentEdit();
   } else if (action === "duplicate") {
     duplicateSelectedActions();
   } else if (action === "delete") {
@@ -14790,6 +14955,7 @@ canvas.addEventListener("contextmenu", (event) => {
 canvas.addEventListener("pointerdown", onPointerDown);
 canvas.addEventListener("pointermove", onPointerMove);
 canvas.addEventListener("pointerup", onPointerUp);
+canvas.addEventListener("dblclick", onCanvasDoubleClick);
 window.addEventListener("pointerup", onPointerUp);
 spell3dCanvas?.addEventListener("pointerdown", onSpell3dPointerDown);
 spell3dCanvas?.addEventListener("pointermove", onSpell3dPointerMove);

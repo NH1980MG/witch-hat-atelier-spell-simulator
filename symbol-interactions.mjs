@@ -430,6 +430,9 @@ export function styleSelectedActions(actions, indices, style) {
   if (style.color !== undefined && !/^#[0-9a-f]{6}$/i.test(style.color)) {
     throw new TypeError("A six-digit hexadecimal selection color is required");
   }
+  if (style.fontWeight !== undefined && (!Number.isFinite(style.fontWeight) || style.fontWeight < 300 || style.fontWeight > 900)) {
+    throw new TypeError("A bounded annotation font weight is required");
+  }
   const selected = new Set(indices);
   return cloneActions(actions).map((action, index) => {
     if (!selected.has(index) || !isSelectableAction(action)) {
@@ -437,6 +440,9 @@ export function styleSelectedActions(actions, indices, style) {
     }
     if (style.width !== undefined) action.width = style.width;
     if (style.color !== undefined) action.color = style.color;
+    if (style.fontWeight !== undefined && action.type === "annotation" && action.kind === "text") {
+      action.fontWeight = Math.round(style.fontWeight / 100) * 100;
+    }
     return action;
   });
 }

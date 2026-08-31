@@ -21,9 +21,24 @@ test("epaisseur et couleur modifient la selection ou les prochains traits", () =
   assert.match(app, /strokeInput\.addEventListener\("input"/);
   assert.match(app, /inkColorInput\?\.addEventListener\("input"/);
   assert.match(app, /state\.drawingColor/);
+  assert.match(html, /id=["']annotationColorInput["'][^>]+type=["']color["']/);
+  assert.match(html, /id=["']annotationWeightInput["'][^>]+type=["']range["']/);
+  assert.match(app, /state\.annotationColor/);
+  assert.match(app, /state\.annotationWeight/);
   const widthBody = app.match(/function lineWidth\(\) \{([\s\S]*?)\n\}/)?.[1] || "";
   assert.match(widthBody, /state\.strokeSize/);
   assert.doesNotMatch(widthBody, /intensity/);
+});
+
+test("la barre Canva et la conversion objet-commentaire sont exposees", () => {
+  assert.match(html, /id=["']toolbarDockButton["']/);
+  assert.match(html, /data-tool=["']annotation["'][^>]+data-annotation-kind=["']text["']/);
+  assert.match(html, /data-selection-action=["']comment-toggle["']/);
+  assert.match(html, /data-selection-action=["']edit-comment["']/);
+  assert.doesNotMatch(html, /data-selection-action=["']composition["']/);
+  assert.match(app, /toggleSelectedCommentState/);
+  assert.match(app, /toolbar-side/);
+  assert.match(app, /toolbarDockButton/);
 });
 
 test("l'echelle est relative a la selection et reste le zoom sans selection", () => {
@@ -55,7 +70,7 @@ test("la puissance est derivee du diametre", () => {
 });
 
 test("les libelles de couleur et d'echelle relative existent dans les deux langues", () => {
-  for (const key of ["grimoire.inkColor", "grimoire.objectScale", "status.selectionStyleUpdated", "tool.rotateQuarterLeft", "tool.rotateQuarterRight"]) {
+  for (const key of ["grimoire.inkColor", "grimoire.objectScale", "grimoire.annotationColor", "grimoire.annotationWeight", "selectionMenu.toComment", "selectionMenu.toSpell", "selectionMenu.editComment", "status.selectionStyleUpdated", "tool.rotateQuarterLeft", "tool.rotateQuarterRight", "tool.toolbarSide", "tool.toolbarTop"]) {
     assert.equal(i18n.split(`"${key}"`).length - 1, 2, key);
   }
 });

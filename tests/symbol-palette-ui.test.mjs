@@ -166,7 +166,7 @@ test("la composition sigillaire possede ses libelles bilingues", async () => {
   }
 });
 
-test("la composition expose le mode du sceau, sa taille et l'action du clic droit", async () => {
+test("la composition expose le mode du sceau, sa taille et le clic droit reserve la conversion en commentaire", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
   for (const id of [
     "compositionDraftMode",
@@ -176,7 +176,8 @@ test("la composition expose le mode du sceau, sa taille et l'action du clic droi
   ]) {
     assert.match(html, new RegExp("id=[\\\"']" + id + "[\\\"']"));
   }
-  assert.match(html, /data-selection-action=["']composition["']/);
+  assert.doesNotMatch(html, /data-selection-action=["']composition["']/);
+  assert.match(html, /data-selection-action=["']comment-toggle["']/);
 });
 
 test("les libelles du nouveau sceau et de la taille existent en anglais et en francais", async () => {
@@ -193,7 +194,7 @@ test("les libelles du nouveau sceau et de la taille existent en anglais et en fr
   }
 });
 
-test("l'editeur ouvre un brouillon ou le sceau selectionne depuis le clic droit", async () => {
+test("l'editeur conserve son onglet dedie et le clic droit est reserve aux commentaires", async () => {
   const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
   assert.match(app, /createDefaultSigilComposition/);
   assert.match(app, /extractSigilComposition/);
@@ -201,7 +202,8 @@ test("l'editeur ouvre un brouillon ou le sceau selectionne depuis le clic droit"
   assert.match(app, /selectedCompositionAnchorIndex/);
   assert.match(app, /function isCompositionCircleCandidate\(/);
   assert.match(app, /selectedIndices\.find\(\(index\) => isCompositionCircleCandidate/);
-  assert.match(app, /data-selection-action.*composition|composition.*data-selection-action/);
+  assert.doesNotMatch(app, /data-selection-action.*composition|composition.*data-selection-action/);
+  assert.match(app, /toggleSelectedCommentState/);
   assert.match(app, /isCompleteSeal/);
 });
 

@@ -957,18 +957,31 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
 .floating-tools {
   position: absolute;
   z-index: 4;
-  top: 50%;
-  left: 18px;
-  display: grid;
-  grid-template-columns: repeat(2, 42px);
+  top: 16px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  max-width: calc(100% - 28px);
   gap: 8px;
-  transform: translateY(-50%);
+  overflow-x: auto;
+  transform: translateX(-50%);
   border: 1px solid rgba(140, 107, 63, 0.58);
   border-radius: 18px;
   padding: 9px;
   background: rgba(255, 248, 234, 0.92);
   box-shadow: 0 16px 36px var(--shadow);
   backdrop-filter: blur(10px);
+}
+
+.simulator-page.toolbar-side .floating-tools {
+  top: 50%;
+  left: 18px;
+  right: auto;
+  display: grid;
+  grid-template-columns: repeat(2, 42px);
+  max-width: none;
+  overflow: visible;
+  transform: translateY(-50%);
 }
 
 .simulator-page.toolbar-compact .floating-tools {
@@ -981,6 +994,22 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
   padding: 8px;
   touch-action: none;
   transition: left 180ms ease, right 180ms ease, top 180ms ease, box-shadow 180ms ease;
+}
+
+.simulator-page.toolbar-compact:not(.toolbar-side) .floating-tools {
+  flex-direction: row;
+  width: auto;
+  transform: translateX(-50%);
+}
+
+.simulator-page.toolbar-side.toolbar-compact .floating-tools {
+  top: 50%;
+  left: 18px;
+  display: flex;
+  flex-direction: column;
+  width: 60px;
+  max-width: none;
+  transform: translateY(-50%);
 }
 
 .simulator-page.toolbar-compact .floating-tools.is-dragging {
@@ -996,12 +1025,12 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
   border-color: rgba(36, 48, 68, 0.62);
 }
 
-.simulator-page.toolbar-compact #toolbarCompactButton {
+.simulator-page.toolbar-side.toolbar-compact #toolbarCompactButton {
   cursor: grab;
   touch-action: none;
 }
 
-.simulator-page.toolbar-compact .floating-tools.is-dragging #toolbarCompactButton {
+.simulator-page.toolbar-side.toolbar-compact .floating-tools.is-dragging #toolbarCompactButton {
   cursor: grabbing;
 }
 
@@ -4245,11 +4274,14 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
   }
 
   .floating-tools {
-    top: auto;
-    bottom: 18px;
+    top: 12px;
+    bottom: auto;
     left: 50%;
-    grid-auto-flow: column;
-    grid-template-columns: repeat(10, 42px);
+    display: flex;
+    grid-auto-flow: initial;
+    grid-template-columns: none;
+    max-width: calc(100% - 24px);
+    overflow-x: auto;
     transform: translateX(-50%);
   }
 
@@ -4455,8 +4487,10 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
 
   .floating-tools {
     width: calc(100% - 24px);
-    grid-auto-flow: row;
-    grid-template-columns: repeat(5, minmax(42px, 1fr));
+    display: flex;
+    flex-wrap: nowrap;
+    grid-auto-flow: initial;
+    grid-template-columns: none;
     gap: 6px;
     border-radius: 16px;
   }
@@ -4494,8 +4528,9 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
   }
 }
 
-/* Keep the compact palette vertical after the responsive toolbar rules. */
+/* Keep the compact palette stable after the responsive toolbar rules. */
 .simulator-page.toolbar-compact .floating-tools {
+  top: 16px;
   bottom: auto;
   display: flex;
   flex-direction: column;
@@ -4509,6 +4544,32 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
   flex: 0 0 42px;
   width: 42px;
   height: 42px;
+}
+
+.simulator-page.toolbar-side.toolbar-compact .floating-tools {
+  top: 50%;
+  left: 18px;
+  flex-direction: column;
+  width: 60px;
+  transform: translateY(-50%);
+}
+
+.simulator-page.toolbar-compact:not(.toolbar-side) .floating-tools {
+  flex-direction: row;
+  width: auto;
+  transform: translateX(-50%);
+}
+
+@media (max-width: 980px) {
+  .simulator-page.toolbar-side .floating-tools {
+    top: 50%;
+    left: 12px;
+    width: 60px;
+    max-width: none;
+    flex-direction: column;
+    overflow: visible;
+    transform: translateY(-50%);
+  }
 }
 
 .symbol-search-dialog {

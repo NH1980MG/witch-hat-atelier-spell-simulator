@@ -5,7 +5,7 @@ export const MAX_USER_GUIDE_STORAGE_CHARS = 2_500_000;
 const DRAWING_ACTION_TYPES = new Set(["free", "circle", "ring", "ray", "glyph", "spiral", "annotation"]);
 const ACTION_KEYS = [
   "type", "label", "element", "charge", "color", "width", "x", "y", "cx", "cy",
-  "radius", "turns", "size", "rotation", "kind", "closed", "seal", "boundary", "userAdjusted", "text",
+  "radius", "turns", "size", "rotation", "kind", "closed", "seal", "boundary", "userAdjusted", "text", "comment", "fontWeight",
 ];
 
 function sanitizePoint(point) {

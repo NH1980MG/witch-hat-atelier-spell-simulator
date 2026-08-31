@@ -11,7 +11,7 @@ const DRAWING_ACTION_TYPES = new Set(["free", "circle", "ring", "ray", "glyph", 
 const ACTION_KEYS = [
   "type", "label", "element", "charge", "color", "width", "x", "y", "cx", "cy",
   "radius", "turns", "size", "rotation", "kind", "category", "rune", "closed",
-  "seal", "boundary", "userAdjusted", "text",
+  "seal", "boundary", "userAdjusted", "text", "comment", "fontWeight",
 ];
 
 function sanitizePoint(point) {

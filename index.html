@@ -47,7 +47,7 @@
     </script>
     <script type="module" src="site-i18n.mjs?v=20260831-canvas-gestures-v2"></script>
     <script type="module" src="site-nav.mjs?v=20260831-auth-session-v1"></script>
-    <script type="module" src="app.js?v=20260831-canvas-gestures-v2"></script>
+    <script type="module" src="app.js?v=20260831-toolbar-comments-v1"></script>
   </head>
   <body class="simulator-page">
     <main class="app-shell">
@@ -118,6 +118,9 @@
             <canvas id="spell3dCanvas" data-i18n-aria-label="atelier.canvas3d" aria-label="Magic circle in 3D"></canvas>
           </div>
           <div class="floating-tools" data-i18n-aria-label="atelier.drawingTools" aria-label="Drawing tools">
+            <button class="tool-button toolbar-keep" id="toolbarDockButton" type="button" aria-pressed="false" data-i18n-aria-label="tool.toolbarSide" data-i18n-title="tool.toolbarSide" aria-label="Move toolbar to the side" title="Move toolbar to the side">
+              <span aria-hidden="true">&#8596;</span>
+            </button>
             <button class="tool-button toolbar-keep" id="toolbarCompactButton" type="button" aria-pressed="false" data-i18n-aria-label="tool.compactToolbar" data-i18n-title="tool.compactToolbar" aria-label="Reduce toolbar" title="Reduce toolbar">
               <span aria-hidden="true">&#8942;</span>
             </button>
@@ -129,6 +132,9 @@
             </button>
             <button class="tool-button" data-tool="annotation" type="button" data-i18n-aria-label="tool.annotation" data-i18n-title="tool.annotation" aria-label="Annotation" title="Annotation">
               <span aria-hidden="true">&#9998;</span>
+            </button>
+            <button class="tool-button" data-tool="annotation" data-annotation-kind="text" type="button" data-i18n-aria-label="tool.textAnnotation" data-i18n-title="tool.textAnnotation" aria-label="Text comment" title="Text comment">
+              <span aria-hidden="true">T</span>
             </button>
             <button class="tool-button is-active" data-tool="free" type="button" data-i18n-aria-label="tool.pen" data-i18n-title="tool.pen" aria-label="Pen" title="Pen">
               <span aria-hidden="true">&#10002;</span>
@@ -173,7 +179,8 @@
             <button type="button" role="menuitem" data-selection-action="duplicate" data-i18n="selectionMenu.duplicate">Duplicate</button>
             <button type="button" role="menuitem" data-selection-action="front" data-i18n="selectionMenu.front">Bring to front</button>
             <button type="button" role="menuitem" data-selection-action="back" data-i18n="selectionMenu.back">Send to back</button>
-            <button type="button" role="menuitem" data-selection-action="composition" data-i18n="selectionMenu.composition">Open composition editor</button>
+            <button type="button" role="menuitem" data-selection-action="comment-toggle" data-i18n="selectionMenu.toComment">Make comment</button>
+            <button type="button" role="menuitem" data-selection-action="edit-comment" data-i18n="selectionMenu.editComment" hidden>Edit comment</button>
             <button class="is-danger" type="button" role="menuitem" data-selection-action="delete" data-i18n="selectionMenu.delete">Delete</button>
           </div>
         </div>
@@ -551,6 +558,14 @@
             <label class="range-field color-field">
               <span data-i18n="grimoire.inkColor">Ink color</span>
               <input id="inkColorInput" type="color" value="#201a16">
+            </label>
+            <label class="range-field color-field">
+              <span data-i18n="grimoire.annotationColor">Comment color</span>
+              <input id="annotationColorInput" type="color" value="#8c6b3f">
+            </label>
+            <label class="range-field">
+              <span data-i18n="grimoire.annotationWeight">Text weight</span>
+              <input id="annotationWeightInput" type="range" min="300" max="900" value="600" step="100">
             </label>
             <label class="select-field">
               <span data-i18n="grimoire.annotationMode">Comment mode</span>
