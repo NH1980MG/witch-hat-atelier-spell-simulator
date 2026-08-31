@@ -39,7 +39,7 @@
         document.documentElement.dataset.appView = "atelier";
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260829-parametric-rings-v1">
+    <link rel="stylesheet" href="styles.css?v=20260830-stroke-annotations-v1">
     <script type="importmap">
       {
         "imports": {
@@ -48,9 +48,9 @@
         }
       }
     </script>
-    <script type="module" src="site-i18n.mjs?v=20260829-parametric-rings-v1"></script>
+    <script type="module" src="site-i18n.mjs?v=20260830-stroke-annotations-v1"></script>
     <script type="module" src="site-nav.mjs?v=20260830-auth-return-v1"></script>
-    <script type="module" src="app.js?v=20260829-parametric-rings-v1"></script>
+    <script type="module" src="app.js?v=20260830-stroke-annotations-v1"></script>
   </head>
   <body class="simulator-page app-home-page" data-app-view-title="Atelier">
     <main class="app-shell">
@@ -214,6 +214,9 @@
             <button class="tool-button toolbar-keep" id="selectToolButton" data-tool="select" type="button" data-i18n-aria-label="tool.select" data-i18n-title="tool.select" aria-label="Select and move a symbol" title="Select and move a symbol">
               <span aria-hidden="true">&#8598;</span>
             </button>
+            <button class="tool-button" data-tool="annotation" type="button" data-i18n-aria-label="tool.annotation" data-i18n-title="tool.annotation" aria-label="Annotation" title="Annotation">
+              <span aria-hidden="true">&#9998;</span>
+            </button>
             <button class="tool-button is-active" data-tool="free" type="button" data-i18n-aria-label="tool.pen" data-i18n-title="tool.pen" aria-label="Pen" title="Pen">
               <span aria-hidden="true">&#10002;</span>
             </button>
@@ -231,9 +234,6 @@
             </button>
             <button class="tool-button" data-tool="spiral" type="button" data-i18n-aria-label="tool.spiral" data-i18n-title="tool.spiral" aria-label="Spiral" title="Spiral">
               <span aria-hidden="true">~</span>
-            </button>
-            <button class="tool-button" data-tool="annotation" type="button" data-i18n-aria-label="tool.annotation" data-i18n-title="tool.annotation" aria-label="Annotation" title="Annotation">
-              <span aria-hidden="true">&#9998;</span>
             </button>
             <button class="tool-button" data-tool="eraser" type="button" data-i18n-aria-label="tool.eraser" data-i18n-title="tool.eraser" aria-label="Scraper" title="Scraper">
               <span aria-hidden="true">&#215;</span>

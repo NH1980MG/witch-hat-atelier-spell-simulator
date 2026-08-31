@@ -2,7 +2,7 @@ import {
   DEFAULT_LOCALE,
   resolveLocale,
   translate,
-} from "./i18n.mjs?v=20260829-parametric-rings-v1";
+} from "./i18n.mjs?v=20260830-stroke-annotations-v1";
 
 let currentLocale = DEFAULT_LOCALE;
 
