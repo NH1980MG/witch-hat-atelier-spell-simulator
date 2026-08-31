@@ -1,4 +1,5 @@
 const STORAGE_KEY = "whaWorkshopMenuOpen";
+const COMMUNITY_RETURN_PATH = "/auth/return-to-simulator";
 const COMMUNITY_PROFILE_KEYS = Object.freeze([
   "circleCommonsProfile",
   "circleCommonsUser",
@@ -123,7 +124,7 @@ function updateCommunityProfilePill(name = "") {
   if (!profileName) {
     const wasConnected = pill.dataset.connected === "true";
     pill.dataset.connected = "false";
-    pill.href = `${baseUrl}/sign-in?return_to=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+    pill.href = `${baseUrl}/sign-in?return_to=${encodeURIComponent(COMMUNITY_RETURN_PATH)}`;
     pill.removeAttribute("data-i18n-title");
     if (wasConnected) {
       label.textContent = label.dataset.signedOutText || "Sign in";
