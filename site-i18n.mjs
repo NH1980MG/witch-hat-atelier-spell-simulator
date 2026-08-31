@@ -2,7 +2,7 @@ import {
   DEFAULT_LOCALE,
   resolveLocale,
   translate,
-} from "./i18n.mjs?v=20260830-stroke-annotations-v1";
+} from "./i18n.mjs?v=20260831-canvas-gestures-v2";
 
 let currentLocale = DEFAULT_LOCALE;
 

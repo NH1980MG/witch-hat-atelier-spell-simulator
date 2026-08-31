@@ -6,8 +6,8 @@ import { catalogKeys, translate } from "../i18n.mjs";
 const appSource = await readFile(new URL("../app.js", import.meta.url), "utf8");
 const siteI18nSource = await readFile(new URL("../site-i18n.mjs", import.meta.url), "utf8");
 const publicPages = ["index.html", "bibliotheque.html", "tutoriel.html", "parametres.html", "fonctionnement.html"];
-const sharedRevision = "20260830-stroke-annotations-v1";
-const publicAssetRevision = "20260830-stroke-annotations-v1";
+const sharedRevision = "20260831-canvas-gestures-v2";
+const publicAssetRevision = "20260831-canvas-gestures-v2";
 
 test("the language controller imports the current catalog revision", () => {
   assert.match(siteI18nSource, new RegExp(`from "\\./i18n\\.mjs\\?v=${sharedRevision}"`));
@@ -141,8 +141,10 @@ test("the complete how-it-works topics are bilingual", () => {
 
   assert.match(translate("en", "how.drawing.tools"), /Select.*Pen.*Seal.*Double ring.*Direction line.*Glyph.*Spiral.*Scraper/);
   assert.match(translate("fr", "how.drawing.tools"), /Selection.*Plume.*Sceau.*Double anneau.*Trait directeur.*Glyphe.*Spire.*Grattoir/);
-  assert.match(translate("en", "how.selection.rectangle"), /right-click.*rectangle/i);
-  assert.match(translate("fr", "how.selection.rectangle"), /clic droit.*rectangle/i);
+  assert.match(translate("en", "how.selection.rectangle"), /left button.*pan.*single left click.*select/i);
+  assert.match(translate("en", "how.selection.rectangle"), /right button.*rectangle.*releasing.*selects/i);
+  assert.match(translate("fr", "how.selection.rectangle"), /bouton gauche.*deplacer.*clic gauche simple.*selectionne/i);
+  assert.match(translate("fr", "how.selection.rectangle"), /bouton droit.*rectangle.*relachement.*selectionne/i);
   assert.match(translate("en", "how.reading.metrics"), /Accuracy.*Duration.*force/i);
   assert.match(translate("fr", "how.reading.metrics"), /precision.*duree.*force/i);
   assert.match(translate("en", "how.photo.uncertain"), /Ambiguous.*Unreadable/i);

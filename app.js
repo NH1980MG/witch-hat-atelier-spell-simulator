@@ -10,7 +10,7 @@ import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe }
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
 import { isAnnotationAction, isSpellAction } from "./action-semantics.mjs";
 import { loadStrokeSmoothing, smoothStroke } from "./stroke-smoothing.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260830-stroke-annotations-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260831-canvas-gestures-v2";
 import {
   SIGIL_COMPOSITION_SLOTS,
   buildSigilCompositionCommitPlan,
@@ -577,6 +577,7 @@ const state = {
   pointerDown: false,
   activePointers: new Map(),
   panGesture: null,
+  leftPan: null,
   activation: null,
   activeSpell: null,
   lastActiveSpell: null,
@@ -1284,6 +1285,7 @@ function pointerDistance(points) {
 function beginPanGesture() {
   cancelLongPress();
   cancelSelectionDrag(true);
+  state.leftPan = null;
   cancelGuideResize();
   state.deferredTouchTool = null;
   state.pointerDown = false;
@@ -1325,6 +1327,66 @@ function updatePanGesture() {
     center.x - baseOffsetX - state.panGesture.anchor.x * scale,
     center.y - baseOffsetY - state.panGesture.anchor.y * scale,
   );
+  return true;
+}
+
+function beginLeftPan(event, point) {
+  cancelLongPress();
+  state.leftPan = {
+    pointerId: event.pointerId,
+    startScreen: screenPointFromEvent(event),
+    panX: state.panX,
+    panY: state.panY,
+    moved: false,
+  };
+  state.pointerDown = true;
+  state.start = point;
+  state.currentAction = null;
+  state.preview = null;
+  canvas.style.cursor = "grab";
+}
+
+function moveLeftPan(event) {
+  const drag = state.leftPan;
+  if (!drag || drag.pointerId !== event.pointerId) {
+    return false;
+  }
+  const currentScreen = screenPointFromEvent(event);
+  const dx = currentScreen.x - drag.startScreen.x;
+  const dy = currentScreen.y - drag.startScreen.y;
+  drag.moved = Math.hypot(dx, dy) > 4;
+  setCanvasPan(drag.panX + dx, drag.panY + dy, false);
+  canvas.style.cursor = "grabbing";
+  return true;
+}
+
+function finishLeftPan(event) {
+  const drag = state.leftPan;
+  if (!drag || drag.pointerId !== event.pointerId) {
+    return false;
+  }
+  moveLeftPan(event);
+  state.leftPan = null;
+  state.pointerDown = false;
+  state.start = null;
+  state.preview = null;
+  canvas.style.cursor = "default";
+  if (!drag.moved) {
+    const point = clampPointToDrawingLimit(pointFromEvent(event));
+    const index = topmostSelectableIndexAtPoint(state.actions, point);
+    if (index >= 0) {
+      state.guideSelected = false;
+      state.selectedActionIndices = [index];
+      updateSelectionControls();
+      setSelectionStatus();
+    } else {
+      clearSelection();
+      setStatus(t("status.selectionEmpty"));
+    }
+  } else {
+    setStatus(t("status.panMoved"));
+  }
+  render();
   return true;
 }
 
@@ -10185,7 +10247,7 @@ function onPointerDown(event) {
     if (guideBounds && beginGuideMove(event, point)) {
       return;
     }
-    beginSelectionDrag(event, point);
+    beginLeftPan(event, point);
     return;
   }
   armLongPress(event, point);
@@ -10263,6 +10325,12 @@ function onPointerMove(event) {
   if (state.rightSelection?.pointerId === event.pointerId) {
     event.preventDefault();
     moveRightSelection(event);
+    return;
+  }
+
+  if (state.leftPan?.pointerId === event.pointerId) {
+    event.preventDefault();
+    moveLeftPan(event);
     return;
   }
 
@@ -10351,6 +10419,11 @@ function onPointerUp(event) {
     return;
   }
 
+  if (state.leftPan?.pointerId === event.pointerId) {
+    finishLeftPan(event);
+    return;
+  }
+
   if (state.guideResize?.pointerId === event.pointerId) {
     finishGuideResize(clampPointToDrawingLimit(pointFromEvent(event)));
     return;
@@ -10397,6 +10470,9 @@ function onPointerCancel(event) {
   cancelLongPress();
   if (state.rightSelection?.pointerId === event.pointerId) {
     cancelRightSelection(event, true);
+  }
+  if (state.leftPan?.pointerId === event.pointerId) {
+    state.leftPan = null;
   }
   if (state.guideResize?.pointerId === event.pointerId) {
     cancelGuideResize();
@@ -14714,6 +14790,7 @@ canvas.addEventListener("contextmenu", (event) => {
 canvas.addEventListener("pointerdown", onPointerDown);
 canvas.addEventListener("pointermove", onPointerMove);
 canvas.addEventListener("pointerup", onPointerUp);
+window.addEventListener("pointerup", onPointerUp);
 spell3dCanvas?.addEventListener("pointerdown", onSpell3dPointerDown);
 spell3dCanvas?.addEventListener("pointermove", onSpell3dPointerMove);
 spell3dCanvas?.addEventListener("pointerup", finishSpell3dDrag);
@@ -14731,6 +14808,7 @@ window.addEventListener("pointermove", (event) => {
   symbolDragGhost.style.top = event.clientY + "px";
 });
 canvas.addEventListener("pointercancel", onPointerCancel);
+window.addEventListener("pointercancel", onPointerCancel);
 canvas.addEventListener("wheel", onCanvasWheel, { passive: false });
 window.addEventListener("resize", resizeCanvas);
 window.addEventListener("resize", resizeThreeView);
