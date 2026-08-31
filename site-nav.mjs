@@ -1,5 +1,6 @@
 const STORAGE_KEY = "whaWorkshopMenuOpen";
 const COMMUNITY_RETURN_PATH = "/auth/return-to-simulator";
+const COMMUNITY_PROFILE_HINT = "community_profile";
 const COMMUNITY_PROFILE_KEYS = Object.freeze([
   "circleCommonsProfile",
   "circleCommonsUser",
@@ -51,6 +52,24 @@ function readStoredCommunityProfileName(storage = window.localStorage) {
     }
   }
   return "";
+}
+
+function captureCommunityProfileHint() {
+  const fragment = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : "";
+  const params = new URLSearchParams(fragment);
+  const profileName = cleanCommunityProfileName(params.get(COMMUNITY_PROFILE_HINT));
+  if (!profileName) {
+    return;
+  }
+  try {
+    // This is display state only; Circle Commons remains the authorization boundary.
+    window.localStorage.setItem("circleCommonsProfile", JSON.stringify({ displayName: profileName }));
+  } catch {
+    // The session probe can still provide the name when browser storage is unavailable.
+  }
+  const cleanUrl = new URL(window.location.href);
+  cleanUrl.hash = "";
+  window.history.replaceState(null, "", cleanUrl);
 }
 
 function readPreference() {
@@ -199,6 +218,7 @@ async function initializeCommunityProfilePill() {
 
 function initializeSiteNavigation() {
   initializeWorkshopMenu();
+  captureCommunityProfileHint();
   void initializeCommunityProfilePill();
 }
 

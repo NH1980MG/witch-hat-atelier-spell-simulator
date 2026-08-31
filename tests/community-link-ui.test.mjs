@@ -35,7 +35,7 @@ test("every public simulator page links to the local suggestion page", async () 
   const i18n = await readFile(new URL("../i18n.mjs", import.meta.url), "utf8");
 
   for (const [name, html] of pages) {
-    assert.match(html, /site-nav\.mjs\?v=20260830-auth-return-v1/, `${name} should load the fixed account navigation runtime`);
+    assert.match(html, /site-nav\.mjs\?v=20260831-auth-session-v1/, `${name} should load the fixed account navigation runtime`);
     assert.match(
       html,
       /href="suggestions\.html"[^>]*data-i18n-aria-label="nav\.openSuggestions"/,
@@ -105,6 +105,15 @@ test("the signed-out profile pill keeps the simulator return bridge", async () =
   assert.match(source, /COMMUNITY_RETURN_PATH\s*=\s*["']\/auth\/return-to-simulator["']/);
   assert.match(source, /encodeURIComponent\(COMMUNITY_RETURN_PATH\)/);
   assert.doesNotMatch(source, /encodeURIComponent\(window\.location\.pathname\s*\+\s*window\.location\.search\)/);
+});
+
+test("the simulator captures only the display-name hint from the auth bridge", async () => {
+  const source = await readFile(new URL("../site-nav.mjs", import.meta.url), "utf8");
+
+  assert.match(source, /community_profile/);
+  assert.match(source, /localStorage\.setItem\("circleCommonsProfile"/);
+  assert.match(source, /history\.replaceState/);
+  assert.match(source, /captureCommunityProfileHint/);
 });
 
 test("the Circle Commons profile pill can show a stored connected name", () => {
