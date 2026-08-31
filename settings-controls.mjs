@@ -1,7 +1,7 @@
 import {
   loadStrokeSmoothing,
   saveStrokeSmoothing,
-} from "./stroke-smoothing.mjs?v=20260830-stroke-annotations-v1";
+} from "./stroke-smoothing.mjs?v=20260831-canvas-gestures-v1";
 
 const input = document.querySelector("#strokeSmoothingInput");
 const output = document.querySelector("#strokeSmoothingValue");
