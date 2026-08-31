@@ -18,6 +18,31 @@ test("la composition expose un editeur de sceaux et un inspecteur", () => {
   }
 });
 
+test("les catalogues sigils et signes restent caches jusqu'a leur bouton", () => {
+  for (const id of [
+    "addCompositionRingButton",
+    "openCompositionSigilPickerButton",
+    "openCompositionSignPickerButton",
+    "compositionSymbolPicker",
+    "compositionSymbolPickerClose",
+    "compositionSigilTray",
+    "compositionSignTray",
+    "compositionSymbolSearch",
+  ]) {
+    assert.match(html, new RegExp(`id=["']${id}["']`));
+  }
+  assert.match(html, /id=["']compositionSymbolPicker["'][^>]*hidden/);
+});
+
+test("l'inspecteur propose les controles parametriques et le joystick horizontal", () => {
+  assert.match(app, /compositionRangeField/);
+  assert.match(app, /repeatCount/);
+  assert.match(app, /orbitRadius/);
+  assert.match(app, /ringRotation/);
+  assert.match(app, /composition-orientation-joystick/);
+  assert.match(app, /openCompositionSymbolPicker/);
+});
+
 test("l’application branche l’editeur sur le modele de composition", () => {
   assert.match(app, /extractCompositionDocument/);
   assert.match(app, /compileCompositionDocument/);

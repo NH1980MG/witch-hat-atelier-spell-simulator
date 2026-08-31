@@ -8,7 +8,7 @@ import {
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260812-particle-field-v1";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260812-particle-field-v1";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260829-guide-library-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260829-parametric-rings-v1";
 import {
   SIGIL_COMPOSITION_SLOTS,
   buildSigilCompositionCommitPlan,
@@ -19,11 +19,12 @@ import {
 } from "./sigil-composition-layout.mjs?v=20260817-seal-composition-editor-v1";
 import {
   applyCompositionTexture,
+  buildCompositionSymbolPlacements,
   calibrateCompositionElement,
   compileCompositionDocument,
   extractCompositionDocument,
   normalizeCompositionDocument,
-} from "./sigil-composition-model.mjs?v=20260819-composition-model-v1";
+} from "./sigil-composition-model.mjs?v=20260829-parametric-rings-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260809-handoff-layout-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -391,6 +392,15 @@ const sigilCompositionTab = document.querySelector("#sigilCompositionTab");
 const sigilCompositionPanel = document.querySelector("#sigilCompositionPanel");
 const compositionSigilTray = document.querySelector("#compositionSigilTray");
 const compositionSignTray = document.querySelector("#compositionSignTray");
+const compositionSymbolPicker = document.querySelector("#compositionSymbolPicker");
+const compositionSymbolPickerTitle = document.querySelector("#compositionSymbolPickerTitle");
+const compositionSymbolPickerClose = document.querySelector("#compositionSymbolPickerClose");
+const compositionSymbolSearch = document.querySelector("#compositionSymbolSearch");
+const compositionSigilPickerGroup = document.querySelector("#compositionSigilPickerGroup");
+const compositionSignPickerGroup = document.querySelector("#compositionSignPickerGroup");
+const addCompositionRingButton = document.querySelector("#addCompositionRingButton");
+const openCompositionSigilPickerButton = document.querySelector("#openCompositionSigilPickerButton");
+const openCompositionSignPickerButton = document.querySelector("#openCompositionSignPickerButton");
 const compositionStage = document.querySelector("#compositionStage");
 const compositionDraftMode = document.querySelector("#compositionDraftMode");
 const compositionCircleSizeInput = document.querySelector("#compositionCircleSizeInput");
@@ -10663,6 +10673,37 @@ function visibleCompositionElements(kind) {
   });
 }
 
+function closeCompositionSymbolPicker() {
+  if (!compositionSymbolPicker) return;
+  compositionSymbolPicker.hidden = true;
+  delete compositionSymbolPicker.dataset.kind;
+  if (compositionSymbolSearch) compositionSymbolSearch.value = "";
+}
+
+function renderCompositionSymbolPicker() {
+  if (!compositionSymbolPicker || compositionSymbolPicker.hidden) return;
+  const kind = compositionSymbolPicker.dataset.kind === "sign" ? "sign" : "sigil";
+  const query = compositionSymbolSearch?.value.trim().toLocaleLowerCase(getLocale()) || "";
+  const options = visibleCompositionElements(kind).filter((element) => {
+    return !query || elementDisplayName(element).toLocaleLowerCase(getLocale()).includes(query);
+  });
+  if (compositionSymbolPickerTitle) {
+    compositionSymbolPickerTitle.textContent = t(kind === "sigil" ? "composition.chooseSigil" : "composition.chooseSign");
+  }
+  if (compositionSigilPickerGroup) compositionSigilPickerGroup.hidden = kind !== "sigil";
+  if (compositionSignPickerGroup) compositionSignPickerGroup.hidden = kind !== "sign";
+  renderCompositionTray(kind === "sigil" ? compositionSigilTray : compositionSignTray, options);
+}
+
+function openCompositionSymbolPicker(kind) {
+  if (!compositionSymbolPicker || !["sigil", "sign"].includes(kind)) return;
+  compositionSymbolPicker.dataset.kind = kind;
+  compositionSymbolPicker.hidden = false;
+  if (compositionSymbolSearch) compositionSymbolSearch.value = "";
+  renderCompositionSymbolPicker();
+  compositionSymbolSearch?.focus({ preventScroll: true });
+}
+
 function compositionElementByName(name, kind = null) {
   if (!name) return null;
   return elements.find((element) => element.name === name && (!kind || element.kind === kind)) || null;
@@ -10693,6 +10734,34 @@ function nextCompositionSlot(kind, currentSlotId) {
 
 function setCompositionSlotElement(element) {
   if (!element) return;
+  const seal = compositionEditorSeal();
+  if (seal) {
+    const id = `${element.kind}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    const orbitRadius = element.kind === "sign" ? seal.radius * 0.72 : 0;
+    const item = {
+      id,
+      type: element.kind,
+      visible: true,
+      tinted: false,
+      prefix: "",
+      symbol: element.name,
+      x: seal.center.x,
+      y: seal.center.y,
+      size: element.kind === "sign" ? 20 : 30,
+      rotation: 0,
+      orbitRadius,
+      repeatCount: 1,
+      ringRotation: -Math.PI / 2,
+      color: element.color,
+      texture: null,
+    };
+    seal[element.kind === "sigil" ? "sigils" : "signs"].push(item);
+    state.sigilComposition.selectedType = element.kind;
+    state.sigilComposition.selectedId = id;
+    closeCompositionSymbolPicker();
+    renderSigilCompositionPanel();
+    return;
+  }
   let slot = compositionSlotDefinition(state.sigilComposition.activeSlot);
   if (slot.kind !== element.kind) {
     slot = SIGIL_COMPOSITION_SLOTS.find((candidate) => {
@@ -10701,32 +10770,6 @@ function setCompositionSlotElement(element) {
   }
   if (!slot) return;
   state.sigilComposition.slots[slot.id] = element.name;
-  const seal = compositionEditorSeal();
-  if (seal) {
-    const collection = element.kind === "sigil" ? seal.sigils : seal.signs;
-    const selected = compositionEditorItem();
-    const selectedMatches = selected && selected.type === element.kind;
-    const item = selectedMatches
-      ? selected
-      : {
-        id: `${element.kind}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
-        type: element.kind,
-        visible: true,
-        tinted: false,
-        prefix: "",
-        symbol: element.name,
-        x: seal.center.x,
-        y: element.kind === "sign" ? seal.center.y - seal.radius * 0.8 : seal.center.y,
-        size: element.kind === "sign" ? 20 : 30,
-        rotation: 0,
-        texture: null,
-      };
-    item.symbol = element.name;
-    item.color ||= element.color;
-    if (!selectedMatches) collection.push(item);
-    state.sigilComposition.selectedType = element.kind;
-    state.sigilComposition.selectedId = item.id;
-  }
   if (state.sigilComposition.draft) {
     state.sigilComposition.draft.slots = { ...state.sigilComposition.slots };
   }
@@ -10736,6 +10779,7 @@ function setCompositionSlotElement(element) {
 }
 
 function clearSigilComposition() {
+  closeCompositionSymbolPicker();
   for (const slot of SIGIL_COMPOSITION_SLOTS) {
     state.sigilComposition.slots[slot.id] = null;
   }
@@ -10802,8 +10846,7 @@ function renderSigilCompositionPanel() {
     const stageSize = Math.max(42, Math.min(68, (draft.diameter / maxDiameter) * 68));
     compositionStage.style.setProperty("--composition-circle-size", `${stageSize}%`);
   }
-  renderCompositionTray(compositionSigilTray, visibleCompositionElements("sigil"));
-  renderCompositionTray(compositionSignTray, visibleCompositionElements("sign"));
+  renderCompositionSymbolPicker();
   renderCompositionEditor();
   renderSigilCompositionStage();
   renderCompositionChipSelection();
@@ -10860,6 +10903,29 @@ function compositionEditorField(label, field, value, type = "text", options = {}
   return wrapper;
 }
 
+function compositionRangeField(label, field, value, options = {}) {
+  const wrapper = document.createElement("label");
+  wrapper.className = `composition-range-field${options.joystick ? " composition-orientation-joystick" : ""}`;
+  const heading = document.createElement("span");
+  heading.className = "composition-range-heading";
+  const caption = document.createElement("span");
+  caption.textContent = label;
+  const output = document.createElement("output");
+  const inputValue = options.unit === "degrees" ? (Number(value) || 0) * 180 / Math.PI : Number(value) || 0;
+  output.textContent = options.format ? options.format(inputValue) : String(Math.round(inputValue * 10) / 10);
+  const input = document.createElement("input");
+  input.type = "range";
+  input.dataset.compositionField = field;
+  if (options.unit) input.dataset.compositionUnit = options.unit;
+  input.min = String(options.min ?? 0);
+  input.max = String(options.max ?? 100);
+  input.step = String(options.step ?? 1);
+  input.value = String(inputValue);
+  heading.append(caption, output);
+  wrapper.append(heading, input);
+  return wrapper;
+}
+
 function compositionElementOptions(kind) {
   return elements
     .filter((element) => element.kind === kind && isSymbolVisibleAtChapter(element.name, state.spoilerChapter))
@@ -10878,15 +10944,13 @@ function compositionCollectionLabel(type) {
 function compositionAddItem(type) {
   const seal = compositionEditorSeal();
   if (!seal) return;
+  if (type === "sigil" || type === "sign") {
+    openCompositionSymbolPicker(type);
+    return;
+  }
   const id = `${type}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
   if (type === "ring") {
     seal.rings.push({ id, type, visible: true, name: "", color: state.drawingColor, filled: false, radius: seal.radius, lineWeight: lineWidth(), openingSize: 0, openingAngle: 0, offsetX: 0, offsetY: 0 });
-  } else if (type === "sigil") {
-    const element = elements.find((entry) => entry.kind === "sigil");
-    seal.sigils.push({ id, type, visible: true, tinted: false, prefix: "", symbol: element?.name || "", x: seal.center.x, y: seal.center.y, size: 30, rotation: 0, texture: null });
-  } else if (type === "sign") {
-    const element = elements.find((entry) => entry.kind === "sign");
-    seal.signs.push({ id, type, visible: true, tinted: false, prefix: "", symbol: element?.name || "", x: seal.center.x, y: seal.center.y - seal.radius * 0.8, size: 20, rotation: 0, strafeOffset: 0, circleRadius: seal.radius * 0.8, circleSymmetry: 8, skipped: 0, circleRotation: 0, offsetX: 0, offsetY: 0, texture: null });
   } else if (type === "line") {
     seal.lines.push({ id, type, visible: true, name: "", color: state.drawingColor, lineWeight: lineWidth(), points: [{ x: seal.center.x - 20, y: seal.center.y }, { x: seal.center.x + 20, y: seal.center.y }] });
   }
@@ -10948,23 +11012,28 @@ function renderCompositionEditor() {
     fields.push(compositionEditorField("Y", "offsetY", selected.offsetY, "number"));
     fields.push(compositionEditorField(getLocale() === "fr" ? "Rayon" : "Radius", "radius", selected.radius, "number", { min: 1 }));
   } else {
-    if (selected.type === "sigil" || selected.type === "sign") {
+    const isSymbol = selected.type === "sigil" || selected.type === "sign";
+    if (isSymbol) {
       fields.push(compositionEditorField(getLocale() === "fr" ? "Symbole" : "Symbol", "symbol", selected.symbol, "select", { options: compositionElementOptions(selected.type === "sigil" ? "sigil" : "sign") }));
     }
     if (selected.name !== undefined) fields.push(compositionEditorField(getLocale() === "fr" ? "Nom" : "Name", "name", selected.name));
-    for (const field of ["x", "y", "size", "rotation"]) {
-      fields.push(compositionEditorField(field.toUpperCase(), field, selected[field], "number", { min: field === "size" ? 1 : undefined }));
+    if (isSymbol) {
+      const seal = compositionEditorSeal();
+      const maxOrbit = Math.max(100, Math.round((seal?.radius || 240) * 1.35));
+      fields.push(compositionRangeField(getLocale() === "fr" ? "Taille" : "Size", "size", selected.size, { min: 4, max: 180, step: 1, format: (number) => `${Math.round(number)} px` }));
+      fields.push(compositionRangeField(getLocale() === "fr" ? "Distance du centre" : "Distance from center", "orbitRadius", selected.orbitRadius, { min: 0, max: maxOrbit, step: 1, format: (number) => `${Math.round(number)} px` }));
+      fields.push(compositionRangeField(getLocale() === "fr" ? "Inclinaison" : "Tilt", "rotation", selected.rotation, { min: -180, max: 180, step: 1, unit: "degrees", format: (number) => `${Math.round(number)}°` }));
+      fields.push(compositionRangeField(getLocale() === "fr" ? "Nombre de symboles" : "Symbol count", "repeatCount", selected.repeatCount, { min: 1, max: 64, step: 1, format: (number) => String(Math.round(number)) }));
+      fields.push(compositionRangeField(getLocale() === "fr" ? "Orientation de l’anneau" : "Ring orientation", "ringRotation", selected.ringRotation, { min: -180, max: 180, step: 1, unit: "degrees", joystick: true, format: (number) => `${Math.round(number)}°` }));
+    } else {
+      for (const field of ["x", "y", "size", "rotation"]) {
+        fields.push(compositionEditorField(field.toUpperCase(), field, selected[field], "number", { min: field === "size" ? 1 : undefined }));
+      }
     }
     if (selected.type === "ring") {
       fields.push(compositionEditorField(getLocale() === "fr" ? "Épaisseur" : "Line weight", "lineWeight", selected.lineWeight, "number", { min: 1 }));
       fields.push(compositionEditorField(getLocale() === "fr" ? "Ouverture" : "Opening", "openingSize", selected.openingSize, "number", { min: 0 }));
       fields.push(compositionEditorField(getLocale() === "fr" ? "Angle ouverture" : "Opening angle", "openingAngle", selected.openingAngle, "number"));
-    }
-    if (selected.type === "sign") {
-      fields.push(compositionEditorField(getLocale() === "fr" ? "Rayon du cercle" : "Sign circle radius", "circleRadius", selected.circleRadius, "number", { min: 0 }));
-      fields.push(compositionEditorField(getLocale() === "fr" ? "Symétrie" : "Symmetry", "circleSymmetry", selected.circleSymmetry, "number", { min: 1, step: "1" }));
-      fields.push(compositionEditorField(getLocale() === "fr" ? "Signes ignorés" : "Signs skipped", "skipped", selected.skipped, "number", { min: 0, step: "1" }));
-      fields.push(compositionEditorField(getLocale() === "fr" ? "Rotation cercle" : "Circle rotation", "circleRotation", selected.circleRotation, "number"));
     }
     if (selected.type === "line") {
       fields.push(compositionEditorField("Points JSON", "points", JSON.stringify(selected.points), "text"));
@@ -10985,7 +11054,7 @@ function renderCompositionEditor() {
   if (compositionTextureKind) compositionTextureKind.value = selected.texture?.kind || "solid";
 }
 
-function updateCompositionEditorField(field, value) {
+function updateCompositionEditorField(field, value, options = {}) {
   const selected = compositionEditorItem();
   if (!selected) return;
   if (field === "visible") selected.visible = Boolean(value);
@@ -10995,12 +11064,13 @@ function updateCompositionEditorField(field, value) {
     } catch {
       return;
     }
-  } else if (["angle", "scale", "offsetX", "offsetY", "radius", "x", "y", "size", "rotation", "lineWeight", "openingSize", "openingAngle", "circleRadius", "circleSymmetry", "skipped", "circleRotation"].includes(field)) {
-    selected[field] = Number(value);
+  } else if (["angle", "scale", "offsetX", "offsetY", "radius", "x", "y", "size", "rotation", "lineWeight", "openingSize", "openingAngle", "circleRadius", "circleSymmetry", "skipped", "circleRotation", "orbitRadius", "repeatCount", "ringRotation"].includes(field)) {
+    const numeric = options.unit === "degrees" ? Number(value) * Math.PI / 180 : Number(value);
+    selected[field] = field === "repeatCount" ? Math.max(1, Math.round(numeric)) : numeric;
   } else {
     selected[field] = value;
   }
-  renderCompositionEditor();
+  if (options.refreshInspector !== false) renderCompositionEditor();
   renderSigilCompositionStage();
 }
 
@@ -11063,11 +11133,29 @@ compositionSealList?.addEventListener("click", (event) => {
 
 compositionInspectorContent?.addEventListener("input", (event) => {
   const field = event.target.closest("[data-composition-field]");
-  if (field) updateCompositionEditorField(field.dataset.compositionField, field.type === "checkbox" ? field.checked : field.value);
+  if (!field) return;
+  const range = field.type === "range";
+  if (range) {
+    const output = field.closest(".composition-range-field")?.querySelector("output");
+    if (output) {
+      const suffix = field.dataset.compositionUnit === "degrees" ? "°" : field.dataset.compositionField === "repeatCount" ? "" : " px";
+      output.textContent = `${Math.round(Number(field.value))}${suffix}`;
+    }
+  }
+  updateCompositionEditorField(
+    field.dataset.compositionField,
+    field.type === "checkbox" ? field.checked : field.value,
+    { unit: field.dataset.compositionUnit, refreshInspector: !range },
+  );
 });
 compositionInspectorContent?.addEventListener("click", (event) => {
   if (event.target.closest("[data-composition-remove]")) removeCompositionEditorItem();
 });
+addCompositionRingButton?.addEventListener("click", () => compositionAddItem("ring"));
+openCompositionSigilPickerButton?.addEventListener("click", () => openCompositionSymbolPicker("sigil"));
+openCompositionSignPickerButton?.addEventListener("click", () => openCompositionSymbolPicker("sign"));
+compositionSymbolPickerClose?.addEventListener("click", closeCompositionSymbolPicker);
+compositionSymbolSearch?.addEventListener("input", renderCompositionSymbolPicker);
 addCompositionSealButton?.addEventListener("click", () => {
   const document = compositionEditorDocument();
   const id = `seal-${Date.now().toString(36)}`;
@@ -11187,25 +11275,31 @@ function renderCompositionDocumentStage(compositionDocument) {
     }
     for (const item of [...seal.sigils, ...seal.signs]) {
       const element = compositionElementByName(item.symbol, item.type);
-      const itemNode = document.createElement("button");
-      itemNode.type = "button";
-      itemNode.className = "composition-document-element composition-slot";
-      itemNode.dataset.slotKind = item.type;
-      itemNode.style.left = `${50 + ((item.x - seal.center.x) / Math.max(1, seal.radius)) * 50}%`;
-      itemNode.style.top = `${50 + ((item.y - seal.center.y) / Math.max(1, seal.radius)) * 50}%`;
-      itemNode.style.setProperty("--symbol-color", item.color || element?.color || state.drawingColor);
-      itemNode.style.transform = `translate(-50%, -50%) rotate(${item.rotation || 0}deg)`;
-      itemNode.classList.toggle("is-active", state.sigilComposition.selectedType === item.type && state.sigilComposition.selectedId === item.id);
-      itemNode.setAttribute("aria-label", element ? elementDisplayName(element) : item.symbol || item.type);
-      itemNode.innerHTML = element ? elementIconMarkup(element) : `<span class="composition-slot-empty">${item.symbol || "?"}</span>`;
-      itemNode.addEventListener("click", (event) => {
-        event.stopPropagation();
-        state.sigilComposition.selectedType = item.type;
-        state.sigilComposition.selectedId = item.id;
-        renderCompositionEditor();
-        renderCompositionDocumentStage(compositionDocument);
-      });
-      sealNode.append(itemNode);
+      const placements = buildCompositionSymbolPlacements(item, seal);
+      for (const placement of placements) {
+        const itemNode = document.createElement("button");
+        itemNode.type = "button";
+        itemNode.className = "composition-document-element composition-slot";
+        itemNode.dataset.slotKind = item.type;
+        itemNode.style.left = `${50 + ((placement.x - seal.center.x) / Math.max(1, seal.radius)) * 50}%`;
+        itemNode.style.top = `${50 + ((placement.y - seal.center.y) / Math.max(1, seal.radius)) * 50}%`;
+        const previewSize = Math.max(24, Math.min(86, (Number(item.size) || 20) * 1.45));
+        itemNode.style.width = `${previewSize}px`;
+        itemNode.style.minWidth = `${previewSize}px`;
+        itemNode.style.setProperty("--symbol-color", item.color || element?.color || state.drawingColor);
+        itemNode.style.transform = `translate(-50%, -50%) rotate(${(placement.rotation || 0) * 180 / Math.PI}deg)`;
+        itemNode.classList.toggle("is-active", state.sigilComposition.selectedType === item.type && state.sigilComposition.selectedId === item.id);
+        itemNode.setAttribute("aria-label", element ? elementDisplayName(element) : item.symbol || item.type);
+        itemNode.innerHTML = element ? elementIconMarkup(element) : `<span class="composition-slot-empty">${item.symbol || "?"}</span>`;
+        itemNode.addEventListener("click", (event) => {
+          event.stopPropagation();
+          state.sigilComposition.selectedType = item.type;
+          state.sigilComposition.selectedId = item.id;
+          renderCompositionEditor();
+          renderCompositionDocumentStage(compositionDocument);
+        });
+        sealNode.append(itemNode);
+      }
     }
     compositionStage.append(sealNode);
   }

@@ -103,7 +103,10 @@ test("le guide photo conserve le raster corrige sans ajouter d'actions", async (
   assert.match(source, /sourceCropForAnalysis/);
   assert.match(source, /drawImage\(\s*bitmap,/);
   assert.match(source, /toDataURL\("image\/webp", 0\.82\)/);
-  assert.match(source, /drawImage\(image, scaledBounds\.left, scaledBounds\.top, scaledBounds\.width, scaledBounds\.height\)/);
+  assert.match(source, /ctx\.translate\(center\.x \+ guideTransform\.x, center\.y \+ guideTransform\.y\)/);
+  assert.match(source, /ctx\.rotate\(guideTransform\.rotation\)/);
+  assert.match(source, /ctx\.scale\(guideTransform\.scale, guideTransform\.scale\)/);
+  assert.match(source, /ctx\.drawImage\(image, -baseBounds\.width \/ 2, -baseBounds\.height \/ 2, baseBounds\.width, baseBounds\.height\)/);
 });
 
 test("les chaines de l'import photo existent dans les deux locales", async () => {
