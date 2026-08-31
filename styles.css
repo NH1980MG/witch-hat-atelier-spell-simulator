@@ -1364,6 +1364,7 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
 }
 
 .symbol-island,
+.composition-island,
 .details-island,
 .support-island,
 .guide-island,
@@ -1387,23 +1388,28 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
   top: 18px;
 }
 
-.details-island {
+.composition-island {
   top: 72px;
 }
 
-.support-island {
+.details-island {
   top: 126px;
 }
 
-.guide-island {
+.support-island {
   top: 180px;
 }
 
-.gallery-island {
+.guide-island {
   top: 234px;
 }
 
+.gallery-island {
+  top: 288px;
+}
+
 .symbol-island > span[aria-hidden="true"],
+.composition-island > span[aria-hidden="true"],
 .details-island > span[aria-hidden="true"],
 .support-island > span[aria-hidden="true"],
 .guide-island > span[aria-hidden="true"],
@@ -1517,6 +1523,7 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
 }
 
 .simulator-page.symbols-open .symbol-island,
+.simulator-page.composition-open .composition-island,
 .simulator-page.details-open .details-island,
 .simulator-page.support-open .support-island,
 .simulator-page.guides-open .guide-island,
@@ -4485,6 +4492,14 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
     font-size: 0.92rem;
   }
 
+  .composition-island {
+    top: 66px;
+    right: 12px;
+    max-width: 148px;
+    padding: 8px 11px;
+    font-size: 0.92rem;
+  }
+
   .floating-tools {
     width: calc(100% - 24px);
     display: flex;
@@ -4787,6 +4802,52 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
   color: var(--ink);
   padding: 1rem 1.25rem;
   box-sizing: border-box;
+}
+
+.sigil-composition-dialog {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  width: min(72rem, calc(100vw - 2rem));
+  max-width: calc(100vw - 2rem);
+  height: min(52rem, calc(100dvh - 2rem));
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  padding: 1rem 1.25rem 1.15rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+  color: var(--ink);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.sigil-composition-dialog:not([open]) {
+  display: none;
+}
+
+.sigil-composition-dialog::backdrop {
+  background: rgba(36, 48, 68, 0.48);
+}
+
+.composition-dialog-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0;
+}
+
+.composition-dialog-heading h2 {
+  margin: 0;
+  font-size: clamp(1.15rem, 2.4vw, 1.6rem);
+}
+
+.sigil-composition-dialog > .sigil-composition-panel {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0 6px 4px 0;
 }
 
 .photo-dialog::backdrop {
@@ -5205,6 +5266,14 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
 }
 
 @media (max-width: 560px) {
+  .sigil-composition-dialog {
+    width: calc(100vw - 1rem);
+    max-width: calc(100vw - 1rem);
+    height: calc(100dvh - 1rem);
+    max-height: calc(100dvh - 1rem);
+    padding: 0.85rem;
+  }
+
   .photo-dialog {
     padding: 0.85rem;
   }
@@ -5607,6 +5676,7 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
   }
 
   .symbol-island,
+  .composition-island,
   .details-island,
   .support-island,
   .guide-island {
@@ -5617,12 +5687,14 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
     justify-content: center;
   }
 
-  .symbol-island { right: 156px; }
+  .symbol-island { right: 204px; }
+  .composition-island { right: 156px; }
   .details-island { right: 108px; }
   .support-island { right: 60px; }
   .guide-island { right: 12px; }
 
   .symbol-island > span:not([aria-hidden="true"]),
+  .composition-island > span:not([aria-hidden="true"]),
   .details-island > span:not([aria-hidden="true"]),
   .support-island > span:not([aria-hidden="true"]),
   .guide-island > span:not([aria-hidden="true"]) {
