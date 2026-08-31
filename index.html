@@ -35,9 +35,6 @@
       if (window.location.protocol === "file:") {
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
-      if (new URLSearchParams(window.location.search).get("view") === "atelier") {
-        document.documentElement.dataset.appView = "atelier";
-      }
     </script>
     <link rel="stylesheet" href="styles.css?v=20260830-stroke-annotations-v1">
     <script type="importmap">
@@ -52,7 +49,7 @@
     <script type="module" src="site-nav.mjs?v=20260830-auth-return-v1"></script>
     <script type="module" src="app.js?v=20260830-stroke-annotations-v1"></script>
   </head>
-  <body class="simulator-page app-home-page" data-app-view-title="Atelier">
+  <body class="simulator-page">
     <main class="app-shell">
       <header class="top-title">
         <a class="brand-title brand-home" href="index.html" data-i18n-aria-label="nav.home" aria-label="Return to the main workshop">
@@ -91,90 +88,6 @@
           </div>
         </aside>
       </header>
-
-      <section class="app-hub app-hub-home" data-app-hub data-i18n-aria-label="appHub.title" aria-label="Choose where the atelier will open">
-        <div class="app-hub-topbar">
-          <div class="app-hub-shortcuts" aria-hidden="false">
-            <a class="app-hub-shortcut app-hub-shortcut-primary" href="index.html" aria-current="page">
-              <span class="app-hub-card-icon" aria-hidden="true">&#9638;</span>
-              <span class="app-hub-card-text">
-                <strong data-i18n="appHub.canvases">My gallery</strong>
-              </span>
-            </a>
-            <button class="app-hub-shortcut" type="button" disabled>
-              <span class="app-hub-card-icon" aria-hidden="true">&#10002;</span>
-              <span class="app-hub-card-text">
-                <strong data-i18n="appHub.workshop">Workshop</strong>
-              </span>
-              <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
-            </button>
-            <button class="app-hub-shortcut" type="button" disabled>
-              <span class="app-hub-card-icon" aria-hidden="true">&#9678;</span>
-              <span class="app-hub-card-text">
-                <strong data-i18n="appHub.library">Library</strong>
-              </span>
-              <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
-            </button>
-            <button class="app-hub-shortcut" type="button" disabled>
-              <span class="app-hub-card-icon" aria-hidden="true">&#9673;</span>
-              <span class="app-hub-card-text">
-                <strong data-i18n="appHub.commons">Circle Commons</strong>
-              </span>
-              <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
-            </button>
-            <button class="app-hub-shortcut" type="button" disabled>
-              <span class="app-hub-card-icon" aria-hidden="true">?</span>
-              <span class="app-hub-card-text">
-                <strong data-i18n="appHub.tutorial">Learn</strong>
-              </span>
-              <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
-            </button>
-            <button class="app-hub-shortcut" type="button" disabled>
-              <span class="app-hub-card-icon" aria-hidden="true">&#9881;</span>
-              <span class="app-hub-card-text">
-                <strong data-i18n="appHub.mods">Mods</strong>
-              </span>
-              <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
-            </button>
-            <button class="app-hub-shortcut" type="button" disabled>
-              <span class="app-hub-card-icon" aria-hidden="true">&#8759;</span>
-              <span class="app-hub-card-text">
-                <strong data-i18n="appHub.multiplayer">Shared canvases</strong>
-              </span>
-              <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
-            </button>
-            <button class="app-hub-shortcut" type="button" disabled>
-              <span class="app-hub-card-icon" aria-hidden="true">&#9733;</span>
-              <span class="app-hub-card-text">
-                <strong data-i18n="appHub.adventure">Adventure</strong>
-              </span>
-              <span class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</span>
-            </button>
-          </div>
-        </div>
-        <section class="app-hub-gallery" aria-labelledby="appHubGalleryTitle">
-          <div class="app-hub-gallery-heading">
-            <div class="app-hub-gallery-title-group">
-              <a class="app-hub-new-canvas" href="index.html?view=atelier" data-i18n-aria-label="appHub.newCanvas" aria-label="New canvas">
-                <span aria-hidden="true">+</span>
-                <span data-i18n="appHub.newCanvas">New canvas</span>
-              </a>
-              <p class="app-hub-eyebrow" data-i18n="appHub.galleryEyebrow">My gallery</p>
-              <h3 id="appHubGalleryTitle" data-i18n="appHub.galleryTitle">Your spell canvases</h3>
-            </div>
-            <p data-i18n="appHub.galleryDescription">Saved canvases will appear here. Start with a new canvas.</p>
-          </div>
-          <div class="app-hub-gallery-grid" id="appHubGalleryGrid">
-            <div class="app-hub-gallery-empty">
-              <span class="app-hub-empty-mark" aria-hidden="true">+</span>
-              <div>
-                <strong data-i18n="appHub.emptyGallery">No canvases yet</strong>
-                <p data-i18n="appHub.emptyGalleryDetail">Create a canvas to open the Atelier and start drawing.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-      </section>
 
       <section class="workspace" data-i18n-aria-label="atelier.region" aria-label="Creation workshop">
         <div class="canvas-wrap">
