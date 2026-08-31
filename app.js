@@ -10,7 +10,7 @@ import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe }
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
 import { isAnnotationAction, isSpellAction } from "./action-semantics.mjs";
 import { loadStrokeSmoothing, smoothStroke } from "./stroke-smoothing.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260831-canvas-gestures-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260831-canvas-gestures-v2";
 import {
   SIGIL_COMPOSITION_SLOTS,
   buildSigilCompositionCommitPlan,
@@ -14790,6 +14790,7 @@ canvas.addEventListener("contextmenu", (event) => {
 canvas.addEventListener("pointerdown", onPointerDown);
 canvas.addEventListener("pointermove", onPointerMove);
 canvas.addEventListener("pointerup", onPointerUp);
+window.addEventListener("pointerup", onPointerUp);
 spell3dCanvas?.addEventListener("pointerdown", onSpell3dPointerDown);
 spell3dCanvas?.addEventListener("pointermove", onSpell3dPointerMove);
 spell3dCanvas?.addEventListener("pointerup", finishSpell3dDrag);
@@ -14807,6 +14808,7 @@ window.addEventListener("pointermove", (event) => {
   symbolDragGhost.style.top = event.clientY + "px";
 });
 canvas.addEventListener("pointercancel", onPointerCancel);
+window.addEventListener("pointercancel", onPointerCancel);
 canvas.addEventListener("wheel", onCanvasWheel, { passive: false });
 window.addEventListener("resize", resizeCanvas);
 window.addEventListener("resize", resizeThreeView);

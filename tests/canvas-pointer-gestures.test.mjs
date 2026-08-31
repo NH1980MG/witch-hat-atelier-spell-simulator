@@ -30,3 +30,8 @@ test("le rectangle droit selectionne les objets deja presents dans sa zone", () 
   assert.match(app, /state\.rightSelection\?\.pointerId === event\.pointerId[\s\S]*?cancelRightSelection\(event, true\)/);
   assert.match(interactions, /boundsIntersect\(bounds, selectionBounds\)/);
 });
+
+test("le relachement hors toile termine aussi le rectangle droit", () => {
+  assert.match(app, /window\.addEventListener\("pointerup", onPointerUp\)/);
+  assert.match(app, /window\.addEventListener\("pointercancel", onPointerCancel\)/);
+});
