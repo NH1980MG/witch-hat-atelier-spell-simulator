@@ -19,5 +19,5 @@ test("the shoe card uses the flat transparent support artwork", async () => {
 });
 
 test("the browser loads the refined support artwork version", () => {
-  assert.match(html, /app\.js\?v=20260831-sigil-composition-dialog-v1/);
+  assert.match(html, /app\.js\?v=20260901-wha-json-import-v1/);
 });

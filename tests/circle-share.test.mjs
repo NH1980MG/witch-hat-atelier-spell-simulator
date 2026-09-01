@@ -16,7 +16,7 @@ const circle = {
   canvas: { width: 800, height: 600 },
   actions: [
     { type: "free", width: 3, points: [{ x: 10, y: 20 }, { x: 30, y: 40 }] },
-    { type: "circle", cx: 400, cy: 300, radius: 220, width: 4, closed: true },
+    { type: "circle", cx: 400, cy: 300, radius: 220, width: 4, closed: false, openingSize: 24, openingAngle: 135 },
     { type: "ring", cx: 400, cy: 300, radius: 180, width: 3 },
     { type: "ray", cx: 400, cy: 300, x: 600, y: 300, width: 2 },
     { type: "glyph", element: "Vent", kind: "sigil", x: 400, y: 300, size: 42, rotation: 0.4 },

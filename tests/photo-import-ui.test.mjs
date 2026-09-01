@@ -45,6 +45,9 @@ test("l'atelier importe l'analyse photo", async () => {
   assert.match(source, /serializeCircleShare/);
   assert.match(source, /parseCircleShareText/);
   assert.match(source, /importCircleShareText/);
+  assert.match(source, /isWhaSpellMakerDocument\(parsed\)/);
+  assert.match(source, /convertWhaSpellMakerDocument\(parsed/);
+  assert.match(source, /decodeWhaSpellMakerLink\(rawText\)/);
   assert.match(source, /openCircleJsonExportDialog/);
   assert.match(source, /downloadCircleJsonFromDialog/);
   assert.match(source, /copyCircleJsonFromDialog/);

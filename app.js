@@ -67,6 +67,11 @@ import {
   serializeCircleShare,
 } from "./circle-share.mjs?v=20260812-circle-json-v1";
 import {
+  convertWhaSpellMakerDocument,
+  decodeWhaSpellMakerLink,
+  isWhaSpellMakerDocument,
+} from "./wha-spell-maker-import.mjs?v=20260901-wha-json-import-v1";
+import {
   combinedSelectionBounds,
   canDropGlyph,
   clampGlyphCenter,
@@ -2143,6 +2148,16 @@ function drawAction(action, dashed = false) {
     ctx.beginPath();
     if (action.closed) {
       ctx.arc(action.cx, action.cy, action.radius, 0, Math.PI * 2);
+    } else if (Number.isFinite(action.openingSize) && Number.isFinite(action.openingAngle)) {
+      const openingSize = Math.max(0, Math.min(360, action.openingSize));
+      const openingAngle = action.openingAngle;
+      ctx.arc(
+        action.cx,
+        action.cy,
+        action.radius,
+        ((openingAngle + openingSize / 2) * Math.PI) / 180,
+        ((openingAngle - openingSize / 2 + 360) * Math.PI) / 180,
+      );
     } else {
       ctx.arc(action.cx, action.cy, action.radius, Math.PI * 0.1, Math.PI * 1.85);
     }
@@ -13422,9 +13437,25 @@ function replaceCircleFromShare(circle) {
   return circle;
 }
 
-function importCircleShareText() {
+async function importCircleShareText() {
+  const rawText = String(circleJsonInput?.value || "").replace(/^\uFEFF/, "").trim();
   try {
-    const circle = parseCircleShareText(circleJsonInput?.value || "", {
+    if (!rawText || rawText.length > 1_500_000) throw new TypeError("Circle JSON is invalid");
+
+    let parsed = null;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch {
+      if (/^https?:\/\//i.test(rawText)) {
+        const url = new URL(rawText);
+        if (url.searchParams.has("spell")) parsed = await decodeWhaSpellMakerLink(rawText);
+      }
+    }
+
+    const whaImport = isWhaSpellMakerDocument(parsed)
+      ? convertWhaSpellMakerDocument(parsed, { locale: getLocale() })
+      : null;
+    const circle = whaImport?.circle ?? parseCircleShareText(rawText, {
       glyphNames: new Set(elements.map((element) => element.name)),
     });
     replaceCircleFromShare(circle);

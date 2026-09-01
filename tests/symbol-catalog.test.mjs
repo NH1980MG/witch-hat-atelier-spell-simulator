@@ -152,7 +152,7 @@ test("le navigateur charge la nouvelle version du catalogue partage", async () =
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 
   assert.match(app, /symbol-catalog\.mjs\?v=20260809-handoff-layout-v2/);
-  assert.match(html, /app\.js\?v=20260831-sigil-composition-dialog-v1/);
+  assert.match(html, /app\.js\?v=20260901-wha-json-import-v1/);
   assert.match(html, /styles\.css\?v=20260831-sigil-composition-dialog-v1/);
 });
 

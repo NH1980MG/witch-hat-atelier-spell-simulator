@@ -152,7 +152,15 @@ function parseAction(value, glyphNames) {
     width,
     ...ritualFields,
   };
-  if (value.type === "circle") result.closed = value.closed !== false;
+  if (value.type === "circle") {
+    result.closed = value.closed !== false;
+    if (value.openingSize !== undefined) {
+      result.openingSize = bounded(value.openingSize, 0, 360, "circle opening size");
+    }
+    if (value.openingAngle !== undefined) {
+      result.openingAngle = finite(value.openingAngle);
+    }
+  }
   if (value.type === "spiral") result.turns = optionalPositive(value.turns, 3, "spiral turns");
   return result;
 }
@@ -198,6 +206,12 @@ function positive(value, label) {
 
 function optionalPositive(value, fallback, label) {
   return value === undefined ? fallback : positive(value, label);
+}
+
+function bounded(value, minimum, maximum, label) {
+  const number = finite(value);
+  if (number < minimum || number > maximum) throw new RangeError(`${label} is outside supported bounds`);
+  return number;
 }
 
 function text(value, max, label) {
