@@ -151,7 +151,38 @@ test("la selection de groupe accepte tous les types de traces mais exclut les gu
   assert.equal(isSelectableAction({ type: "free" }), true);
   assert.equal(isSelectableAction({ type: "ray" }), true);
   assert.equal(isSelectableAction({ type: "spiral" }), true);
+  assert.equal(isSelectableAction({ type: "image" }), true);
   assert.equal(isSelectableAction({ type: "guide" }), false);
+});
+
+test("une image importee se selectionne, se deplace, se redimensionne et pivote comme un glyphe", () => {
+  const source = [{ type: "image", assetId: "custom-1", x: 20, y: 30, size: 10, rotation: 0.25 }];
+
+  assert.deepEqual(selectableActionBounds(source[0]), {
+    left: 8.2,
+    right: 31.8,
+    top: 18.2,
+    bottom: 41.8,
+    width: 23.6,
+    height: 23.6,
+  });
+  assert.equal(topmostSelectableIndexAtPoint(source, { x: 20, y: 30 }, 2), 0);
+  assert.deepEqual(translateSelectedActions(source, [0], 5, -5)[0], {
+    ...source[0],
+    x: 25,
+    y: 25,
+  });
+  assert.deepEqual(scaleSelectedActions(source, [0], { x: 0, y: 0 }, 2)[0], {
+    ...source[0],
+    x: 40,
+    y: 60,
+    size: 20,
+    userAdjusted: true,
+  });
+  const rotated = rotateSelectedActions(source, [0], { x: 0, y: 0 }, Math.PI / 2)[0];
+  assert.ok(Math.abs(rotated.x + 30) < 1e-9);
+  assert.ok(Math.abs(rotated.y - 20) < 1e-9);
+  assert.equal(rotated.rotation, 0.25 + Math.PI / 2);
 });
 
 test("selectableActionBounds calcule les limites visuelles des glyphes et cercles", () => {

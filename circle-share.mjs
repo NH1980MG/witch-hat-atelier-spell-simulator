@@ -1,6 +1,22 @@
 export const MAX_CIRCLE_ACTIONS = 500;
 
-const ACTION_TYPES = new Set(["free", "circle", "ring", "ray", "glyph", "spiral", "annotation"]);
+const ACTION_TYPES = new Set(["free", "circle", "ring", "ray", "glyph", "image", "spiral", "annotation"]);
+const MAX_IMAGE_ASSETS = 32;
+const MAX_IMAGE_ASSET_BYTES = 512_000;
+const MAX_IMAGE_ASSET_BYTES_TOTAL = 1_200_000;
+
+export function circleStrokeArc(action) {
+  if (action?.closed) return [0, Math.PI * 2];
+  if (Number.isFinite(action?.openingSize) && Number.isFinite(action?.openingAngle)) {
+    const openingSize = Math.max(0, Math.min(360, action.openingSize));
+    if (openingSize >= 360) return null;
+    return [
+      ((action.openingAngle + openingSize / 2) * Math.PI) / 180,
+      ((action.openingAngle - openingSize / 2 + 360) * Math.PI) / 180,
+    ];
+  }
+  return [Math.PI * 0.1, Math.PI * 1.85];
+}
 
 export function parseCircleShare(input, options = {}) {
   if (!isRecord(input) || input.version !== 1) throw new TypeError("Unsupported circle version");
@@ -11,8 +27,17 @@ export function parseCircleShare(input, options = {}) {
   if (!locale) throw new TypeError("Circle locale must be en or fr");
   const title = text(input.title, 120, "Circle title");
   const canvas = parseCanvas(input.canvas);
-  const actions = input.actions.map((action) => parseAction(action, options.glyphNames));
-  return { version: 1, locale, title, canvas, actions };
+  const assets = parseAssets(input.assets);
+  const assetIds = new Set(assets.map(({ id }) => id));
+  const actions = input.actions.map((action) => parseAction(action, options.glyphNames, assetIds));
+  return {
+    version: 1,
+    locale,
+    title,
+    canvas,
+    ...(assets.length > 0 ? { assets } : {}),
+    actions,
+  };
 }
 
 export function serializeCircleShare(input, options = {}) {
@@ -82,21 +107,25 @@ export function fitCircleShare(circle, targetCanvas) {
       const end = point({ x: action.x, y: action.y });
       return { ...action, cx: start.x, cy: start.y, x: end.x, y: end.y, width: action.width * scale };
     }
-    const center = point(action);
-    if (action.type === "glyph") return { ...action, ...center, size: action.size * scale };
+    if (action.type === "glyph" || action.type === "image") {
+      const position = point(action);
+      return { ...action, ...position, size: action.size * scale };
+    }
+    const center = point({ x: action.cx, y: action.cy });
     return { ...action, cx: center.x, cy: center.y, radius: action.radius * scale, width: action.width * scale };
   });
 }
 
-function parseAction(value, glyphNames) {
+function parseAction(value, glyphNames, assetIds) {
   if (!isRecord(value) || !ACTION_TYPES.has(value.type)) throw new TypeError("Unsupported circle action");
   const width = optionalPositive(value.width, 2, "stroke width");
   const ritualFields = parseRitualFields(value);
+  const visualFields = parseVisualFields(value);
   if (value.type === "free") {
     if (!Array.isArray(value.points) || value.points.length < 2 || value.points.length > 2000) {
       throw new TypeError("Freehand points are invalid");
     }
-    return { type: "free", width, points: value.points.map(parsePoint), ...ritualFields };
+    return { type: "free", width, points: value.points.map(parsePoint), ...visualFields, ...ritualFields };
   }
   if (value.type === "annotation") {
     const kind = value.kind === "text" ? "text" : value.kind === "drawing" ? "drawing" : null;
@@ -111,7 +140,7 @@ function parseAction(value, glyphNames) {
         size: positive(value.size, "annotation size"),
         rotation: value.rotation === undefined ? 0 : finite(value.rotation),
         ...(value.fontWeight === undefined ? {} : { fontWeight: optionalFontWeight(value.fontWeight) }),
-        ...(optionalColor(value.color) ? { color: optionalColor(value.color) } : {}),
+        ...visualFields,
         width,
       };
     }
@@ -122,13 +151,22 @@ function parseAction(value, glyphNames) {
       type: "annotation",
       kind,
       width,
-      ...(optionalColor(value.color) ? { color: optionalColor(value.color) } : {}),
+      ...visualFields,
       points: value.points.map(parsePoint),
       ...ritualFields,
     };
   }
   if (value.type === "ray") {
-    return { type: "ray", cx: finite(value.cx), cy: finite(value.cy), x: finite(value.x), y: finite(value.y), width, ...ritualFields };
+    return {
+      type: "ray",
+      cx: finite(value.cx),
+      cy: finite(value.cy),
+      x: finite(value.x),
+      y: finite(value.y),
+      width,
+      ...visualFields,
+      ...ritualFields,
+    };
   }
   if (value.type === "glyph") {
     const element = text(value.element, 80, "Glyph element");
@@ -141,7 +179,26 @@ function parseAction(value, glyphNames) {
       ...parsePoint(value),
       size: positive(value.size, "glyph size"),
       rotation: value.rotation === undefined ? 0 : finite(value.rotation),
+      ...visualFields,
+      ...(value.tinted === true ? { tinted: true } : {}),
+      ...(optionalShortText(value.prefix, 80) ? { prefix: optionalShortText(value.prefix, 80) } : {}),
+      ...(value.texture === undefined ? {} : { texture: parseTexture(value.texture) }),
       ...ritualFields,
+    };
+  }
+  if (value.type === "image") {
+    const assetId = text(value.assetId, 80, "Image asset id");
+    if (!assetIds?.has(assetId)) throw new TypeError("Image action references an unknown asset");
+    return {
+      type: "image",
+      assetId,
+      name: text(value.name, 80, "Image name"),
+      kind: value.kind === "sigil" ? "sigil" : "sign",
+      ...parsePoint(value),
+      size: positive(value.size, "image size"),
+      rotation: value.rotation === undefined ? 0 : finite(value.rotation),
+      ...visualFields,
+      ...(value.tinted === true ? { tinted: true } : {}),
     };
   }
   const result = {
@@ -150,11 +207,78 @@ function parseAction(value, glyphNames) {
     cy: finite(value.cy),
     radius: positive(value.radius, "radius"),
     width,
+    ...visualFields,
     ...ritualFields,
   };
-  if (value.type === "circle") result.closed = value.closed !== false;
+  if (value.type === "circle") {
+    result.closed = value.closed !== false;
+    if (value.filled === true) result.filled = true;
+    if (optionalColor(value.fillColor)) result.fillColor = optionalColor(value.fillColor);
+    if (value.openingSize !== undefined) {
+      result.openingSize = bounded(value.openingSize, 0, 360, "circle opening size");
+    }
+    if (value.openingAngle !== undefined) {
+      result.openingAngle = finite(value.openingAngle);
+    }
+  }
   if (value.type === "spiral") result.turns = optionalPositive(value.turns, 3, "spiral turns");
   return result;
+}
+
+function parseAssets(value) {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length > MAX_IMAGE_ASSETS) {
+    throw new TypeError("Image assets exceed the supported limit");
+  }
+  const ids = new Set();
+  let totalBytes = 0;
+  return value.map((asset) => {
+    if (!isRecord(asset)) throw new TypeError("Image asset is invalid");
+    const id = text(asset.id, 80, "Image asset id");
+    if (ids.has(id)) throw new TypeError("Image asset ids must be unique");
+    ids.add(id);
+    const src = embeddedRasterDataUrl(asset.src);
+    const payload = src.slice(src.indexOf(",") + 1);
+    const bytes = Math.floor(payload.length * 3 / 4) - (payload.endsWith("==") ? 2 : payload.endsWith("=") ? 1 : 0);
+    if (bytes > MAX_IMAGE_ASSET_BYTES) throw new RangeError("Image asset is too large");
+    totalBytes += bytes;
+    if (totalBytes > MAX_IMAGE_ASSET_BYTES_TOTAL) throw new RangeError("Image assets are too large");
+    return { id, src };
+  });
+}
+
+function embeddedRasterDataUrl(value) {
+  if (typeof value !== "string") throw new TypeError("Image asset source is invalid");
+  const match = value.match(/^data:image\/(png|jpeg|webp);base64,([a-z0-9+/]+={0,2})$/i);
+  if (!match || match[2].length % 4 !== 0) throw new TypeError("Image asset must be an embedded PNG, JPEG, or WebP");
+  try {
+    atob(match[2]);
+  } catch {
+    throw new TypeError("Image asset base64 is invalid");
+  }
+  return value;
+}
+
+function parseVisualFields(value) {
+  return {
+    ...(value.visible === false ? { visible: false } : {}),
+    ...(optionalColor(value.color) ? { color: optionalColor(value.color) } : {}),
+  };
+}
+
+function parseTexture(value) {
+  if (!isRecord(value)) throw new TypeError("Glyph texture is invalid");
+  const supported = new Set(["solid", "zigzag", "double", "dashed", "dotted", "hatch", "wave"]);
+  if (!supported.has(value.kind)) throw new TypeError("Glyph texture kind is invalid");
+  return {
+    kind: value.kind,
+    ...(value.spacing === undefined ? {} : { spacing: bounded(value.spacing, 1, 64, "texture spacing") }),
+    ...(value.amplitude === undefined ? {} : { amplitude: bounded(value.amplitude, 0, 32, "texture amplitude") }),
+    ...(value.thickness === undefined ? {} : { thickness: bounded(value.thickness, 1, 32, "texture thickness") }),
+    ...(value.angle === undefined ? {} : { angle: finite(value.angle) }),
+    ...(optionalColor(value.color) ? { color: optionalColor(value.color) } : {}),
+    ...(optionalColor(value.secondaryColor) ? { secondaryColor: optionalColor(value.secondaryColor) } : {}),
+  };
 }
 
 function parseRitualFields(value) {
@@ -200,11 +324,23 @@ function optionalPositive(value, fallback, label) {
   return value === undefined ? fallback : positive(value, label);
 }
 
+function bounded(value, minimum, maximum, label) {
+  const number = finite(value);
+  if (number < minimum || number > maximum) throw new RangeError(`${label} is outside supported bounds`);
+  return number;
+}
+
 function text(value, max, label) {
   if (typeof value !== "string") throw new TypeError(`${label} is required`);
   const normalized = value.trim();
   if (!normalized || normalized.length > max) throw new RangeError(`${label} is invalid`);
   return normalized;
+}
+
+function optionalShortText(value, max) {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim();
+  return normalized && normalized.length <= max ? normalized : null;
 }
 
 function optionalColor(value) {

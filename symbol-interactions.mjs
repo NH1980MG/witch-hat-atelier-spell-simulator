@@ -51,8 +51,12 @@ function pointInGlyphSpace(action, point) {
   };
 }
 
+function isSymbolAction(action) {
+  return action?.type === "glyph" || action?.type === "image";
+}
+
 export function glyphResizeHandleAtPoint(action, point, tolerance = 10) {
-  if (action?.type !== "glyph") {
+  if (!isSymbolAction(action)) {
     return null;
   }
   const local = pointInGlyphSpace(action, point);
@@ -67,7 +71,7 @@ export function glyphResizeHandleAtPoint(action, point, tolerance = 10) {
 }
 
 export function resizeGlyphFromCorner(action, point) {
-  if (action?.type !== "glyph") {
+  if (!isSymbolAction(action)) {
     throw new TypeError("A glyph action is required");
   }
   const local = pointInGlyphSpace(action, point);
@@ -98,7 +102,7 @@ export function topmostGlyphIndexAtPoint(actions, point, padding = 10) {
 }
 
 export function isSelectableAction(action) {
-  return ["glyph", "circle", "ring", "free", "ray", "spiral", "annotation"].includes(action?.type);
+  return ["glyph", "image", "circle", "ring", "free", "ray", "spiral", "annotation"].includes(action?.type);
 }
 
 function stableCoordinate(value) {
@@ -109,7 +113,7 @@ export function selectableActionBounds(action) {
   if (!isSelectableAction(action)) {
     return null;
   }
-  if (action.type === "glyph") {
+  if (isSymbolAction(action)) {
     const half = action.size * GLYPH_SELECTION_SCALE;
     return {
       left: stableCoordinate(action.x - half),
@@ -226,7 +230,7 @@ export function topmostSelectableIndexAtPoint(actions, point, padding = 10) {
     if (!isSelectableAction(action)) {
       continue;
     }
-    if (action.type === "glyph") {
+    if (isSymbolAction(action)) {
       const local = pointInGlyphSpace(action, point);
       const half = action.size * GLYPH_SELECTION_SCALE + padding;
       if (Math.abs(local.x) <= half && Math.abs(local.y) <= half) {
@@ -285,7 +289,7 @@ export function translateSelectedActions(actions, indices, dx, dy) {
     if (!selected.has(index) || !isSelectableAction(action)) {
       return action;
     }
-    if (action.type === "glyph") {
+    if (isSymbolAction(action)) {
       action.x += dx;
       action.y += dy;
     } else if (action.type === "free" || (action.type === "annotation" && action.kind === "drawing")) {
@@ -395,7 +399,7 @@ export function scaleSelectedActions(actions, indices, origin, scale) {
     if (!selected.has(index) || !isSelectableAction(action)) {
       return action;
     }
-    if (action.type === "glyph") {
+    if (isSymbolAction(action)) {
       action.x = origin.x + (action.x - origin.x) * scale;
       action.y = origin.y + (action.y - origin.y) * scale;
       action.size = Math.max(MIN_GLYPH_SIZE, action.size * scale);
@@ -463,7 +467,7 @@ export function rotateSelectedActions(actions, indices, origin, angleDelta) {
       return action;
     }
     action.rotation = (Number(action.rotation) || 0) + angleDelta;
-    if (action.type === "glyph") {
+    if (isSymbolAction(action)) {
       const position = rotate(action.x, action.y);
       action.x = position.x;
       action.y = position.y;

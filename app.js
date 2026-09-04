@@ -65,13 +65,19 @@ import { classifySymbolDragGesture } from "./symbol-drag-gesture.mjs?v=20260809-
 import { parseRecipeParams } from "./recipe-link.mjs?v=20260811-exact-schematic-v1";
 import {
   buildCommunityComposeUrl,
+  circleStrokeArc,
   decodeCircleShare,
   encodeCircleShare,
   fitCircleShare,
   parseCircleShareText,
   parseCircleShare,
   serializeCircleShare,
-} from "./circle-share.mjs?v=20260812-circle-json-v1";
+} from "./circle-share.mjs?v=20260904-wha-fidelity-v3";
+import {
+  convertWhaSpellMakerDocument,
+  decodeWhaSpellMakerLink,
+  isWhaSpellMakerDocument,
+} from "./wha-spell-maker-import.mjs?v=20260904-wha-fidelity-v3";
 import {
   combinedSelectionBounds,
   canDropGlyph,
@@ -1589,6 +1595,8 @@ function drawArrow(action, dashed = false) {
 
 const symbolBoardImageCache = new Map();
 const tintedSymbolBoardCache = new Map();
+const importedSymbolImageCache = new Map();
+const tintedImportedSymbolCache = new Map();
 const SYMBOL_BOARD_ASSET_VERSION = "20260726-central-weight-v2";
 const SYMBOL_BOARD_RASTER_SIZE = 192;
 const SYMBOL_PICKER_VIEWBOX_SIZE = 48;
@@ -1641,6 +1649,46 @@ function tintedSymbolBoardGlyph(name, color) {
   tintedContext.fillRect(0, 0, tinted.width, tinted.height);
   tintedSymbolBoardCache.set(key, tinted);
   return tinted;
+}
+
+function importedSymbolImage(src) {
+  if (!src) return null;
+  if (importedSymbolImageCache.has(src)) return importedSymbolImageCache.get(src);
+  const image = new Image();
+  image.decoding = "async";
+  image.addEventListener("load", render, { once: true });
+  image.src = src;
+  importedSymbolImageCache.set(src, image);
+  return image;
+}
+
+function tintedImportedSymbol(action, image) {
+  if (!action.tinted || !image?.complete || image.naturalWidth === 0) return image;
+  const color = action.color || colors.normalInk;
+  const key = `${action.assetSrc}|${color}`;
+  if (tintedImportedSymbolCache.has(key)) return tintedImportedSymbolCache.get(key);
+  const tinted = document.createElement("canvas");
+  tinted.width = image.naturalWidth;
+  tinted.height = image.naturalHeight;
+  const tintedContext = tinted.getContext("2d");
+  tintedContext.drawImage(image, 0, 0);
+  tintedContext.globalCompositeOperation = "source-in";
+  tintedContext.fillStyle = color;
+  tintedContext.fillRect(0, 0, tinted.width, tinted.height);
+  tintedImportedSymbolCache.set(key, tinted);
+  return tinted;
+}
+
+function drawImportedSymbol(action, dashed = false) {
+  const source = importedSymbolImage(action.assetSrc);
+  if (!source?.complete || source.naturalWidth === 0) return;
+  const image = tintedImportedSymbol(action, source);
+  ctx.save();
+  ctx.globalAlpha = dashed ? 0.62 : 1;
+  ctx.translate(action.x, action.y);
+  ctx.rotate(action.rotation || 0);
+  ctx.drawImage(image, -action.size, -action.size, action.size * 2, action.size * 2);
+  ctx.restore();
 }
 
 function drawGlyph(action) {
@@ -2153,13 +2201,18 @@ function drawAction(action, dashed = false) {
   } else if (action.type === "free") {
     drawStroke(action.points, action.color, action.width, dashed);
   } else if (action.type === "circle") {
-    ctx.beginPath();
-    if (action.closed) {
+    if (action.filled) {
+      ctx.fillStyle = action.fillColor || action.color;
+      ctx.beginPath();
       ctx.arc(action.cx, action.cy, action.radius, 0, Math.PI * 2);
-    } else {
-      ctx.arc(action.cx, action.cy, action.radius, Math.PI * 0.1, Math.PI * 1.85);
+      ctx.fill();
     }
-    ctx.stroke();
+    const arc = circleStrokeArc(action);
+    if (arc) {
+      ctx.beginPath();
+      ctx.arc(action.cx, action.cy, action.radius, arc[0], arc[1]);
+      ctx.stroke();
+    }
   } else if (action.type === "ring") {
     for (const factor of [1, 0.72, 0.46]) {
       ctx.lineWidth = visibleLineWidth(factor === 1 ? action.width : Math.max(1, action.width * 0.7));
@@ -2181,6 +2234,8 @@ function drawAction(action, dashed = false) {
     drawArrow(action, dashed);
   } else if (action.type === "glyph") {
     drawGlyph(action);
+  } else if (action.type === "image") {
+    drawImportedSymbol(action, dashed);
   } else if (action.type === "spiral") {
     drawSpiral(action, dashed);
   }
@@ -13312,7 +13367,7 @@ function saveCanvas() {
 function shareableAction(action) {
   if (isAnnotationAction(action)) {
     if (action.kind === "text") {
-      return {
+      const shared = {
         type: "annotation",
         kind: "text",
         text: String(action.text || "").slice(0, 500),
@@ -13323,20 +13378,30 @@ function shareableAction(action) {
         color: action.color,
         width: action.width,
       };
+      if (action.visible === false) shared.visible = false;
+      return shared;
     }
-    return {
+    const shared = {
       type: "annotation",
       kind: "drawing",
       points: (action.points || []).map((point) => ({ x: point.x, y: point.y })),
       color: action.color,
       width: action.width,
     };
+    if (action.visible === false) shared.visible = false;
+    return shared;
   }
   if (action.type === "free") {
-    return { type: "free", width: action.width, points: action.points.map(({ x, y }) => ({ x, y })) };
+    const shared = { type: "free", width: action.width, points: action.points.map(({ x, y }) => ({ x, y })) };
+    if (action.color) shared.color = action.color;
+    if (action.visible === false) shared.visible = false;
+    return shared;
   }
   if (action.type === "ray") {
-    return { type: "ray", cx: action.cx, cy: action.cy, x: action.x, y: action.y, width: action.width };
+    const shared = { type: "ray", cx: action.cx, cy: action.cy, x: action.x, y: action.y, width: action.width };
+    if (action.color) shared.color = action.color;
+    if (action.visible === false) shared.visible = false;
+    return shared;
   }
   if (action.type === "glyph") {
     const shared = {
@@ -13352,6 +13417,23 @@ function shareableAction(action) {
     if (action.tinted) shared.tinted = true;
     if (action.prefix) shared.prefix = action.prefix;
     if (action.texture) shared.texture = action.texture;
+    if (action.color) shared.color = action.color;
+    return shared;
+  }
+  if (action.type === "image") {
+    const shared = {
+      type: "image",
+      assetId: action.assetId,
+      name: action.name,
+      kind: action.kind === "sigil" ? "sigil" : "sign",
+      x: action.x,
+      y: action.y,
+      size: action.size,
+      rotation: action.rotation || 0,
+    };
+    if (action.visible === false) shared.visible = false;
+    if (action.tinted) shared.tinted = true;
+    if (action.color) shared.color = action.color;
     return shared;
   }
   const shared = {
@@ -13362,8 +13444,10 @@ function shareableAction(action) {
     width: action.width,
   };
   if (action.type === "circle") shared.closed = action.closed !== false;
+  if (action.color) shared.color = action.color;
   if (action.visible === false) shared.visible = false;
   if (action.filled) shared.filled = true;
+  if (action.fillColor) shared.fillColor = action.fillColor;
   if (action.openingSize) shared.openingSize = action.openingSize;
   if (action.openingAngle) shared.openingAngle = action.openingAngle;
   if (action.type === "spiral") shared.turns = action.turns;
@@ -13374,11 +13458,19 @@ function shareableAction(action) {
 
 function currentCircleShare() {
   const { width, height } = canvasSize();
+  const assets = [];
+  const assetIds = new Set();
+  for (const action of state.actions) {
+    if (action.type !== "image" || assetIds.has(action.assetId)) continue;
+    assetIds.add(action.assetId);
+    assets.push({ id: action.assetId, src: action.assetSrc });
+  }
   return parseCircleShare({
     version: 1,
     locale: getLocale(),
     title: t("community.defaultTitle"),
     canvas: { width, height },
+    ...(assets.length > 0 ? { assets } : {}),
     actions: state.actions.map(shareableAction),
   }, { glyphNames: new Set(elements.map((element) => element.name)) });
 }
@@ -13464,7 +13556,8 @@ async function copyCircleJsonLinkFromDialog() {
 }
 
 function replaceCircleFromShare(circle) {
-  const actions = fitCircleShare(circle, canvasSize()).map(hydrateSharedAction);
+  const assets = new Map((circle.assets || []).map((asset) => [asset.id, asset.src]));
+  const actions = fitCircleShare(circle, canvasSize()).map((action) => hydrateSharedAction(action, assets));
   recordHistory();
   state.actions = actions;
   state.currentAction = null;
@@ -13593,7 +13686,7 @@ async function publishCurrentCircle() {
   }
 }
 
-function hydrateSharedAction(action) {
+function hydrateSharedAction(action, assets = new Map()) {
   const base = { color: colors.normalInk, width: action.width };
   if (action.type === "annotation") {
     return {
@@ -13617,6 +13710,17 @@ function hydrateSharedAction(action) {
       rune: element.rune,
     };
   }
+  if (action.type === "image") {
+    return {
+      ...base,
+      ...action,
+      label: labels.glyph,
+      element: action.name,
+      category: action.kind === "sigil" ? "Sigil" : "Sign",
+      charge: 0,
+      assetSrc: assets.get(action.assetId),
+    };
+  }
   const metadata = {
     circle: [labels.circle, "Structure"],
     ring: [labels.ring, "Structure"],
@@ -13632,7 +13736,8 @@ function loadCommunityCircleFromUrl() {
   if (!encoded) return false;
   try {
     const circle = decodeCircleShare(encoded, { glyphNames: new Set(elements.map((element) => element.name)) });
-    const actions = fitCircleShare(circle, canvasSize()).map(hydrateSharedAction);
+    const assets = new Map((circle.assets || []).map((asset) => [asset.id, asset.src]));
+    const actions = fitCircleShare(circle, canvasSize()).map((action) => hydrateSharedAction(action, assets));
     recordHistory();
     state.actions = actions;
     state.currentAction = null;
