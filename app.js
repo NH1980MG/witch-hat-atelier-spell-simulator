@@ -17,6 +17,12 @@ import {
 import { loadStrokeSmoothing, smoothStroke } from "./stroke-smoothing.mjs";
 import { getLocale, t } from "./site-i18n.mjs?v=20260831-canvas-gestures-v2";
 import {
+  createAdSenseScript,
+  readAdsConsent,
+  removeAdSenseScript,
+  writeAdsConsent,
+} from "./ads-consent.mjs";
+import {
   SIGIL_COMPOSITION_SLOTS,
   buildSigilCompositionCommitPlan,
   buildSigilCompositionPlacements,
@@ -520,6 +526,13 @@ const symbolSearchDialog = document.getElementById("symbolSearchDialog");
 const symbolSearchInput = document.getElementById("symbolSearchInput");
 const symbolSearchResults = document.getElementById("symbolSearchResults");
 const symbolSearchStatus = document.getElementById("symbolSearchStatus");
+const projectSupportButton = document.querySelector("#projectSupportButton");
+const projectSupportDialog = document.querySelector("#projectSupportDialog");
+const projectSupportClose = document.querySelector("#projectSupportClose");
+const projectAdsToggle = document.querySelector("#projectAdsToggle");
+const projectAdsStatus = document.querySelector("#projectAdsStatus");
+const simulatorAdPlacement = document.querySelector("#simulatorAdPlacement");
+const simulatorAdDisable = document.querySelector("#simulatorAdDisable");
 
 let galleryPosts = [];
 let gallerySort = "newest";
@@ -6575,6 +6588,69 @@ function setDetailsDrawer(open) {
 
 function setSupportDrawer(open) {
   setOpenDrawer(open ? "support" : null);
+}
+
+function updateAdsSupportStatus(enabled) {
+  if (projectAdsToggle) {
+    projectAdsToggle.checked = enabled;
+  }
+  if (projectAdsStatus) {
+    projectAdsStatus.textContent = t(enabled ? "supportProject.adsEnabled" : "supportProject.adsDisabled");
+  }
+}
+
+function clearAdSupportPlacement() {
+  if (simulatorAdPlacement) {
+    simulatorAdPlacement.hidden = true;
+    simulatorAdPlacement.dataset.adsEnabled = "false";
+  }
+}
+
+function setAdsConsent(enabled, { announce = false } = {}) {
+  writeAdsConsent(localStorage, enabled);
+  if (enabled) {
+    // The publisher script is intentionally created only after explicit consent.
+    createAdSenseScript(document);
+    document.body.dataset.adsConsent = "granted";
+  } else {
+    removeAdSenseScript(document);
+    delete document.body.dataset.adsConsent;
+    clearAdSupportPlacement();
+  }
+  updateAdsSupportStatus(enabled);
+  if (announce) {
+    setStatus(t(enabled ? "status.adsEnabled" : "status.adsDisabled"));
+  }
+}
+
+function openProjectSupportDialog() {
+  if (!projectSupportDialog) return;
+  updateAdsSupportStatus(readAdsConsent(localStorage));
+  if (typeof projectSupportDialog.showModal === "function") {
+    if (!projectSupportDialog.open) projectSupportDialog.showModal();
+  } else {
+    projectSupportDialog.setAttribute("open", "");
+  }
+}
+
+function closeProjectSupportDialog() {
+  if (!projectSupportDialog) return;
+  if (typeof projectSupportDialog.close === "function" && projectSupportDialog.open) {
+    projectSupportDialog.close();
+  } else {
+    projectSupportDialog.removeAttribute("open");
+  }
+}
+
+function initializeAdsConsent() {
+  const enabled = readAdsConsent(localStorage);
+  updateAdsSupportStatus(enabled);
+  if (enabled) {
+    createAdSenseScript(document);
+    document.body.dataset.adsConsent = "granted";
+  } else {
+    clearAdSupportPlacement();
+  }
 }
 
 function setGuideDrawer(open) {
@@ -13740,6 +13816,17 @@ detailsToggleButton?.addEventListener("click", () => setDetailsDrawer(true));
 closeDetailsButton?.addEventListener("click", () => setDetailsDrawer(false));
 supportToggleButton?.addEventListener("click", () => setSupportDrawer(true));
 closeSupportButton?.addEventListener("click", () => setSupportDrawer(false));
+projectSupportButton?.addEventListener("click", openProjectSupportDialog);
+projectSupportClose?.addEventListener("click", closeProjectSupportDialog);
+projectAdsToggle?.addEventListener("change", () => {
+  setAdsConsent(projectAdsToggle.checked, { announce: true });
+});
+simulatorAdDisable?.addEventListener("click", () => {
+  setAdsConsent(false, { announce: true });
+});
+projectSupportDialog?.addEventListener("click", (event) => {
+  if (event.target === projectSupportDialog) closeProjectSupportDialog();
+});
 guideToggleButton?.addEventListener("click", () => setGuideDrawer(true));
 closeGuidesButton?.addEventListener("click", () => setGuideDrawer(false));
 galleryToggleButton?.addEventListener("click", () => setGalleryDrawer(true));
@@ -15122,6 +15209,7 @@ renderInkList();
 renderSigilCompositionPanel();
 renderSupportList();
 renderGuideLists();
+initializeAdsConsent();
 updateGuideTransformControls();
 updateToolButtons();
 syncWorkspaceModes();
