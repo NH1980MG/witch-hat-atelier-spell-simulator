@@ -82,11 +82,8 @@ export function fitCircleShare(circle, targetCanvas) {
       const end = point({ x: action.x, y: action.y });
       return { ...action, cx: start.x, cy: start.y, x: end.x, y: end.y, width: action.width * scale };
     }
-    if (action.type === "glyph") {
-      const position = point(action);
-      return { ...action, ...position, size: action.size * scale };
-    }
-    const center = point({ x: action.cx, y: action.cy });
+    const center = point(action);
+    if (action.type === "glyph") return { ...action, ...center, size: action.size * scale };
     return { ...action, cx: center.x, cy: center.y, radius: action.radius * scale, width: action.width * scale };
   });
 }
@@ -155,15 +152,7 @@ function parseAction(value, glyphNames) {
     width,
     ...ritualFields,
   };
-  if (value.type === "circle") {
-    result.closed = value.closed !== false;
-    if (value.openingSize !== undefined) {
-      result.openingSize = bounded(value.openingSize, 0, 360, "circle opening size");
-    }
-    if (value.openingAngle !== undefined) {
-      result.openingAngle = finite(value.openingAngle);
-    }
-  }
+  if (value.type === "circle") result.closed = value.closed !== false;
   if (value.type === "spiral") result.turns = optionalPositive(value.turns, 3, "spiral turns");
   return result;
 }
@@ -209,12 +198,6 @@ function positive(value, label) {
 
 function optionalPositive(value, fallback, label) {
   return value === undefined ? fallback : positive(value, label);
-}
-
-function bounded(value, minimum, maximum, label) {
-  const number = finite(value);
-  if (number < minimum || number > maximum) throw new RangeError(`${label} is outside supported bounds`);
-  return number;
 }
 
 function text(value, max, label) {
