@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   ADSENSE_CLIENT,
@@ -72,4 +73,18 @@ test("the AdSense script is only created by the consent path and can be removed"
 
   removeAdSenseScript(document);
   assert.equal(document.getElementById(ADSENSE_SCRIPT_ID), null);
+});
+
+test("public pages expose the static AdSense ownership signal without loading ads", async () => {
+  const pages = ["index.html", "bibliotheque.html", "tutoriel.html", "parametres.html", "fonctionnement.html", "suggestions.html"];
+
+  for (const page of pages) {
+    const source = await readFile(new URL(`../${page}`, import.meta.url), "utf8");
+    assert.match(
+      source,
+      new RegExp(`<meta name="google-adsense-account" content="${ADSENSE_CLIENT}">`),
+      `${page}: missing AdSense ownership meta tag`,
+    );
+    assert.doesNotMatch(source, /adsbygoogle\.js\?client=/, `${page}: ads script must remain consent-gated`);
+  }
 });
