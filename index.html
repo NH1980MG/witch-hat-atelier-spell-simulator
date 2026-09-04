@@ -36,7 +36,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260831-sigil-composition-dialog-v1">
+    <link rel="stylesheet" href="styles.css?v=20260831-canvas-gestures-v2">
     <script type="importmap">
       {
         "imports": {
@@ -45,9 +45,9 @@
         }
       }
     </script>
-    <script type="module" src="site-i18n.mjs?v=20260831-sigil-composition-dialog-v1"></script>
+    <script type="module" src="site-i18n.mjs?v=20260831-canvas-gestures-v2"></script>
     <script type="module" src="site-nav.mjs?v=20260831-auth-session-v1"></script>
-    <script type="module" src="app.js?v=20260904-import-rings-v2"></script>
+    <script type="module" src="app.js?v=20260831-toolbar-comments-v1"></script>
   </head>
   <body class="simulator-page">
     <main class="app-shell">
@@ -190,11 +190,6 @@
           <span data-i18n="drawer.symbols">Sigils and signs</span>
         </button>
 
-        <button class="composition-island" id="compositionToggleButton" type="button" aria-controls="sigilCompositionDialog" aria-expanded="false">
-          <span aria-hidden="true">&#10070;</span>
-          <span data-i18n="drawer.composition">Sigil composition</span>
-        </button>
-
         <button class="details-island" id="detailsToggleButton" type="button" aria-controls="detailsDrawer" aria-expanded="false">
           <span aria-hidden="true">&#9678;</span>
           <span data-i18n="drawer.details">Details</span>
@@ -300,15 +295,14 @@
             <p class="spoiler-note" data-i18n="spoiler.note">Symbols first seen after this chapter stay hidden here, in search, and in the library.</p>
           </div>
 
-          <div class="ink-list" id="inkList"></div>
-        </aside>
+          <div class="symbol-drawer-tabs" id="symbolDrawerTabs" role="tablist" data-i18n-aria-label="drawer.symbols" aria-label="Symbol modes">
+            <button id="directPaletteTab" class="is-active" type="button" role="tab" aria-selected="true" aria-controls="inkList" data-symbol-mode="direct" data-i18n="symbols.mode.directPalette">Direct palette</button>
+            <button id="sigilCompositionTab" type="button" role="tab" aria-selected="false" aria-controls="sigilCompositionPanel" data-symbol-mode="composition" data-i18n="symbols.mode.sigilComposition">Sigil composition</button>
+          </div>
 
-        <dialog id="sigilCompositionDialog" class="sigil-composition-dialog" aria-labelledby="sigilCompositionDialogTitle">
-          <form method="dialog" class="composition-dialog-heading">
-            <h2 id="sigilCompositionDialogTitle" data-i18n="drawer.composition">Sigil composition</h2>
-            <button class="drawer-close" id="closeSigilCompositionButton" type="submit" data-i18n-aria-label="drawer.closeComposition" aria-label="Close sigil composition">&times;</button>
-          </form>
-          <div class="sigil-composition-panel" id="sigilCompositionPanel">
+          <div class="ink-list" id="inkList" role="tabpanel" aria-labelledby="directPaletteTab"></div>
+
+          <div class="sigil-composition-panel" id="sigilCompositionPanel" role="tabpanel" aria-labelledby="sigilCompositionTab" hidden>
             <div class="composition-meta">
               <p id="compositionDraftMode" class="composition-draft-mode" data-i18n="composition.newSeal">New seal</p>
               <label class="composition-size-control" for="compositionCircleSizeInput">
@@ -378,7 +372,9 @@
               <button class="composition-apply" id="applySigilCompositionButton" type="button" data-i18n="composition.apply">Inscribe composition</button>
             </div>
           </div>
-        </dialog>
+
+          <div class="ink-list" id="inkList"></div>
+        </aside>
 
         <aside class="sidebar gallery-drawer" id="galleryDrawer" data-community-url="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site" data-i18n-aria-label="drawer.galleryChoice" aria-label="Circle gallery" aria-hidden="true">
           <div class="panel-heading">
