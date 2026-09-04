@@ -7,7 +7,11 @@ test("la page expose un seul tiroir de symboles sans les anciens outils de taill
   for (const id of [
     "symbolToggleButton",
     "symbolDrawer",
+    "symbolDrawerTabs",
+    "directPaletteTab",
+    "sigilCompositionTab",
     "inkList",
+    "sigilCompositionPanel",
     "compositionSigilTray",
     "compositionSignTray",
     "compositionStage",
@@ -25,7 +29,7 @@ test("la page expose un seul tiroir de symboles sans les anciens outils de taill
   assert.doesNotMatch(html, /id=["']placement(?:ToggleButton|Drawer|List)["']/);
   assert.doesNotMatch(html, /id=["']closePlacementButton["']/);
   assert.doesNotMatch(html, /id=["']composition(?:Sigil|FirstSign|SecondSign)Select["']/);
-  assert.match(html, /styles\.css\?v=20260831-sigil-composition-dialog-v1/);
+  assert.match(html, /styles\.css\?v=20260831-canvas-gestures-v2/);
   assert.match(html, /app\.js\?v=\d{8}-[^"']+/);
 });
 
@@ -110,7 +114,7 @@ test("la palette cable le transport Scratch jusqu'au canevas", async () => {
   for (const functionName of [
     "renderInkList",
     "renderSigilCompositionPanel",
-    "openSigilCompositionDialog",
+    "setSymbolDrawerMode",
     "selectCompositionSlot",
     "setCompositionSlotElement",
     "resolveSigilCompositionAnchor",
@@ -139,8 +143,6 @@ test("la composition sigillaire possede ses libelles bilingues", async () => {
   const { translate } = await import("../i18n.mjs");
 
   for (const key of [
-    "drawer.composition",
-    "drawer.closeComposition",
     "symbols.mode.directPalette",
     "symbols.mode.sigilComposition",
     "composition.sigil",

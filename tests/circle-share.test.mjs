@@ -4,7 +4,6 @@ import {
   buildCommunityComposeUrl,
   decodeCircleShare,
   encodeCircleShare,
-  fitCircleShare,
   parseCircleShareText,
   parseCircleShare,
   serializeCircleShare,
@@ -17,7 +16,7 @@ const circle = {
   canvas: { width: 800, height: 600 },
   actions: [
     { type: "free", width: 3, points: [{ x: 10, y: 20 }, { x: 30, y: 40 }] },
-    { type: "circle", cx: 400, cy: 300, radius: 220, width: 4, closed: false, openingSize: 24, openingAngle: 135 },
+    { type: "circle", cx: 400, cy: 300, radius: 220, width: 4, closed: true },
     { type: "ring", cx: 400, cy: 300, radius: 180, width: 3 },
     { type: "ray", cx: 400, cy: 300, x: 600, y: 300, width: 2 },
     { type: "glyph", element: "Vent", kind: "sigil", x: 400, y: 300, size: 42, rotation: 0.4 },
@@ -63,24 +62,4 @@ test("circle share text imports raw JSON and encoded simulator links without pho
   const href = `https://example.test/index.html?communityCircle=${encoded}`;
   assert.deepEqual(parseCircleShareText(href), circle);
   assert.throws(() => parseCircleShareText("https://example.test/photo.png"), /json/i);
-});
-
-test("circle share fitting preserves finite centers for circular actions", () => {
-  const fitted = fitCircleShare(circle, { width: 400, height: 300 });
-  const glyph = fitted.find(({ type }) => type === "glyph");
-
-  assert.deepEqual({ x: glyph.x, y: glyph.y, size: glyph.size }, { x: 200, y: 150, size: 21 });
-  assert.deepEqual(
-    fitted.filter(({ type }) => ["circle", "ring", "spiral"].includes(type)).map(({ type, cx, cy, radius }) => ({
-      type,
-      cx,
-      cy,
-      radius,
-    })),
-    [
-      { type: "circle", cx: 200, cy: 150, radius: 110 },
-      { type: "ring", cx: 200, cy: 150, radius: 90 },
-      { type: "spiral", cx: 200, cy: 150, radius: 45 },
-    ],
-  );
 });

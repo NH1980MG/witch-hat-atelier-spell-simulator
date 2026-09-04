@@ -1,6 +1,6 @@
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import { buildRecipeHref } from "./recipe-link.mjs?v=20260811-exact-schematic-v1";
-import { t } from "./site-i18n.mjs?v=20260831-sigil-composition-dialog-v1";
+import { t } from "./site-i18n.mjs?v=20260831-canvas-gestures-v2";
 
 const byId = new Map(LIBRARY_CIRCLES.map((circle) => [circle.id, circle]));
 
