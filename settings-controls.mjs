@@ -1,7 +1,7 @@
 import {
   loadStrokeSmoothing,
   saveStrokeSmoothing,
-} from "./stroke-smoothing.mjs?v=20260831-sigil-composition-dialog-v1";
+} from "./stroke-smoothing.mjs?v=20260831-canvas-gestures-v2";
 
 const input = document.querySelector("#strokeSmoothingInput");
 const output = document.querySelector("#strokeSmoothingValue");
