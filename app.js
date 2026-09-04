@@ -65,7 +65,7 @@ import {
   parseCircleShareText,
   parseCircleShare,
   serializeCircleShare,
-} from "./circle-share.mjs?v=20260812-circle-json-v1";
+} from "./circle-share.mjs?v=20260904-import-rings-v2";
 import {
   convertWhaSpellMakerDocument,
   decodeWhaSpellMakerLink,

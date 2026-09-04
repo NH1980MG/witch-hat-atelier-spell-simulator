@@ -82,8 +82,11 @@ export function fitCircleShare(circle, targetCanvas) {
       const end = point({ x: action.x, y: action.y });
       return { ...action, cx: start.x, cy: start.y, x: end.x, y: end.y, width: action.width * scale };
     }
-    const center = point(action);
-    if (action.type === "glyph") return { ...action, ...center, size: action.size * scale };
+    if (action.type === "glyph") {
+      const position = point(action);
+      return { ...action, ...position, size: action.size * scale };
+    }
+    const center = point({ x: action.cx, y: action.cy });
     return { ...action, cx: center.x, cy: center.y, radius: action.radius * scale, width: action.width * scale };
   });
 }
