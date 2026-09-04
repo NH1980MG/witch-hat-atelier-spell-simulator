@@ -4,10 +4,12 @@ Date: 2026-09-04
 
 ## Objective
 
-Improve symbol recognition for both imported WHA Spell Maker JSON and symbols
-drawn directly on the simulator canvas. Recognition must operate entirely in
-the browser, classify repeated custom images as one group, tolerate arbitrary
-symbol rotation, and never depend on an external AI service.
+Improve symbol recognition for both imported photos or WHA Spell Maker JSON
+and symbols drawn directly on the simulator canvas. Two specialized local
+neural networks must operate entirely in the browser: one for raster/photo
+sources and one for native canvas strokes at activation. Both classifiers must
+classify repeated symbols as one group, tolerate arbitrary symbol rotation,
+and never depend on an external AI service.
 
 Use the resulting semantic symbols to execute a deterministic transformation
 timeline. The first complete vertical slice is the imported composition:
@@ -26,7 +28,8 @@ effect.
 - Recognition and inference do not send images, strokes, or corrections to a
   server.
 - Runtime recognition consumes no API credits or AI tokens.
-- The neural model and its metadata are versioned static assets.
+- The photo model, canvas model, and their metadata are versioned static
+  assets with independent confidence calibration.
 - Existing deterministic recognition remains available as a fallback.
 - Unknown custom symbols remain unknown until the user confirms a catalogue
   meaning. The application must not invent magical semantics.
@@ -46,6 +49,11 @@ connected-component grouping, ring detection, raster templates, chamfer
 distance, and intersection-over-union scoring. It does not provide a shared
 semantic mapping for repeated image assets, and its classification is not
 reliably invariant across arbitrary rotations.
+
+The normal canvas recognizer currently analyses freehand geometry with
+deterministic rules. It does not have a classifier specialized for native
+stroke direction, endpoints, junctions, incomplete strokes, or drawing-order
+variation at activation time.
 
 WHA Spell Maker can place a catalogue sigil such as `sigil_Crystalize` in its
 `signs` collection to repeat it around an annulus. The current importer keeps
@@ -91,9 +99,10 @@ it wastes the catalogue and recognition code already available.
 ### 6. Selected hybrid
 
 Use deterministic preprocessing and geometry to segment and reject candidates,
-a compact local neural network to rank catalogue identities, and the existing
-template matcher to verify the neural result. Ask for one grouped confirmation
-when confidence is insufficient and remember that decision locally.
+two compact local neural networks to rank catalogue identities for their
+respective source types, and the existing template matcher to verify each
+neural result. Ask for one grouped confirmation when confidence is
+insufficient and remember that decision locally.
 
 This combines the useful parts of approaches 1, 2, 3, and 5 while avoiding the
 cost and privacy problems of approach 4.
@@ -108,6 +117,8 @@ shared recognition sample:
 ```js
 {
   mask,             // normalized monochrome raster
+  channels,         // source-specific normalized tensor channels
+  geometry,         // endpoints, junctions, holes, and bounds
   width,
   height,
   sourceKind,       // imported-image or canvas-strokes
@@ -116,9 +127,13 @@ shared recognition sample:
 }
 ```
 
-The preprocessing stage removes transparent margins, estimates ink, preserves
-the original placement angle, centres the ink bounds, and scales the longest
-dimension into the model frame without changing aspect ratio.
+The shared preprocessing stage removes transparent margins, estimates ink,
+preserves the original placement angle, centres the ink bounds, and scales the
+longest dimension into the model frame without changing aspect ratio. A
+source adapter then builds photo channels from local contrast and edges, or
+canvas channels from native stroke direction, endpoints, and junctions. A
+canvas sample must retain the native action list until those channels have
+been derived; it must not be reduced to pixels prematurely.
 
 ### Grouping
 
@@ -147,27 +162,51 @@ Each recognition group contains:
 A correction updates the group semantic identity. Individual actions continue
 to keep independent position, scale, and rotation values.
 
-### Neural classifier
+### Two specialized neural classifiers
 
-The application ships a small quantized convolutional network trained only on
-the public simulator catalogue. The input is a normalized monochrome symbol
-mask. The output contains catalogue logits plus an unknown score and an
-orientation estimate.
+The application ships two small quantized convolutional networks trained only
+on the public simulator catalogue. They share catalogue labels and output
+contracts but use separate weights, input channels, augmentation profiles,
+confidence thresholds, and model versions.
 
-Training data is generated from the catalogue's canonical vector paths with
-deterministic augmentation:
+The photo classifier handles pasted photographs, uploaded photographs,
+screenshots, and custom raster images embedded in WHA Spell Maker JSON. Its
+input channels describe normalized ink, local contrast, and edges so it can
+tolerate paper shadows, blur, perspective changes, compression, transparent
+margins, and antialiasing.
+
+The canvas classifier handles freehand strokes drawn directly in the normal
+simulator. Its input channels describe normalized ink, stroke direction, and
+endpoints/junctions derived from the native action list. It runs when the user
+reads or activates a hand-drawn circle and is optimized for incomplete,
+uneven, overlapping, or differently ordered pen strokes.
+
+Each network outputs catalogue logits plus an unknown score and an orientation
+estimate. Neither network delegates inference to the other. The shared hybrid
+layer can compare their results only when a source genuinely provides both
+raster and native-stroke representations.
+
+Training data for both networks is generated from the catalogue's canonical
+vector paths with deterministic augmentation. Shared augmentation includes:
 
 - rotations covering the complete 0-359 degree range;
 - scale and translation variation;
 - line-width changes;
 - small missing segments and added ink noise;
 - mild affine and elastic deformation;
-- photographed-paper contrast and blur variants.
+- mild aliasing variation.
 
-The training tool runs locally during model maintenance. Only the compact
-weights, labels, model version, validation metrics, and normalization metadata
-are deployed. Runtime inference uses browser JavaScript and typed arrays, with
-no network request and no training in the user's browser.
+The photo dataset additionally includes photographed-paper contrast, blur,
+perspective, shadows, grid remnants, colour casts, compression artefacts, and
+transparent raster margins. The canvas dataset additionally includes stroke
+order changes, velocity-dependent width, endpoint gaps, overlapping strokes,
+local erasures, and uneven pen pressure.
+
+The training tool runs locally during model maintenance. Only the two compact
+weight files, shared labels, individual model versions, validation metrics,
+and normalization metadata are deployed. Runtime inference uses browser
+JavaScript and typed arrays, with no network request and no training in the
+user's browser.
 
 ### Rotation handling
 
@@ -188,10 +227,10 @@ instances into one direction.
 
 ### Confidence and verification
 
-The neural top candidates are rescored using chamfer distance, IoU, aspect
-ratio, endpoint count, junction count, and hole count. Model metadata contains
-calibrated accept and review thresholds derived from a held-out augmented test
-set.
+Each network's top candidates are rescored using chamfer distance, IoU, aspect
+ratio, endpoint count, junction count, and hole count. Photo and canvas model
+metadata contain separate calibrated accept and review thresholds derived from
+their respective held-out test sets.
 
 - Above the accept threshold, the best candidate is applied automatically.
 - Between accept and review thresholds, one grouped confirmation is shown.
@@ -215,9 +254,9 @@ The confirmation interface displays one card per uncertain fingerprint with:
 
 Confirming a candidate applies its semantic identity to every occurrence in
 the group. A reversible correction is stored in local browser storage under
-the content fingerprint and model version. Changing the model version causes
-the old decision to be revalidated rather than silently discarded or blindly
-trusted.
+the source type, content fingerprint, and corresponding model version.
+Changing either model version causes only decisions from that model to be
+revalidated rather than silently discarded or blindly trusted.
 
 ## Semantic Action Model
 
@@ -234,7 +273,8 @@ semantic reference:
     kind: "sign",
     source: "confirmed",
     confidence: 1,
-    modelVersion: "symbol-net-v1"
+    recognizer: "photo",
+    modelVersion: "photo-symbol-net-v1"
   }
 }
 ```
@@ -261,21 +301,25 @@ At activation time, the application follows this order:
 2. Use existing vector actions directly when their catalogue identity is
    already known.
 3. Segment freehand strokes into candidate symbol groups.
-4. Retrieve cached group decisions by fingerprint and model version.
-5. Run local neural inference only for unresolved unique groups.
-6. Verify candidates geometrically and apply the confidence policy.
-7. Request grouped confirmation for uncertain groups.
-8. Build the canonical spell recipe from confirmed semantics.
-9. Produce an ordered manifestation timeline.
-10. Activate the 3D renderer only after the recipe snapshot is complete.
+4. Retrieve cached group decisions by source type, fingerprint, and model
+   version.
+5. Run the canvas neural network only for unresolved unique freehand groups.
+6. Run the photo neural network only for unresolved photo or raster groups.
+7. Verify candidates geometrically and apply the confidence policy.
+8. Request grouped confirmation for uncertain groups.
+9. Build the canonical spell recipe from confirmed semantics.
+10. Produce an ordered manifestation timeline.
+11. Activate the 3D renderer only after the recipe snapshot is complete.
 
 Inference is not performed every animation frame. Results are cached until the
 source strokes, imported asset, or model version changes.
 
-If the neural model fails to load or the browser lacks a required operation,
-the deterministic matcher remains available and the UI reports reduced
-recognition mode. Activation never fails solely because the neural classifier
-is unavailable.
+If one neural model fails to load or the browser lacks a required operation,
+the deterministic matcher remains available for that source type and the UI
+reports which recognition mode is reduced. Failure of the photo model does not
+disable canvas recognition, and failure of the canvas model does not disable
+photo recognition. Activation never fails solely because either neural
+classifier is unavailable.
 
 ## Ordered Transformation Timeline
 
@@ -354,8 +398,14 @@ The implementation should introduce focused modules rather than adding all
 logic to `app.js`:
 
 ```text
-symbol-recognition-model.mjs
-  model loading, quantized inference, labels, orientation output
+photo-symbol-recognition-model.mjs
+  photo/raster model loading, quantized inference, orientation output
+
+canvas-symbol-recognition-model.mjs
+  native-stroke model loading, quantized inference, orientation output
+
+symbol-neural-runtime.mjs
+  shared bounded tensor operations, labels, and model validation
 
 symbol-recognition-groups.mjs
   fingerprints, imported-asset grouping, freehand clustering, cached decisions
@@ -379,8 +429,8 @@ coordinates the UI but does not own model math or timeline rules.
 
 ## Error Handling and Safety
 
-- Reject malformed model files, non-finite weights, invalid class counts, and
-  unsupported model versions.
+- Reject malformed photo or canvas model files, non-finite weights, invalid
+  class counts, incompatible input channels, and unsupported model versions.
 - Bound decoded image dimensions, masks, occurrence counts, inference batches,
   petal counts, and shard counts.
 - Continue enforcing safe embedded PNG, JPEG, and WebP data URLs.
@@ -394,11 +444,13 @@ coordinates the UI but does not own model math or timeline rules.
 ## Performance Targets
 
 - Analyse each unique imported image once, regardless of occurrence count.
-- Cache recognition by pixel fingerprint and model version.
+- Cache recognition by source type, content fingerprint, and the corresponding
+  photo or canvas model version.
 - Complete inference and verification within 150 ms per unique group on a
   typical desktop and within 500 ms on a mid-range mobile device.
 - Perform no recognition work inside the 3D animation loop.
-- Keep neural weights and metadata below 1 MiB combined.
+- Keep both neural weight files and their shared metadata below 1.5 MiB
+  combined.
 - Bound the flower effect to 24 visible petals and 160 active shard/particle
   bodies on high quality, with lower mobile quality caps.
 
@@ -406,13 +458,18 @@ coordinates the UI but does not own model math or timeline rules.
 
 ### Recognition tests
 
-- Every catalogue symbol is classified across the full rotation range using
-  held-out distortions not used to generate training batches.
-- Orientation estimates respect each symbol's rotational symmetry.
-- Automatic false classifications remain below one percent on the held-out
-  set.
+- Every catalogue symbol is classified by both networks across the full
+  rotation range using source-appropriate held-out distortions not used to
+  generate training batches.
+- Photo and canvas orientation estimates respect each symbol's rotational
+  symmetry.
+- Automatic false classifications remain below one percent independently on
+  both held-out sets.
 - Unknown scribbles and ambiguous partial symbols are rejected.
-- Neural failure activates deterministic fallback without breaking activation.
+- Photo-model failure preserves canvas-model recognition and activates the
+  photo fallback.
+- Canvas-model failure preserves photo-model recognition and activates the
+  canvas fallback.
 - No recognition test performs a network request.
 
 ### Grouping tests
@@ -466,10 +523,11 @@ supplied JSON before publication.
 
 The feature is complete when:
 
-- imported and freehand custom symbols share one local recognition pipeline;
+- imported/photo and freehand sources use two specialized local neural models
+  behind one grouped hybrid recognition pipeline;
 - repeated images require at most one user correction per unique symbol;
 - arbitrary placement rotation no longer prevents catalogue recognition;
-- no external AI service or recurring credit is required;
+- neither neural model uses an external AI service or recurring credit;
 - `sigil_Crystalize` contributes correct sigil semantics from WHA imports;
 - the selected recipe produces an ordered transformation timeline;
 - the 3D view visibly performs the water-flower-crystal-fracture sequence;
