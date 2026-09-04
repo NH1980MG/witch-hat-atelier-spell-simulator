@@ -15,7 +15,13 @@ import {
   toggleSelectedCommentState,
 } from "./action-semantics.mjs";
 import { loadStrokeSmoothing, smoothStroke } from "./stroke-smoothing.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260831-sigil-composition-dialog-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260831-canvas-gestures-v2";
+import {
+  createAdSenseScript,
+  readAdsConsent,
+  removeAdSenseScript,
+  writeAdsConsent,
+} from "./ads-consent.mjs";
 import {
   SIGIL_COMPOSITION_SLOTS,
   buildSigilCompositionCommitPlan,
@@ -65,12 +71,7 @@ import {
   parseCircleShareText,
   parseCircleShare,
   serializeCircleShare,
-} from "./circle-share.mjs?v=20260904-import-rings-v2";
-import {
-  convertWhaSpellMakerDocument,
-  decodeWhaSpellMakerLink,
-  isWhaSpellMakerDocument,
-} from "./wha-spell-maker-import.mjs?v=20260901-wha-json-import-v1";
+} from "./circle-share.mjs?v=20260812-circle-json-v1";
 import {
   combinedSelectionBounds,
   canDropGlyph,
@@ -405,9 +406,8 @@ const view3dInspectorState = document.querySelector("#view3dInspectorState");
 const view3dExperimentList = document.querySelector("#view3dExperimentList");
 const symbolToggleButton = document.querySelector("#symbolToggleButton");
 const symbolDrawer = document.querySelector("#symbolDrawer");
-const compositionToggleButton = document.querySelector("#compositionToggleButton");
-const sigilCompositionDialog = document.querySelector("#sigilCompositionDialog");
-const closeSigilCompositionButton = document.querySelector("#closeSigilCompositionButton");
+const directPaletteTab = document.querySelector("#directPaletteTab");
+const sigilCompositionTab = document.querySelector("#sigilCompositionTab");
 const sigilCompositionPanel = document.querySelector("#sigilCompositionPanel");
 const compositionSigilTray = document.querySelector("#compositionSigilTray");
 const compositionSignTray = document.querySelector("#compositionSignTray");
@@ -526,6 +526,13 @@ const symbolSearchDialog = document.getElementById("symbolSearchDialog");
 const symbolSearchInput = document.getElementById("symbolSearchInput");
 const symbolSearchResults = document.getElementById("symbolSearchResults");
 const symbolSearchStatus = document.getElementById("symbolSearchStatus");
+const projectSupportButton = document.querySelector("#projectSupportButton");
+const projectSupportDialog = document.querySelector("#projectSupportDialog");
+const projectSupportClose = document.querySelector("#projectSupportClose");
+const projectAdsToggle = document.querySelector("#projectAdsToggle");
+const projectAdsStatus = document.querySelector("#projectAdsStatus");
+const simulatorAdPlacement = document.querySelector("#simulatorAdPlacement");
+const simulatorAdDisable = document.querySelector("#simulatorAdDisable");
 
 let galleryPosts = [];
 let gallerySort = "newest";
@@ -568,6 +575,7 @@ const state = {
   toolbarDock: readToolbarDock(),
   toolbarDrag: null,
   suppressToolbarToggle: false,
+  symbolDrawerMode: "direct",
   selectedCompositionAnchorIndex: null,
   sigilComposition: {
     activeSlot: "center",
@@ -2148,16 +2156,6 @@ function drawAction(action, dashed = false) {
     ctx.beginPath();
     if (action.closed) {
       ctx.arc(action.cx, action.cy, action.radius, 0, Math.PI * 2);
-    } else if (Number.isFinite(action.openingSize) && Number.isFinite(action.openingAngle)) {
-      const openingSize = Math.max(0, Math.min(360, action.openingSize));
-      const openingAngle = action.openingAngle;
-      ctx.arc(
-        action.cx,
-        action.cy,
-        action.radius,
-        ((openingAngle + openingSize / 2) * Math.PI) / 180,
-        ((openingAngle - openingSize / 2 + 360) * Math.PI) / 180,
-      );
     } else {
       ctx.arc(action.cx, action.cy, action.radius, Math.PI * 0.1, Math.PI * 1.85);
     }
@@ -6592,6 +6590,69 @@ function setSupportDrawer(open) {
   setOpenDrawer(open ? "support" : null);
 }
 
+function updateAdsSupportStatus(enabled) {
+  if (projectAdsToggle) {
+    projectAdsToggle.checked = enabled;
+  }
+  if (projectAdsStatus) {
+    projectAdsStatus.textContent = t(enabled ? "supportProject.adsEnabled" : "supportProject.adsDisabled");
+  }
+}
+
+function clearAdSupportPlacement() {
+  if (simulatorAdPlacement) {
+    simulatorAdPlacement.hidden = true;
+    simulatorAdPlacement.dataset.adsEnabled = "false";
+  }
+}
+
+function setAdsConsent(enabled, { announce = false } = {}) {
+  writeAdsConsent(localStorage, enabled);
+  if (enabled) {
+    // The publisher script is intentionally created only after explicit consent.
+    createAdSenseScript(document);
+    document.body.dataset.adsConsent = "granted";
+  } else {
+    removeAdSenseScript(document);
+    delete document.body.dataset.adsConsent;
+    clearAdSupportPlacement();
+  }
+  updateAdsSupportStatus(enabled);
+  if (announce) {
+    setStatus(t(enabled ? "status.adsEnabled" : "status.adsDisabled"));
+  }
+}
+
+function openProjectSupportDialog() {
+  if (!projectSupportDialog) return;
+  updateAdsSupportStatus(readAdsConsent(localStorage));
+  if (typeof projectSupportDialog.showModal === "function") {
+    if (!projectSupportDialog.open) projectSupportDialog.showModal();
+  } else {
+    projectSupportDialog.setAttribute("open", "");
+  }
+}
+
+function closeProjectSupportDialog() {
+  if (!projectSupportDialog) return;
+  if (typeof projectSupportDialog.close === "function" && projectSupportDialog.open) {
+    projectSupportDialog.close();
+  } else {
+    projectSupportDialog.removeAttribute("open");
+  }
+}
+
+function initializeAdsConsent() {
+  const enabled = readAdsConsent(localStorage);
+  updateAdsSupportStatus(enabled);
+  if (enabled) {
+    createAdSenseScript(document);
+    document.body.dataset.adsConsent = "granted";
+  } else {
+    clearAdSupportPlacement();
+  }
+}
+
 function setGuideDrawer(open) {
   setOpenDrawer(open ? "guides" : null);
 }
@@ -10827,29 +10888,22 @@ function renderInkList() {
   updateInkSelection();
 }
 
-function openSigilCompositionDialog() {
-  if (!sigilCompositionDialog || sigilCompositionDialog.open) return;
-  sigilCompositionDialog.showModal();
-  document.body.classList.add("composition-open");
-  compositionToggleButton?.setAttribute("aria-expanded", "true");
-}
-
-function resetSigilCompositionEditor() {
-  closeCompositionSymbolPicker();
-  state.selectedCompositionAnchorIndex = null;
-  state.sigilComposition.draft = null;
-  state.sigilComposition.document = null;
-  state.sigilComposition.selectedType = "seal";
-  state.sigilComposition.selectedId = null;
-  state.sigilComposition.source = "tab";
-  state.sigilComposition.slots = {
-    center: null,
-    north: null,
-    east: null,
-    south: null,
-    west: null,
-  };
-  state.sigilComposition.activeSlot = "center";
+function setSymbolDrawerMode(mode, { openEditor = true } = {}) {
+  state.symbolDrawerMode = mode === "composition" ? "composition" : "direct";
+  const compositionActive = state.symbolDrawerMode === "composition";
+  directPaletteTab?.classList.toggle("is-active", !compositionActive);
+  sigilCompositionTab?.classList.toggle("is-active", compositionActive);
+  directPaletteTab?.setAttribute("aria-selected", String(!compositionActive));
+  sigilCompositionTab?.setAttribute("aria-selected", String(compositionActive));
+  inkList.hidden = compositionActive;
+  sigilCompositionPanel.hidden = !compositionActive;
+  if (compositionActive) {
+    if (openEditor) {
+      openSigilCompositionEditor();
+      return;
+    }
+    renderSigilCompositionPanel();
+  }
 }
 
 function compositionSelectionAnchorIndex() {
@@ -10967,16 +11021,21 @@ function openSigilCompositionEditor(anchorIndex = null, source = "tab") {
   state.sigilComposition.source = source;
   state.sigilComposition.slots = { ...draft.slots };
   state.sigilComposition.activeSlot = draft.slots.center ? "center" : "center";
-  closeSelectionContextMenu();
-  setSymbolDrawer(false);
-  openSigilCompositionDialog();
+  setSymbolDrawerMode("composition", { openEditor: false });
+  setSymbolDrawer(true);
   renderSigilCompositionPanel();
 }
 
 function cancelSigilComposition() {
   const source = state.sigilComposition.source;
-  resetSigilCompositionEditor();
-  sigilCompositionDialog?.close();
+  state.selectedCompositionAnchorIndex = null;
+  state.sigilComposition.draft = null;
+  state.sigilComposition.document = null;
+  state.sigilComposition.selectedType = "seal";
+  state.sigilComposition.selectedId = null;
+  state.sigilComposition.source = "tab";
+  clearSigilComposition();
+  setSymbolDrawerMode("direct", { openEditor: false });
   if (source === "context") setSymbolDrawer(false);
 }
 
@@ -11496,20 +11555,6 @@ detectCompositionSymbolsButton?.addEventListener("click", openCircleImportDialog
 calibrateCompositionButton?.addEventListener("click", calibrateSelectedCompositionElement);
 compositionTextureKind?.addEventListener("change", applyCompositionTextureSelection);
 
-sigilCompositionDialog?.addEventListener("click", (event) => {
-  if (event.target !== sigilCompositionDialog) return;
-  const box = sigilCompositionDialog.getBoundingClientRect();
-  if (!clientPointInsideRect(event.clientX, event.clientY, box)) {
-    cancelSigilComposition();
-  }
-});
-
-sigilCompositionDialog?.addEventListener("close", () => {
-  document.body.classList.remove("composition-open");
-  compositionToggleButton?.setAttribute("aria-expanded", "false");
-  resetSigilCompositionEditor();
-});
-
 function updateSigilCompositionCircleSize(value) {
   const draft = compositionDraftFromState();
   const { width, height } = canvasSize();
@@ -11748,7 +11793,6 @@ function applyCompositionDocumentToCanvas() {
   updateUsedList();
   updateSpellState();
   setStatus(t("status.sigilCompositionApplied", { count: compiled.length }));
-  sigilCompositionDialog?.close();
   render();
   return true;
 }
@@ -11870,7 +11914,6 @@ function applySigilComposition() {
   updateUsedList();
   updateSpellState();
   setStatus(t("status.sigilCompositionApplied", { count: added.length }));
-  sigilCompositionDialog?.close();
   render();
   return true;
 }
@@ -13437,25 +13480,9 @@ function replaceCircleFromShare(circle) {
   return circle;
 }
 
-async function importCircleShareText() {
-  const rawText = String(circleJsonInput?.value || "").replace(/^\uFEFF/, "").trim();
+function importCircleShareText() {
   try {
-    if (!rawText || rawText.length > 1_500_000) throw new TypeError("Circle JSON is invalid");
-
-    let parsed = null;
-    try {
-      parsed = JSON.parse(rawText);
-    } catch {
-      if (/^https?:\/\//i.test(rawText)) {
-        const url = new URL(rawText);
-        if (url.searchParams.has("spell")) parsed = await decodeWhaSpellMakerLink(rawText);
-      }
-    }
-
-    const whaImport = isWhaSpellMakerDocument(parsed)
-      ? convertWhaSpellMakerDocument(parsed, { locale: getLocale() })
-      : null;
-    const circle = whaImport?.circle ?? parseCircleShareText(rawText, {
+    const circle = parseCircleShareText(circleJsonInput?.value || "", {
       glyphNames: new Set(elements.map((element) => element.name)),
     });
     replaceCircleFromShare(circle);
@@ -13779,11 +13806,8 @@ resetTarget3dButton?.addEventListener("click", resetSelectedThreeTarget);
 resetScene3dButton?.addEventListener("click", resetThreeScene);
 symbolToggleButton?.addEventListener("click", () => setSymbolDrawer(true));
 closeSymbolsButton?.addEventListener("click", () => setSymbolDrawer(false));
-compositionToggleButton?.addEventListener("click", () => openSigilCompositionEditor(null, "button"));
-closeSigilCompositionButton?.addEventListener("click", (event) => {
-  event.preventDefault();
-  cancelSigilComposition();
-});
+directPaletteTab?.addEventListener("click", () => setSymbolDrawerMode("direct"));
+sigilCompositionTab?.addEventListener("click", () => setSymbolDrawerMode("composition"));
 compositionCircleSizeInput?.addEventListener("input", () => updateSigilCompositionCircleSize(compositionCircleSizeInput.value));
 cancelSigilCompositionButton?.addEventListener("click", cancelSigilComposition);
 clearSigilCompositionButton?.addEventListener("click", clearSigilComposition);
@@ -13792,6 +13816,17 @@ detailsToggleButton?.addEventListener("click", () => setDetailsDrawer(true));
 closeDetailsButton?.addEventListener("click", () => setDetailsDrawer(false));
 supportToggleButton?.addEventListener("click", () => setSupportDrawer(true));
 closeSupportButton?.addEventListener("click", () => setSupportDrawer(false));
+projectSupportButton?.addEventListener("click", openProjectSupportDialog);
+projectSupportClose?.addEventListener("click", closeProjectSupportDialog);
+projectAdsToggle?.addEventListener("change", () => {
+  setAdsConsent(projectAdsToggle.checked, { announce: true });
+});
+simulatorAdDisable?.addEventListener("click", () => {
+  setAdsConsent(false, { announce: true });
+});
+projectSupportDialog?.addEventListener("click", (event) => {
+  if (event.target === projectSupportDialog) closeProjectSupportDialog();
+});
 guideToggleButton?.addEventListener("click", () => setGuideDrawer(true));
 closeGuidesButton?.addEventListener("click", () => setGuideDrawer(false));
 galleryToggleButton?.addEventListener("click", () => setGalleryDrawer(true));
@@ -15174,6 +15209,7 @@ renderInkList();
 renderSigilCompositionPanel();
 renderSupportList();
 renderGuideLists();
+initializeAdsConsent();
 updateGuideTransformControls();
 updateToolButtons();
 syncWorkspaceModes();
@@ -15186,6 +15222,7 @@ if (measureInput) {
 setGrimoireOpen(preferredGrimoireOpen, { persist: false });
 close3dView();
 setSymbolDrawer(false);
+setSymbolDrawerMode("direct");
 setSupportDrawer(false);
 setGuideDrawer(false);
 if (guideVisibleInput) {
