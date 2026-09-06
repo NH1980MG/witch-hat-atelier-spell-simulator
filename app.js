@@ -18,8 +18,11 @@ import { loadStrokeSmoothing, smoothStroke } from "./stroke-smoothing.mjs";
 import { getLocale, t } from "./site-i18n.mjs?v=20260831-canvas-gestures-v2";
 import {
   createAdSenseScript,
+  mountAdSensePlacement,
   readAdsConsent,
   removeAdSenseScript,
+  requestAdSenseFill,
+  unmountAdSensePlacement,
   writeAdsConsent,
 } from "./ads-consent.mjs";
 import {
@@ -532,6 +535,7 @@ const projectSupportClose = document.querySelector("#projectSupportClose");
 const projectAdsToggle = document.querySelector("#projectAdsToggle");
 const projectAdsStatus = document.querySelector("#projectAdsStatus");
 const simulatorAdPlacement = document.querySelector("#simulatorAdPlacement");
+const simulatorAdFrame = document.querySelector("#simulatorAdFrame");
 const simulatorAdDisable = document.querySelector("#simulatorAdDisable");
 
 let galleryPosts = [];
@@ -6600,10 +6604,20 @@ function updateAdsSupportStatus(enabled) {
 }
 
 function clearAdSupportPlacement() {
+  unmountAdSensePlacement(simulatorAdFrame);
   if (simulatorAdPlacement) {
     simulatorAdPlacement.hidden = true;
     simulatorAdPlacement.dataset.adsEnabled = "false";
   }
+}
+
+function showAdSupportPlacement() {
+  if (!simulatorAdPlacement || !simulatorAdFrame) return;
+  // The unit must be visible before AdSense measures its responsive width.
+  simulatorAdPlacement.hidden = false;
+  simulatorAdPlacement.dataset.adsEnabled = "true";
+  mountAdSensePlacement(document, simulatorAdFrame);
+  requestAdSenseFill(window);
 }
 
 function setAdsConsent(enabled, { announce = false } = {}) {
@@ -6612,6 +6626,7 @@ function setAdsConsent(enabled, { announce = false } = {}) {
     // The publisher script is intentionally created only after explicit consent.
     createAdSenseScript(document);
     document.body.dataset.adsConsent = "granted";
+    showAdSupportPlacement();
   } else {
     removeAdSenseScript(document);
     delete document.body.dataset.adsConsent;
@@ -6648,6 +6663,7 @@ function initializeAdsConsent() {
   if (enabled) {
     createAdSenseScript(document);
     document.body.dataset.adsConsent = "granted";
+    showAdSupportPlacement();
   } else {
     clearAdSupportPlacement();
   }
