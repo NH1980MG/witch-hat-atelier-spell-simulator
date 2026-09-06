@@ -858,7 +858,7 @@ function detectOpeningPetrificationSeal(mask, width, height, cropBounds, rings) 
   };
 }
 
-export function analyzePhoto(imageData, symbolPaths) {
+export function analyzePhoto(imageData, symbolPaths, { recognizer = recognizeGroup } = {}) {
   const { width, height } = imageData;
   const mask = toInkMask(imageData);
   const cropBounds = inkBounds(mask, width, height);
@@ -919,7 +919,7 @@ export function analyzePhoto(imageData, symbolPaths) {
         }
       }
     }
-    const recognition = recognizeGroup(groupMask, group.width, group.height, symbolPaths);
+    const recognition = recognizer(groupMask, group.width, group.height, symbolPaths);
     if (recognition.status === "unreadable") ignored += 1;
     return {
       ...recognition,

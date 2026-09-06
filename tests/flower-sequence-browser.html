@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Flower sequence renderer QA</title>
+<style>
+  body { margin: 0; background: #102331; color: #e0eef3; font: 16px Georgia, serif; }
+  canvas { display: block; width: 100%; height: 78vh; }
+  nav, output { display: flex; gap: 8px; padding: 12px; flex-wrap: wrap; }
+  button { padding: 8px 12px; border: 1px solid #6ea9b5; background: #193b49; color: white; cursor: pointer; }
+  output { font: 13px monospace; overflow-wrap: anywhere; }
+</style>
+<canvas id="canvas"></canvas>
+<nav id="stages"></nav>
+<output id="status"></output>
+<script type="module">
+  import * as THREE from "../vendor/three/three.module.js";
+  import { synthesizeManifestation } from "../manifestation-synthesis.mjs";
+  import { createFlowerManifestation3d } from "../immersive-3d.mjs";
+  import { loadRapier3dCompat } from "../rapier-physics-world.mjs";
+  const canvas = document.querySelector("canvas");
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x102331);
+  scene.add(new THREE.HemisphereLight(0xdbf5ff, 0x244048, 3));
+  const light = new THREE.DirectionalLight(0xffffff, 5);
+  light.position.set(1, 4, 3);
+  scene.add(light);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), new THREE.MeshStandardMaterial({ color: 0x25404b, roughness: 0.8 }));
+  floor.rotation.x = -Math.PI / 2;
+  scene.add(floor);
+  const camera = new THREE.PerspectiveCamera(42, 1, 0.01, 50);
+  camera.position.set(2.6, 3.2, 3.8);
+  camera.lookAt(0, 0.35, 0);
+  const RAPIER = await loadRapier3dCompat();
+  const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
+  const ground = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, -0.06, 0));
+  world.createCollider(RAPIER.ColliderDesc.cuboid(6, 0.06, 6), ground);
+  let reducedMotion = false;
+  let quality = "high";
+  let view, plan, elapsed = 0, running = false, previous = performance.now();
+  function rebuild() {
+    view?.dispose();
+    plan = synthesizeManifestation({ spellId: "browser-qa-flower", materialProfile: { family: "water", phase: "liquid" }, sigilCounts: { Eau: 1, Fleur: 1, Cristal: 4 }, signCounts: { Agrandissement: 4, Crush: 3 }, operations: { form: ["dispersion"], state: ["resize", "crush"], target: ["aim"] }, geometry: { targetAxes: [[1, 0.2, 0], [-1, 0.2, 0]] }, reducedMotion, quality });
+    view = createFlowerManifestation3d({ THREE, plan, physics: { RAPIER, world }, reducedMotion });
+    scene.add(view.group);
+    elapsed = 0;
+  }
+  rebuild();
+  function button(label, callback) {
+    const button = document.createElement("button");
+    button.textContent = label;
+    button.onclick = callback;
+    document.querySelector("nav").append(button);
+  }
+  for (const stage of plan.timeline.stages) button(stage.id, () => {
+    running = false;
+    rebuild();
+    const current = plan.timeline.stages.find(({ id }) => id === stage.id);
+    elapsed = current.start + current.duration * 0.6;
+  });
+  button("Replay", () => { rebuild(); running = true; });
+  button("Reduced motion", () => { reducedMotion = !reducedMotion; rebuild(); running = true; });
+  button("Mobile quality", () => { quality = quality === "high" ? "mobile" : "high"; rebuild(); running = true; });
+  button("Clear", () => { view.dispose(); running = false; });
+  function render(now) {
+    const delta = Math.min(0.05, (now - previous) / 1000);
+    previous = now;
+    if (running) { elapsed += delta * 1000; world.timestep = delta; world.step(); }
+    const state = view.update(elapsed);
+    document.querySelector("output").textContent = JSON.stringify({ ...state, bodies: world.bodies.len(), quality, reducedMotion, geometries: renderer.info.memory.geometries });
+    const width = canvas.clientWidth, height = canvas.clientHeight;
+    if (canvas.width !== width * renderer.getPixelRatio() || canvas.height !== height * renderer.getPixelRatio()) renderer.setSize(width, height, false);
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    renderer.render(scene, camera);
+    requestAnimationFrame(render);
+  }
+  requestAnimationFrame(render);
+</script>
+</html>

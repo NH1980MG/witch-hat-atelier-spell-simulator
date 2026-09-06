@@ -168,3 +168,42 @@ test("circle share rejects remote, executable, undeclared, and oversized image a
     actions: [imageAction],
   }), /large|size|asset/i);
 });
+
+const imageSemantic = {
+  element: "Vent", kind: "sigil", rotationCorrection: -Math.PI / 2,
+  confidence: 1, source: "confirmed", recognizer: "photo", modelVersion: "photo-test-v1",
+};
+const semanticCircle = {
+  ...circle,
+  assets: [{ id: "custom-1", src: transparentPixel }],
+  actions: [{ type: "image", assetId: "custom-1", name: "Original", kind: "sign", x: 25, y: 30, size: 15, rotation: 0.7, semantic: imageSemantic }],
+};
+
+test("image semantics round-trip through JSON and URLs without altering original artwork or rotation", () => {
+  assert.deepEqual(parseCircleShare(semanticCircle), semanticCircle);
+  assert.deepEqual(decodeCircleShare(encodeCircleShare(semanticCircle)), semanticCircle);
+  assert.deepEqual(parseCircleShareText(serializeCircleShare(semanticCircle)), semanticCircle);
+  const [fitted] = fitCircleShare(semanticCircle, { width: 400, height: 300 });
+  assert.deepEqual(fitted.semantic, imageSemantic);
+  assert.equal(fitted.rotation, 0.7);
+  assert.equal(fitted.x, 12.5);
+  assert.equal(fitted.size, 7.5);
+  assert.equal(fitted.kind, "sign");
+});
+
+test("image semantic parsing rejects malformed values and unknown allowlisted elements", () => {
+  const withSemantic = (semantic) => ({ ...semanticCircle, actions: [{ ...semanticCircle.actions[0], semantic }] });
+  for (const semantic of [null, {}, [], { ...imageSemantic, confidence: "1" }, { ...imageSemantic, confidence: -1 },
+    { ...imageSemantic, confidence: 2 }, { ...imageSemantic, rotationCorrection: Infinity },
+    { ...imageSemantic, source: "predicted" }, { ...imageSemantic, source: "confirmed", confidence: 0.8 },
+    { ...imageSemantic, recognizer: "remote" }, { ...imageSemantic, modelVersion: "" }]) {
+    assert.throws(() => parseCircleShare(withSemantic(semantic)), TypeError);
+  }
+  assert.throws(() => parseCircleShare(withSemantic({ ...imageSemantic, element: "<script>" }), { glyphNames: new Set(["Vent"]) }), /element|catalog/i);
+  assert.throws(() => parseCircleShare(semanticCircle, { glyphNames: new Set() }), /element|catalog/i);
+  assert.deepEqual(parseCircleShare(semanticCircle, { glyphNames: new Set(["Vent"]) }), semanticCircle);
+  const parsed = parseCircleShare(withSemantic({ ...imageSemantic, onload: "alert(1)", sourceUrl: "https://example.com" }));
+  assert.deepEqual(parsed.actions[0].semantic, imageSemantic);
+  assert.notEqual(parsed.actions[0].semantic, imageSemantic);
+  assert.equal(parseCircleShare(withSemantic({ ...imageSemantic, source: "verified", confidence: 0.88 })).actions[0].semantic.confidence, 0.88);
+});

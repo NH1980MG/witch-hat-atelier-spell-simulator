@@ -1,3 +1,5 @@
+import { validateImageSemantic } from "./symbol-recognition-groups.mjs";
+
 export const ANNOTATION_ACTION_TYPE = "annotation";
 export const ANNOTATION_KINDS = Object.freeze(["drawing", "text"]);
 export const COMMENTABLE_ACTION_TYPES = Object.freeze(["free", "circle", "ring", "ray", "glyph", "spiral"]);
@@ -20,6 +22,36 @@ export function annotationKind(action) {
 
 export function isCommentableAction(action) {
   return COMMENTABLE_ACTION_TYPES.includes(action?.type);
+}
+
+/**
+ * Return a semantic projection, never a replacement drawing action. Catalogue
+ * is the app's [{name, kind}] list. Image ink retains its placement rotation;
+ * this effective rotation is only for grammar/direction calculations. Native
+ * imported glyphs may explicitly separate semanticKind from placement kind.
+ */
+export function resolveGlyphSemantic(action, catalogue) {
+  if (!isSpellAction(action) || !Array.isArray(catalogue)) return null;
+  const placementRotation = action.rotation === undefined ? 0 : action.rotation;
+  if (!Number.isFinite(placementRotation)) return null;
+  if (action.type === "image") {
+    let semantic;
+    try {
+      semantic = validateImageSemantic(action.semantic);
+    } catch {
+      return null;
+    }
+    const entry = catalogue.find((entry) => entry?.name === semantic.element);
+    if (!entry || entry.kind !== semantic.kind) return null;
+    const rotation = placementRotation + semantic.rotationCorrection;
+    return Number.isFinite(rotation) ? { element: semantic.element, kind: semantic.kind, rotation } : null;
+  }
+  if (action.type !== "glyph") return null;
+  const entry = catalogue.find((entry) => entry?.name === action.element);
+  if (!entry) return null;
+  const kind = action.semanticKind ?? action.kind ?? entry.kind;
+  if (kind !== "sigil" && kind !== "sign") return null;
+  return { element: action.element, kind, rotation: placementRotation };
 }
 
 export function toggleSelectedCommentState(actions = [], indices = []) {

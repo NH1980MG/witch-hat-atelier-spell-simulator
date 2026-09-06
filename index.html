@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-store">
     <meta http-equiv="Pragma" content="no-cache">
     <meta name="referrer" content="strict-origin-when-cross-origin">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net; connect-src 'self' https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net; frame-src https://googleads.g.doubleclick.net https://tpc.googlesyndication.com; object-src 'none'; base-uri 'self'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://pagead2.googlesyndication.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net; connect-src 'self' https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net; frame-src https://googleads.g.doubleclick.net https://tpc.googlesyndication.com; object-src 'none'; base-uri 'self'">
     <meta name="google-adsense-account" content="ca-pub-6523791940885787">
     <meta name="description" content="Draw, read, and animate magic circles in a bilingual Witch Hat Atelier spell simulator with a 3D workshop and 65,601 deterministic variants.">
     <meta property="og:title" content="Witch Hat Atelier Spell Simulator | Magic Circle Maker">
@@ -37,7 +37,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260831-sigil-composition-dialog-v1">
+    <link rel="stylesheet" href="styles.css?v=20260905-local-recognition-v1">
     <script type="importmap">
       {
         "imports": {
@@ -48,7 +48,7 @@
     </script>
     <script type="module" src="site-i18n.mjs?v=20260831-sigil-composition-dialog-v1"></script>
     <script type="module" src="site-nav.mjs?v=20260831-auth-session-v1"></script>
-    <script type="module" src="app.js?v=20260904-wha-fidelity-v3"></script>
+    <script type="module" src="app.js?v=20260905-local-recognition-v1"></script>
   </head>
   <body class="simulator-page">
     <main class="app-shell">
@@ -619,6 +619,7 @@
           </div>
         </section>
 
+        <details id="recognitionControls" class="recognition-controls"></details>
           <output class="status" id="statusText" aria-live="polite" data-i18n="status.buttonMode">Button mode: draw a closed circle, then press Activate.</output>
         </div>
       </footer>

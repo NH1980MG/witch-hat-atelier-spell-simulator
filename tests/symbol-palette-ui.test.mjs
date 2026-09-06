@@ -25,7 +25,7 @@ test("la page expose un seul tiroir de symboles sans les anciens outils de taill
   assert.doesNotMatch(html, /id=["']placement(?:ToggleButton|Drawer|List)["']/);
   assert.doesNotMatch(html, /id=["']closePlacementButton["']/);
   assert.doesNotMatch(html, /id=["']composition(?:Sigil|FirstSign|SecondSign)Select["']/);
-  assert.match(html, /styles\.css\?v=20260831-sigil-composition-dialog-v1/);
+  assert.match(html, /styles\.css\?v=20260905-local-recognition-v1/);
   assert.match(html, /app\.js\?v=\d{8}-[^"']+/);
 });
 

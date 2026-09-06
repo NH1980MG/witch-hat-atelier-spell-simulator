@@ -1,3 +1,5 @@
+import { validateImageSemantic } from "./symbol-recognition-groups.mjs";
+
 export const MAX_CIRCLE_ACTIONS = 500;
 
 const ACTION_TYPES = new Set(["free", "circle", "ring", "ray", "glyph", "image", "spiral", "annotation"]);
@@ -176,6 +178,7 @@ function parseAction(value, glyphNames, assetIds) {
       type: "glyph",
       element,
       kind,
+      ...(value.semanticKind === "sigil" || value.semanticKind === "sign" ? { semanticKind: value.semanticKind } : {}),
       ...parsePoint(value),
       size: positive(value.size, "glyph size"),
       rotation: value.rotation === undefined ? 0 : finite(value.rotation),
@@ -194,6 +197,7 @@ function parseAction(value, glyphNames, assetIds) {
       assetId,
       name: text(value.name, 80, "Image name"),
       kind: value.kind === "sigil" ? "sigil" : "sign",
+      ...(value.semantic === undefined ? {} : { semantic: validateImageSemantic(value.semantic, glyphNames) }),
       ...parsePoint(value),
       size: positive(value.size, "image size"),
       rotation: value.rotation === undefined ? 0 : finite(value.rotation),

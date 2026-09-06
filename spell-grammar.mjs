@@ -3,10 +3,10 @@ import {
   hashSpellIdentity,
   normalizeSpellGeometry,
   selectPrimarySigil,
-} from "./spell-model.mjs";
+} from "./spell-model.mjs?v=20260905-local-recognition-v1";
 import { composeElementalMixture, INDEXED_ELEMENTAL_MIXTURES } from "./elemental-mixtures.mjs?v=20260812-particle-field-v1";
 import { composeSupportPlan } from "./support-policy.mjs";
-import { synthesizeManifestation } from "./manifestation-synthesis.mjs?v=20260812-particle-field-v1";
+import { synthesizeManifestation } from "./manifestation-synthesis.mjs?v=20260905-local-recognition-v1";
 
 const profile = (value) => Object.freeze(value);
 
@@ -769,6 +769,9 @@ export function composeSpellRecipe({
     supportPlan,
   };
   const manifestationPlan = synthesizeManifestation({
+    spellId: id,
+    sigilCounts: sigilCountObject,
+    signCounts: signCountObject,
     materialProfile: material,
     elementalMixture,
     operations,

@@ -2,6 +2,16 @@
 
 Date: 2026-09-04
 
+## Approved rollout update, 2026-09-05
+
+Provide independent persisted Classic / Neural choices for canvas and photo.
+Classic remains the default pending real-world validation; neural mode is
+labelled experimental and must pass a reproducible synthetic release gate
+before it is offered publicly. Report accepted coverage, false accepts, and
+orientation error modulo symbol symmetry. Do not describe synthetic results
+as real-photo reliability. A trained compact MLP plus full-angle geometric
+verification may replace the proposed CNN when measurements justify it.
+
 ## Objective
 
 Improve symbol recognition for both imported photos or WHA Spell Maker JSON

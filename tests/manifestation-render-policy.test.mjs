@@ -60,7 +60,13 @@ test("the scalewolf family renders a creature instead of the generic floating or
 
   const rebuild = app.match(/function rebuildThreeSpell\(\) \{([\s\S]*?)\n\}/)?.[1] || "";
   assert.match(rebuild, /addDecorativeCreatureEffect3d/);
-  assert.match(rebuild, /if \(decorativeCreatureRendered\)/);
+  const noCoreCondition = rebuild.match(/if \(([^\n]+)\) \{\s*core = null;/)?.[1];
+  assert.ok(noCoreCondition, "dedicated manifestations suppress the generic core");
+  const suppressCore = new Function("isFlower", "decorativeCreatureRendered", `return (${noCoreCondition});`);
+  assert.equal(suppressCore(false, true), true);
+  assert.equal(suppressCore(true, false), true);
+  assert.equal(suppressCore(true, true), true);
+  assert.equal(suppressCore(false, false), false);
   assert.match(rebuild, /else if \(!floatingCore\)/);
 });
 

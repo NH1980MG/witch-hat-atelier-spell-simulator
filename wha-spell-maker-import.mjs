@@ -1,4 +1,4 @@
-import { MAX_CIRCLE_ACTIONS, parseCircleShare } from "./circle-share.mjs";
+import { MAX_CIRCLE_ACTIONS, parseCircleShare } from "./circle-share.mjs?v=20260905-local-recognition-v1";
 import { PALETTE_ELEMENTS } from "./symbol-palette-data.mjs";
 
 const CANVAS = Object.freeze({ width: 1000, height: 1000 });
@@ -184,6 +184,7 @@ function convertGlyph(value, requestedKind, transform, warnings, index, customIm
     type: "glyph",
     element: entry.name,
     kind: requestedKind,
+    ...(entry.kind !== requestedKind ? { semanticKind: entry.kind } : {}),
     x: center.x,
     y: center.y,
     size,
@@ -242,6 +243,7 @@ function convertSign(value, index, transform, warnings, customImages) {
       type: "glyph",
       element: entry.name,
       kind: "sign",
+      ...(entry.kind !== "sign" ? { semanticKind: entry.kind } : {}),
       x: point.x,
       y: point.y,
       size,

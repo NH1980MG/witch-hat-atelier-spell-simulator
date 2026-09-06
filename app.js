@@ -6,14 +6,15 @@ import {
   SYMBOL_PATHS,
 } from "./symbol-catalog.mjs?v=20260809-handoff-layout-v2";
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260812-particle-field-v1";
-import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260812-particle-field-v1";
-import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs";
+import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260905-local-recognition-v1";
+import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs?v=20260905-local-recognition-v1";
 import {
   isAnnotationAction,
   isCommentableAction,
   isSpellAction,
+  resolveGlyphSemantic,
   toggleSelectedCommentState,
-} from "./action-semantics.mjs";
+} from "./action-semantics.mjs?v=20260905-local-recognition-v1";
 import { loadStrokeSmoothing, smoothStroke } from "./stroke-smoothing.mjs";
 import { getLocale, t } from "./site-i18n.mjs?v=20260831-sigil-composition-dialog-v1";
 import {
@@ -72,12 +73,12 @@ import {
   parseCircleShareText,
   parseCircleShare,
   serializeCircleShare,
-} from "./circle-share.mjs?v=20260904-wha-fidelity-v3";
+} from "./circle-share.mjs?v=20260905-local-recognition-v1";
 import {
   convertWhaSpellMakerDocument,
   decodeWhaSpellMakerLink,
   isWhaSpellMakerDocument,
-} from "./wha-spell-maker-import.mjs?v=20260904-wha-fidelity-v3";
+} from "./wha-spell-maker-import.mjs?v=20260905-local-recognition-v1";
 import {
   combinedSelectionBounds,
   canDropGlyph,
@@ -112,7 +113,10 @@ import {
   reconcilePracticeStartIndex,
   updatePracticeDiagnostic,
 } from "./practice-session.mjs?v=20260809-handoff-layout-v2";
-import { analyzePhoto } from "./photo-import.mjs?v=20260809-handoff-layout-v2";
+import { analyzePhoto, recognizeGroup } from "./photo-import.mjs?v=20260905-local-recognition-v1";
+import { mountRecognitionControls } from "./recognition-controls.mjs";
+import { createImageRecognitionSession, loadLocalRecognizer, photoRegionRecognition } from "./recognition-session.mjs";
+import { applyImageGroupSemantic } from "./symbol-recognition-groups.mjs";
 import { imageFileFromPaste } from "./photo-clipboard.mjs";
 import {
   createPhotoRegionFromBounds,
@@ -138,10 +142,11 @@ import {
 import {
   cameraPreset,
   canManipulateTarget,
+  createFlowerManifestation3d,
   evaluateWorkshopExperiments,
   nextCameraMode,
   reactionVisualProfile,
-} from "./immersive-3d.mjs?v=20260821-particle-material-v1";
+} from "./immersive-3d.mjs?v=20260905-flower-sequence-v1";
 
 const libraryCircleById = new Map(LIBRARY_CIRCLES.map((circle) => [circle.id, circle]));
 
@@ -159,6 +164,16 @@ const colors = {
 };
 
 const elements = PALETTE_ELEMENTS;
+let recognitionControls = null;
+let canvasRecognitionSnapshot = null;
+let recognitionInProgress = false;
+let recognitionRevision = 0;
+let photoRecognitionGeneration = 0;
+let recognitionAssetSequence = 0;
+const recognitionAssetIds = new Map();
+const canvasConfirmations = new Map();
+const ignoredCanvasGroups = new Set();
+const imageRecognition = createImageRecognitionSession({ symbolPaths: SYMBOL_PATHS, catalogue: elements });
 
 const RAW_ENERGY_ELEMENT = Object.freeze({
   name: "Energie brute",
@@ -5031,6 +5046,19 @@ function addSymbolicParticleField3d(group, field, auraRadius, elementColor, base
 function addManifestationPlanEffect3d(group, plan, auraRadius, elementColor, supportId = "none") {
   if (!plan) return;
   const baseY = supportId === "shoe" ? THREE_SHOE_INK_Y + 0.012 : THREE_LOW_EFFECT_Y + 0.018;
+  if (plan.form?.id === "flower" && plan.timeline) {
+    const controller = createFlowerManifestation3d({
+      THREE,
+      plan,
+      radius: auraRadius,
+      origin: { y: baseY },
+      quality: window.matchMedia("(max-width: 700px)").matches ? "mobile" : "high",
+      reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    });
+    group.userData.flowerController = controller;
+    addAnimatedObject(group, controller.group, (_object, elapsed) => controller.update(elapsed * 1000));
+    return;
+  }
   addSymbolicParticleField3d(group, plan.particleField, auraRadius, elementColor, baseY);
 
   if (plan.id === "ancient.petrification-field") {
@@ -5580,7 +5608,12 @@ function rebuildThreeSpell() {
 
   const recipe = state.activeSpell.recipe;
   const manifestationPlan = recipe.manifestationPlan;
-  const renderOperation = (operation) => !manifestationConsumes(manifestationPlan, operation);
+  const isFlower = manifestationPlan?.form?.id === "flower" && Boolean(manifestationPlan.timeline);
+  if (isFlower) {
+    state.activeSpell.durationMs = Math.max(state.activeSpell.durationMs || 0,
+      Math.min(30000, manifestationPlan.timeline.durationMs + (manifestationPlan.flower?.bounds.maxLifetimeMs || 4200) + 500));
+  }
+  const renderOperation = (operation) => !isFlower && !manifestationConsumes(manifestationPlan, operation);
   const materialPresentation = state.activeSpell.materialPresentation;
   const runtimeElementName = materialPresentation?.dominantElement || state.activeSpell.elementName;
   const element = elements.find((item) => item.name === runtimeElementName) || RAW_ENERGY_ELEMENT;
@@ -5631,13 +5664,13 @@ function rebuildThreeSpell() {
     sealCarrier.add(circleLine(auraRadius * 1.35, shoeMode ? THREE_SHOE_INK_Y + 0.011 : THREE_INK_Y + 0.011, elementColor, 0.28, 192));
   }
   const manifestationStartIndex = group.children.length;
-  if (materialPresentation?.kind === "elemental-mixture") {
+  if (!isFlower && materialPresentation?.kind === "elemental-mixture") {
     addElementalMixtureEffect3d(group, materialPresentation, auraRadius, elementColor, supportId);
-  } else {
+  } else if (!isFlower) {
     addElementBaseEffect3d(group, element.name, effects, auraRadius, elementColor, model, supportId);
   }
   addManifestationPlanEffect3d(group, manifestationPlan, auraRadius, elementColor, supportId);
-  const decorativeCreatureRendered = addDecorativeCreatureEffect3d(
+  const decorativeCreatureRendered = !isFlower && addDecorativeCreatureEffect3d(
     group,
     recipe.materialProfile?.family || materialPresentation?.family,
     auraRadius,
@@ -5645,13 +5678,13 @@ function rebuildThreeSpell() {
     supportId,
     recipe,
   );
-  addShoeSupportEffects3d(group, supportProp, recipe.supportPlan, runtimeElementName, elementColor);
+  if (!isFlower) addShoeSupportEffects3d(group, supportProp, recipe.supportPlan, runtimeElementName, elementColor);
   if (!manifestationPlan) {
     addCombinedSignEffects3d(group, effects, runtimeElementName, auraRadius, elementColor, model, supportId);
   }
-  addRecipeGrammarEffects3d(group, { ...model, recipe }, auraRadius, elementColor, supportId);
+  if (!isFlower) addRecipeGrammarEffects3d(group, { ...model, recipe }, auraRadius, elementColor, supportId);
 
-  if (((effects.has("dispersion") && renderOperation("dispersion") && !combined.has("colonne diffuse")) || effects.has("repetition"))) {
+  if (!isFlower && ((effects.has("dispersion") && renderOperation("dispersion") && !combined.has("colonne diffuse")) || effects.has("repetition"))) {
     for (let index = 0; index < 4; index += 1) {
       group.add(circleLine(auraRadius * (1.45 + index * 0.28), 0.08 + index * 0.05, elementColor, 0.2, 160));
     }
@@ -5782,7 +5815,7 @@ function rebuildThreeSpell() {
   }
 
   let core;
-  if (decorativeCreatureRendered) {
+  if (isFlower || decorativeCreatureRendered) {
     core = null;
   } else if (!floatingCore) {
     core = new THREE.Mesh(
@@ -5848,14 +5881,14 @@ function rebuildThreeSpell() {
   group.userData.manifestation = trajectory;
   const geometry = model.geometry;
   const pressure = geometry?.pressure || 0;
-  if (pressure > 0.001) {
+  if (!isFlower && pressure > 0.001) {
     trajectory.rotation.z = -(geometry.vector?.x || 0) * pressure * 0.62;
     trajectory.rotation.x = (geometry.vector?.y || 0) * pressure * 0.42;
     trajectory.position.x = (geometry.vector?.x || 0) * pressure * auraRadius * 0.16;
     trajectory.position.z = (geometry.vector?.y || 0) * pressure * auraRadius * 0.12;
   }
-  manifestation.scale.y = geometry?.reach || 1;
-  if (Math.abs(geometry?.spin || 0) > 0.01) {
+  manifestation.scale.y = isFlower ? 1 : geometry?.reach || 1;
+  if (!isFlower && Math.abs(geometry?.spin || 0) > 0.01) {
     if (!group.userData.animators) {
       group.userData.animators = [];
     }
@@ -5883,6 +5916,12 @@ function disposeObject3d(root) {
     return;
   }
 
+  // Collect first: owned cleanup detaches subtrees and must not mutate traversal.
+  const ownedDisposers = new Set();
+  root.traverse((object) => {
+    if (typeof object.userData?.dispose === "function") ownedDisposers.add(object.userData.dispose);
+  });
+  ownedDisposers.forEach((dispose) => dispose());
   root.traverse((object) => {
     object.geometry?.dispose?.();
     const materials = Array.isArray(object.material)
@@ -6176,6 +6215,9 @@ function threePhysicsTargetDescriptor(target, index) {
 }
 
 function threeSpellForcesForPhysics(forces = []) {
+  // Flower shards carry the impulse at release; a generic field would act early
+  // and apply an additional radial impulse to every nearby environment target.
+  if (threeView.spellGroup?.userData.flowerController) return [];
   if (!threeView.spellGroup) return forces;
   return forces.map((force) => {
     const direction = new THREE.Vector3(
@@ -6209,12 +6251,14 @@ async function rebuildThreePhysicsRuntime({ preserveState = false } = {}) {
     ? threeView.physicsRuntime?.snapshot?.().targets || []
     : [];
   const token = threeView.physicsLoadToken + 1;
+  const flowerController = threeView.spellGroup?.userData.flowerController;
+  flowerController?.setPhysics(null);
   threeView.physicsLoadToken = token;
   threeView.physicsRuntime = null;
   threeView.physicsTargetMap = new Map();
   threeView.lastPhysicsAt = 0;
   const profile = currentSpellInfluenceProfile();
-  if (!profile?.spellForces?.length || threeView.environmentTargets.length === 0) {
+  if (!flowerController && (!profile?.spellForces?.length || threeView.environmentTargets.length === 0)) {
     return;
   }
 
@@ -6229,16 +6273,17 @@ async function rebuildThreePhysicsRuntime({ preserveState = false } = {}) {
     });
     runtime.setSpellField({
       position: threeVectorObject(threeView.spellGroup.position),
-      radiusMeters: Math.max(0.05, profile.diameter * 0.75),
-      forces: threeSpellForcesForPhysics(profile.spellForces),
+      radiusMeters: Math.max(0.05, (profile?.diameter || state.activeSpell?.diameter || 1) * 0.75),
+      forces: threeSpellForcesForPhysics(profile?.spellForces || []),
     });
     if (previousSnapshots.length > 0) {
       runtime.restoreSnapshots(previousSnapshots);
     } else {
-      runtime.applySpellForces(threeSpellForcesForPhysics(profile.spellForces));
+      runtime.applySpellForces(threeSpellForcesForPhysics(profile?.spellForces || []));
     }
     threeView.physicsRuntime = runtime;
     threeView.physicsTargetMap = targetMap;
+    flowerController?.setPhysics({ RAPIER, world: runtime.world });
   } catch (error) {
     console.warn("Rapier physics runtime unavailable", error);
   }
@@ -7431,7 +7476,198 @@ function classifyFreeSignGroup(actions, boundary) {
   };
 }
 
+function boundRecognitionKeys(collection, maximum = 2_000_000, maxEntries = 128) {
+  let size = [...collection.keys()].reduce((total, key) => total + key.length, 0);
+  while (collection.size > maxEntries || size > maximum) {
+    const key = collection.keys().next().value;
+    size -= key.length;
+    collection.delete(key);
+  }
+}
+
+function recognitionActionSignature(actions = state.actions) {
+  // Signing a subset must retain identities belonging to the current scene.
+  const referencedSources = new Set();
+  for (const list of [state.actions, actions]) {
+    for (const action of list) {
+      if (typeof action.assetSrc === "string") referencedSources.add(action.assetSrc);
+    }
+  }
+  for (const source of recognitionAssetIds.keys()) {
+    if (!referencedSources.has(source)) recognitionAssetIds.delete(source);
+  }
+  return JSON.stringify(actions, (key, value) => {
+    if (key !== "assetSrc" || typeof value !== "string") return value;
+    if (!recognitionAssetIds.has(value)) {
+      recognitionAssetIds.set(value, ++recognitionAssetSequence);
+    }
+    return recognitionAssetIds.get(value);
+  });
+}
+
+function canvasRecognitionKey() {
+  return recognitionActionSignature(state.actions.filter((action) => ["free", "circle", "ring", "seal"].includes(action.type)));
+}
+
+function hasPreparedNeuralCanvas() {
+  return recognitionControls?.getPreferences().canvas === "neural"
+    && canvasRecognitionSnapshot?.key === canvasRecognitionKey()
+    && !canvasRecognitionSnapshot.fallback;
+}
+
+function preparedCanvasGlyphs() {
+  return (canvasRecognitionSnapshot?.groups || []).flatMap((group) => {
+    const semantic = canvasConfirmations.get(group.key) || group.semantic;
+    if (!semantic || ignoredCanvasGroups.has(group.key)) return [];
+    const bounds = group.bounds;
+    return [{
+      type: "glyph", element: semantic.element, kind: semantic.kind,
+      x: (bounds.left + bounds.right) / 2, y: (bounds.top + bounds.bottom) / 2,
+      size: Math.max(bounds.width, bounds.height) / 2, rotation: semantic.rotationCorrection,
+      sourceAction: group.actions[0], sourceActions: group.actions,
+      charge: elements.find((item) => item.name === semantic.element)?.charge || 1,
+      inferred: true,
+    }];
+  });
+}
+
+function previewStrokeGroup(actions, bounds) {
+  const preview = document.createElement("canvas");
+  preview.width = 128;
+  preview.height = 128;
+  const context = preview.getContext("2d");
+  const scale = 108 / Math.max(bounds.width, bounds.height, 1);
+  context.translate(64, 64);
+  context.scale(scale, scale);
+  context.translate(-(bounds.left + bounds.right) / 2, -(bounds.top + bounds.bottom) / 2);
+  context.strokeStyle = "#201a16";
+  context.lineCap = "round";
+  context.lineJoin = "round";
+  for (const action of actions) {
+    context.lineWidth = action.width || 3;
+    context.beginPath();
+    action.points.forEach((point, index) => index ? context.lineTo(point.x, point.y) : context.moveTo(point.x, point.y));
+    context.stroke();
+  }
+  return preview.toDataURL();
+}
+
+async function prepareSymbolRecognition({ reviewAll = false } = {}) {
+  if (!recognitionControls || recognitionInProgress) return !recognitionInProgress;
+  const preferences = recognitionControls.getPreferences();
+  if (!reviewAll && preferences.canvas === "classic" && preferences.photo === "classic"
+    && !state.actions.some((action) => action.type === "image")) return true;
+  recognitionInProgress = true;
+  const revision = recognitionRevision;
+  recognitionControls.setStatus("busy");
+  const originalActions = state.actions;
+  const originalSignature = recognitionActionSignature(originalActions);
+  const current = () => revision === recognitionRevision && recognitionActionSignature() === originalSignature;
+  let fallback = false;
+  try {
+    if (preferences.canvas === "neural" && (reviewAll || !hasPreparedNeuralCanvas())) {
+      const key = canvasRecognitionKey();
+      const boundary = primarySpellBounds();
+      const core = freeSymbolActions().filter(isSpellAction);
+      const peripheral = boundary ? groupFreeModifierActions(freeModifierActions().filter(isSpellAction), boundary) : [];
+      const strokeGroups = [core, ...peripheral].filter((group) => group.length);
+      const groups = [];
+      if (strokeGroups.length > 64) throw new RangeError("Too many handwritten symbol groups");
+      let recognize;
+      try { recognize = await loadLocalRecognizer("canvas"); } catch { fallback = true; }
+      if (recognize) for (const actions of strokeGroups) {
+        const result = recognize(actions, SYMBOL_PATHS);
+        if (result.status === "fallback") throw new Error("Canvas group recognition failed; explicit review is required");
+        const boundsList = actions.map(actionBounds);
+        const left = Math.min(...boundsList.map((value) => value.left));
+        const top = Math.min(...boundsList.map((value) => value.top));
+        const right = Math.max(...boundsList.map((value) => value.right));
+        const bottom = Math.max(...boundsList.map((value) => value.bottom));
+        const bounds = { left, top, right, bottom, width: right - left, height: bottom - top };
+        const groupKey = recognitionActionSignature(actions);
+        const candidate = result.candidates?.[0];
+        const item = elements.find((value) => value.name === candidate?.name);
+        const semantic = canvasConfirmations.get(groupKey) || (result.status === "accepted" && item ? {
+          element: item.name, kind: item.kind || "sigil", rotationCorrection: candidate.rotation || 0,
+          confidence: result.confidence, source: "verified", recognizer: "canvas", modelVersion: result.modelVersion,
+        } : null);
+        groups.push({ id: `canvas-group-${groups.length}`, key: groupKey, source: "canvas", count: 1,
+          actions, bounds, result, semantic, src: previewStrokeGroup(actions, bounds) });
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+      if (!current()) return false;
+      canvasRecognitionSnapshot = { key, groups, fallback };
+    }
+    const images = await imageRecognition.analyze(originalActions, { mode: preferences.photo, suggest: reviewAll });
+    if (!current()
+      || JSON.stringify(recognitionControls.getPreferences()) !== JSON.stringify(preferences)) return false;
+    fallback ||= images.fallback;
+    for (const group of images.groups) {
+      if (group.semantic && !group.conflict && group.missingIndexes.length) {
+        const missing = new Set(group.missingIndexes);
+        state.actions = state.actions.map((action, index) => missing.has(index)
+          ? { ...action, semantic: { ...group.semantic } } : action);
+      }
+    }
+    const groups = [...(preferences.canvas === "neural" ? canvasRecognitionSnapshot?.groups || [] : []), ...images.groups];
+    const unresolved = groups.filter((group) => (group.source === "canvas" || preferences.photo === "neural")
+      && !group.semantic && !group.ignored && !ignoredCanvasGroups.has(group.key));
+    if (reviewAll || unresolved.length) {
+      const groupSnapshot = state.actions;
+      const groupSignature = recognitionActionSignature(groupSnapshot);
+      const validReview = () => revision === recognitionRevision && recognitionActionSignature() === currentReviewSignature;
+      let currentReviewSignature = groupSignature;
+      recognitionControls.review(reviewAll ? groups : unresolved, {
+        onConfirm(group, semantic) {
+          if (!validReview()) { recognitionControls.setStatus("changed"); return false; }
+          if (group.source === "canvas") {
+            canvasConfirmations.set(group.key, semantic);
+            ignoredCanvasGroups.delete(group.key);
+            boundRecognitionKeys(canvasConfirmations);
+          } else {
+            recordHistory();
+            state.actions = applyImageGroupSemantic(state.actions, group, semantic);
+            imageRecognition.confirm(group.fingerprint, semantic);
+            currentReviewSignature = recognitionActionSignature();
+          }
+          updateUsedList(); updateSpellState(); render();
+          return true;
+        },
+        onUnknown(group) {
+          if (!validReview()) { recognitionControls.setStatus("changed"); return false; }
+          if (group.source === "canvas") {
+            canvasConfirmations.delete(group.key);
+            ignoredCanvasGroups.add(group.key);
+            boundRecognitionKeys(ignoredCanvasGroups);
+          } else {
+            recordHistory();
+            imageRecognition.ignore(group.fingerprint);
+            const indexes = new Set(group.actionIndexes);
+            state.actions = state.actions.map((action, index) => {
+              if (!indexes.has(index)) return action;
+              const { semantic, ...visual } = action;
+              return visual;
+            });
+            currentReviewSignature = recognitionActionSignature();
+          }
+          updateUsedList(); updateSpellState(); render();
+          return true;
+        },
+      });
+      return false;
+    }
+    recognitionControls.setStatus(fallback ? "fallback" : "");
+    updateUsedList();
+    return true;
+  } catch (error) {
+    console.warn("Local symbol recognition could not finish", error);
+    recognitionControls.setStatus(error.name === "AbortError" ? "changed" : "error");
+    return false;
+  } finally { recognitionInProgress = false; }
+}
+
 function freeSignGlyphs() {
+  if (hasPreparedNeuralCanvas()) return [];
   const boundary = primarySpellBounds();
   if (!boundary) {
     return [];
@@ -7682,6 +7918,7 @@ function scoreRepetitionSymbol(strokes, bounds) {
 }
 
 function recognizeDrawnSymbol() {
+  if (hasPreparedNeuralCanvas()) return null;
   const actions = freeSymbolActions();
   if (actions.length === 0) {
     state.recognitionCandidates = [];
@@ -7732,19 +7969,24 @@ function recognizeDrawnSymbol() {
 
 function manualGlyphs({ includeDisconnected = false } = {}) {
   const boundary = hasSpellBoundary() ? primarySpellBounds() : null;
-  return state.actions
-    .map((action) => {
-      if (action.type !== "glyph") {
+  const sourceActions = [...state.actions, ...(hasPreparedNeuralCanvas() ? preparedCanvasGlyphs() : [])];
+  return sourceActions
+    .map((sourceAction) => {
+      const effective = resolveGlyphSemantic(sourceAction, elements);
+      if (!effective) {
         return null;
       }
+      const action = { ...sourceAction, ...effective };
       const data = elements.find((element) => element.name === action.element);
-      const kind = action.kind || data?.kind || "sigil";
+      const kind = action.semanticKind || action.kind || data?.kind || "sigil";
       const glyph = {
         ...action,
         kind,
+        charge: data?.charge ?? action.charge ?? 0,
+        category: data?.category || action.category,
         quality: 100,
         durationMs: 11000,
-        sourceAction: action,
+        sourceAction: sourceAction.sourceAction || sourceAction,
         connectedToRing: actionContributesToBoundary(action, boundary),
       };
       if (boundary) {
@@ -8040,13 +8282,22 @@ function signModel() {
   if (hasEnlarge && hasNearbyTarget) addCombinedEffect("agrandissement proche");
   if (hasEnlarge && hasCarrierTarget) addCombinedEffect("agrandissement du support");
   const ritualId = state.actions.find((action) => action.ritualId)?.ritualId || null;
+  const releaseAxis = (glyph) => {
+    const angle = Number.isFinite(glyph.rotation) ? glyph.rotation - Math.PI / 2 : glyph.axisAngle ?? glyph.angle ?? 0;
+    return [Math.cos(angle), 0, Math.sin(angle)];
+  };
+  const flowerGeometry = sigilCounts.Fleur > 0 ? {
+    targetAxes: signs.filter((glyph) => ["Cible", "Viseur"].includes(glyph.element)).map(releaseAxis),
+    releaseAxes: signs.filter((glyph) => glyph.element === "Dispersion").map(releaseAxis),
+    relativeSymbolSize: Math.max(0.1, ...signs.filter((glyph) => glyph.element === "Agrandissement").map((glyph) => glyph.relativeSize || 1)),
+  } : {};
   const recipe = composeSpellRecipe({
     sigils: sigils.map((glyph) => glyph.element),
     signs: signs.map((glyph) => glyph.element),
     direction: directionName(rays, signs, geometry),
     supportId: currentSupport().id,
     invertedSigns: signs.filter((glyph) => glyph.inverted).map((glyph) => glyph.element),
-    geometry: { ...geometry, ...circleGeometry },
+    geometry: { ...geometry, ...circleGeometry, ...flowerGeometry },
     ritualId,
   });
   if (ringOnly && !effectNames.includes("decharge brute")) {
@@ -12754,7 +13005,7 @@ function updateUsedList() {
   const counts = new Map();
   const recognized = recognizeDrawnSymbol();
   const centralFree = new Set(recognized ? freeSymbolActions() : []);
-  const inferredSigns = freeSignGlyphs();
+  const inferredSigns = [...freeSignGlyphs(), ...(hasPreparedNeuralCanvas() ? preparedCanvasGlyphs() : [])];
   const inferredSignActions = new Set(inferredSigns.flatMap((sign) => sign.sourceActions || [sign.sourceAction]));
   for (const action of semanticActions) {
     if (action.boundary && !action.seal) {
@@ -12763,14 +13014,15 @@ function updateUsedList() {
     if (centralFree.has(action) || inferredSignActions.has(action)) {
       continue;
     }
-    const label = action.type === "glyph"
-      ? `${action.kind === "sign" ? t("symbols.category.sign") : t("symbols.category.sigil")}: ${elementDisplayName(action.element)}`
+    const semantic = resolveGlyphSemantic(action, elements);
+    const label = semantic
+      ? `${semantic.kind === "sign" ? t("symbols.category.sign") : t("symbols.category.sigil")}: ${elementDisplayName(semantic.element)}`
       : actionDisplayLabel(action);
     counts.set(label, (counts.get(label) || 0) + 1);
   }
   if (recognized) {
     counts.set(t("details.centralRecognized", { name: elementDisplayName(recognized.element), quality: Math.round(recognized.quality) }), 1);
-  } else if (state.recognitionCandidates && state.recognitionCandidates.length > 0) {
+  } else if (!hasPreparedNeuralCanvas() && state.recognitionCandidates && state.recognitionCandidates.length > 0) {
     const hint = state.recognitionCandidates
       .filter((candidate) => candidate.score >= 28)
       .map((candidate) => `${candidate.element} ${Math.round(candidate.score)}%`)
@@ -12780,7 +13032,7 @@ function updateUsedList() {
     }
   }
   for (const sign of inferredSigns) {
-    const label = t("details.signRecognized", { name: elementDisplayName(sign.element) });
+    const label = `${sign.kind === "sigil" ? t("symbols.category.sigil") : t("symbols.category.sign")}: ${elementDisplayName(sign.element)}`;
     counts.set(label, (counts.get(label) || 0) + 1);
   }
 
@@ -12942,12 +13194,13 @@ function updateFidelityDetails(recipe) {
   );
 }
 
-function analyzeSpell() {
+async function analyzeSpell() {
   if (state.actions.filter(isSpellAction).length === 0) {
     setStatus(t("status.noRitualToRead"));
     return;
   }
 
+  if (!await prepareSymbolRecognition()) return;
   updateSpellState();
   const baseMetrics = spellMetrics();
   const baseSizeIssue = circleSizeIssue(baseMetrics.diameter);
@@ -13229,7 +13482,7 @@ function guessStability(model, power) {
   return "stable";
 }
 
-function activateCircle() {
+async function activateCircle() {
   if (state.actions.length === 0) {
     setStatus(t("status.activationNeedsShape"));
     return;
@@ -13244,6 +13497,7 @@ function activateCircle() {
     return;
   }
 
+  if (!await prepareSymbolRecognition()) return;
   const diameter = estimatedCircleDiameterMeters();
   const sizeIssue = activationSizeIssue(diameter);
   if (sizeIssue) {
@@ -13431,6 +13685,7 @@ function shareableAction(action) {
       size: action.size,
       rotation: action.rotation || 0,
     };
+    if (action.semanticKind) shared.semanticKind = action.semanticKind;
     if (action.visible === false) shared.visible = false;
     if (action.tinted) shared.tinted = true;
     if (action.prefix) shared.prefix = action.prefix;
@@ -13449,6 +13704,7 @@ function shareableAction(action) {
       size: action.size,
       rotation: action.rotation || 0,
     };
+    if (action.semantic) shared.semantic = { ...action.semantic };
     if (action.visible === false) shared.visible = false;
     if (action.tinted) shared.tinted = true;
     if (action.color) shared.color = action.color;
@@ -14702,6 +14958,8 @@ function describePhotoAnalysis(analysis) {
 }
 
 async function handlePhotoFile(file) {
+  const generation = ++photoRecognitionGeneration;
+  const revision = recognitionRevision;
   let bitmap = null;
   try {
     bitmap = await createImageBitmap(file);
@@ -14715,7 +14973,26 @@ async function handlePhotoFile(file) {
     const context = offscreen.getContext("2d", { willReadFrequently: true });
     context.drawImage(bitmap, 0, 0, width, height);
     const imageData = context.getImageData(0, 0, width, height);
-    const analysis = analyzePhoto(imageData, SYMBOL_PATHS);
+    let recognizer;
+    let photoFallback = false;
+    if (recognitionControls?.getPreferences().photo === "neural") {
+      recognitionControls.setStatus("busy");
+      try {
+        const neural = await loadLocalRecognizer("photo");
+        recognizer = (mask, w, h, paths) => {
+          const result = neural(mask, w, h, paths);
+          if (result.status === "fallback") {
+            photoFallback = true;
+            recognitionControls.setStatus("fallback");
+            return recognizeGroup(mask, w, h, paths);
+          }
+          return photoRegionRecognition(result);
+        };
+      } catch { photoFallback = true; }
+    }
+    if (generation !== photoRecognitionGeneration || revision !== recognitionRevision) return;
+    const analysis = analyzePhoto(imageData, SYMBOL_PATHS, { recognizer });
+    recognitionControls?.setStatus(photoFallback ? "fallback" : "");
     const cropBounds = analysis.cropBounds || {
       left: 0,
       top: 0,
@@ -15347,6 +15624,12 @@ function loadRecipeFromUrl() {
   return true;
 }
 
+recognitionControls = mountRecognitionControls({
+  root: document.getElementById("recognitionControls"), getLocale, catalogue: elements, displayName: elementDisplayName,
+  onChange() { recognitionRevision++; canvasRecognitionSnapshot = null; updateUsedList(); updateSpellState(); },
+  onReview: () => prepareSymbolRecognition({ reviewAll: true }),
+  onForget() { recognitionRevision++; imageRecognition.clear(); canvasConfirmations.clear(); ignoredCanvasGroups.clear(); canvasRecognitionSnapshot = null; },
+});
 renderInkList();
 renderSigilCompositionPanel();
 renderSupportList();

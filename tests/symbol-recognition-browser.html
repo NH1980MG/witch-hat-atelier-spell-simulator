@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Local symbol model browser smoke test</title>
+<h1>Experimental local recognizer smoke test</h1>
+<canvas id="preview" width="160" height="160"></canvas>
+<pre id="result">Running...</pre>
+<script type="module">
+import { SYMBOL_PATHS } from '../symbol-catalog.mjs';
+import { flattenSvgPath } from '../stroke-matcher.mjs';
+import { recognizePhotoSymbol } from '../photo-symbol-recognition-model.mjs';
+import { recognizeCanvasSymbol } from '../canvas-symbol-recognition-model.mjs';
+import { createCanvasRecognitionSample } from '../symbol-recognition-sample.mjs';
+const result = document.querySelector('#result');
+try {
+  const angle = 280 * Math.PI / 180;
+  const actions = SYMBOL_PATHS.Eau.flatMap(flattenSvgPath).map(line => ({ type: 'free', width: 1.8,
+    points: line.map(([x, y]) => ({ x: 48 + (x - 24) * Math.cos(angle) - (y - 24) * Math.sin(angle),
+      y: 48 + (x - 24) * Math.sin(angle) + (y - 24) * Math.cos(angle) })) }));
+  const canvas = document.querySelector('#preview'), context = canvas.getContext('2d');
+  context.fillStyle = 'white'; context.fillRect(0, 0, 160, 160); context.scale(1.6, 1.6);
+  for (const action of actions) {
+    context.beginPath(); context.lineWidth = action.width;
+    action.points.forEach((p, i) => i ? context.lineTo(p.x, p.y) : context.moveTo(p.x, p.y)); context.stroke();
+  }
+  const sample = createCanvasRecognitionSample(actions), times = [];
+  let start = performance.now();
+  const photo = recognizePhotoSymbol(sample.mask, 48, 48, SYMBOL_PATHS);
+  times.push({ source: 'photo-cold', ms: performance.now() - start });
+  start = performance.now();
+  const strokes = recognizeCanvasSymbol(actions, SYMBOL_PATHS);
+  times.push({ source: 'canvas-warm', ms: performance.now() - start });
+  const error = r => Math.abs(Math.atan2(Math.sin(r.orientation - angle), Math.cos(r.orientation - angle))) * 180 / Math.PI;
+  const passed = [photo, strokes].every(r => r.candidates[0]?.name === 'Eau' && r.status === 'accepted' && error(r) < 8)
+    && recognizeCanvasSymbol([], SYMBOL_PATHS).status === 'unknown';
+  result.textContent = JSON.stringify({ passed, times, photo, canvas: strokes }, null, 2);
+  document.title = passed ? 'PASS local symbol models' : 'FAIL local symbol models';
+} catch (error) { result.textContent = error.stack; document.title = 'FAIL local symbol models'; }
+</script>
+</html>

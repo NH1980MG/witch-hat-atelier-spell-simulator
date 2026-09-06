@@ -1,4 +1,6 @@
 import { synthesizeParticleField } from "./particle-physics.mjs";
+import { buildManifestationTimeline } from "./manifestation-timeline.mjs";
+import { createFlowerManifestationPlan } from "./flower-crystal-manifestation.mjs";
 
 const ROLE_ORDER = Object.freeze(["supply", "state", "form", "motion", "pressure", "direction", "scope", "target", "relation", "power"]);
 const PRIMARY_ROLES = new Set(["supply", "state", "form", "motion", "pressure", "direction", "scope", "target", "power"]);
@@ -36,8 +38,17 @@ export function synthesizeManifestation({
   effectParameters = {},
   fidelity = "documented",
   ritualId = null,
+  spellId = null,
+  sigilCounts = {},
+  signCounts = {},
+  quality = "high",
+  reducedMotion = false,
 } = {}) {
   const normalizedOperations = normalizeOperations(operations, axes);
+  // Counts are canonical, accepted grammar input, not raw imported actions.
+  if (sigilCounts.Fleur > 0 || materialProfile.family === "flower") normalizedOperations.form.push("flower");
+  if (sigilCounts.Cristal > 0 && normalizedOperations.form.includes("flower")) normalizedOperations.state.push("crystallize");
+  for (const role of ROLE_ORDER) normalizedOperations[role] = [...new Set(normalizedOperations[role])].sort();
   const has = (operation) => ROLE_ORDER.some((role) => normalizedOperations[role].includes(operation));
   const elements = elementNames(elementalMixture, materialProfile);
   const family = String(elementalMixture?.materialProfile?.family || materialProfile.family || "raw-energy");
@@ -50,7 +61,16 @@ export function synthesizeManifestation({
   if (has("pull") && has("push")) warnings.push("opposed-motion");
   if (normalizedGeometry.balance < 0.72) warnings.push("directional-imbalance");
 
-  const selected = selectSpecialization({ family, phase, elements, has, geometry: normalizedGeometry, ritualId });
+  const flowerFamily = has("flower") && sigilCounts.Eau > 0 ? "water" : family;
+  const selected = selectSpecialization({ family: flowerFamily, phase, elements, has, geometry: normalizedGeometry, ritualId });
+  const canonicalId = spellId || `recipe-${hashIdentity(JSON.stringify({ family, operations: normalizedOperations, geometry: normalizedGeometry }))}`;
+  const operationCounts = Object.fromEntries(ROLE_ORDER.flatMap((role) => (axes[role] || []).map((entry) => [entry.operation, entry.count])));
+  operationCounts.resize = signCounts.Agrandissement ?? operationCounts.resize;
+  operationCounts.crush = signCounts.Crush ?? operationCounts.crush;
+  const timeline = buildManifestationTimeline({ material: { family: sigilCounts.Eau > 0 ? "water" : family }, operations: normalizedOperations, operationCounts, geometry: normalizedGeometry, spellId: canonicalId, reducedMotion });
+  const flower = selected.form === "flower"
+    ? createFlowerManifestationPlan({ spellId: canonicalId, timeline, quality, geometry: normalizedGeometry, reducedMotion })
+    : null;
   const consumedOperations = operationIds(normalizedOperations)
     .filter((entry) => PRIMARY_ROLES.has(entry.split(".", 1)[0]));
   const secondaryOperations = operationIds(normalizedOperations)
@@ -74,6 +94,10 @@ export function synthesizeManifestation({
 
   return freezeDeep({
     id: selected.id,
+    spellId: canonicalId,
+    timeline,
+    flower,
+    geometry: normalizedGeometry,
     fidelity: materialFidelity,
     labelEn: labels[0],
     labelFr: labels[1],
@@ -130,6 +154,11 @@ function selectSpecialization({ family, phase, elements, has, geometry, ritualId
       MATERIAL_LABELS["petrified-stone"],
       { density: 3.4, particles: 144, fidelity: "documented" },
     );
+  }
+  if (has("flower")) {
+    const crystal = has("crystallize");
+    const base = family === "flower" ? "flower" : family;
+    return specialization(`${base}.${crystal ? `crystal-flower${has("crush") ? "-fracture" : ""}` : "flower"}`, crystal ? "crystal" : family, crystal ? "solid" : phase, "flower", has("dispersion") ? "release" : "surface", [crystal ? "Sequenced crystal flower" : "Growing flower", crystal ? "Fleur cristalline sequencee" : "Fleur en croissance"], { particles: 0 });
   }
   if ((family === "mud" || family === "moving-mud" || (includes("water") && includes("earth"))) && has("crush")) {
     return specialization("mud.dense-projection", "mud", "slurry", "column", "project", ["Dense mud projection", "Projection de boue dense"], { density: 1.35, particles: 96 });
@@ -206,7 +235,9 @@ function elementNames(elementalMixture, materialProfile) {
 }
 
 function normalizeGeometry(geometry) {
-  const vector = geometry?.vector && typeof geometry.vector === "object"
+  const vector = Array.isArray(geometry?.vector)
+    ? geometry.vector.slice(0, 3).map((value) => finite(value, 0, -1, 1))
+    : geometry?.vector && typeof geometry.vector === "object"
     ? [finite(geometry.vector.x, 0, -1, 1), finite(geometry.vector.y, 1, -1, 1), 0]
     : [0, 1, 0];
   return {
@@ -215,7 +246,25 @@ function normalizeGeometry(geometry) {
     spin: finite(geometry?.spin, 0, -1, 1),
     reach: finite(geometry?.reach, 1, 0.2, 1),
     vector,
+    targetAxes: normalizeAxes(geometry?.targetAxes),
+    releaseAxes: normalizeAxes(geometry?.releaseAxes),
+    relativeSymbolSize: finite(geometry?.relativeSymbolSize, 1, 0.5, 2),
+    ...(Number.isFinite(geometry?.petalCount) ? { petalCount: finite(geometry.petalCount, 18, 5, 24) } : {}),
   };
+}
+
+function normalizeAxes(values) {
+  if (!Array.isArray(values)) return [];
+  return values.slice(0, 16).map((value) => {
+    const vector = Array.isArray(value) ? value : [value?.x, value?.y, value?.z];
+    return [0, 1, 2].map((index) => finite(vector[index], 0, -1, 1));
+  });
+}
+
+function hashIdentity(value) {
+  let hash = 2166136261;
+  for (const character of value) hash = Math.imul(hash ^ character.charCodeAt(0), 16777619);
+  return (hash >>> 0).toString(16);
 }
 
 function normalizePreferred(has, candidates) {

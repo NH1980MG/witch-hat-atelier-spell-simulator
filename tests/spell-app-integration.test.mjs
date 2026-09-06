@@ -11,7 +11,7 @@ test("l'application ne redeclare pas ses constantes de module", () => {
 });
 
 test("the app shares the canonical primary-sigil decision", () => {
-  assert.match(app, /from "\.\/spell-model\.mjs"/);
+  assert.match(app, /from "\.\/spell-model\.mjs(?:\?v=[^"\s]+)?"/);
   const primary = app.match(/function primaryElementNameFromModel\(model\) \{([\s\S]*?)\n\}/)?.[1] || "";
   assert.match(primary, /selectPrimarySigil\(model\?\.sigilCounts\)/);
   assert.doesNotMatch(primary, /score|charge/);
@@ -131,7 +131,19 @@ test("circle drawing geometry is passed into composed spell recipes", () => {
   assert.match(app, /semicircleCount/);
   assert.match(app, /joinableSemicircleCount/);
   assert.match(app, /const circleGeometry = analyzeCircleGeometry\(\{[\s\S]*rings[\s\S]*closedCircles[\s\S]*freeSeals[\s\S]*hasBoundary/);
-  assert.match(app, /geometry:\s*\{\s*\.\.\.geometry,\s*\.\.\.circleGeometry\s*\}/);
+  const model = app.match(/function signModel\([\s\S]*?\n\}/)?.[0] || "";
+  const recipeCall = model.match(/const recipe = composeSpellRecipe\(\{([\s\S]*?)\n\s*\}\);/)?.[1] || "";
+  const geometryExpression = recipeCall.match(/geometry:\s*(\{[^}]+\})/)?.[1];
+  assert.ok(geometryExpression, "the composed recipe receives drawing geometry");
+  const mergeGeometry = new Function("geometry", "circleGeometry", "flowerGeometry", `return (${geometryExpression});`);
+  const baseGeometry = { balance: 0.9, circleCount: 0 };
+  const circleGeometry = { nestedCircleCount: 2, circleCount: 3 };
+  const flowerGeometry = { targetAxes: [[1, 0, 0], [-1, 0, 0]], releaseAxes: [[0, 0, 1]], relativeSymbolSize: 1.2 };
+  assert.deepEqual(mergeGeometry(baseGeometry, circleGeometry, flowerGeometry), {
+    balance: 0.9, circleCount: 3, nestedCircleCount: 2,
+    targetAxes: [[1, 0, 0], [-1, 0, 0]], releaseAxes: [[0, 0, 1]], relativeSymbolSize: 1.2,
+  });
+  assert.deepEqual(mergeGeometry(baseGeometry, circleGeometry, {}), { balance: 0.9, circleCount: 3, nestedCircleCount: 2 });
 });
 
 test("radial is described as unresolved in both interface languages", () => {

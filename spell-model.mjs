@@ -31,6 +31,12 @@ export function selectPrimarySigil(sigilCounts = {}) {
 }
 
 export function normalizeSpellGeometry(geometry = {}) {
+  const normalizeAxes = (values) => (Array.isArray(values) ? values.slice(0, 16) : []).flatMap((value) => {
+    const xyz = Array.isArray(value) ? value.slice(0, 3) : [value?.x, value?.y, value?.z];
+    if (xyz.length !== 3 || !xyz.every(Number.isFinite)) return [];
+    const length = Math.hypot(...xyz);
+    return length > 0.000001 ? [xyz.map((component) => Math.round(component / length * 1e6) / 1e6)] : [];
+  }).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
   return {
     balance: clamp(geometry.balance, 0, 1, 1),
     pressure: clamp(geometry.pressure, 0, 1, 0),
@@ -44,6 +50,9 @@ export function normalizeSpellGeometry(geometry = {}) {
     semicircleCount: Math.max(0, Math.floor(Number(geometry.semicircleCount) || 0)),
     joinableSemicircleCount: Math.max(0, Math.floor(Number(geometry.joinableSemicircleCount) || 0)),
     circleCompleteness: clamp(geometry.circleCompleteness, 0, 1, 1),
+    ...(geometry.targetAxes ? { targetAxes: normalizeAxes(geometry.targetAxes) } : {}),
+    ...(geometry.releaseAxes ? { releaseAxes: normalizeAxes(geometry.releaseAxes) } : {}),
+    ...(Number.isFinite(geometry.relativeSymbolSize) ? { relativeSymbolSize: clamp(geometry.relativeSymbolSize, 0.1, 2, 1) } : {}),
   };
 }
 
