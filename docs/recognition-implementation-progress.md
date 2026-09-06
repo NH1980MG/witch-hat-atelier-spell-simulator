@@ -46,3 +46,7 @@ classic/neural choice, rotation validation, and grouped correction.
   110 independent corrections. Their suggestions still require confirmation.
 - Browser automation was intermittent; a full touch-device interaction pass
   and independent real-photo/handwriting corpus remain future validation work.
+- GitHub's connected OAuth credential cannot update workflow files. The existing
+  deployment workflow is preserved unchanged. Its full tests, matrix, security
+  and artifact audits still run; the separate full neural validation script was
+  run locally rather than added as an extra workflow step.

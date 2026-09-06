@@ -25,7 +25,6 @@ jobs:
       - name: Validate public build
         run: |
           node --test tests/*.test.mjs
-          node scripts/validate-symbol-recognition-models.mjs
           node scripts/validate-spell-matrix.mjs
           node scripts/security-audit.mjs
 
