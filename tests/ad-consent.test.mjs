@@ -2,12 +2,16 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
+  ADSENSE_AD_SLOT,
   ADSENSE_CLIENT,
   ADSENSE_SCRIPT_ID,
   ADSENSE_SCRIPT_SRC,
   createAdSenseScript,
+  mountAdSensePlacement,
   readAdsConsent,
   removeAdSenseScript,
+  requestAdSenseFill,
+  unmountAdSensePlacement,
   writeAdsConsent,
 } from "../ads-consent.mjs";
 
@@ -18,9 +22,12 @@ function fakeDocument() {
       return {
         id: "",
         tagName: tagName.toUpperCase(),
+        className: "",
         async: false,
         crossOrigin: "",
         src: "",
+        style: { display: "" },
+        dataset: {},
         remove() {
           nodes.delete(this.id);
         },
@@ -38,12 +45,54 @@ function fakeDocument() {
   return document;
 }
 
+function fakePlacement() {
+  const children = [];
+  return {
+    children,
+    append(node) {
+      node.remove = () => {
+        const index = children.indexOf(node);
+        if (index >= 0) children.splice(index, 1);
+      };
+      children.push(node);
+    },
+    querySelector(selector) {
+      return selector === "ins.adsbygoogle"
+        ? children.find((node) => node.className === "adsbygoogle") || null
+        : null;
+    },
+  };
+}
+
 test("AdSense uses the supplied publisher client and a deferred script URL", () => {
   assert.equal(ADSENSE_CLIENT, "ca-pub-6523791940885787");
+  assert.equal(ADSENSE_AD_SLOT, "3251018243");
   assert.equal(
     ADSENSE_SCRIPT_SRC,
     "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6523791940885787",
   );
+});
+
+test("the consent path mounts one responsive bottom ad unit and queues its fill", () => {
+  const document = fakeDocument();
+  const placement = fakePlacement();
+  const ad = mountAdSensePlacement(document, placement);
+
+  assert.equal(ad.tagName, "INS");
+  assert.equal(ad.className, "adsbygoogle");
+  assert.equal(ad.style.display, "block");
+  assert.equal(ad.dataset.adClient, ADSENSE_CLIENT);
+  assert.equal(ad.dataset.adSlot, ADSENSE_AD_SLOT);
+  assert.equal(ad.dataset.adFormat, "auto");
+  assert.equal(ad.dataset.fullWidthResponsive, "true");
+  assert.strictEqual(mountAdSensePlacement(document, placement), ad);
+
+  const adsbygoogle = [];
+  assert.equal(requestAdSenseFill({ adsbygoogle }), true);
+  assert.deepEqual(adsbygoogle, [{}]);
+
+  unmountAdSensePlacement(placement);
+  assert.equal(placement.querySelector("ins.adsbygoogle"), null);
 });
 
 test("ads consent is off unless the device explicitly stores granted", () => {

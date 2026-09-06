@@ -1,4 +1,5 @@
 export const ADSENSE_CLIENT = "ca-pub-6523791940885787";
+export const ADSENSE_AD_SLOT = "3251018243";
 export const ADSENSE_SCRIPT_ID = "google-adsense-script";
 export const ADSENSE_SCRIPT_SRC = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`;
 export const ADS_CONSENT_STORAGE_KEY = "whaAdsConsent";
@@ -30,4 +31,31 @@ export function createAdSenseScript(document) {
 
 export function removeAdSenseScript(document) {
   document.getElementById(ADSENSE_SCRIPT_ID)?.remove();
+}
+
+export function mountAdSensePlacement(document, placement) {
+  if (!document || !placement) return null;
+  const existing = placement.querySelector?.("ins.adsbygoogle");
+  if (existing) return existing;
+
+  const ad = document.createElement("ins");
+  ad.className = "adsbygoogle";
+  ad.style.display = "block";
+  ad.dataset.adClient = ADSENSE_CLIENT;
+  ad.dataset.adSlot = ADSENSE_AD_SLOT;
+  ad.dataset.adFormat = "auto";
+  ad.dataset.fullWidthResponsive = "true";
+  placement.append(ad);
+  return ad;
+}
+
+export function unmountAdSensePlacement(placement) {
+  placement?.querySelector?.("ins.adsbygoogle")?.remove();
+}
+
+export function requestAdSenseFill(windowObject) {
+  if (!windowObject) return false;
+  const queue = windowObject.adsbygoogle = windowObject.adsbygoogle || [];
+  queue.push({});
+  return true;
 }
