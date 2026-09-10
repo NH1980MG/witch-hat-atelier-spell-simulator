@@ -41,10 +41,11 @@ export function mountAdSensePlacement(document, placement) {
   const ad = document.createElement("ins");
   ad.className = "adsbygoogle";
   ad.style.display = "block";
+  ad.style.height = "90px";
   ad.dataset.adClient = ADSENSE_CLIENT;
   ad.dataset.adSlot = ADSENSE_AD_SLOT;
-  ad.dataset.adFormat = "auto";
-  ad.dataset.fullWidthResponsive = "true";
+  ad.dataset.adFormat = "horizontal";
+  ad.dataset.fullWidthResponsive = "false";
   placement.append(ad);
   return ad;
 }

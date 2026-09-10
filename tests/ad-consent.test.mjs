@@ -83,8 +83,9 @@ test("the consent path mounts one responsive bottom ad unit and queues its fill"
   assert.equal(ad.style.display, "block");
   assert.equal(ad.dataset.adClient, ADSENSE_CLIENT);
   assert.equal(ad.dataset.adSlot, ADSENSE_AD_SLOT);
-  assert.equal(ad.dataset.adFormat, "auto");
-  assert.equal(ad.dataset.fullWidthResponsive, "true");
+  assert.equal(ad.dataset.adFormat, "horizontal");
+  assert.equal(ad.dataset.fullWidthResponsive, "false");
+  assert.equal(ad.style.height, "90px");
   assert.strictEqual(mountAdSensePlacement(document, placement), ad);
 
   const adsbygoogle = [];

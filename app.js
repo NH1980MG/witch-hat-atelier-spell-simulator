@@ -25,7 +25,7 @@ import {
   requestAdSenseFill,
   unmountAdSensePlacement,
   writeAdsConsent,
-} from "./ads-consent.mjs";
+} from "./ads-consent.mjs?v=20260910-visible-banner";
 import {
   SIGIL_COMPOSITION_SLOTS,
   buildSigilCompositionCommitPlan,
@@ -569,7 +569,8 @@ function readToolbarDock() {
   try {
     const saved = JSON.parse(localStorage.getItem("whaToolbarDock") || "null");
     return {
-      layout: saved?.layout === "side" ? "side" : "top",
+      layout: saved?.version === 2 && saved?.layout === "side" ? "side" : "top",
+      version: 2,
       side: saved?.side === "right" ? "right" : "left",
       yRatio: Math.max(0, Math.min(1, Number(saved?.yRatio) || 0.5)),
     };
@@ -6713,6 +6714,7 @@ function clearAdSupportPlacement() {
 
 function showAdSupportPlacement() {
   if (!simulatorAdPlacement || !simulatorAdFrame) return;
+  if (simulatorAdFrame.querySelector("ins.adsbygoogle")) return;
   // The unit must be visible before AdSense measures its responsive width.
   simulatorAdPlacement.hidden = false;
   simulatorAdPlacement.dataset.adsEnabled = "true";
@@ -6758,6 +6760,12 @@ function closeProjectSupportDialog() {
 }
 
 function initializeAdsConsent() {
+  const grimoire = document.querySelector(".grimoire");
+  if (grimoire && typeof ResizeObserver === "function") {
+    new ResizeObserver(() => {
+      simulatorAdPlacement?.style.setProperty("--grimoire-height", `${grimoire.getBoundingClientRect().height}px`);
+    }).observe(grimoire);
+  }
   const enabled = readAdsConsent(localStorage);
   updateAdsSupportStatus(enabled);
   if (enabled) {
@@ -11075,6 +11083,7 @@ function finishToolbarDrag(event) {
     const range = bounds.maxTop - bounds.minTop;
     state.toolbarDock = {
       layout: "side",
+      version: 2,
       side: centerX < bounds.width / 2 ? "left" : "right",
       yRatio: range > 0 ? (top - bounds.minTop) / range : 0,
     };
@@ -11109,6 +11118,7 @@ function toggleToolbarCompact() {
 function toggleToolbarLayout() {
   state.toolbarDock = {
     ...state.toolbarDock,
+    version: 2,
     layout: state.toolbarDock.layout === "side" ? "top" : "side",
   };
   localStorage.setItem("whaToolbarDock", JSON.stringify(state.toolbarDock));

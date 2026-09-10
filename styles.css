@@ -245,9 +245,14 @@ input:focus-visible {
 .project-support-note { margin: 0; padding: 0 26px 24px; color: var(--warm-brown); font-size: 0.82rem; line-height: 1.5; }
 
 .simulator-ad-placement {
+  position: fixed;
+  z-index: 39;
+  bottom: var(--grimoire-height, 52px);
+  left: 50%;
+  transform: translateX(-50%);
   grid-column: 1 / -1;
   width: min(970px, calc(100% - 24px));
-  margin: 12px auto 24px;
+  margin: 0;
   padding: 10px 12px;
   border: 1px solid var(--paper-line);
   border-radius: 14px;
@@ -960,6 +965,8 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
   top: 16px;
   left: 50%;
   display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
   align-items: center;
   max-width: calc(100% - 28px);
   gap: 8px;
