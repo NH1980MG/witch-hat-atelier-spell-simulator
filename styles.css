@@ -988,7 +988,7 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
   grid-template-columns: repeat(2, 42px);
   max-width: none;
   overflow: visible;
-  transform: translateY(-50%);
+  transform: none;
 }
 
 .simulator-page.toolbar-compact .floating-tools {
@@ -1016,7 +1016,7 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
   flex-direction: column;
   width: 60px;
   max-width: none;
-  transform: translateY(-50%);
+  transform: none;
 }
 
 .simulator-page.toolbar-compact .floating-tools.is-dragging {
@@ -4573,7 +4573,7 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
   left: 18px;
   flex-direction: column;
   width: 60px;
-  transform: translateY(-50%);
+  transform: none;
 }
 
 .simulator-page.toolbar-compact:not(.toolbar-side) .floating-tools {
@@ -4590,7 +4590,7 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
     max-width: none;
     flex-direction: column;
     overflow: visible;
-    transform: translateY(-50%);
+    transform: none;
   }
 }
 
