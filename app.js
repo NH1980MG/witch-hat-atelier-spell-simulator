@@ -41,7 +41,7 @@ import {
   compileCompositionDocument,
   extractCompositionDocument,
   normalizeCompositionDocument,
-} from "./sigil-composition-model.mjs?v=20260829-parametric-rings-v1";
+} from "./sigil-composition-model.mjs?v=20260912-composition-centering-v1";
 import { earthMoundPose, shoeCameraPose, shoeSupportPose } from "./support-geometry.mjs?v=20260809-handoff-layout-v2";
 import { LIBRARY_CIRCLES } from "./library-circle-data.mjs";
 import {
@@ -11976,7 +11976,10 @@ function renderCompositionDocumentStage(compositionDocument) {
     for (const [ringIndex, ring] of seal.rings.entries()) {
       const ringNode = document.createElement("div");
       ringNode.className = "composition-document-ring";
-      const ringSize = Math.max(5, Math.min(100, (ring.radius / Math.max(1, seal.radius)) * 100));
+      const ringSize = (ring.radius / Math.max(1, seal.radius)) * 100;
+      const compiledRing = compileCompositionDocument({ seals: [{ ...seal, rings: [ring], sigils: [], signs: [], lines: [] }] })[0];
+      ringNode.style.left = `${50 + ((compiledRing.cx - seal.center.x) / Math.max(1, seal.radius)) * 50}%`;
+      ringNode.style.top = `${50 + ((compiledRing.cy - seal.center.y) / Math.max(1, seal.radius)) * 50}%`;
       ringNode.style.width = `${ringSize}%`;
       ringNode.style.height = `${ringSize}%`;
       ringNode.style.borderColor = ring.color || state.drawingColor;
@@ -12003,9 +12006,11 @@ function renderCompositionDocumentStage(compositionDocument) {
         itemNode.dataset.slotKind = item.type;
         itemNode.style.left = `${50 + ((placement.x - seal.center.x) / Math.max(1, seal.radius)) * 50}%`;
         itemNode.style.top = `${50 + ((placement.y - seal.center.y) / Math.max(1, seal.radius)) * 50}%`;
-        const previewSize = Math.max(24, Math.min(86, (Number(item.size) || 20) * 1.45));
-        itemNode.style.width = `${previewSize}px`;
-        itemNode.style.minWidth = `${previewSize}px`;
+        const previewSize = (Number(item.size) || 20) / Math.max(1, seal.radius) * 100;
+        itemNode.style.width = `${previewSize}%`;
+        itemNode.style.height = `${previewSize}%`;
+        itemNode.style.minWidth = "0";
+        itemNode.style.minHeight = "0";
         itemNode.style.setProperty("--symbol-color", item.color || element?.color || state.drawingColor);
         itemNode.style.transform = `translate(-50%, -50%) rotate(${(placement.rotation || 0) * 180 / Math.PI}deg)`;
         itemNode.classList.toggle("is-active", state.sigilComposition.selectedType === item.type && state.sigilComposition.selectedId === item.id);

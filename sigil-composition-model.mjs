@@ -341,12 +341,12 @@ function sourceOr(item, type) {
   return action;
 }
 
-function compileRing(item) {
+function compileRing(item, seal = {}) {
   const action = sourceOr(item, "circle");
   const hasSource = Boolean(item.sourceAction);
   action.type ||= "circle";
-  action.cx = finiteOr(action.cx, 0) + finiteOr(item.offsetX, 0);
-  action.cy = finiteOr(action.cy, 0) + finiteOr(item.offsetY, 0);
+  action.cx = finiteOr(action.cx, finiteOr(seal.center?.x, 0)) + finiteOr(item.offsetX, 0);
+  action.cy = finiteOr(action.cy, finiteOr(seal.center?.y, 0)) + finiteOr(item.offsetY, 0);
   action.radius = positiveOr(item.radius, 1);
   action.width = positiveOr(item.lineWeight, 1);
   if (!hasSource || item.visible === false || "visible" in action) action.visible = item.visible !== false;
@@ -437,7 +437,7 @@ export function compileCompositionDocument(document = {}) {
         });
         return;
       }
-      const action = item.type === "ring" ? compileRing(item) : compileLine(item);
+      const action = item.type === "ring" ? compileRing(item, seal) : compileLine(item);
       if (!item.sourceAction) action.sealId = seal.id;
       ordered.push(action);
     });

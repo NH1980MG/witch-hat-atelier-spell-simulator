@@ -10,6 +10,17 @@ import {
   normalizeCompositionDocument,
 } from "../sigil-composition-model.mjs";
 
+test("new rings share the seal center with their central sigil", () => {
+  const actions = compileCompositionDocument({ seals: [{
+    center: { x: 810, y: 420 }, radius: 100,
+    rings: [{ radius: 100 }],
+    sigils: [{ symbol: "Vent sous pied", x: 810, y: 420, size: 10 }],
+  }] });
+  assert.equal(actions[0].cx, actions[1].x);
+  assert.equal(actions[0].cy, actions[1].y);
+  assert.equal(actions[1].size, 10);
+});
+
 test("buildCompositionSymbolPlacements distributes sigils on a configurable ring", () => {
   const placements = buildCompositionSymbolPlacements({
     id: "water-ring",
