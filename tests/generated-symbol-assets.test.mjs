@@ -63,6 +63,7 @@ const SOURCE_OPENING_COUNTS = Object.freeze({
   Lumiere: 5,
   Cristal: 4,
   Aeriforme: 0,
+  Vent: 4,
   "Vent sous pied": 4,
   Repetition: 1,
   Fumee: 0,
@@ -259,7 +260,7 @@ function conventionalMedian(values) {
 test("chaque cellule de planche possede un masque visuel runtime", async () => {
   const boardEntries = Object.entries(SYMBOL_BOARD_TRACE).filter(([, trace]) => trace.board);
 
-  assert.equal(boardEntries.length, 68);
+  assert.equal(boardEntries.length, 69);
   assert.deepEqual(Object.keys(SYMBOL_BOARD_ASSET), Object.keys(SYMBOL_BOARD_TRACE));
 
   for (const [name, trace] of boardEntries) {
@@ -269,7 +270,7 @@ test("chaque cellule de planche possede un masque visuel runtime", async () => {
     assert.equal(trace.asset, asset);
   }
 
-  assert.equal(SYMBOL_BOARD_ASSET.Vent, null);
+  assert.equal(SYMBOL_BOARD_ASSET.Vent, "assets/symbol-glyphs/vent.png");
 });
 
 test("le selecteur et le parchemin utilisent les masques issus des planches", async () => {
@@ -279,7 +280,7 @@ test("le selecteur et le parchemin utilisent les masques issus des planches", as
   assert.match(app, /SYMBOL_BOARD_ASSET/);
   assert.match(app, /class="symbol-board-glyph"/);
   assert.match(app, /function symbolBoardImage\(/);
-  assert.match(app, /SYMBOL_BOARD_ASSET_VERSION = "20260726-central-weight-v2"/);
+  assert.match(app, /SYMBOL_BOARD_ASSET_VERSION = "20260726-central-weight-v2-aeriforme-0912"/);
   assert.match(app, /runtimeSymbolBoardAsset\(element\.name\)/);
   assert.match(app, /ctx\.drawImage\(tintedGlyph/);
   assert.match(css, /\.symbol-board-glyph\s*\{/);
@@ -341,10 +342,10 @@ test("les 28 sigils raster atteignent le poids median des signes sans fermer leu
   }
 
   const expectedNames = MATRIX_SIGIL_NAMES.filter((name) => SYMBOL_BOARD_ASSET[name]);
-  assert.equal(expectedNames.length, 28);
-  assert.equal(report.entries.length, 28);
+  assert.equal(expectedNames.length, 29);
+  assert.equal(report.entries.length, 29);
   assert.deepEqual(report.entries.map((entry) => entry.name).sort(), [...expectedNames].sort());
-  assert.equal(new Set(report.entries.map((entry) => entry.asset)).size, 28);
+  assert.equal(new Set(report.entries.map((entry) => entry.asset)).size, 29);
 
   for (const entry of report.entries) {
     const expectedTrace = SYMBOL_BOARD_TRACE[entry.name];

@@ -4,7 +4,7 @@ import {
   SYMBOL_AUDIT,
   SYMBOL_BOARD_ASSET,
   SYMBOL_PATHS,
-} from "./symbol-catalog.mjs?v=20260809-handoff-layout-v2";
+} from "./symbol-catalog.mjs?v=20260809-handoff-layout-v2-aeriforme-0912";
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260812-particle-field-v1";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260905-local-recognition-v1";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs?v=20260905-local-recognition-v1";
@@ -569,13 +569,13 @@ function readToolbarDock() {
   try {
     const saved = JSON.parse(localStorage.getItem("whaToolbarDock") || "null");
     return {
-      layout: saved?.version === 2 && saved?.layout === "side" ? "side" : "top",
+      layout: "side",
       version: 2,
       side: saved?.side === "right" ? "right" : "left",
-      yRatio: Math.max(0, Math.min(1, Number(saved?.yRatio) || 0.5)),
+      yRatio: Math.max(0, Math.min(1, Number(saved?.yRatio ?? 0) || 0)),
     };
   } catch {
-    return { layout: "top", side: "left", yRatio: 0.5 };
+    return { layout: "side", side: "left", yRatio: 0 };
   }
 }
 
@@ -1617,7 +1617,7 @@ const symbolBoardImageCache = new Map();
 const tintedSymbolBoardCache = new Map();
 const importedSymbolImageCache = new Map();
 const tintedImportedSymbolCache = new Map();
-const SYMBOL_BOARD_ASSET_VERSION = "20260726-central-weight-v2";
+const SYMBOL_BOARD_ASSET_VERSION = "20260726-central-weight-v2-aeriforme-0912";
 const SYMBOL_BOARD_RASTER_SIZE = 192;
 const SYMBOL_PICKER_VIEWBOX_SIZE = 48;
 
@@ -9206,6 +9206,7 @@ function selectionHandleAtPoint(bounds, point, tolerance = 10) {
 }
 
 function drawSelection() {
+  if (state.selectionFrameVisible === false && !state.rightSelection) return;
   if (state.exporting) {
     return;
   }
@@ -10212,6 +10213,7 @@ function renderGhost() {
 }
 
 function beginRightSelection(event, point) {
+  state.selectionFrameVisible = true;
   closeSelectionContextMenu();
   setTool("select");
   state.guideSelected = false;
@@ -10384,6 +10386,10 @@ function moveRightSelection(event) {
   return true;
 }
 
+function shouldKeepSelectionFrameAfterPointer(drag, event) {
+  return drag?.mode === "object-pending" && event?.button === 2;
+}
+
 function finishRightSelection(event) {
   const drag = state.rightSelection;
   if (!drag || drag.pointerId !== event.pointerId) {
@@ -10391,6 +10397,7 @@ function finishRightSelection(event) {
   }
   moveRightSelection(event);
   state.rightSelection = null;
+  state.selectionFrameVisible = shouldKeepSelectionFrameAfterPointer(drag, event);
   state.pointerDown = false;
   state.start = null;
   if (drag.mode === "object-pending") {
@@ -10437,6 +10444,7 @@ function cancelRightSelection(event, restore = true) {
     }
   }
   state.rightSelection = null;
+  state.selectionFrameVisible = false;
   state.pointerDown = false;
   state.start = null;
   updateSelectionControls();
@@ -10742,6 +10750,12 @@ function onPointerDown(event) {
 }
 
 function onPointerMove(event) {
+  // A trackpad release may be swallowed by the browser or OS.
+  if (state.rightSelection?.pointerId === event.pointerId
+      && event.pointerType === "mouse" && event.buttons === 0) {
+    onPointerUp(event);
+    return;
+  }
   const deferredTouch = state.deferredTouchTool?.pointerId === event.pointerId
     ? state.deferredTouchTool
     : null;
@@ -10992,7 +11006,7 @@ function syncWorkspaceModes() {
     toolbarCompactButton.title = t(key);
   }
   if (toolbarDockButton) {
-    const key = state.toolbarDock.layout === "side" ? "tool.toolbarTop" : "tool.toolbarSide";
+    const key = "tool.toolbarSide";
     toolbarDockButton.classList.toggle("is-active", state.toolbarDock.layout === "side");
     toolbarDockButton.setAttribute("aria-pressed", String(state.toolbarDock.layout === "side"));
     toolbarDockButton.setAttribute("aria-label", t(key));
@@ -11002,7 +11016,7 @@ function syncWorkspaceModes() {
 }
 
 const TOOLBAR_EDGE_INSET = 12;
-const TOOLBAR_TOP_INSET = 58;
+const TOOLBAR_TOP_INSET = 12;
 
 function toolbarDockBounds() {
   const parent = canvasWrap?.getBoundingClientRect();
@@ -11119,7 +11133,8 @@ function toggleToolbarLayout() {
   state.toolbarDock = {
     ...state.toolbarDock,
     version: 2,
-    layout: state.toolbarDock.layout === "side" ? "top" : "side",
+    layout: "side",
+    side: state.toolbarDock.side === "left" ? "right" : "left",
   };
   localStorage.setItem("whaToolbarDock", JSON.stringify(state.toolbarDock));
   syncWorkspaceModes();
@@ -15512,6 +15527,12 @@ window.addEventListener("pointermove", (event) => {
 });
 canvas.addEventListener("pointercancel", onPointerCancel);
 window.addEventListener("pointercancel", onPointerCancel);
+canvas.addEventListener("lostpointercapture", (event) => {
+  if (state.rightSelection?.pointerId === event.pointerId) onPointerCancel(event);
+});
+window.addEventListener("blur", () => {
+  if (state.rightSelection) onPointerCancel({ pointerId: state.rightSelection.pointerId });
+});
 canvas.addEventListener("wheel", onCanvasWheel, { passive: false });
 window.addEventListener("resize", resizeCanvas);
 window.addEventListener("resize", resizeThreeView);

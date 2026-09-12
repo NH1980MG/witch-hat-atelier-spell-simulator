@@ -56,7 +56,7 @@
   "outputStrokeWidth": {
     "minimum": 6.3148,
     "maximum": 6.4498,
-    "mean": 6.4265
+    "mean": 6.4267
   },
   "entries": [
     {
@@ -108,6 +108,22 @@
       "height": 192
     },
     {
+      "name": "Vent",
+      "asset": "assets/symbol-glyphs/vent.png",
+      "sourceStrokeWidth": 3.3535,
+      "outputStrokeWidth": 6.4358,
+      "dilationRadius": 1.332,
+      "sourceOpenings": 4,
+      "outputOpenings": 4,
+      "preservedOpenings": true,
+      "sourceSha256": "debe75f6a44ab298ef59c9742ccdabd1b1f511f913e386583d46ac4011a3de1a",
+      "outputSha256": "77e10abebb535503efd7bece7ec03eceacef54bc53fcb8176a5cb1efeea4e853",
+      "sourceBoard": "docs/generated/air-aeriform-symbol-reference.png",
+      "sourceBoardSha256": "c40ec947c798382f6cef703db0db9823812b66fe715c01fb99a830b6d14d09d5",
+      "width": 192,
+      "height": 192
+    },
+    {
       "name": "Lumiere",
       "asset": "assets/symbol-glyphs/lumiere.png",
       "sourceStrokeWidth": 4.5332,
@@ -142,16 +158,16 @@
     {
       "name": "Aeriforme",
       "asset": "assets/symbol-glyphs/aeriforme.png",
-      "sourceStrokeWidth": 2.7721,
-      "outputStrokeWidth": 6.4361,
-      "dilationRadius": 1.918,
+      "sourceStrokeWidth": 4.1322,
+      "outputStrokeWidth": 6.4311,
+      "dilationRadius": 1.0195,
       "sourceOpenings": 0,
       "outputOpenings": 0,
       "preservedOpenings": true,
-      "sourceSha256": "88894bafcf0585aaac70e503812c3185b72422f8111bf6b8feb59121113bdc6c",
-      "outputSha256": "d65810d5a1db5177f79aecbc5a50ac9b85c502eeaa8c13b4c3d5f024406c65e5",
-      "sourceBoard": "docs/generated/wind-water-symbol-reference.png",
-      "sourceBoardSha256": "0fdb357a27367632c70a37c0a71e47824ae0f66fa3ee56f501ada691d8fcd66b",
+      "sourceSha256": "1f2925eb39c2f89a6c3c588fa96c028ccaf9e7e00b88e1db43166b7d6c801e75",
+      "outputSha256": "dc8d8d9343a61dfb951e68533817ed406cdf6ffcb669edc1593c767f40da56c1",
+      "sourceBoard": "docs/generated/air-aeriform-symbol-reference.png",
+      "sourceBoardSha256": "c40ec947c798382f6cef703db0db9823812b66fe715c01fb99a830b6d14d09d5",
       "width": 192,
       "height": 192
     },

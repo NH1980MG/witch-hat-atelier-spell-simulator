@@ -10,9 +10,10 @@ import {
 
 const correctedReferencePaths = Object.freeze({
   Aeriforme: [
-    "M25 6 C19 6 17 11 19 16 C21 21 29 23 30 29 C32 35 28 42 22 42 C17 42 14 38 16 34 C18 30 22 29 25 31 C28 33 27 37 24 38",
-    "M4 24 H15 M8 18 L15 24 L8 30 M5 16 L11 20 M5 32 L11 28",
-    "M44 24 H33 M40 18 L33 24 L40 30 M43 16 L37 20 M43 32 L37 28",
+    "M26 12 C21 13 20 19 24 21 C31 25 35 15 30 9 C24 2 16 7 16 15 C16 24 32 25 32 35 C32 44 17 46 17 36 C17 29 25 28 26 33 C27 36 25 38 23 39",
+    "M4 24 H14 M5 19 L14 24 L5 29 M9 15 L14 24 L9 33",
+    "M44 24 H34 M43 19 L34 24 L43 29 M39 15 L34 24 L39 33",
+    "M8 10 H8.1 M8 37 H8.1 M40 10 H40.1 M40 37 H40.1",
   ],
   Repetition: [
     "M5 28 C9 15 19 9 29 11 C36 12 41 18 43 24 M5 20 C10 31 20 36 30 33 C37 31 41 26 43 20",
@@ -95,11 +96,11 @@ test("chaque glyphe runtime provient d'une case de planche implementee", () => {
 test("toutes les planches de sigils et signes alimentent le catalogue runtime", async () => {
   const generatedFiles = await readdir(new URL("../docs/generated/", import.meta.url));
   const symbolBoards = generatedFiles
-    .filter((file) => file.endsWith(".png") && file !== "support-cards-dalle-v1.png")
+    .filter((file) => file.endsWith(".png") && !["support-cards-dalle-v1.png", "aeriforme-imagegen-reference.png"].includes(file))
     .sort();
   const runtimeBoards = [...new Set(Object.values(SYMBOL_BOARD_TRACE).map(({ board }) => board).filter(Boolean))].sort();
 
-  assert.equal(symbolBoards.length, 20);
+  assert.equal(symbolBoards.length, 21);
   assert.deepEqual(runtimeBoards, symbolBoards);
 });
 
@@ -138,11 +139,11 @@ test("les glyphes issus des planches utilisent les masques epaissis partages", a
 test("les symboles corriges utilisent les nouveaux traces partages", () => {
   assert.equal(SYMBOL_PATHS["Vent sous pied"].length, 4);
   assert.match(SYMBOL_PATHS["Vent sous pied"][0], /M24 5 C31 5/);
-  assert.equal(SYMBOL_PATHS.Vent.length, 2);
+  assert.equal(SYMBOL_PATHS.Vent.length, 6);
   assert.match(SYMBOL_PATHS.Vent[0], /M28 13 C31 10/);
-  assert.match(SYMBOL_PATHS.Vent[1], /M13 17 L8 12/);
-  assert.equal(SYMBOL_PATHS.Aeriforme.length, 3);
-  assert.match(SYMBOL_PATHS.Aeriforme[0], /M25 6 C19 6/);
+  assert.match(SYMBOL_PATHS.Vent[1], /M6 12 L16 20/);
+  assert.equal(SYMBOL_PATHS.Aeriforme.length, 4);
+  assert.match(SYMBOL_PATHS.Aeriforme[0], /M26 12 C21 13/);
   assert.equal(SYMBOL_PATHS.Eau.length, 3);
   assert.match(SYMBOL_PATHS.Eau[1], /M27 5 C21 6/);
 });
@@ -161,10 +162,6 @@ test("chaque glyphe partage possede une planche d'audit generee", () => {
   assert.deepEqual(Object.keys(SYMBOL_GENERATED_BOARD), Object.keys(SYMBOL_PATHS));
 
   for (const [name, board] of Object.entries(SYMBOL_GENERATED_BOARD)) {
-    if (name === "Vent") {
-      assert.equal(board, null);
-      continue;
-    }
     assert.match(board, /\.png$/, `${name} doit pointer vers une planche PNG`);
   }
 });

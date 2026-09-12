@@ -5,11 +5,11 @@ import { readdir, readFile } from "node:fs/promises";
 const generatedDirectory = new URL("../docs/generated/", import.meta.url);
 const manifest = await readFile(new URL("README.md", generatedDirectory), "utf8");
 
-test("the generated sigil archive keeps exactly five reference sheets", async () => {
+test("the generated sigil archive keeps six reference sheets including air", async () => {
   const files = (await readdir(generatedDirectory))
     .filter((name) => name.endsWith("-symbol-reference.png"));
 
-  assert.equal(files.length, 5);
+  assert.equal(files.length, 6);
   for (const file of files) {
     assert.match(manifest, new RegExp(`\\b${file.replaceAll(".", "\\.")}\\b`));
   }

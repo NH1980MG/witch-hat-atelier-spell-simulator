@@ -7,7 +7,7 @@ import { translate } from "../i18n.mjs";
 test("the public entry opens directly on the drawing workshop", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 
-  assert.match(html, /<body class="simulator-page">/);
+  assert.match(html, /<body class="simulator-page toolbar-side">/);
   assert.match(html, /<section class="workspace" data-i18n-aria-label="atelier\.region"/);
   assert.doesNotMatch(html, /app-home-page/);
   assert.doesNotMatch(html, /data-app-hub/);

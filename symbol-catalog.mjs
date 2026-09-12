@@ -4,8 +4,7 @@ const circle = (cx, cy, radius) =>
   `M ${cx - radius} ${cy} A ${radius} ${radius} 0 1 0 ${cx + radius} ${cy} A ${radius} ${radius} 0 1 0 ${cx - radius} ${cy}`;
 
 // Editable traces reconstructed from the exact cells listed in
-// SYMBOL_BOARD_CELL below. Vent is the sole exception: its source capture has
-// no generated-board cell, so it keeps an explicit capture provenance.
+// SYMBOL_BOARD_CELL below. The generated air board supplies Vent and Aeriforme.
 const BOARD_TRACED_PATHS = Object.freeze({
   Feu: paths(
     "M24 6 L10 35 L38 35 Z",
@@ -24,7 +23,11 @@ const BOARD_TRACED_PATHS = Object.freeze({
   ),
   Vent: paths(
     "M28 13 C31 10 30 6 26 6 C20 6 18 12 20 17 C22 22 30 23 32 28 C35 35 30 42 23 42 C18 42 15 38 16 34 C17 30 21 28 25 30 C28 32 28 36 25 38",
-    "M13 17 L8 12 M12 24 H5 M13 31 L8 36 M35 17 L40 12 M36 24 H43 M35 31 L40 36",
+    "M6 12 L16 20 M4 20 H16 M6 29 L16 20 M42 12 L32 20 M44 20 H32 M42 29 L32 20",
+    circle(7, 8, 1.5),
+    circle(7, 37, 1.5),
+    circle(41, 8, 1.5),
+    circle(41, 37, 1.5),
   ),
   Lumiere: paths(
     "M14 14 H34 V34 H14 Z",
@@ -36,9 +39,10 @@ const BOARD_TRACED_PATHS = Object.freeze({
     "M6 24 H42 M10 16 L32 40 M38 16 L16 40",
   ),
   Aeriforme: paths(
-    "M25 6 C19 6 17 11 19 16 C21 21 29 23 30 29 C32 35 28 42 22 42 C17 42 14 38 16 34 C18 30 22 29 25 31 C28 33 27 37 24 38",
-    "M4 24 H15 M8 18 L15 24 L8 30 M5 16 L11 20 M5 32 L11 28",
-    "M44 24 H33 M40 18 L33 24 L40 30 M43 16 L37 20 M43 32 L37 28",
+    "M26 12 C21 13 20 19 24 21 C31 25 35 15 30 9 C24 2 16 7 16 15 C16 24 32 25 32 35 C32 44 17 46 17 36 C17 29 25 28 26 33 C27 36 25 38 23 39",
+    "M4 24 H14 M5 19 L14 24 L5 29 M9 15 L14 24 L9 33",
+    "M44 24 H34 M43 19 L34 24 L43 29 M39 15 L34 24 L39 33",
+    "M8 10 H8.1 M8 37 H8.1 M40 10 H40.1 M40 37 H40.1",
   ),
   "Vent sous pied": paths(
     "M24 5 C31 5 35 10 35 16 C35 22 30 26 24 26 C18 26 13 21 13 15 C13 9 18 5 24 5 C29 5 31 9 31 13 C31 17 28 20 24 20 C20 20 18 17 18 14 C18 11 20 9 23 9 C26 9 27 11 27 13",
@@ -298,16 +302,15 @@ const BOARD_TRACED_PATHS = Object.freeze({
   ),
 });
 
-// Generated audit sheet selected for each runtime vector. Vent deliberately
-// has no generated sheet: its exact geometry comes from capture 10.
+// Generated audit sheet selected for each runtime vector.
 export const SYMBOL_GENERATED_BOARD = Object.freeze({
   Feu: "earth-fire-light-symbol-reference.png",
   Eau: "wind-water-symbol-reference.png",
   Terre: "earth-fire-light-symbol-reference.png",
-  Vent: null,
+  Vent: "air-aeriform-symbol-reference.png",
   Lumiere: "earth-fire-light-symbol-reference.png",
   Cristal: "utility-state-symbol-reference.png",
-  Aeriforme: "wind-water-symbol-reference.png",
+  Aeriforme: "air-aeriform-symbol-reference.png",
   "Vent sous pied": "wind-water-symbol-reference.png",
   Repetition: "utility-state-symbol-reference.png",
   Fumee: "utility-state-symbol-reference.png",
@@ -376,7 +379,7 @@ const SYMBOL_BOARD_CELL = Object.freeze({
   Feu: "top-right",
   Eau: "bottom-right",
   Terre: "top-left",
-  Vent: "capture-10-wind",
+  Vent: "bottom-left",
   Lumiere: "bottom-left",
   Cristal: "top-left",
   Aeriforme: "top-right",

@@ -891,6 +891,20 @@ await mkdir(outputRoot, { recursive: true });
 
 const modifierSignHashes = await assetHashes(MATRIX_SIGN_NAMES);
 const rasterSigilNames = MATRIX_SIGIL_NAMES.filter((name) => SYMBOL_BOARD_ASSET[name]);
+const requestedNames = [...new Set(process.argv.slice(2))];
+for (const name of requestedNames) {
+  if (!rasterSigilNames.includes(name)) throw new Error(`Unknown central sigil: ${name}`);
+}
+const selectedNames = requestedNames.length ? requestedNames : rasterSigilNames;
+const previousReport = requestedNames.length
+  ? JSON.parse(await readFile(reportPath, "utf8"))
+  : null;
+const previousEntries = new Map(previousReport?.entries.map((entry) => [entry.name, entry]));
+for (const name of rasterSigilNames) {
+  if (!selectedNames.includes(name) && !previousEntries.has(name)) {
+    throw new Error(`Missing existing report for ${name}; include it in generation`);
+  }
+}
 const generated = [];
 const signStrokeWidths = [];
 for (const name of MATRIX_SIGN_NAMES) {
@@ -901,7 +915,7 @@ signStrokeWidths.sort((left, right) => left - right);
 const modifierSignMedian = conventionalMedian(signStrokeWidths);
 targetStrokeWidth = modifierSignMedian;
 
-for (const name of rasterSigilNames) {
+for (const name of selectedNames) {
   generated.push(await targetCentralSigil(name, SYMBOL_BOARD_TRACE[name]));
 }
 
@@ -914,7 +928,8 @@ if (JSON.stringify(modifierSignHashesAfter) !== JSON.stringify(modifierSignHashe
   throw new Error("Modifier-sign hashes changed during central-sigil generation");
 }
 
-const entries = generated.map(({ report }) => report);
+const updatedEntries = new Map(generated.map(({ report }) => [report.name, report]));
+const entries = rasterSigilNames.map((name) => updatedEntries.get(name) || previousEntries.get(name));
 const outputStrokeWidths = entries.map((entry) => entry.outputStrokeWidth);
 const report = {
   schemaVersion: 2,
@@ -939,7 +954,7 @@ const report = {
 
 await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`);
 console.log(
-  `Generated ${entries.length} central sigils at `
+  `Generated ${generated.length} central sigils at `
   + `${report.outputStrokeWidth.minimum}-${report.outputStrokeWidth.maximum}px `
   + `(mean ${report.outputStrokeWidth.mean}px); preserved ${MATRIX_SIGN_NAMES.length} sign assets.`,
 );

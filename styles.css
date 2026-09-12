@@ -981,13 +981,14 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
 }
 
 .simulator-page.toolbar-side .floating-tools {
-  top: 50%;
+  top: 12px;
   left: 18px;
   right: auto;
   display: grid;
   grid-template-columns: repeat(2, 42px);
   max-width: none;
-  overflow: visible;
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
   transform: none;
 }
 
@@ -4599,14 +4600,18 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
 
 @media (max-width: 980px) {
   .simulator-page.toolbar-side .floating-tools {
-    top: 50%;
+    top: 12px;
     left: 12px;
     width: 60px;
     max-width: none;
     flex-direction: column;
-    overflow: visible;
+    overflow-y: auto;
     transform: none;
   }
+}
+
+.simulator-page.toolbar-side:not(.toolbar-compact) .floating-tools {
+  width: max-content;
 }
 
 .symbol-search-dialog {
