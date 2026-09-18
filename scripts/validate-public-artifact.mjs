@@ -12,6 +12,7 @@ const required = [
   "fonctionnement.html",
   "styles.css",
   "app.js",
+  "app-home-routing.mjs",
   "recognition-controls.mjs",
   "recognition-preferences.mjs",
   "recognition-session.mjs",

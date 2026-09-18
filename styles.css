@@ -698,6 +698,8 @@ input:focus-visible {
 }
 
 .app-hub-spell-card {
+  color: var(--ink);
+  text-decoration: none;
   display: grid;
   gap: 8px;
   min-width: 0;
@@ -706,6 +708,21 @@ input:focus-visible {
   padding: 10px;
   background: rgba(255, 252, 243, 0.92);
   box-shadow: 0 12px 26px rgba(36, 48, 68, 0.09);
+}
+
+.app-hub-spell-card:hover,
+.app-hub-spell-card:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.app-home-page [data-app-hub] {
+  min-height: 0;
+}
+
+.app-hub-shortcut:disabled .app-hub-card-status {
+  display: block;
+  margin-top: 4px;
 }
 
 .app-hub-spell-card img {

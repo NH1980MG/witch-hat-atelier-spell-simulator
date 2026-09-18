@@ -37,7 +37,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260905-local-recognition-v1-toolbar-vertical-0912">
+    <link rel="stylesheet" href="styles.css?v=20260905-local-recognition-v1-home-0918">
     <script type="importmap">
       {
         "imports": {
@@ -48,9 +48,9 @@
     </script>
     <script type="module" src="site-i18n.mjs?v=20260831-sigil-composition-dialog-v1"></script>
     <script type="module" src="site-nav.mjs?v=20260831-auth-session-v1"></script>
-    <script type="module" src="app.js?v=20260905-local-recognition-v1-toolbar-button-0918"></script>
+    <script type="module" src="app.js?v=20260905-local-recognition-v1-home-0918"></script>
   </head>
-  <body class="simulator-page toolbar-side">
+  <body class="simulator-page toolbar-side app-home-page" data-app-view-title="Atelier">
     <main class="app-shell">
       <header class="top-title">
         <a class="brand-title brand-home" href="index.html" data-i18n-aria-label="nav.home" aria-label="Return to the main workshop">
@@ -89,6 +89,54 @@
           </div>
         </aside>
       </header>
+
+      <section class="app-hub app-hub-home" data-app-hub data-i18n-aria-label="appHub.title" aria-label="Choose where the atelier will open">
+        <div class="app-hub-topbar">
+          <nav class="app-hub-shortcuts" data-i18n-aria-label="nav.secondary" aria-label="Secondary navigation">
+            <a class="app-hub-shortcut app-hub-shortcut-primary" href="index.html" aria-current="page">
+              <span class="app-hub-card-icon" aria-hidden="true">&#9638;</span>
+              <span class="app-hub-card-text"><strong data-i18n="appHub.canvases">My gallery</strong></span>
+            </a>
+            <a class="app-hub-shortcut" href="bibliotheque.html">
+              <span class="app-hub-card-icon" aria-hidden="true">&#9678;</span>
+              <span class="app-hub-card-text"><strong data-i18n="appHub.library">Library</strong></span>
+            </a>
+            <a class="app-hub-shortcut" href="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site/gallery">
+              <span class="app-hub-card-icon" aria-hidden="true">&#9673;</span>
+              <span class="app-hub-card-text"><strong data-i18n="appHub.commons">Circle Commons</strong></span>
+            </a>
+            <button class="app-hub-shortcut" type="button" disabled data-i18n-title="appHub.multiplayerDetail" title="Draw with friends or in public rooms later.">
+              <span class="app-hub-card-icon" aria-hidden="true">&#8759;</span>
+              <span class="app-hub-card-text">
+                <strong data-i18n="appHub.multiplayer">Shared canvases</strong>
+                <small class="app-hub-card-status" data-i18n="appHub.comingSoon">Unavailable in this step</small>
+              </span>
+            </button>
+          </nav>
+        </div>
+        <section class="app-hub-gallery" aria-labelledby="appHubGalleryTitle">
+          <div class="app-hub-gallery-heading">
+            <div class="app-hub-gallery-title-group">
+              <a class="app-hub-new-canvas" href="index.html?view=atelier" data-i18n-aria-label="appHub.newCanvas" aria-label="New canvas">
+                <span aria-hidden="true">+</span>
+                <span data-i18n="appHub.newCanvas">New canvas</span>
+              </a>
+              <p class="app-hub-eyebrow" data-i18n="appHub.galleryEyebrow">My gallery</p>
+              <h2 id="appHubGalleryTitle" data-i18n="appHub.galleryTitle">Your spell canvases</h2>
+            </div>
+            <p data-i18n="appHub.galleryDescription">Saved canvases will appear here. Start with a new canvas.</p>
+          </div>
+          <div class="app-hub-gallery-grid" id="appHubGalleryGrid">
+            <div class="app-hub-gallery-empty">
+              <span class="app-hub-empty-mark" aria-hidden="true">+</span>
+              <div>
+                <strong data-i18n="appHub.emptyGallery">No canvases yet</strong>
+                <p data-i18n="appHub.emptyGalleryDetail">Create a canvas to open the Atelier and start drawing.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
 
       <section class="workspace" data-i18n-aria-label="atelier.region" aria-label="Creation workshop">
         <div class="canvas-wrap">

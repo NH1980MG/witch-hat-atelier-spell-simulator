@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { isWorkshopLocation, savedSpellHref } from "./app-home-routing.mjs";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import {
   SYMBOL_AUDIT,
@@ -341,7 +342,7 @@ const labels = {
 };
 
 function initializeLocalAppView() {
-  if (new URLSearchParams(window.location.search).get("view") !== "atelier") {
+  if (!isWorkshopLocation(window.location)) {
     return;
   }
   // Ensure the atelier layout class is present before Grimoire sizing runs.
@@ -12661,8 +12662,9 @@ function renderAppHubGallery() {
   }
 
   for (const spell of state.mySpells) {
-    const card = document.createElement("article");
+    const card = document.createElement("a");
     card.className = "app-hub-spell-card";
+    card.href = savedSpellHref(spell.id);
     const previewSource = spellPreviewSource(spell);
     if (previewSource) {
       const image = document.createElement("img");
@@ -14082,6 +14084,7 @@ function loadCommunityCircleFromUrl() {
     setStatus(t("status.communityCircleInvalid"));
   }
   url.searchParams.delete("communityCircle");
+  url.searchParams.set("view", "atelier");
   history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
   return true;
 }
@@ -14587,6 +14590,8 @@ practiceVerifyButton?.addEventListener("click", verifyPracticeStroke);
 
 function openPracticeFromHash() {
   if (window.location.hash === "#practice") {
+    document.documentElement.dataset.appView = "atelier";
+    resizeCanvas();
     setPracticeOpen(true);
   }
 }
@@ -15570,7 +15575,7 @@ function loadRecipeFromUrl() {
   if (!recipe) {
     return false;
   }
-  history.replaceState(null, "", window.location.pathname);
+  history.replaceState(null, "", `${window.location.pathname}?view=atelier`);
 
   recordHistory();
   state.actions = [];
@@ -15701,4 +15706,18 @@ if (guideOpacityInput) {
 resetCanvasPanToOrigin(false);
 applyCanvasScale();
 resizeCanvas();
-if (!loadCommunityCircleFromUrl()) loadRecipeFromUrl();
+const savedSpellId = new URLSearchParams(window.location.search).get("spell");
+if (savedSpellId) {
+  if (state.mySpells.some(({ id }) => id === savedSpellId)) {
+    loadMySpell(savedSpellId);
+    refreshCircleCenter();
+    updateUsedList();
+    updateSpellState();
+    updateSelectionControls();
+    render();
+  } else {
+    window.location.replace("index.html");
+  }
+} else if (!loadCommunityCircleFromUrl()) {
+  loadRecipeFromUrl();
+}

@@ -4,15 +4,18 @@ import { readFile } from "node:fs/promises";
 
 import { translate } from "../i18n.mjs";
 
-test("the public entry opens directly on the drawing workshop", async () => {
+test("the public entry opens on the local app gallery with a new-canvas link", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 
-  assert.match(html, /<body class="simulator-page toolbar-side">/);
+  assert.match(html, /<body class="simulator-page toolbar-side app-home-page"/);
   assert.match(html, /<section class="workspace" data-i18n-aria-label="atelier\.region"/);
-  assert.doesNotMatch(html, /app-home-page/);
-  assert.doesNotMatch(html, /data-app-hub/);
-  assert.doesNotMatch(html, /appHubGalleryGrid/);
-  assert.doesNotMatch(html, /index\.html\?view=atelier/);
+  assert.match(html, /data-app-hub/);
+  assert.match(html, /appHubGalleryGrid/);
+  assert.match(html, /index\.html\?view=atelier/);
+  const hub = html.split('data-app-hub')[1].split('<section class="workspace"')[0];
+  assert.doesNotMatch(hub, /data-i18n="appHub\.(mods|adventure|tutorial|workshop)"/);
+  assert.match(hub, /href="bibliotheque\.html"/);
+  assert.match(hub, /href="https:\/\/circle-commons-atelier[^" ]+\/gallery"/);
   assert.doesNotMatch(html, /id="practiceToggleButton"/);
 });
 
@@ -24,6 +27,7 @@ test("the personal gallery is rendered from saved spells instead of library seed
   assert.match(app, /spellPreviewSource\(spell\)/);
   assert.match(app, /buildSpellPreviewDataUrl/);
   assert.match(app, /appHubGalleryGrid\.append/);
+  assert.match(app, /card\.href = savedSpellHref\(spell\.id\)/);
   assert.doesNotMatch(app, /LIBRARY_CIRCLES\.map\([^\n]*appHubGalleryGrid/);
 });
 
