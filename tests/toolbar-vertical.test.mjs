@@ -5,6 +5,28 @@ import { readFile } from "node:fs/promises";
 
 const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
 const readDock = app.match(/function readToolbarDock\(\) \{[\s\S]*?\n\}/)[0];
+const setVertical = app.match(/function toggleToolbarLayout\(\) \{[\s\S]*?\n\}/)[0];
+
+for (const side of ["left", "right"]) {
+  test(`vertical button preserves the ${side} side and its height`, () => {
+    const state = { toolbarDock: { layout: "top", side, yRatio: 0.3 } };
+    let saved;
+    const context = vm.createContext({
+      state,
+      localStorage: { setItem: (_, value) => { saved = JSON.parse(value); } },
+      syncWorkspaceModes() {},
+      setStatus() {},
+      t: key => key,
+    });
+    vm.runInContext(`${setVertical}; toggleToolbarLayout(); toggleToolbarLayout();`, context);
+    assert.equal(state.toolbarDock.layout, "side");
+    assert.equal(state.toolbarDock.side, side);
+    assert.equal(state.toolbarDock.yRatio, 0.3);
+    assert.equal(saved.side, side);
+    vm.runInContext("toggleToolbarLayout();", context);
+    assert.equal(state.toolbarDock.side, side);
+  });
+}
 
 for (const saved of [null, {version: 2, layout: "top", yRatio: 0}, {layout: "side", side: "right", yRatio: 0.75}]) {
   test(`toolbar remains vertical with preference ${JSON.stringify(saved)}`, () => {

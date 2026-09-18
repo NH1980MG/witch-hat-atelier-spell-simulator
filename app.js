@@ -11126,11 +11126,10 @@ function toggleToolbarLayout() {
     ...state.toolbarDock,
     version: 2,
     layout: "side",
-    side: state.toolbarDock.side === "left" ? "right" : "left",
   };
   localStorage.setItem("whaToolbarDock", JSON.stringify(state.toolbarDock));
   syncWorkspaceModes();
-  setStatus(t(state.toolbarDock.layout === "side" ? "status.toolbarSide" : "status.toolbarTop"));
+  setStatus(t("status.toolbarSide"));
 }
 
 function elementIconMarkup(element) {
