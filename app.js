@@ -9206,7 +9206,6 @@ function selectionHandleAtPoint(bounds, point, tolerance = 10) {
 }
 
 function drawSelection() {
-  if (state.selectionFrameVisible === false && !state.rightSelection) return;
   if (state.exporting) {
     return;
   }
@@ -10213,7 +10212,6 @@ function renderGhost() {
 }
 
 function beginRightSelection(event, point) {
-  state.selectionFrameVisible = true;
   closeSelectionContextMenu();
   setTool("select");
   state.guideSelected = false;
@@ -10386,10 +10384,6 @@ function moveRightSelection(event) {
   return true;
 }
 
-function shouldKeepSelectionFrameAfterPointer(drag, event) {
-  return drag?.mode === "object-pending" && event?.button === 2;
-}
-
 function finishRightSelection(event) {
   const drag = state.rightSelection;
   if (!drag || drag.pointerId !== event.pointerId) {
@@ -10397,7 +10391,6 @@ function finishRightSelection(event) {
   }
   moveRightSelection(event);
   state.rightSelection = null;
-  state.selectionFrameVisible = shouldKeepSelectionFrameAfterPointer(drag, event);
   state.pointerDown = false;
   state.start = null;
   if (drag.mode === "object-pending") {
@@ -10444,7 +10437,6 @@ function cancelRightSelection(event, restore = true) {
     }
   }
   state.rightSelection = null;
-  state.selectionFrameVisible = false;
   state.pointerDown = false;
   state.start = null;
   updateSelectionControls();
