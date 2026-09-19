@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { isWorkshopLocation, savedSpellHref } from "./app-home-routing.mjs";
+import { hasCommunitySession } from "./site-nav.mjs?v=20260831-auth-session-v1-gallery-0918";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import {
   SYMBOL_AUDIT,
@@ -17,7 +18,7 @@ import {
   toggleSelectedCommentState,
 } from "./action-semantics.mjs?v=20260905-local-recognition-v1";
 import { loadStrokeSmoothing, smoothStroke } from "./stroke-smoothing.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260831-sigil-composition-dialog-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20260831-sigil-composition-dialog-v1-gallery-0918";
 import {
   createAdSenseScript,
   mountAdSensePlacement,
@@ -12643,6 +12644,11 @@ function renderAppHubGallery() {
     return;
   }
   appHubGalleryGrid.replaceChildren();
+  const connected = hasCommunitySession();
+  const notice = document.querySelector("#gallerySignInNotice");
+  if (notice) notice.hidden = connected;
+  appHubGalleryGrid.hidden = !connected;
+  if (!connected) return;
   if (state.mySpells.length === 0) {
     const empty = document.createElement("div");
     empty.className = "app-hub-gallery-empty";
@@ -12695,6 +12701,13 @@ function renderSpellList() {
     return;
   }
   guideSpellsList.innerHTML = "";
+  if (!hasCommunitySession()) {
+    const notice = document.createElement("p");
+    notice.textContent = t("appHub.gallerySignIn");
+    guideSpellsList.append(notice);
+    renderAppHubGallery();
+    return;
+  }
   if (state.mySpells.length === 0) {
     const empty = document.createElement("p");
     empty.className = "guide-empty";
@@ -12761,7 +12774,20 @@ function renderSpellList() {
   renderAppHubGallery();
 }
 
+function requireGalleryConnection() {
+  if (hasCommunitySession()) return true;
+  spellSaveDialog?.close();
+  setStatus(t("appHub.gallerySignIn"));
+  return false;
+}
+
+window.addEventListener("wha:sessionchange", () => {
+  renderSpellList();
+  if (!hasCommunitySession()) spellSaveDialog?.close();
+});
+
 function saveCurrentSpell() {
+  if (!requireGalleryConnection()) return;
   if (state.actions.length === 0) {
     setStatus(t("status.guideNeedsDrawing"));
     return;
@@ -12776,6 +12802,7 @@ function saveCurrentSpell() {
 }
 
 function confirmSaveSpell() {
+  if (!requireGalleryConnection()) return;
   const name = spellNameInput?.value.trim() || t("spells.defaultName", { count: state.mySpells.length + 1 });
   try {
     const editingSpell = state.mySpells.find(({ id }) => id === state.editingSpellId);

@@ -1,4 +1,14 @@
 const STORAGE_KEY = "whaWorkshopMenuOpen";
+let verifiedCommunityName = "";
+
+export function hasCommunitySession() {
+  return Boolean(verifiedCommunityName);
+}
+
+function setCommunitySession(name) {
+  verifiedCommunityName = name;
+  window.dispatchEvent(new CustomEvent("wha:sessionchange"));
+}
 const COMMUNITY_RETURN_PATH = "/auth/return-to-simulator";
 const COMMUNITY_PROFILE_HINT = "community_profile";
 const COMMUNITY_PROFILE_KEYS = Object.freeze([
@@ -202,6 +212,7 @@ async function initializeCommunityProfilePill() {
     pill.addEventListener("click", () => {
       if (pill.dataset.connected === "true") {
         clearStoredCommunityProfile();
+        setCommunitySession("");
       }
     });
   }
@@ -211,9 +222,8 @@ async function initializeCommunityProfilePill() {
     updateCommunityProfilePill("");
   }
   const profileName = await fetchCommunityProfileName(pill);
-  if (profileName) {
-    updateCommunityProfilePill(profileName);
-  }
+  setCommunitySession(profileName);
+  updateCommunityProfilePill(profileName);
 }
 
 function initializeSiteNavigation() {
@@ -232,12 +242,9 @@ if (typeof document !== "undefined") {
 
 if (typeof window !== "undefined") {
   window.addEventListener("wha:localechange", () => {
-    try {
-      updateCommunityProfilePill(readStoredCommunityProfileName());
-    } catch {
-      updateCommunityProfilePill("");
-    }
+    updateCommunityProfilePill(verifiedCommunityName);
   });
+  window.addEventListener("focus", () => void initializeCommunityProfilePill());
 }
 
 export {

@@ -7,10 +7,11 @@ const appSource = await readFile(new URL("../app.js", import.meta.url), "utf8");
 const siteI18nSource = await readFile(new URL("../site-i18n.mjs", import.meta.url), "utf8");
 const publicPages = ["index.html", "bibliotheque.html", "tutoriel.html", "parametres.html", "fonctionnement.html"];
 const sharedRevision = "20260831-sigil-composition-dialog-v1";
+const galleryRevision = `${sharedRevision}-gallery-0918`;
 const publicAssetRevision = "20260905-local-recognition-v1";
 
 test("the language controller imports the current catalog revision", () => {
-  assert.match(siteI18nSource, new RegExp(`from "\\./i18n\\.mjs\\?v=${sharedRevision}"`));
+  assert.match(siteI18nSource, new RegExp(`from "\\./i18n\\.mjs\\?v=${galleryRevision}"`));
 });
 
 test("every public page uses the same shared asset revision", async () => {
@@ -38,7 +39,7 @@ test("the practice workflow is a menu feature beside the tutorial", async () => 
 });
 
 test("the simulator uses the shared runtime translation service", () => {
-  assert.match(appSource, new RegExp(`from "\\./site-i18n\\.mjs\\?v=${sharedRevision}"`));
+  assert.match(appSource, new RegExp(`from "\\./site-i18n\\.mjs\\?v=${galleryRevision}"`));
   assert.match(appSource, /function elementDisplayName\(/);
   assert.match(appSource, /wha:localechange/);
 });

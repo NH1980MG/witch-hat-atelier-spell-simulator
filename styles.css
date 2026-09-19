@@ -652,6 +652,22 @@ input:focus-visible {
   line-height: 1.35;
 }
 
+.gallery-sign-in-notice {
+  margin-top: 32px;
+  padding: 20px 0;
+  border-top: 1px solid var(--ink);
+}
+
+.gallery-sign-in-notice a {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.gallery-sign-in-notice[hidden],
+.app-hub-gallery-grid[hidden] {
+  display: none;
+}
+
 .app-hub-gallery-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

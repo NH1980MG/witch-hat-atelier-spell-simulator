@@ -37,7 +37,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20260905-local-recognition-v1-home-0918">
+    <link rel="stylesheet" href="styles.css?v=20260905-local-recognition-v1-gallery-0918">
     <script type="importmap">
       {
         "imports": {
@@ -46,9 +46,9 @@
         }
       }
     </script>
-    <script type="module" src="site-i18n.mjs?v=20260831-sigil-composition-dialog-v1"></script>
-    <script type="module" src="site-nav.mjs?v=20260831-auth-session-v1"></script>
-    <script type="module" src="app.js?v=20260905-local-recognition-v1-home-0918"></script>
+    <script type="module" src="site-i18n.mjs?v=20260831-sigil-composition-dialog-v1-gallery-0918"></script>
+    <script type="module" src="site-nav.mjs?v=20260831-auth-session-v1-gallery-0918"></script>
+    <script type="module" src="app.js?v=20260905-local-recognition-v1-gallery-0918"></script>
   </head>
   <body class="simulator-page toolbar-side app-home-page" data-app-view-title="Atelier">
     <main class="app-shell">
@@ -126,7 +126,7 @@
             </div>
             <p data-i18n="appHub.galleryDescription">Saved canvases will appear here. Start with a new canvas.</p>
           </div>
-          <div class="app-hub-gallery-grid" id="appHubGalleryGrid">
+          <div class="app-hub-gallery-grid" id="appHubGalleryGrid" hidden>
             <div class="app-hub-gallery-empty">
               <span class="app-hub-empty-mark" aria-hidden="true">+</span>
               <div>
@@ -135,6 +135,10 @@
               </div>
             </div>
           </div>
+          <footer class="gallery-sign-in-notice" id="gallerySignInNotice">
+            <p data-i18n="appHub.gallerySignIn">Sign in to save spells in your personal gallery.</p>
+            <a href="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site/sign-in?return_to=%2Fauth%2Freturn-to-simulator" data-i18n="appHub.signIn">Sign in</a>
+          </footer>
         </section>
       </section>
 

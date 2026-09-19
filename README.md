@@ -4,6 +4,8 @@ The public entry now opens the app's personal gallery. `New canvas` opens
 `index.html?view=atelier`; saved canvas cards reopen their stored drawing.
 Library recipes, Circle Commons imports and `#practice` links still open the
 editor directly. Saved canvases remain in this browser's existing local storage.
+Saving to the personal gallery requires a verified Circle Commons session.
+Guests can still draw; existing local saves are retained while signed out.
 
 A bilingual, fan-made magic-circle editor and 3D spell simulator inspired by
 the visual grammar of *Witch Hat Atelier*. Draw a closed ring, place a central
