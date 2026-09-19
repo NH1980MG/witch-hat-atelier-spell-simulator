@@ -1,12 +1,19 @@
+import { consumeSessionReturn } from "./community-session-return.mjs";
 const STORAGE_KEY = "whaWorkshopMenuOpen";
+const SESSION_KEY = "whaVerifiedCommunitySession";
+const LOGIN_STATE_KEY = "whaCommunityLoginState";
+let sessionProof = "";
+let sessionRequest = 0;
+let verifiedAt = 0;
 let verifiedCommunityName = "";
 
 export function hasCommunitySession() {
-  return Boolean(verifiedCommunityName);
+  return Boolean(verifiedCommunityName) && Date.now() - verifiedAt < 5 * 60 * 1000;
 }
 
 function setCommunitySession(name) {
   verifiedCommunityName = name;
+  verifiedAt = Date.now();
   window.dispatchEvent(new CustomEvent("wha:sessionchange"));
 }
 const COMMUNITY_RETURN_PATH = "/auth/return-to-simulator";
@@ -169,6 +176,9 @@ function updateCommunityProfilePill(name = "") {
 }
 
 function clearStoredCommunityProfile() {
+  sessionRequest += 1;
+  sessionProof = "";
+  try { window.sessionStorage.removeItem(SESSION_KEY); } catch { /* Storage is optional. */ }
   for (const key of COMMUNITY_PROFILE_KEYS) {
     try {
       window.localStorage.removeItem(key);
@@ -181,18 +191,18 @@ function clearStoredCommunityProfile() {
 async function fetchCommunityProfileName(pill) {
   const baseUrl = new URL(pill.href).origin;
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 2500);
+  const timeout = window.setTimeout(() => controller.abort(), 10000);
   try {
     const response = await fetch(`${baseUrl}/api/session`, {
-      credentials: "include",
+      credentials: sessionProof ? "omit" : "include",
+      headers: sessionProof ? { Authorization: `Bearer ${sessionProof}` } : {},
       signal: controller.signal,
     });
-    if (!response.ok) {
-      return "";
-    }
+    if (response.status === 401) return "";
+    if (!response.ok) return null;
     return communityProfileNameFrom(await response.json());
   } catch {
-    return "";
+    return null;
   } finally {
     window.clearTimeout(timeout);
   }
@@ -216,19 +226,54 @@ async function initializeCommunityProfilePill() {
       }
     });
   }
-  try {
-    updateCommunityProfilePill(readStoredCommunityProfileName());
-  } catch {
-    updateCommunityProfilePill("");
-  }
+  updateCommunityProfilePill(hasCommunitySession() ? verifiedCommunityName : "");
+  const request = ++sessionRequest;
   const profileName = await fetchCommunityProfileName(pill);
-  setCommunitySession(profileName);
-  updateCommunityProfilePill(profileName);
+  if (request !== sessionRequest) return;
+  if (profileName === null && hasCommunitySession()) return;
+  if (profileName === "") {
+    sessionProof = "";
+    try { window.sessionStorage.removeItem(SESSION_KEY); } catch { /* Storage is optional. */ }
+  }
+  setCommunitySession(profileName || "");
+  updateCommunityProfilePill(profileName || "");
+}
+
+function initializeSessionReturn() {
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  try {
+    sessionProof = window.sessionStorage.getItem(SESSION_KEY) || "";
+    if (params.has("simulator_session")) {
+      const proof = consumeSessionReturn(window.location.hash, window.sessionStorage.getItem(LOGIN_STATE_KEY));
+      window.sessionStorage.removeItem(LOGIN_STATE_KEY);
+      if (proof) {
+        sessionProof = proof;
+        window.sessionStorage.setItem(SESSION_KEY, proof);
+      }
+    }
+  } catch { /* A denied browser storage does not authorize a session. */ }
+  if (params.has("simulator_session")) {
+    const url = new URL(window.location.href);
+    url.hash = "";
+    window.history.replaceState(null, "", url);
+  }
+  document.addEventListener("click", event => {
+    const link = event.target.closest?.("a[href]");
+    const pill = document.querySelector("[data-community-profile-pill]");
+    if (!link || !pill) return;
+    const url = new URL(link.href);
+    if (url.origin !== new URL(pill.href).origin || url.pathname !== "/sign-in") return;
+    const state = Array.from(crypto.getRandomValues(new Uint8Array(32)), byte => byte.toString(16).padStart(2, "0")).join("");
+    try { window.sessionStorage.setItem(LOGIN_STATE_KEY, state); } catch { return; }
+    url.searchParams.set("return_to", `${COMMUNITY_RETURN_PATH}?state=${state}`);
+    link.href = url.href;
+  });
 }
 
 function initializeSiteNavigation() {
   initializeWorkshopMenu();
   captureCommunityProfileHint();
+  initializeSessionReturn();
   void initializeCommunityProfilePill();
 }
 
@@ -245,6 +290,9 @@ if (typeof window !== "undefined") {
     updateCommunityProfilePill(verifiedCommunityName);
   });
   window.addEventListener("focus", () => void initializeCommunityProfilePill());
+  window.setInterval(() => {
+    if (verifiedCommunityName || sessionProof) void initializeCommunityProfilePill();
+  }, 60000);
 }
 
 export {

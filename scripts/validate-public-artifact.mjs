@@ -13,6 +13,7 @@ const required = [
   "styles.css",
   "app.js",
   "app-home-routing.mjs",
+  "community-session-return.mjs",
   "recognition-controls.mjs",
   "recognition-preferences.mjs",
   "recognition-session.mjs",

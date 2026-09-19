@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { isWorkshopLocation, savedSpellHref } from "./app-home-routing.mjs";
-import { hasCommunitySession } from "./site-nav.mjs?v=20260831-auth-session-v1-gallery-0918";
+import { hasCommunitySession } from "./site-nav.mjs?v=20260831-auth-session-v1-bridge-0919";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import {
   SYMBOL_AUDIT,

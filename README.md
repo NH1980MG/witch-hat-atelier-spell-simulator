@@ -6,6 +6,9 @@ Library recipes, Circle Commons imports and `#practice` links still open the
 editor directly. Saved canvases remain in this browser's existing local storage.
 Saving to the personal gallery requires a verified Circle Commons session.
 Guests can still draw; existing local saves are retained while signed out.
+The sign-in return carries a one-hour signed proof, verified by Circle Commons
+without third-party cookies. It unlocks only this browser's local gallery, not
+any protected Circle Commons API. Signing out clears the proof in this tab.
 
 A bilingual, fan-made magic-circle editor and 3D spell simulator inspired by
 the visual grammar of *Witch Hat Atelier*. Draw a closed ring, place a central
