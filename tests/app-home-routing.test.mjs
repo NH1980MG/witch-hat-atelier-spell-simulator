@@ -12,6 +12,7 @@ test("new canvases, saved canvases and existing spell links open the editor", ()
   for (const location of [
     {search:"?view=atelier"}, {search:"?spell=saved-1"},
     {search:"?sigils=Eau&signs=Orbe"}, {search:"?communityCircle=encoded"},
+    {search:"?sharedCanvas=ABCDEFGHJKLMNPQRSTUVWXYZ23456789"},
     {hash:"#practice"},
   ]) assert.equal(isWorkshopLocation(location), true);
 });

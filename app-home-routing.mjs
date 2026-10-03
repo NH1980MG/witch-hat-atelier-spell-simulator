@@ -4,6 +4,7 @@ export function isWorkshopLocation({ search = "", hash = "" } = {}) {
     || Boolean(params.get("spell"))
     || Boolean(params.get("sigils"))
     || Boolean(params.get("communityCircle"))
+    || Boolean(params.get("sharedCanvas"))
     || hash === "#practice";
 }
 

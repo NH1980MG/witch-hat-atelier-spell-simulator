@@ -2,7 +2,7 @@ import {
   DEFAULT_LOCALE,
   resolveLocale,
   translate,
-} from "./i18n.mjs?v=20260831-sigil-composition-dialog-v1-gallery-0918";
+} from "./i18n.mjs?v=20261003-shared-canvas-v1";
 
 let currentLocale = DEFAULT_LOCALE;
 

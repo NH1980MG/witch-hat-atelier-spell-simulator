@@ -18,7 +18,7 @@ import {
   toggleSelectedCommentState,
 } from "./action-semantics.mjs?v=20260905-local-recognition-v1";
 import { loadStrokeSmoothing, smoothStroke } from "./stroke-smoothing.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20260831-sigil-composition-dialog-v1-gallery-0918";
+import { getLocale, t } from "./site-i18n.mjs?v=20261003-shared-canvas-v1";
 import {
   createAdSenseScript,
   mountAdSensePlacement,
@@ -135,6 +135,14 @@ import { resolveKeyCommand } from "./keyboard-routing.mjs?v=20260809-handoff-lay
 import { buildSymbolSearchIndex, searchSymbols } from "./symbol-search.mjs?v=20260809-handoff-layout-v2";
 import { assessFreehandBoundary, recognizedMaterialLabel } from "./drawing-recognition.mjs";
 import { createScalewolfMotionProfile } from "./decorative-creature-profile.mjs?v=20260811-scalewolf-v2";
+import {
+  buildSharedCanvasUrl,
+  createSharedCanvasCode,
+  createSharedCanvasController,
+  createSupabaseSharedCanvasTransport,
+  sharedCanvasCodeFromLocation,
+} from "./shared-canvas.mjs?v=20261003-shared-canvas-v1";
+import { SHARED_CANVAS_REALTIME } from "./shared-canvas-config.mjs?v=20261003-shared-canvas-v1";
 import {
   applySpellImpact,
   computeSceneScale,
@@ -417,6 +425,11 @@ const activateButton = document.querySelector("#activateButton");
 const undoButton = document.querySelector("#undoButton");
 const clearButton = document.querySelector("#clearButton");
 const saveButton = document.querySelector("#saveButton");
+const sharedCanvasButton = document.querySelector("#sharedCanvasButton");
+const sharedCanvasBar = document.querySelector("#sharedCanvasBar");
+const sharedCanvasConnectionStatus = document.querySelector("#sharedCanvasConnectionStatus");
+const sharedCanvasCodeLabel = document.querySelector("#sharedCanvasCodeLabel");
+const copySharedCanvasInviteButton = document.querySelector("#copySharedCanvasInviteButton");
 const spell3dCanvas = document.querySelector("#spell3dCanvas");
 const view3dPanel = document.querySelector("#view3dPanel");
 const close3dButton = document.querySelector("#close3dButton");
@@ -676,6 +689,8 @@ const state = {
   // unrelated drawer tap minutes later; the record cannot.
   suppressNextDrawerClick: null,
 };
+let sharedCanvasController = null;
+let sharedCanvasStatusKey = "sharedCanvas.status.loading";
 
 const guideImageCache = new Map();
 
@@ -9599,6 +9614,56 @@ function render() {
   ctx.restore();
   if (!state.exporting) {
     drawMeasureCounter(width, height);
+    sharedCanvasController?.scheduleBroadcast();
+  }
+}
+
+function showSharedCanvasStatus(key) {
+  sharedCanvasStatusKey = key;
+  if (sharedCanvasConnectionStatus) sharedCanvasConnectionStatus.textContent = t(key);
+}
+
+function applySharedCanvasSnapshot(snapshot) {
+  if (!snapshot || !Array.isArray(snapshot.actions)) return;
+  state.actions = cloneActions(snapshot.actions);
+  state.currentAction = null;
+  state.preview = null;
+  state.start = null;
+  state.selectedActionIndices = [];
+  state.annotationEditingIndex = null;
+  state.librarySchematicId = null;
+  state.activeSpell = null;
+  state.activation = null;
+  refreshCircleCenter();
+  updateSelectionControls();
+  updateUsedList();
+  updateSpellState();
+  render();
+}
+
+function startSharedCanvas(code) {
+  sharedCanvasController?.close();
+  const sharedUrl = buildSharedCanvasUrl(window.location.href, code);
+  window.history.replaceState(window.history.state, "", sharedUrl);
+  sharedCanvasBar.hidden = false;
+  sharedCanvasCodeLabel.textContent = code;
+  sharedCanvasController = createSharedCanvasController({
+    code,
+    transport: createSupabaseSharedCanvasTransport(code, SHARED_CANVAS_REALTIME),
+    readSnapshot: () => ({ actions: cloneActions(state.actions) }),
+    applySnapshot: applySharedCanvasSnapshot,
+    onStatus: showSharedCanvasStatus,
+  });
+  return sharedCanvasController;
+}
+
+async function copySharedCanvasInvite() {
+  if (!sharedCanvasController) return;
+  try {
+    await navigator.clipboard.writeText(buildSharedCanvasUrl(window.location.href, sharedCanvasController.code));
+    showSharedCanvasStatus("sharedCanvas.status.linkCopied");
+  } catch {
+    showSharedCanvasStatus("sharedCanvas.status.copyFailed");
   }
 }
 
@@ -14258,6 +14323,11 @@ activateButton.addEventListener("click", activateCircle);
 undoButton.addEventListener("click", undo);
 clearButton.addEventListener("click", clearCanvas);
 saveButton.addEventListener("click", saveCanvas);
+sharedCanvasButton?.addEventListener("click", async () => {
+  if (!sharedCanvasController) startSharedCanvas(createSharedCanvasCode());
+  await copySharedCanvasInvite();
+});
+copySharedCanvasInviteButton?.addEventListener("click", copySharedCanvasInvite);
 saveExampleButton?.addEventListener("click", saveCurrentCircleAsGuide);
 close3dButton.addEventListener("click", close3dView);
 relaunch3dButton?.addEventListener("click", relaunchThreeSpell);
@@ -15569,6 +15639,7 @@ if (typeof ResizeObserver === "function") {
   toolbarDockResizeObserver?.observe(canvasWrap);
 }
 window.addEventListener("wha:localechange", () => {
+  showSharedCanvasStatus(sharedCanvasStatusKey);
   renderInkList();
   renderSigilCompositionPanel();
   renderSupportList();
@@ -15733,18 +15804,23 @@ if (guideOpacityInput) {
 resetCanvasPanToOrigin(false);
 applyCanvasScale();
 resizeCanvas();
-const savedSpellId = new URLSearchParams(window.location.search).get("spell");
-if (savedSpellId) {
-  if (state.mySpells.some(({ id }) => id === savedSpellId)) {
-    loadMySpell(savedSpellId);
-    refreshCircleCenter();
-    updateUsedList();
-    updateSpellState();
-    updateSelectionControls();
-    render();
-  } else {
-    window.location.replace("index.html");
+const sharedCanvasCode = sharedCanvasCodeFromLocation();
+if (sharedCanvasCode) {
+  startSharedCanvas(sharedCanvasCode);
+} else {
+  const savedSpellId = new URLSearchParams(window.location.search).get("spell");
+  if (savedSpellId) {
+    if (state.mySpells.some(({ id }) => id === savedSpellId)) {
+      loadMySpell(savedSpellId);
+      refreshCircleCenter();
+      updateUsedList();
+      updateSpellState();
+      updateSelectionControls();
+      render();
+    } else {
+      window.location.replace("index.html");
+    }
+  } else if (!loadCommunityCircleFromUrl()) {
+    loadRecipeFromUrl();
   }
-} else if (!loadCommunityCircleFromUrl()) {
-  loadRecipeFromUrl();
 }

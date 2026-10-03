@@ -19,5 +19,5 @@ test("the shoe card uses the flat transparent support artwork", async () => {
 });
 
 test("the browser loads the refined support artwork version", () => {
-  assert.match(html, /app\.js\?v=20260905-local-recognition-v1/);
+  assert.match(html, /app\.js\?v=20261003-shared-canvas-v1/);
 });
