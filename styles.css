@@ -993,14 +993,13 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
 }
 
 .shared-canvas-bar {
-  position: absolute;
-  z-index: 5;
-  top: 18px;
-  right: 20px;
+  position: relative;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  max-width: min(620px, calc(100% - 40px));
+  min-width: 0;
+  margin: 8px 12px;
   border: 1px solid rgba(140, 107, 63, 0.55);
   border-radius: 8px;
   padding: 8px 10px;
@@ -1028,14 +1027,13 @@ html[data-app-view="atelier"] body.app-home-page .grimoire {
 
 @media (max-width: 620px) {
   .shared-canvas-bar {
-    top: 62px;
-    right: 10px;
-    left: 10px;
-    max-width: none;
-    flex-wrap: wrap;
     gap: 6px 10px;
     font-size: 0.8rem;
   }
+}
+
+html[data-app-view="atelier"] body.app-home-page .app-shell:has(> .shared-canvas-bar:not([hidden])) {
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
 }
 
 .floating-tools {

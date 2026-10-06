@@ -4,6 +4,14 @@ import { readFile } from "node:fs/promises";
 import vm from "node:vm";
 import { buildSharedCanvasUrl, normalizeSharedCanvasCode } from "../shared-canvas.mjs";
 
+test("shared status has its own layout row outside the drawing tools", async () => {
+  const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
+  assert.ok(html.indexOf('id="sharedCanvasBar"') < html.indexOf('<section class="workspace"'));
+  assert.match(css, /\.shared-canvas-bar \{\s*position: relative;/);
+  assert.match(css, /:has\(> \.shared-canvas-bar:not\(\[hidden\]\)\)\s*\{\s*grid-template-rows: auto auto minmax\(0, 1fr\) auto;/);
+});
+
 test("portal creates invitations, validates joins and reports clipboard failures", async () => {
   const nodes = new Map();
   const document = {
