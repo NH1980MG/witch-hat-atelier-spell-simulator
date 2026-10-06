@@ -31,13 +31,13 @@ test("the personal gallery is rendered from saved spells instead of library seed
   assert.doesNotMatch(app, /LIBRARY_CIRCLES\.map\([^\n]*appHubGalleryGrid/);
 });
 
-test("the home hub links into the atelier for creating a shared canvas", async () => {
+test("the home hub links to the shared canvas create/join portal", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
   const en = translate("en", "appHub.multiplayerDetail");
   const fr = translate("fr", "appHub.multiplayerDetail");
   const hub = html.split('data-app-hub')[1].split('<section class="workspace"')[0];
 
-  assert.match(hub, /<a class="app-hub-shortcut" href="index\.html\?view=atelier"[^>]*data-i18n-title="appHub\.multiplayerDetail"/);
+  assert.match(hub, /<a class="app-hub-shortcut" href="partage\.html"[^>]*data-i18n-title="appHub\.multiplayerDetail"/);
   assert.match(hub, /data-i18n="appHub\.multiplayer"/);
   assert.doesNotMatch(hub, /disabled|appHub\.comingSoon/);
   assert.match(en, /share|invite/i);

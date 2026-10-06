@@ -11,7 +11,7 @@ const galleryRevision = sharedRevision;
 const publicAssetRevision = "20261003-shared-canvas-v1";
 
 test("the language controller imports the current catalog revision", () => {
-  assert.match(siteI18nSource, new RegExp(`from "\\./i18n\\.mjs\\?v=${galleryRevision}"`));
+  assert.match(siteI18nSource, new RegExp(`from "\\./i18n\\.mjs\\?v=${galleryRevision}-portal"`));
 });
 
 test("every public page uses the same shared asset revision", async () => {

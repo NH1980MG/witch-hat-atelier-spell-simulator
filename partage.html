@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en" data-i18n-title="page.sharedCanvas.title">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-store">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site wss://*.supabase.co https://*.supabase.co; object-src 'none'; base-uri 'self'">
+    <meta name="description" content="Create or join a shared Witch Hat Atelier simulator canvas by link or code.">
+    <link rel="icon" type="image/svg+xml" href="assets/brand/atelier-mark.svg">
+    <link rel="stylesheet" href="styles.css?v=20261003-shared-canvas-v1-portal">
+    <link rel="stylesheet" href="shared-canvas-page.css?v=1">
+    <script type="module" src="site-i18n.mjs?v=20261003-shared-canvas-v1-portal"></script>
+    <script type="module" src="site-nav.mjs?v=20260829-home-menu-v2"></script>
+    <script type="module" src="shared-canvas-page.mjs?v=20261003-shared-canvas-v1-portal"></script>
+  </head>
+  <body class="home-page shared-canvas-page">
+    <main class="home-shell">
+      <header class="top-title">
+        <a class="brand-title brand-home" href="index.html" data-i18n-aria-label="nav.home" aria-label="Return to the main workshop">
+          <img class="brand-logo-image" src="assets/brand/atelier-mark.svg?v=2" alt="" aria-hidden="true">
+          <h1>Witch Hat Atelier Spell Simulator</h1>
+        </a>
+        <aside class="workshop-menu" data-workshop-menu>
+          <button class="workshop-menu-toggle" id="workshopMenuToggle" type="button" aria-controls="workshopMenuPanel" aria-expanded="false" data-i18n-aria-label="nav.openMenu" data-i18n-title="nav.menu" aria-label="Open the workshop menu" title="Workshop menu">
+            <img src="assets/brand/atelier-mark.svg?v=2" alt="" aria-hidden="true">
+            <span class="workshop-menu-toggle-label" data-i18n="nav.menu">Workshop menu</span>
+            <span class="workshop-menu-toggle-chevron" aria-hidden="true">&#8964;</span>
+          </button>
+          <div class="workshop-menu-panel" id="workshopMenuPanel" role="dialog" data-i18n-aria-label="nav.secondary" aria-label="Secondary navigation" aria-hidden="true" hidden>
+            <div class="workshop-menu-heading" data-i18n="nav.menu">Workshop menu</div>
+            <nav class="workshop-menu-links" data-i18n-aria-label="nav.secondary" aria-label="Secondary navigation">
+              <a class="header-link" href="index.html#home" data-i18n-aria-label="nav.openHome" data-i18n-title="nav.home"><span aria-hidden="true">&#8962;</span><span data-i18n="nav.homeLabel">Home</span></a>
+              <a class="header-link" href="index.html?view=atelier" data-i18n-aria-label="nav.openWorkshop" data-i18n-title="nav.workshop"><span aria-hidden="true">&#10003;</span><span data-i18n="nav.workshop">Workshop</span></a>
+              <a class="header-link" href="bibliotheque.html" data-i18n-aria-label="nav.openLibrary" data-i18n-title="nav.library"><span aria-hidden="true">&#9678;</span><span data-i18n="nav.library">Library</span></a>
+              <a class="header-link" href="tutoriel.html" data-i18n-aria-label="nav.openTutorial" data-i18n-title="nav.tutorial"><span aria-hidden="true">?</span><span data-i18n="nav.tutorial">Tutorial</span></a>
+              <a class="header-link" href="parametres.html" data-i18n-aria-label="nav.openSettings" data-i18n-title="nav.settings"><span aria-hidden="true">&#9881;</span><span data-i18n="nav.settings">Settings</span></a>
+            </nav>
+            <div class="language-switcher" role="group" data-i18n-aria-label="language.label">
+              <button type="button" data-locale="en" aria-pressed="true" data-i18n-aria-label="language.english">EN</button>
+              <button type="button" data-locale="fr" aria-pressed="false" data-i18n-aria-label="language.french">FR</button>
+            </div>
+          </div>
+        </aside>
+      </header>
+
+      <section class="shared-canvas-portal" aria-labelledby="sharedCanvasTitle">
+        <p class="home-kicker" data-i18n="sharedCanvas.kicker">Shared canvas</p>
+        <h2 id="sharedCanvasTitle" data-i18n="sharedCanvas.title">Draw on the same canvas with a friend.</h2>
+        <p data-i18n="sharedCanvas.description">Create a shared canvas, then send the link or code to another player.</p>
+        <button class="shared-canvas-create" id="createSharedCanvasButton" type="button" data-i18n="sharedCanvas.create">Create shared canvas</button>
+
+        <section class="shared-canvas-invite" id="sharedCanvasInvitePanel" aria-labelledby="sharedCanvasInviteTitle" hidden>
+          <div>
+            <p class="home-kicker" data-i18n="sharedCanvas.inviteKicker">Invite</p>
+            <h3 id="sharedCanvasInviteTitle" data-i18n="sharedCanvas.inviteTitle">Send a link or give the code.</h3>
+          </div>
+          <output class="shared-canvas-code" id="sharedCanvasCode"></output>
+          <label class="shared-canvas-link-field" for="sharedCanvasLink">
+            <span data-i18n="sharedCanvas.linkLabel">Shared link</span>
+            <input id="sharedCanvasLink" type="text" readonly>
+          </label>
+          <div class="shared-canvas-actions">
+            <a class="shared-canvas-open" id="openSharedCanvasButton" href="index.html?view=atelier" data-i18n="sharedCanvas.openCanvas">Open canvas</a>
+            <button id="copySharedCanvasLinkButton" type="button" data-i18n="sharedCanvas.copyLink">Copy link</button>
+          </div>
+        </section>
+
+        <section class="shared-canvas-join" aria-labelledby="sharedCanvasJoinTitle">
+          <h3 id="sharedCanvasJoinTitle" data-i18n="sharedCanvas.joinTitle">Join with a code</h3>
+          <label class="shared-canvas-code-field" for="joinSharedCanvasCodeInput">
+            <span data-i18n="sharedCanvas.codeLabel">Code</span>
+            <input id="joinSharedCanvasCodeInput" type="text" inputmode="text" autocomplete="off" placeholder="ABCD-EFGH-JKLM-NPQR-STUV-WXYZ" data-i18n-placeholder="sharedCanvas.codePlaceholder">
+          </label>
+          <button id="joinSharedCanvasCodeButton" type="button" data-i18n="sharedCanvas.joinCode">Join with code</button>
+        </section>
+
+        <p class="shared-canvas-status" id="sharedCanvasStatus" role="status" aria-live="polite"></p>
+      </section>
+    </main>
+  </body>
+</html>
