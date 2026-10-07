@@ -13,7 +13,9 @@ test("the public entry opens on the local app gallery with a new-canvas link", a
   assert.match(html, /appHubGalleryGrid/);
   assert.match(html, /index\.html\?view=atelier/);
   const hub = html.split('data-app-hub')[1].split('<section class="workspace"')[0];
-  assert.doesNotMatch(hub, /data-i18n="appHub\.(mods|adventure|tutorial|workshop)"/);
+  assert.doesNotMatch(hub, /data-i18n="appHub\.(adventure|tutorial|workshop)"/);
+  assert.match(hub, /href="jeu\.html"/);
+  assert.match(hub, /href="local-demo\/effect-editor\/"/);
   assert.match(hub, /href="bibliotheque\.html"/);
   assert.match(hub, /href="https:\/\/circle-commons-atelier[^" ]+\/gallery"/);
   assert.doesNotMatch(html, /id="practiceToggleButton"/);

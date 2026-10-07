@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Atelier des sorts | Combat libre</title>
+  <link rel="stylesheet" href="game.css?v=20260920-free-combat-fix-v1">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three/three.module.js",
+        "three/addons/": "./vendor/three/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body class="game-page" data-mode="free-composition">
+  <main class="game-shell">
+    <header class="game-header">
+      <a class="game-back-link" href="index.html">Retour à l'atelier</a>
+      <div>
+        <p class="eyebrow">Prototype de combat</p>
+        <h1>Combat libre</h1>
+        <p>Compose un sort en direct, puis teste-le dans une arène d'entraînement.</p>
+      </div>
+      <span class="game-mode-badge" id="gameStatus">Initialisation</span>
+    </header>
+
+    <section class="game-preparation" id="gamePreparation" aria-labelledby="preparationTitle">
+      <div class="game-panel-heading">
+        <p class="eyebrow">Avant le duel</p>
+        <h2 id="preparationTitle">Préparer le combat</h2>
+        <p>Choisis tes trois sorts rapides, vérifie ton sort libre et règle le ralentissement pendant sa création.</p>
+      </div>
+      <div class="game-preparation-loadout" id="gamePreparationLoadout" aria-label="Sorts à préparer"></div>
+      <div class="game-preparation-settings">
+        <label class="game-field" for="drawingSlowdown">
+          <span>Ralentissement pendant le dessin</span>
+          <input id="drawingSlowdown" type="range" min="0" max="80" step="1" value="40">
+        </label>
+        <div class="game-setting-readout">
+          <output id="drawingSlowdownValue" for="drawingSlowdown">40%</output>
+          <output id="drawingSpeedValue">Vitesse de l’arène : 60%</output>
+        </div>
+      </div>
+      <details class="game-advanced" id="advancedSpellEditor">
+        <summary>Options avancées</summary>
+        <p>Importe ici un sort libre local au format JSON. Le format est validé avant le lancement.</p>
+        <label class="game-field" for="customSpellInput">
+          <span>Sort libre <strong>customSpell</strong></span>
+          <textarea id="customSpellInput" spellcheck="false" aria-label="JSON du sort libre"></textarea>
+        </label>
+        <div class="game-actions game-actions-inline">
+          <button class="game-button primary" id="installCustomSpellButton" type="button">Charger le sort libre</button>
+          <button class="game-button" id="disposeCustomSpellButton" type="button">Détruire le sort libre</button>
+        </div>
+      </details>
+      <div class="game-preparation-footer">
+        <p class="game-feedback" id="gameFeedback" role="status">Le duel n’a pas encore commencé.</p>
+        <button class="game-button primary game-ready-button" id="startMatchButton" type="button">Prêt</button>
+      </div>
+    </section>
+
+    <section class="game-layout" id="gameArena" aria-label="Arène de combat 3D" hidden>
+      <div class="game-stage-card">
+        <canvas id="gameCanvas" width="1200" height="720" aria-label="Arène de combat 3D"></canvas>
+        <div class="game-stage-hint">ZQSD ou flèches : se déplacer · clic : lancer · Maj : esquiver · G : garde</div>
+        <div class="game-drawing-overlay" id="gameDrawingOverlay" hidden>
+          <div class="game-drawing-card" role="dialog" aria-modal="true" aria-labelledby="drawingTitle">
+            <div class="game-panel-heading">
+              <p class="eyebrow">Composition en direct</p>
+              <h2 id="drawingTitle">Tracer un sort</h2>
+              <p>Les mouvements continuent au ralenti. Trace une forme simple, puis confirme avant de reprendre le duel.</p>
+            </div>
+            <canvas id="drawingCanvas" width="640" height="360" aria-label="Toile de dessin du sort"></canvas>
+            <div class="game-drawing-tools" aria-label="Symboles rapides">
+              <button class="game-button" type="button" data-drawing-symbol="circle">Cercle</button>
+              <button class="game-button" type="button" data-drawing-symbol="cross">Croix</button>
+              <button class="game-button" type="button" data-drawing-symbol="burst">Éclat</button>
+            </div>
+            <div class="game-drawing-meter"><span>Concentration</span><meter id="drawingConcentration" min="0" max="100" value="100">100%</meter></div>
+            <div class="game-actions game-actions-inline">
+              <button class="game-button primary" id="drawingConfirmButton" type="button">Confirmer</button>
+              <button class="game-button" id="drawingCancelButton" type="button">Annuler</button>
+            </div>
+            <p class="game-feedback" id="drawingFeedback" role="status">Trace ton sort.</p>
+          </div>
+        </div>
+      </div>
+      <aside class="game-control-panel" id="gameCombatPanel">
+        <div id="gameCombatHud" aria-label="HUD du combat"></div>
+        <div class="game-actions">
+          <button class="game-button primary" id="openDrawingButton" type="button">Dessiner en combat (E)</button>
+          <button class="game-button quiet" id="resetGameButton" type="button">Réinitialiser le combat</button>
+        </div>
+      </aside>
+    </section>
+  </main>
+  <script type="module" src="game-demo.mjs?v=20260920-free-combat-fix-v4"></script>
+</body>
+</html>

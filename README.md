@@ -6,6 +6,12 @@ Library recipes, Circle Commons imports and `#practice` links still open the
 editor directly. Saved canvases remain in this browser's existing local storage.
 Saving to the personal gallery requires a verified Circle Commons session.
 Guests can still draw; existing local saves are retained while signed out.
+The home also opens the combat prototype (`jeu.html`) and the effect editor
+(`local-demo/effect-editor/`). The latter saves custom symbols and effect
+compositions in this browser and accepts GLB models. Its effects are currently
+previewed separately from combat. The combat player uses a baked Blender GLB
+strike animation in `assets/animations/`. Blender authoring itself is an
+offline development tool, not a browser feature.
 The sign-in return carries a one-hour signed proof, verified by Circle Commons
 without third-party cookies. It unlocks only this browser's local gallery, not
 any protected Circle Commons API. Signing out clears the proof in this tab.
