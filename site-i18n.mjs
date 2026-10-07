@@ -2,7 +2,7 @@ import {
   DEFAULT_LOCALE,
   resolveLocale,
   translate,
-} from "./i18n.mjs?v=20261003-shared-canvas-v1-portal";
+} from "./i18n.mjs?v=20261003-shared-canvas-v1-portal-combat";
 
 let currentLocale = DEFAULT_LOCALE;
 

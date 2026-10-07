@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Atelier</title>
+    <script>
+      const destination = new URL("./index.html", location.href);
+      destination.search = location.search;
+      destination.searchParams.set("view", "atelier");
+      destination.hash = location.hash;
+      location.replace(destination);
+    </script>
+  </head>
+  <body><a href="index.html?view=atelier">Ouvrir l'atelier</a></body>
+</html>

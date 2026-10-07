@@ -37,7 +37,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20261003-shared-canvas-v1-banner">
+    <link rel="stylesheet" href="styles.css?v=20261003-shared-canvas-v1-banner-combat">
     <script type="importmap">
       {
         "imports": {
@@ -47,7 +47,7 @@
       }
     </script>
     <script type="module" src="site-nav.mjs?v=20260831-auth-session-v1-bridge-0919"></script>
-    <script type="module" src="site-i18n.mjs?v=20261003-shared-canvas-v1"></script>
+    <script type="module" src="site-i18n.mjs?v=20261003-shared-canvas-v1-combat"></script>
     <script type="module" src="app.js?v=20261003-shared-canvas-v1"></script>
   </head>
   <body class="simulator-page toolbar-side app-home-page" data-app-view-title="Atelier">
@@ -111,6 +111,14 @@
                 <strong data-i18n="appHub.multiplayer">Shared canvases</strong>
                 <small class="app-hub-card-status" data-i18n="appHub.multiplayerDetail">Create a canvas and invite others with a link.</small>
               </span>
+            </a>
+            <a class="app-hub-shortcut" href="jeu.html">
+              <span class="app-hub-card-icon" aria-hidden="true">&#9876;</span>
+              <span class="app-hub-card-text"><strong data-i18n="appHub.combat">Combat</strong></span>
+            </a>
+            <a class="app-hub-shortcut" href="local-demo/effect-editor/">
+              <span class="app-hub-card-icon" aria-hidden="true">&#9881;</span>
+              <span class="app-hub-card-text"><strong data-i18n="appHub.mods">Mods et effets</strong></span>
             </a>
           </nav>
         </div>
@@ -667,11 +675,26 @@
             <button class="command-button command-primary" id="activateButton" type="button" data-i18n="commands.activate">Activate</button>
             <button class="command-button command-history" id="undoButton" type="button" data-i18n="commands.undo">Undo</button>
             <button class="command-button command-danger" id="clearButton" type="button" data-i18n="commands.clear">Clear</button>
-            <button class="command-button command-archive" id="saveButton" type="button" data-i18n="commands.savePng">Archive PNG</button>
-            <button class="command-button command-archive" id="saveExampleButton" type="button" data-i18n="commands.saveExample">Save as example</button>
-            <button class="command-button command-tool" id="circleImportButton" type="button" aria-controls="photoImportDialog" aria-expanded="false" data-i18n="import.toggle">Import circle</button>
-            <button class="command-button command-archive" id="circleJsonExportButton" type="button" data-i18n="import.exportJson">Export JSON</button>
-            <button class="command-button command-archive" id="saveSpellButton" type="button" aria-controls="spellSaveDialog" data-i18n="commands.saveSpell">Save spell</button>
+            <details class="command-menu">
+              <summary data-i18n="commands.saveMenu">Save</summary>
+              <div class="command-menu-actions">
+                <button id="saveButton" type="button" data-i18n="commands.savePng">Archive PNG</button>
+                <button id="saveExampleButton" type="button" data-i18n="commands.saveExample">Save as example</button>
+                <button id="saveSpellButton" type="button" aria-controls="spellSaveDialog" data-i18n="commands.saveSpell">Save spell</button>
+              </div>
+            </details>
+            <details class="command-menu">
+              <summary data-i18n="commands.importMenu">Import</summary>
+              <div class="command-menu-actions">
+                <button id="circleImportButton" type="button" aria-controls="photoImportDialog" aria-expanded="false" data-i18n="import.toggle">Import circle</button>
+              </div>
+            </details>
+            <details class="command-menu">
+              <summary data-i18n="commands.exportMenu">Export</summary>
+              <div class="command-menu-actions">
+                <button id="circleJsonExportButton" type="button" data-i18n="import.exportJson">Export JSON</button>
+              </div>
+            </details>
             <button class="command-button command-tool" id="sharedCanvasButton" type="button" data-i18n="sharedCanvas.create">Create shared canvas</button>
             <button class="command-button command-community" id="publishCommunityButton" type="button" data-community-url="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site" data-i18n="commands.publishCommunity">Publish this circle</button>
           </div>
