@@ -22,9 +22,9 @@ test("English and French expose identical keys", () => {
 });
 
 test("translation interpolates parameters and falls back to English", () => {
-  assert.equal(translate("en", "status.symbolPrepared", { name: "Water" }), "Water symbol ready.");
-  assert.equal(translate("fr", "status.symbolPrepared", { name: "Eau" }), "Symbole Eau prepare.");
-  assert.equal(translate("de", "status.symbolPrepared", { name: "Water" }), "Water symbol ready.");
+  assert.equal(translate("en", "status.symbolClickToPlace", { name: "Water" }), "Water ready. Click the parchment to place it.");
+  assert.equal(translate("fr", "status.symbolClickToPlace", { name: "Eau" }), "Eau prepare. Clique sur le parchemin pour le placer.");
+  assert.equal(translate("de", "status.symbolClickToPlace", { name: "Water" }), "Water ready. Click the parchment to place it.");
 });
 
 test("unknown keys remain visible for diagnostics", () => {
