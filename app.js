@@ -16,9 +16,9 @@ import {
   isSpellAction,
   resolveGlyphSemantic,
   toggleSelectedCommentState,
-} from "./action-semantics.mjs?v=20260905-local-recognition-v1";
+} from "./action-semantics.mjs?v=20261113-comment-context-v2";
 import { loadStrokeSmoothing, smoothStroke } from "./stroke-smoothing.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20261113-nested-ritual-menu";
+import { getLocale, t } from "./site-i18n.mjs?v=20261113-comment-context-v2";
 import {
   createAdSenseScript,
   mountAdSensePlacement,
@@ -174,6 +174,7 @@ const colors = {
   line: "#d1bd92",
   guide: "#9f8558",
   normalInk: "#201a16",
+  commentInk: "#7d8289",
 };
 
 const elements = PALETTE_ELEMENTS;
@@ -407,9 +408,9 @@ const architectureStages = document.querySelector("#architectureStages");
 const architectureSymbols = document.querySelector("#architectureSymbols");
 const strokeInput = document.querySelector("#strokeInput");
 const annotationModeInput = document.querySelector("#annotationModeInput");
+const commentModeInput = document.querySelector("#commentModeInput");
 const annotationTextInput = document.querySelector("#annotationTextInput");
 const inkColorInput = document.querySelector("#inkColorInput");
-const annotationColorInput = document.querySelector("#annotationColorInput");
 const annotationWeightInput = document.querySelector("#annotationWeightInput");
 const selectionScaleInput = document.querySelector("#selectionScaleInput");
 const selectionScaleLabel = document.querySelector("#selectionScaleLabel");
@@ -601,8 +602,8 @@ const state = {
   strokeSize: 3,
   strokeSmoothing: loadStrokeSmoothing(localStorage),
   annotationKind: "drawing",
+  commentMode: localStorage.getItem("whaCommentMode") === "true",
   drawingColor: colors.normalInk,
-  annotationColor: colors.edge,
   annotationWeight: 600,
   canvasScale: Number(localStorage.getItem("whaCanvasScale") || 100),
   spoilerChapter: readSpoilerChapter(localStorage),
@@ -2195,13 +2196,14 @@ function drawSpiral(action, dashed = false) {
 
 function drawAnnotation(action, dashed = false) {
   ctx.save();
-  ctx.globalAlpha = dashed ? 0.62 : 0.9;
+  const comment = isAnnotationAction(action);
+  ctx.globalAlpha = dashed ? 0.62 : comment ? 0.9 : 1;
   ctx.strokeStyle = action.color || colors.edge;
   ctx.fillStyle = action.color || colors.edge;
   ctx.lineWidth = visibleLineWidth(action.width || 2);
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  ctx.setLineDash(dashed ? [6, 4] : [3, 4]);
+  ctx.setLineDash(dashed ? [6, 4] : comment ? [3, 4] : []);
   if (action.kind === "text") {
     const size = Math.max(12, Number(action.size) || 18);
     const weight = Math.max(300, Math.min(900, Number(action.fontWeight) || 600));
@@ -2211,12 +2213,14 @@ function drawAnnotation(action, dashed = false) {
     ctx.translate(action.x, action.y);
     ctx.rotate(Number(action.rotation) || 0);
     ctx.fillText(String(action.text || ""), 0, 0);
-    ctx.beginPath();
-    ctx.moveTo(0, 4);
-    ctx.lineTo(Math.max(size, String(action.text || "").length * size * 0.58), 4);
-    ctx.stroke();
+    if (comment) {
+      ctx.beginPath();
+      ctx.moveTo(0, 4);
+      ctx.lineTo(Math.max(size, String(action.text || "").length * size * 0.58), 4);
+      ctx.stroke();
+    }
   } else {
-    drawStroke(action.points || [], action.color || colors.edge, action.width || 2, true);
+    drawStroke(action.points || [], action.color || colors.edge, action.width || 2, dashed || comment);
   }
   ctx.restore();
 }
@@ -2225,6 +2229,7 @@ function drawAction(action, dashed = false) {
   if (action?.visible === false && !dashed) {
     return;
   }
+  if (isAnnotationAction(action)) action = { ...action, color: colors.commentInk, fillColor: colors.commentInk };
   ctx.save();
   ctx.strokeStyle = action.color;
   ctx.fillStyle = action.color;
@@ -9027,9 +9032,11 @@ function openSelectionContextMenu(event) {
   updateCompositionContextAction();
   updateCommentContextActions();
   selectionContextMenu.hidden = false;
+  const canvasBounds = canvasWrap.getBoundingClientRect();
+  selectionContextMenu.style.maxHeight = `${Math.max(120, Math.min(400, canvasBounds.height - 20))}px`;
   const rect = selectionContextMenu.getBoundingClientRect();
   const left = Math.max(10, Math.min(event.clientX + 8, window.innerWidth - rect.width - 10));
-  const top = Math.max(10, Math.min(event.clientY + 8, window.innerHeight - rect.height - 10));
+  const top = Math.max(canvasBounds.top + 8, Math.min(event.clientY + 8, canvasBounds.bottom - rect.height - 8));
   selectionContextMenu.style.left = `${left}px`;
   selectionContextMenu.style.top = `${top}px`;
   selectionContextMenu.querySelector("button")?.focus({ preventScroll: true });
@@ -9103,11 +9110,6 @@ function syncSelectionGrimoire() {
       ? selectedAction.color
       : state.drawingColor;
   }
-  if (!state.styleGestureActive && annotationColorInput) {
-    annotationColorInput.value = /^#[0-9a-f]{6}$/i.test(selectedAction?.color || "")
-      ? selectedAction.color
-      : state.annotationColor;
-  }
   if (!state.styleGestureActive && annotationWeightInput) {
     annotationWeightInput.value = String(Math.max(300, Math.min(900, Number(selectedAction?.fontWeight) || state.annotationWeight)));
   }
@@ -9138,15 +9140,11 @@ function applySelectedStyle(style) {
   if (indices.length === 0) {
     if (style.width !== undefined) state.strokeSize = style.width;
     if (style.color !== undefined) state.drawingColor = style.color;
-    if (style.annotationColor !== undefined) state.annotationColor = style.annotationColor;
     if (style.fontWeight !== undefined) state.annotationWeight = style.fontWeight;
     return;
   }
   if (!state.styleGestureActive) beginStyleGesture();
-  const selectedStyle = style.annotationColor === undefined
-    ? style
-    : { ...style, color: style.annotationColor };
-  state.actions = styleSelectedActions(state.actions, indices, selectedStyle);
+  state.actions = styleSelectedActions(state.actions, indices, style);
   state.activeSpell = null;
   updateUsedList();
   updateSpellState();
@@ -9771,6 +9769,9 @@ function commitAction(action) {
     return;
   }
 
+  if (action.type === "annotation") action.comment = state.commentMode;
+  else if (state.commentMode && isCommentableAction(action)) action.comment = true;
+
   if (isFreehandClosedSeal(action)) {
     action.label = "Sceau libre";
     action.element = "Structure";
@@ -9802,7 +9803,7 @@ function commitAction(action) {
 
   const actionClosedSeal = isCompleteSeal(action);
 
-  if (state.autoActivation && actionClosedSeal) {
+  if (state.autoActivation && actionClosedSeal && isSpellAction(action)) {
     setStatus(t("status.autoSealDetected"));
     window.setTimeout(activateCircle, 160);
   } else if (action.seal) {
@@ -9858,7 +9859,7 @@ function createTextAnnotation(point, text) {
     kind: "text",
     label: labels.annotation,
     text: text.trim().slice(0, 500),
-    color: state.annotationColor,
+    color: state.drawingColor,
     width: lineWidth(),
     x: point.x,
     y: point.y,
@@ -10788,6 +10789,7 @@ function onPointerDown(event) {
       width: lineWidth(),
       points: [point],
       rawPoints: [point],
+      ...(state.commentMode ? { comment: true } : {}),
     };
   } else if (state.tool === "annotation" && state.annotationKind === "text") {
     const text = annotationTextInput?.value.trim() || "";
@@ -11356,7 +11358,7 @@ function updateCommentContextActions() {
   if (commentToggleMenuItem) {
     commentToggleMenuItem.hidden = commentableIndices.length === 0;
     if (commentableIndices.length > 0) {
-      const restore = commentableIndices.every((index) => state.actions[index]?.comment === true);
+      const restore = commentableIndices.every((index) => isAnnotationAction(state.actions[index]));
       commentToggleMenuItem.dataset.i18n = restore ? "selectionMenu.toSpell" : "selectionMenu.toComment";
       commentToggleMenuItem.textContent = t(commentToggleMenuItem.dataset.i18n);
     }
@@ -14223,13 +14225,6 @@ inkColorInput?.addEventListener("pointerdown", beginStyleGesture);
 inkColorInput?.addEventListener("change", endStyleGesture);
 inkColorInput?.addEventListener("blur", endStyleGesture);
 
-annotationColorInput?.addEventListener("input", () => {
-  applySelectedStyle({ annotationColor: annotationColorInput.value });
-});
-annotationColorInput?.addEventListener("pointerdown", beginStyleGesture);
-annotationColorInput?.addEventListener("change", endStyleGesture);
-annotationColorInput?.addEventListener("blur", endStyleGesture);
-
 annotationWeightInput?.addEventListener("input", () => {
   applySelectedStyle({ fontWeight: Number(annotationWeightInput.value) });
 });
@@ -14242,6 +14237,14 @@ annotationModeInput?.addEventListener("change", () => {
   updateToolButtons();
   setStatus(t("status.annotationMode", { mode: t(`annotation.kind.${state.annotationKind}`) }));
 });
+
+if (commentModeInput) {
+  commentModeInput.checked = state.commentMode;
+  commentModeInput.addEventListener("change", () => {
+    state.commentMode = commentModeInput.checked;
+    localStorage.setItem("whaCommentMode", String(state.commentMode));
+  });
+}
 
 annotationTextInput?.addEventListener("input", () => {
   const index = state.annotationEditingIndex;

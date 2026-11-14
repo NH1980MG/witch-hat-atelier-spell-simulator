@@ -21,9 +21,9 @@ test("epaisseur et couleur modifient la selection ou les prochains traits", () =
   assert.match(app, /strokeInput\.addEventListener\("input"/);
   assert.match(app, /inkColorInput\?\.addEventListener\("input"/);
   assert.match(app, /state\.drawingColor/);
-  assert.match(html, /id=["']annotationColorInput["'][^>]+type=["']color["']/);
+  assert.match(html, /id=["']commentModeInput["'][^>]+type=["']checkbox["']/);
   assert.match(html, /id=["']annotationWeightInput["'][^>]+type=["']range["']/);
-  assert.match(app, /state\.annotationColor/);
+  assert.match(app, /state\.commentMode/);
   assert.match(app, /state\.annotationWeight/);
   const widthBody = app.match(/function lineWidth\(\) \{([\s\S]*?)\n\}/)?.[1] || "";
   assert.match(widthBody, /state\.strokeSize/);

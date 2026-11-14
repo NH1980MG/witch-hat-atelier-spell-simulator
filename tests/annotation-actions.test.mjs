@@ -52,6 +52,15 @@ test("une annotation est visible mais n'appartient pas au sort", () => {
   assert.deepEqual(spellActions([annotation, circle]), [circle]);
 });
 
+test("un texte peut passer de commentaire a texte ordinaire et inversement", () => {
+  const ordinary = toggleSelectedCommentState([annotation], [0]);
+  assert.equal(ordinary[0].comment, false);
+  assert.equal(isSpellAction(ordinary[0]), true);
+  const commented = toggleSelectedCommentState(ordinary, [0]);
+  assert.equal(commented[0].comment, true);
+  assert.equal(isAnnotationAction(commented[0]), true);
+});
+
 test("un objet ou un groupe peut devenir commentaire puis redevenir un element du sort", () => {
   const actions = [circle, { type: "glyph", x: 180, y: 120, rotation: 0 }];
   const commented = toggleSelectedCommentState(actions, [0, 1]);
@@ -76,12 +85,12 @@ test("une selection mixte est convertie sans perdre la geometrie des objets", ()
 
   assert.deepEqual(commented[0], { ...circle, comment: true });
   assert.deepEqual(commented[1], { ...actions[1], comment: true });
-  assert.deepEqual(commented[2], annotation);
+  assert.deepEqual(commented[2], { ...annotation, comment: true });
 
   const restored = toggleSelectedCommentState(commented, [0, 1, 2]);
   assert.equal(restored[0].comment, undefined);
   assert.equal(restored[1].comment, undefined);
-  assert.deepEqual(restored[2], annotation);
+  assert.deepEqual(restored[2], { ...annotation, comment: false });
 });
 
 test("une annotation reste manipulable comme un objet visuel", () => {

@@ -11,13 +11,13 @@ const galleryRevision = sharedRevision;
 const publicAssetRevision = "20261003-shared-canvas-v1";
 
 test("the language controller imports the current catalog revision", () => {
-  assert.match(siteI18nSource, /from "\.\/i18n\.mjs\?v=20261113-nested-ritual-menu"/);
+  assert.match(siteI18nSource, /from "\.\/i18n\.mjs\?v=20261113-comment-context-v2"/);
 });
 
 test("public pages use the current asset revisions", async () => {
   for (const page of publicPages) {
     const source = await readFile(new URL(`../${page}`, import.meta.url), "utf8");
-    const expectedRevision = page === "index.html" ? "20261113-nested-ritual-menu"
+    const expectedRevision = page === "index.html" ? "20261113-comment-context-v2"
       : page === "parametres.html" ? "20261113-recognition-settings" : publicAssetRevision;
     assert.match(source, new RegExp(`styles\\.css\\?v=${expectedRevision}`), `${page}: stale styles revision`);
     const i18nRevision = page === "index.html" || page === "parametres.html" ? expectedRevision : sharedRevision;
@@ -42,7 +42,7 @@ test("the practice workflow is a menu feature beside the tutorial", async () => 
 });
 
 test("the simulator uses the shared runtime translation service", () => {
-  assert.match(appSource, /from "\.\/site-i18n\.mjs\?v=20261113-nested-ritual-menu"/);
+  assert.match(appSource, /from "\.\/site-i18n\.mjs\?v=20261113-comment-context-v2"/);
   assert.match(appSource, /function elementDisplayName\(/);
   assert.match(appSource, /wha:localechange/);
 });

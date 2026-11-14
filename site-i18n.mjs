@@ -2,7 +2,7 @@ import {
   DEFAULT_LOCALE,
   resolveLocale,
   translate,
-} from "./i18n.mjs?v=20261113-nested-ritual-menu";
+} from "./i18n.mjs?v=20261113-comment-context-v2";
 
 let currentLocale = DEFAULT_LOCALE;
 
