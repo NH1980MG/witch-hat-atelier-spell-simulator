@@ -9,8 +9,7 @@ Base: origin/main 9cf19d4. Isolated branch: feature/ink-duel.
   options, language switch and resizing verified. No console errors observed.
 - Whole-branch review: three actionable findings fixed with regression tests
   (AI repair endpoint ambiguity, solid projectile range, inverted Traction).
-- Baseline suite: 733 passed. After preserving public commit b0fc544: 753 passed,
-  zero failures.
+- Baseline suite: 733 passed. Final integrated run: 752 passed, zero failures.
 - Matrix: 65,600 deterministic plans pass. Security and staged public artifact pass.
 
 Implementation consolidation: recipe compilation lives in the catalogue module;
@@ -22,8 +21,6 @@ glyph hit regions rather than segment-level glyph fractures; approximate envelop
 colliders. Separate automated coverage for every modifier and physical-device
 touch testing remain future work. Canvas visuals were checked in screenshots;
 the browser's read-only DOM bridge does not expose canvas pixel-buffer access.
-Screenshot pixel audit: arena crop 460,925 pixels, 28,048 distinct colors,
-460,910 nonblack pixels. Animated combat observed in successive screenshots.
 
 Ruling: keep the game as a dedicated page, with a top-down world and shared glyph assets; no modifications to editor physics or authentication.
 Ruling: speculative creature combat abilities remain unavailable; catalogue coverage is explicit and does not mean every uncertain entry has an invented effect.

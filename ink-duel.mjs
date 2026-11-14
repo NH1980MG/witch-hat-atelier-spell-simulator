@@ -106,15 +106,13 @@ function pointerMove(e){
 }
 function pointerUp(e){if(drag?.type==='draw')perform({type:'stroke',owner:0,points:drag.points,thickness:Number($('thickness').value)});if(drag?.type==='repair')command(s,{type:'repair',point:null});drag=null;view.preview=null;if(view.renderer.domElement.hasPointerCapture(e.pointerId))view.renderer.domElement.releasePointerCapture(e.pointerId);}
 async function restart(){
-  $('optionsDialog').close();$('resultDialog').close();s.paused=true;physics?.dispose();physics=await createDuelPhysics();s=createMatch({mode:$('experimental').checked?'experimental':'standard'});selected=null;view.selected=null;view.particles.length=0;resultShown=false;accumulator=0;
+  $('optionsDialog').close();$('resultDialog').close();physics?.dispose();physics=await createDuelPhysics();s=createMatch({mode:$('experimental').checked?'experimental':'standard'});selected=null;view.selected=null;view.particles.length=0;resultShown=false;accumulator=0;
   composing=structuredClone(presets[slot]);try{compileDuelRecipe(composing,s.mode);}catch{composing=structuredClone(PRESETS[0]);}
   setTool('place');populate();refresh();
 }
 function frame(now){
   const dt=Math.min(.05,(now-last)/1000||0);last=now;
-  const previousPhase=s.phase;
   if(!s.paused){accumulator+=dt;while(accumulator>=RULES.step){stepMatch(s,RULES.step,physics);accumulator-=RULES.step;}}
-  if(previousPhase==='preparation'&&s.phase==='combat')activatePreparedSeals();
   view.update(s,s.paused?0:dt);uiTime+=dt;frames++;frameSeconds+=dt;
   if(uiTime>.15){refresh();uiTime=0;}
   if(frameSeconds>1){$('performance').textContent=`${Math.round(frames/frameSeconds)} FPS`;if(frames/frameSeconds<28)view.quality=Math.min(view.quality,.5);frames=0;frameSeconds=0;}
@@ -130,8 +128,7 @@ $('saveSlot').addEventListener('click',()=>{try{compileDuelRecipe(composing,s.mo
 $('place').addEventListener('click',()=>{if(selected&&tool!=='place'){perform({type:'recompose',owner:0,id:selected,recipe:composing});return;}selected=null;view.selected=null;setTool('place');refresh();});
 $('activate').addEventListener('click',()=>perform({type:'activate',owner:0,id:selected}));
 $('remove').addEventListener('click',()=>{if(perform({type:'remove',owner:0,id:selected}).ok)select(null);});
-function activatePreparedSeals(){for(const seal of s.seals.filter(x=>x.owner===0&&!x.active&&!x.charging).slice(0,3))command(s,{type:'activate',owner:0,id:seal.id});}
-$('begin').addEventListener('click',()=>{perform({type:'start'});activatePreparedSeals();});
+$('begin').addEventListener('click',()=>{perform({type:'start'});for(const seal of s.seals.filter(x=>x.owner===0).slice(0,3))command(s,{type:'activate',owner:0,id:seal.id});});
 $('pause').addEventListener('click',()=>perform({type:'pause'}));$('resume').addEventListener('click',()=>perform({type:'pause'}));
 $('settings').addEventListener('click',()=>{pausedForOptions=!s.paused;s.paused=true;refresh();$('optionsDialog').showModal();});
 $('optionsDialog').addEventListener('close',()=>{if(pausedForOptions)s.paused=false;refresh();});
