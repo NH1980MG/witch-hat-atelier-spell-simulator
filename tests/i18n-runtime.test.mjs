@@ -11,15 +11,17 @@ const galleryRevision = sharedRevision;
 const publicAssetRevision = "20261003-shared-canvas-v1";
 
 test("the language controller imports the current catalog revision", () => {
-  assert.match(siteI18nSource, /from "\.\/i18n\.mjs\?v=20261006-command-menus"/);
+  assert.match(siteI18nSource, /from "\.\/i18n\.mjs\?v=20261113-recognition-settings"/);
 });
 
 test("public pages use the current asset revisions", async () => {
   for (const page of publicPages) {
     const source = await readFile(new URL(`../${page}`, import.meta.url), "utf8");
-    const expectedRevision = page === "index.html" ? `${publicAssetRevision}-command-menus` : publicAssetRevision;
+    const expectedRevision = page === "index.html" ? `${publicAssetRevision}-command-menus`
+      : page === "parametres.html" ? "20261113-recognition-settings" : publicAssetRevision;
     assert.match(source, new RegExp(`styles\\.css\\?v=${expectedRevision}`), `${page}: stale styles revision`);
-    assert.match(source, new RegExp(`site-i18n\\.mjs\\?v=${page === "index.html" ? expectedRevision : sharedRevision}`), `${page}: stale i18n runtime revision`);
+    const i18nRevision = page === "index.html" || page === "parametres.html" ? expectedRevision : sharedRevision;
+    assert.match(source, new RegExp(`site-i18n\\.mjs\\?v=${i18nRevision}`), `${page}: stale i18n runtime revision`);
   }
 });
 

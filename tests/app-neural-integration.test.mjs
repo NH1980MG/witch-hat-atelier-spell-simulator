@@ -69,6 +69,20 @@ test("preparation fails closed on validation errors or cancellation without disc
   }
 });
 
+test("uncertain groups are reviewed only on explicit request", async () => {
+  const { context, reviews } = harness([imageAction()]);
+  context.imageRecognition.analyze = async () => ({
+    groups: [{ id: "photo-1", key: "photo-1", source: "photo", count: 1, semantic: null,
+      result: { status: "unknown", candidates: [] } }],
+    fallback: false,
+  });
+
+  assert.equal(await context.prepareSymbolRecognition(), true);
+  assert.equal(reviews.length, 0);
+  assert.equal(await context.prepareSymbolRecognition({ reviewAll: true }), false);
+  assert.equal(reviews.length, 1);
+});
+
 test("compact signatures deduplicate image payloads but detect placement, semantic, and content mutations", () => {
   const large = `data:image/png;base64,${Buffer.alloc(512_000).toString("base64")}`;
   const input = Array.from({ length: 110 }, (_, x) => imageAction({ assetSrc: large, x }));

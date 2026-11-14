@@ -7653,7 +7653,7 @@ async function prepareSymbolRecognition({ reviewAll = false } = {}) {
     const groups = [...(preferences.canvas === "neural" ? canvasRecognitionSnapshot?.groups || [] : []), ...images.groups];
     const unresolved = groups.filter((group) => (group.source === "canvas" || preferences.photo === "neural")
       && !group.semantic && !group.ignored && !ignoredCanvasGroups.has(group.key));
-    if (reviewAll || unresolved.length) {
+    if (reviewAll) {
       const groupSnapshot = state.actions;
       const groupSignature = recognitionActionSignature(groupSnapshot);
       const validReview = () => revision === recognitionRevision && recognitionActionSignature() === currentReviewSignature;
@@ -7697,7 +7697,7 @@ async function prepareSymbolRecognition({ reviewAll = false } = {}) {
       });
       return false;
     }
-    recognitionControls.setStatus(fallback ? "fallback" : "");
+    recognitionControls.setStatus(fallback ? "fallback" : unresolved.length ? "pending" : "");
     updateUsedList();
     return true;
   } catch (error) {
@@ -15791,6 +15791,11 @@ if (measureInput) {
   measureInput.checked = state.showMeasure;
 }
 setGrimoireOpen(preferredGrimoireOpen, { persist: false });
+if (window.location.hash === "#recognitionControls") {
+  document.documentElement.dataset.appView = "atelier";
+  setGrimoireOpen(true);
+  document.getElementById("recognitionControls").open = true;
+}
 close3dView();
 setSymbolDrawer(false);
 setSupportDrawer(false);

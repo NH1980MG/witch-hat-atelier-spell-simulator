@@ -2,7 +2,7 @@ import {
   DEFAULT_LOCALE,
   resolveLocale,
   translate,
-} from "./i18n.mjs?v=20261006-command-menus";
+} from "./i18n.mjs?v=20261113-recognition-settings";
 
 let currentLocale = DEFAULT_LOCALE;
 

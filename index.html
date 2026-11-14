@@ -48,7 +48,7 @@
     </script>
     <script type="module" src="site-nav.mjs?v=20260831-auth-session-v1-bridge-0919"></script>
     <script type="module" src="site-i18n.mjs?v=20261003-shared-canvas-v1-command-menus"></script>
-    <script type="module" src="app.js?v=20261003-shared-canvas-v1"></script>
+    <script type="module" src="app.js?v=20261113-manual-recognition"></script>
   </head>
   <body class="simulator-page toolbar-side app-home-page" data-app-view-title="Atelier">
     <main class="app-shell">
@@ -657,6 +657,7 @@
               <input id="measureInput" type="checkbox" checked>
               <span data-i18n="grimoire.showDiameter">Show the diameter counter</span>
             </label>
+            <details id="recognitionControls" class="recognition-controls"></details>
           </div>
         </section>
 
@@ -692,7 +693,6 @@
           </div>
         </section>
 
-        <details id="recognitionControls" class="recognition-controls"></details>
           <output class="status" id="statusText" aria-live="polite" data-i18n="status.buttonMode">Button mode: draw a closed circle, then press Activate.</output>
         </div>
       </footer>
