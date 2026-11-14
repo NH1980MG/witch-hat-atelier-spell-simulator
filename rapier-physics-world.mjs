@@ -362,15 +362,39 @@ export function createSpellPhysicsRuntime(RAPIER, options = {}) {
     return hits;
   }
 
+  function forceTouchesTarget(force, entry) {
+    const position = vector3(entry.body.translation?.() || entry.target.position);
+    const origin = spellField.position;
+    const reach = Math.min(spellField.radiusMeters, Math.max(0.05, finiteNumber(force.radiusMeters, spellField.radiusMeters)));
+    const targetRadius = Math.max(0, finiteNumber(entry.target.radius, 0));
+    const dx = position.x - origin.x;
+    const dy = position.y - origin.y;
+    const dz = position.z - origin.z;
+    if (force.type === "directed-impulse" || force.mode === "directed-flow") {
+      const direction = vector3(force.direction, { x: 0, y: 0, z: -1 });
+      const length = Math.hypot(direction.x, direction.y, direction.z) || 1;
+      const along = (dx * direction.x + dy * direction.y + dz * direction.z) / length;
+      const sideways = Math.sqrt(Math.max(0, dx * dx + dy * dy + dz * dz - along * along));
+      return along >= -targetRadius && along <= reach + targetRadius
+        && sideways <= Math.max(0.08, Math.min(0.22, reach * 0.18)) + targetRadius;
+    }
+    return Math.hypot(dx, dy, dz) <= reach + targetRadius;
+  }
+
   function applySpellContacts(deltaSeconds) {
     if (!spellField) return;
-    const nextContacts = targetIdsInsideSpellField();
+    const nextContacts = new Set();
+    for (const id of targetIdsInsideSpellField()) {
+      const entry = targets.get(id);
+      if (entry && spellField.forces.some((force) => forceTouchesTarget(force, entry))) nextContacts.add(id);
+    }
     for (const id of nextContacts) {
       const entry = targets.get(id);
       if (!entry) continue;
       const isNewContact = !contacts.has(id);
-      const reactedMaterially = materialReaction(entry, spellField.forces, deltaSeconds);
-      for (const force of spellField.forces) {
+      const touchingForces = spellField.forces.filter((force) => forceTouchesTarget(force, entry));
+      const reactedMaterially = materialReaction(entry, touchingForces, deltaSeconds);
+      for (const force of touchingForces) {
         if (force.type === "thermal-field" || forceWetsTarget(force) || forceRestoresTarget(force) || forceCrystallizesTarget(force) || forceAdheresTarget(force) || forceIlluminatesTarget(force)) continue;
         if (isNewContact && !entry.target.anchored) applyForceToBody(entry.body, force, entry.mass);
         if (!reactedMaterially) entry.reactionState = reactionStateForForce(force);

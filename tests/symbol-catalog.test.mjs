@@ -153,7 +153,7 @@ test("le navigateur charge la nouvelle version du catalogue partage", async () =
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 
   assert.match(app, /symbol-catalog\.mjs\?v=20260809-handoff-layout-v2-aeriforme-0912/);
-  assert.match(html, /app\.js\?v=20261114-grimoire-groups/);
+  assert.match(html, /app\.js\?v=20261114-contact-only-v1/);
   assert.match(html, /styles\.css\?v=20261114-grimoire-groups/);
 });
 
