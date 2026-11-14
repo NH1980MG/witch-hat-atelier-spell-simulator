@@ -63,7 +63,7 @@ const SOURCE_OPENING_COUNTS = Object.freeze({
   Lumiere: 5,
   Cristal: 4,
   Aeriforme: 0,
-  Vent: 4,
+  Vent: 0,
   "Vent sous pied": 4,
   Repetition: 1,
   Fumee: 0,

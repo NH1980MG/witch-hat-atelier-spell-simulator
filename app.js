@@ -6,7 +6,7 @@ import {
   SYMBOL_AUDIT,
   SYMBOL_BOARD_ASSET,
   SYMBOL_PATHS,
-} from "./symbol-catalog.mjs?v=20260809-handoff-layout-v2-aeriforme-0912";
+} from "./symbol-catalog.mjs?v=20261114-vent-rays";
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260812-particle-field-v1";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260905-local-recognition-v1";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs?v=20260905-local-recognition-v1";

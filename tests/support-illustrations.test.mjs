@@ -19,5 +19,5 @@ test("the shoe card uses the flat transparent support artwork", async () => {
 });
 
 test("the browser loads the refined support artwork version", () => {
-  assert.match(html, /app\.js\?v=20261114-grimoire-groups/);
+  assert.match(html, /app\.js\?v=20261114-vent-rays/);
 });
