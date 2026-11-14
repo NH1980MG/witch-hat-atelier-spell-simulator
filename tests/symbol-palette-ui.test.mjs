@@ -217,9 +217,36 @@ test("le defilement tactile vertical ne demarre pas le transport d'un symbole", 
   assert.doesNotMatch(inkButtonRule, /touch-action:\s*none/);
 });
 
+// Toute affectation de state.tool : simple (=), composee (+=, -=, ...) ou
+// logique (??=, ||=, &&=). Les comparaisons (==, ===, !==, <=, >=) ne comptent pas.
+const STATE_TOOL_ASSIGNMENT = /state\s*\.\s*tool\s*(?:\?\?|\|\||&&|\*\*|<<|>>>?|[-+*/%&|^])?=(?!=)/g;
+
+test("le motif d'affectation de state.tool reconnait toutes les formes", () => {
+  const count = (source) => source.match(STATE_TOOL_ASSIGNMENT)?.length || 0;
+
+  for (const source of [
+    'state.tool = "select"',
+    'state.tool += "select"',
+    'state.tool ??= "select"',
+    'state.tool ||= "select"',
+    'state.tool &&= "select"',
+    'state . tool="select"',
+  ]) {
+    assert.equal(count(source), 1, source);
+  }
+  for (const source of [
+    'state.tool == "select"',
+    'state.tool === "select"',
+    'state.tool !== "select"',
+    'state.tool && x === y',
+  ]) {
+    assert.equal(count(source), 0, source);
+  }
+});
+
 test("une seule affectation de state.tool subsiste, dans setTool", async () => {
   const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
-  const assignments = app.match(/state\s*\.\s*tool\s*[-+?&|]?=[^=]/g) || [];
+  const assignments = app.match(STATE_TOOL_ASSIGNMENT) || [];
 
   assert.equal(
     assignments.length,
