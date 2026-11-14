@@ -18,7 +18,7 @@ import {
   toggleSelectedCommentState,
 } from "./action-semantics.mjs?v=20260905-local-recognition-v1";
 import { loadStrokeSmoothing, smoothStroke } from "./stroke-smoothing.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20261003-shared-canvas-v1";
+import { getLocale, t } from "./site-i18n.mjs?v=20261113-panel-menu";
 import {
   createAdSenseScript,
   mountAdSensePlacement,
@@ -14337,6 +14337,13 @@ sound3dButton?.addEventListener("click", toggleThreeSound);
 resetTarget3dButton?.addEventListener("click", resetSelectedThreeTarget);
 resetScene3dButton?.addEventListener("click", resetThreeScene);
 symbolToggleButton?.addEventListener("click", () => setSymbolDrawer(true));
+const atelierPanelsMenu = document.querySelector("#atelierPanelsMenu");
+atelierPanelsMenu?.addEventListener("click", (event) => {
+  if (event.target.closest("button")) atelierPanelsMenu.open = false;
+});
+document.addEventListener("click", (event) => {
+  if (atelierPanelsMenu?.open && !atelierPanelsMenu.contains(event.target)) atelierPanelsMenu.open = false;
+});
 closeSymbolsButton?.addEventListener("click", () => setSymbolDrawer(false));
 compositionToggleButton?.addEventListener("click", () => openSigilCompositionEditor(null, "button"));
 closeSigilCompositionButton?.addEventListener("click", (event) => {

@@ -37,7 +37,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20261003-shared-canvas-v1-command-menus">
+    <link rel="stylesheet" href="styles.css?v=20261113-panel-menu">
     <script type="importmap">
       {
         "imports": {
@@ -47,8 +47,8 @@
       }
     </script>
     <script type="module" src="site-nav.mjs?v=20260831-auth-session-v1-bridge-0919"></script>
-    <script type="module" src="site-i18n.mjs?v=20261003-shared-canvas-v1-command-menus"></script>
-    <script type="module" src="app.js?v=20261113-manual-recognition"></script>
+    <script type="module" src="site-i18n.mjs?v=20261113-panel-menu"></script>
+    <script type="module" src="app.js?v=20261113-panel-menu"></script>
   </head>
   <body class="simulator-page toolbar-side app-home-page" data-app-view-title="Atelier">
     <main class="app-shell">
@@ -243,6 +243,9 @@
           </div>
         </div>
 
+        <details class="atelier-panels-menu" id="atelierPanelsMenu">
+          <summary data-i18n="atelier.panels">Panels</summary>
+          <div class="atelier-panels-list">
         <button class="symbol-island" id="symbolToggleButton" type="button" aria-controls="symbolDrawer" aria-expanded="false">
           <span aria-hidden="true">&#9671;</span>
           <span data-i18n="drawer.symbols">Sigils and signs</span>
@@ -272,6 +275,8 @@
           <span aria-hidden="true">&#9733;</span>
           <span data-i18n="drawer.gallery">Gallery</span>
         </button>
+          </div>
+        </details>
 
         <input type="file" id="photoFileInput" accept="image/*" hidden>
 

@@ -24,3 +24,12 @@ test("symbol review lives in settings with a link from the settings page", async
   assert.doesNotMatch(ritualCommands, /id="recognitionControls"/);
   assert.match(settings, /index\.html\?view=atelier#recognitionControls/);
 });
+
+test("workshop side panels are grouped in one menu", async () => {
+  const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  const menu = html.split('<details class="atelier-panels-menu"')[1]?.split("</details>")[0];
+  assert.ok(menu, "atelier panel menu exists");
+  for (const id of ["symbolToggleButton", "compositionToggleButton", "detailsToggleButton", "supportToggleButton", "guideToggleButton", "galleryToggleButton"]) {
+    assert.match(menu, new RegExp(`id="${id}"`));
+  }
+});

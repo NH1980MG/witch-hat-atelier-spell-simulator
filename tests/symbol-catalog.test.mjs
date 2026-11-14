@@ -153,8 +153,8 @@ test("le navigateur charge la nouvelle version du catalogue partage", async () =
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 
   assert.match(app, /symbol-catalog\.mjs\?v=20260809-handoff-layout-v2-aeriforme-0912/);
-  assert.match(html, /app\.js\?v=20261113-manual-recognition/);
-  assert.match(html, /styles\.css\?v=20261003-shared-canvas-v1-command-menus/);
+  assert.match(html, /app\.js\?v=20261113-panel-menu/);
+  assert.match(html, /styles\.css\?v=20261113-panel-menu/);
 });
 
 test("chaque glyphe partage possede une planche d'audit generee", () => {

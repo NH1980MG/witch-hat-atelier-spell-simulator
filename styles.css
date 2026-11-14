@@ -6052,3 +6052,75 @@ html[data-app-view="atelier"] body.app-home-page .app-shell:has(> .shared-canvas
   .recognition-group-card { grid-template-columns: 65px minmax(0, 1fr); gap: 0.65rem; }
   .recognition-actions button { flex: 1 1 100%; }
 }
+
+.atelier-panels-menu {
+  position: absolute;
+  z-index: 11;
+  top: 18px;
+  right: 18px;
+  width: min(230px, calc(100% - 36px));
+}
+
+.atelier-panels-menu > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 42px;
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+  padding: 9px 14px;
+  background: var(--button);
+  color: var(--ink);
+  font-weight: 700;
+  box-shadow: 0 8px 24px var(--shadow);
+  cursor: pointer;
+  list-style: none;
+}
+
+.atelier-panels-menu > summary::-webkit-details-marker { display: none; }
+.atelier-panels-menu > summary::after { content: "\2304"; }
+.atelier-panels-menu[open] > summary::after { transform: rotate(180deg); }
+
+.atelier-panels-list {
+  display: grid;
+  gap: 3px;
+  max-height: min(440px, 65vh);
+  margin-top: 4px;
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+  padding: 5px;
+  overflow-y: auto;
+  background: var(--paper);
+  box-shadow: 0 12px 28px var(--shadow);
+}
+
+.atelier-panels-list > :is(.symbol-island, .composition-island, .details-island, .support-island, .guide-island, .gallery-island) {
+  position: static;
+  width: 100%;
+  max-width: none;
+  min-height: 42px;
+  justify-content: flex-start;
+  border-radius: 4px;
+  padding: 8px 10px;
+  box-shadow: none;
+  font-size: 0.92rem;
+}
+
+@media (max-width: 600px) {
+  .atelier-panels-menu {
+    position: absolute;
+    top: 12px;
+    right: auto;
+    left: calc(100vw - min(190px, 100vw - 24px) - 12px);
+    width: min(190px, calc(100vw - 24px));
+  }
+  .atelier-panels-list > :is(.symbol-island, .composition-island, .details-island, .support-island, .guide-island) > span:not([aria-hidden="true"]) {
+    position: static;
+    width: auto;
+    height: auto;
+    clip: auto;
+    clip-path: none;
+    overflow: visible;
+    white-space: normal;
+  }
+}
