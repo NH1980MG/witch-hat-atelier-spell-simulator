@@ -458,3 +458,15 @@ recorded in `docs/stress-tests/2026-07-27-element-search-placement.md` as cases
 
 Revision 3 changes no scope, adds no user-facing surface, and removes one state
 field.
+
+## Correction note, 2026-11-13
+
+The Discoverability section above says the duplicate button "carries a tooltip
+naming its shortcut, matching the existing tool buttons". That does not match
+the code: no tool button names its shortcut, and `tool.duplicate` is
+"Duplicate the selection", the action only (`i18n.mjs:212-246` on the commit
+that adds this note). The implementation follows the codebase convention; the
+spec claim was wrong. Shortcut discovery for Command/Ctrl + D lives in the
+tutorial's keyboard-shortcuts step (`tutorial.step15.body`). The drawer hint
+now reads `Command/Ctrl + K` rather than `Cmd+K`, since `resolveKeyCommand`
+accepts either modifier. The text above is left as written.
