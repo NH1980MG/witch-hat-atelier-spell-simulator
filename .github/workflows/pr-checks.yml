@@ -1,0 +1,44 @@
+name: PR checks
+
+# Runs the same validation as the Pages deploy (pages.yml) on every pull
+# request, so a PR shows passing or failing checks before it is merged.
+# Keep the steps below in sync with the "build" job in pages.yml.
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Validate public build
+        run: |
+          node --test tests/*.test.mjs
+          node scripts/validate-spell-matrix.mjs
+          node scripts/security-audit.mjs
+
+      - name: Prepare public site
+        run: |
+          mkdir -p public/assets
+          cp ./*.html ./*.css ./*.js ./*.mjs public/
+          cp robots.txt sitemap.xml public/
+          cp -R assets/brand public/assets/brand
+          cp -R assets/library-schematics public/assets/library-schematics
+          cp -R assets/symbol-glyphs public/assets/symbol-glyphs
+          cp -R vendor public/vendor
+          touch public/.nojekyll
+
+      - name: Audit public artifact
+        run: node scripts/validate-public-artifact.mjs public
