@@ -18,7 +18,7 @@ import {
   toggleSelectedCommentState,
 } from "./action-semantics.mjs?v=20261113-comment-context-v2";
 import { loadStrokeSmoothing, smoothStroke } from "./stroke-smoothing.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20261113-comment-context-v2";
+import { getLocale, t } from "./site-i18n.mjs?v=20261114-grimoire-groups";
 import {
   createAdSenseScript,
   mountAdSensePlacement,
@@ -407,11 +407,13 @@ const fidelityWarnings = document.querySelector("#fidelityWarnings");
 const architectureStages = document.querySelector("#architectureStages");
 const architectureSymbols = document.querySelector("#architectureSymbols");
 const strokeInput = document.querySelector("#strokeInput");
+const strokeValue = document.querySelector("#strokeValue");
 const annotationModeInput = document.querySelector("#annotationModeInput");
 const commentModeInput = document.querySelector("#commentModeInput");
 const annotationTextInput = document.querySelector("#annotationTextInput");
 const inkColorInput = document.querySelector("#inkColorInput");
 const annotationWeightInput = document.querySelector("#annotationWeightInput");
+const annotationWeightValue = document.querySelector("#annotationWeightValue");
 const selectionScaleInput = document.querySelector("#selectionScaleInput");
 const selectionScaleLabel = document.querySelector("#selectionScaleLabel");
 const selectionScaleValue = document.querySelector("#selectionScaleValue");
@@ -9104,6 +9106,7 @@ function syncSelectionGrimoire() {
   const selectedAction = key ? state.actions[indices[0]] : null;
   if (!state.styleGestureActive && strokeInput) {
     strokeInput.value = String(selectedAction?.width || state.strokeSize);
+    if (strokeValue) strokeValue.textContent = strokeInput.value;
   }
   if (!state.styleGestureActive && inkColorInput) {
     inkColorInput.value = /^#[0-9a-f]{6}$/i.test(selectedAction?.color || "")
@@ -9112,6 +9115,7 @@ function syncSelectionGrimoire() {
   }
   if (!state.styleGestureActive && annotationWeightInput) {
     annotationWeightInput.value = String(Math.max(300, Math.min(900, Number(selectedAction?.fontWeight) || state.annotationWeight)));
+    if (annotationWeightValue) annotationWeightValue.textContent = annotationWeightInput.value;
   }
   if (selectionScaleLabel) {
     selectionScaleLabel.textContent = t(key ? "grimoire.objectScale" : "grimoire.scale");
@@ -14213,6 +14217,7 @@ for (const button of toolButtons) {
 
 strokeInput.addEventListener("input", () => {
   applySelectedStyle({ width: Number(strokeInput.value) });
+  if (strokeValue) strokeValue.textContent = strokeInput.value;
 });
 strokeInput.addEventListener("pointerdown", beginStyleGesture);
 strokeInput.addEventListener("change", endStyleGesture);
@@ -14227,6 +14232,7 @@ inkColorInput?.addEventListener("blur", endStyleGesture);
 
 annotationWeightInput?.addEventListener("input", () => {
   applySelectedStyle({ fontWeight: Number(annotationWeightInput.value) });
+  if (annotationWeightValue) annotationWeightValue.textContent = annotationWeightInput.value;
 });
 annotationWeightInput?.addEventListener("pointerdown", beginStyleGesture);
 annotationWeightInput?.addEventListener("change", endStyleGesture);

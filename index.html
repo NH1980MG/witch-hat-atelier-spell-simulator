@@ -37,7 +37,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20261113-comment-context-v2">
+    <link rel="stylesheet" href="styles.css?v=20261114-grimoire-groups">
     <script type="importmap">
       {
         "imports": {
@@ -47,8 +47,8 @@
       }
     </script>
     <script type="module" src="site-nav.mjs?v=20260831-auth-session-v1-bridge-0919"></script>
-    <script type="module" src="site-i18n.mjs?v=20261113-comment-context-v2"></script>
-    <script type="module" src="app.js?v=20261113-comment-context-v2"></script>
+    <script type="module" src="site-i18n.mjs?v=20261114-grimoire-groups"></script>
+    <script type="module" src="app.js?v=20261114-grimoire-groups"></script>
   </head>
   <body class="simulator-page toolbar-side app-home-page" data-app-view-title="Atelier">
     <main class="app-shell">
@@ -643,43 +643,58 @@
         <section class="settings" data-i18n-aria-label="grimoire.region" aria-label="Grimoire settings">
           <h2 data-i18n="grimoire.title">Grimoire settings</h2>
           <div class="setting-grid">
+            <fieldset class="setting-group">
+              <legend data-i18n="grimoire.group.ink">Ink and layout</legend>
             <label class="range-field">
-              <span data-i18n="grimoire.stroke">Thickness</span>
+              <span><span data-i18n="grimoire.stroke">Thickness</span><output id="strokeValue" for="strokeInput">3</output></span>
               <input id="strokeInput" type="range" min="1" max="8" value="3" step="0.5">
             </label>
             <label class="range-field color-field">
               <span data-i18n="grimoire.inkColor">Ink color</span>
               <input id="inkColorInput" type="color" value="#201a16">
             </label>
+            <label class="range-field scale-field">
+              <span><span id="selectionScaleLabel" data-i18n="grimoire.scale">Scale</span> <strong id="selectionScaleValue">x1</strong></span>
+              <input id="selectionScaleInput" type="range" min="-100" max="100" value="0" step="1" data-i18n-aria-label="grimoire.scaleControl" aria-label="Scale control">
+            </label>
+            </fieldset>
+            <fieldset class="setting-group">
+              <legend data-i18n="grimoire.group.notes">Text and comments</legend>
             <label class="range-field">
-              <span data-i18n="grimoire.annotationWeight">Text weight</span>
+              <span><span data-i18n="grimoire.annotationWeight">Text weight</span><output id="annotationWeightValue" for="annotationWeightInput">600</output></span>
               <input id="annotationWeightInput" type="range" min="300" max="900" value="600" step="100">
             </label>
-            <label class="check-field">
-              <input id="commentModeInput" type="checkbox">
+            <label class="switch-field">
               <span data-i18n="grimoire.commentMode">Draw and write as comments</span>
+              <input id="commentModeInput" type="checkbox">
+              <span class="switch-track" aria-hidden="true"></span>
             </label>
             <label class="text-field">
               <span data-i18n="annotation.textLabel">Annotation text</span>
               <input id="annotationTextInput" type="text" maxlength="500" data-i18n-placeholder="annotation.textPlaceholder" placeholder="Write a note, then click the parchment">
             </label>
-            <label class="range-field scale-field">
-              <span><span id="selectionScaleLabel" data-i18n="grimoire.scale">Scale</span> <strong id="selectionScaleValue">x1</strong></span>
-              <input id="selectionScaleInput" type="range" min="-100" max="100" value="0" step="1" data-i18n-aria-label="grimoire.scaleControl" aria-label="Scale control">
-            </label>
-            <label class="check-field">
-              <input id="closedSealInput" type="checkbox" checked>
+            </fieldset>
+            <fieldset class="setting-group setting-group-toggles">
+              <legend data-i18n="grimoire.group.circle">Circle behavior</legend>
+            <label class="switch-field">
               <span data-i18n="grimoire.closedSeal">Draw a closed circle</span>
+              <input id="closedSealInput" type="checkbox" checked>
+              <span class="switch-track" aria-hidden="true"></span>
             </label>
-            <label class="check-field">
-              <input id="autoInput" type="checkbox">
+            <label class="switch-field">
               <span data-i18n="grimoire.autoActivate">Activate automatically when the circle closes</span>
+              <input id="autoInput" type="checkbox">
+              <span class="switch-track" aria-hidden="true"></span>
             </label>
-            <label class="check-field">
-              <input id="measureInput" type="checkbox" checked>
+            <label class="switch-field">
               <span data-i18n="grimoire.showDiameter">Show the diameter counter</span>
+              <input id="measureInput" type="checkbox" checked>
+              <span class="switch-track" aria-hidden="true"></span>
             </label>
+            </fieldset>
+            <div class="setting-group setting-group-recognition">
             <details id="recognitionControls" class="recognition-controls"></details>
+            </div>
           </div>
         </section>
 

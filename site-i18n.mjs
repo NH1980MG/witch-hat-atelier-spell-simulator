@@ -2,7 +2,7 @@ import {
   DEFAULT_LOCALE,
   resolveLocale,
   translate,
-} from "./i18n.mjs?v=20261113-comment-context-v2";
+} from "./i18n.mjs?v=20261114-grimoire-groups";
 
 let currentLocale = DEFAULT_LOCALE;
 

@@ -25,6 +25,22 @@ test("symbol review lives in settings with a link from the settings page", async
   assert.match(settings, /index\.html\?view=atelier#recognitionControls/);
 });
 
+test("grimoire groups expose existing binary settings as switches", async () => {
+  const [html, css] = await Promise.all([
+    readFile(new URL("../index.html", import.meta.url), "utf8"),
+    readFile(new URL("../styles.css", import.meta.url), "utf8"),
+  ]);
+  const settings = html.split('<section class="settings"')[1].split('</section>')[0];
+  for (const group of ["ink", "notes", "circle"]) {
+    assert.match(settings, new RegExp(`grimoire\\.group\\.${group}`));
+  }
+  for (const id of ["commentModeInput", "closedSealInput", "autoInput", "measureInput"]) {
+    assert.match(settings, new RegExp(`<input id="${id}" type="checkbox"[^>]*>\\s*<span class="switch-track"`));
+  }
+  assert.match(css, /\.switch-field input:checked \+ \.switch-track/);
+  assert.match(css, /\.switch-field input:focus-visible \+ \.switch-track/);
+});
+
 test("workshop file actions use the header's nested save and transfer menus", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
   const header = html.split('<header class="top-title">')[1]?.split('</header>')[0];
