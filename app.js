@@ -18,7 +18,7 @@ import {
   toggleSelectedCommentState,
 } from "./action-semantics.mjs?v=20260905-local-recognition-v1";
 import { loadStrokeSmoothing, smoothStroke } from "./stroke-smoothing.mjs";
-import { getLocale, t } from "./site-i18n.mjs?v=20261113-panel-menu";
+import { getLocale, t } from "./site-i18n.mjs?v=20261113-nested-ritual-menu";
 import {
   createAdSenseScript,
   mountAdSensePlacement,
@@ -14337,12 +14337,17 @@ sound3dButton?.addEventListener("click", toggleThreeSound);
 resetTarget3dButton?.addEventListener("click", resetSelectedThreeTarget);
 resetScene3dButton?.addEventListener("click", resetThreeScene);
 symbolToggleButton?.addEventListener("click", () => setSymbolDrawer(true));
-const atelierPanelsMenu = document.querySelector("#atelierPanelsMenu");
-atelierPanelsMenu?.addEventListener("click", (event) => {
-  if (event.target.closest("button")) atelierPanelsMenu.open = false;
+const ritualHeaderMenus = [...document.querySelectorAll(".ritual-header-menubar > details")];
+ritualHeaderMenus.forEach((menu) => {
+  menu.addEventListener("toggle", () => {
+    if (menu.open) ritualHeaderMenus.filter((other) => other !== menu).forEach((other) => { other.open = false; });
+  });
+  menu.addEventListener("click", (event) => {
+    if (event.target.closest("button")) menu.open = false;
+  });
 });
 document.addEventListener("click", (event) => {
-  if (atelierPanelsMenu?.open && !atelierPanelsMenu.contains(event.target)) atelierPanelsMenu.open = false;
+  if (!event.target.closest(".ritual-header-menubar")) ritualHeaderMenus.forEach((menu) => { menu.open = false; });
 });
 closeSymbolsButton?.addEventListener("click", () => setSymbolDrawer(false));
 compositionToggleButton?.addEventListener("click", () => openSigilCompositionEditor(null, "button"));

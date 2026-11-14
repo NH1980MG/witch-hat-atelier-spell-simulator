@@ -25,11 +25,11 @@ test("symbol review lives in settings with a link from the settings page", async
   assert.match(settings, /index\.html\?view=atelier#recognitionControls/);
 });
 
-test("workshop side panels are grouped in one menu", async () => {
+test("workshop file actions use the header's nested save and transfer menus", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
-  const menu = html.split('<details class="atelier-panels-menu"')[1]?.split("</details>")[0];
-  assert.ok(menu, "atelier panel menu exists");
-  for (const id of ["symbolToggleButton", "compositionToggleButton", "detailsToggleButton", "supportToggleButton", "guideToggleButton", "galleryToggleButton"]) {
-    assert.match(menu, new RegExp(`id="${id}"`));
-  }
+  const header = html.split('<header class="top-title">')[1]?.split('</header>')[0];
+  assert.match(header, /class="ritual-header-menubar"/);
+  assert.match(header, /id="saveMenu"[\s\S]*id="saveButton"[\s\S]*id="saveExampleButton"[\s\S]*id="saveSpellButton"/);
+  assert.match(header, /id="transferMenu"[\s\S]*id="importMenu"[\s\S]*id="circleImportButton"[\s\S]*id="exportMenu"[\s\S]*id="circleJsonExportButton"/);
+  assert.doesNotMatch(html, /atelier-panels-menu/);
 });

@@ -37,7 +37,7 @@
         window.location.replace("http://127.0.0.1:8000/index.html");
       }
     </script>
-    <link rel="stylesheet" href="styles.css?v=20261113-panel-menu">
+    <link rel="stylesheet" href="styles.css?v=20261113-nested-ritual-menu">
     <script type="importmap">
       {
         "imports": {
@@ -47,8 +47,8 @@
       }
     </script>
     <script type="module" src="site-nav.mjs?v=20260831-auth-session-v1-bridge-0919"></script>
-    <script type="module" src="site-i18n.mjs?v=20261113-panel-menu"></script>
-    <script type="module" src="app.js?v=20261113-panel-menu"></script>
+    <script type="module" src="site-i18n.mjs?v=20261113-nested-ritual-menu"></script>
+    <script type="module" src="app.js?v=20261113-nested-ritual-menu"></script>
   </head>
   <body class="simulator-page toolbar-side app-home-page" data-app-view-title="Atelier">
     <main class="app-shell">
@@ -57,6 +57,33 @@
           <img class="brand-logo-image" src="assets/brand/atelier-mark.svg?v=2" alt="" aria-hidden="true">
           <h1>Witch Hat Atelier Spell Simulator</h1>
         </a>
+        <nav class="ritual-header-menubar" data-i18n-aria-label="commands.menuBar" aria-label="Save, import and export">
+          <details class="ritual-header-menu">
+            <summary data-i18n="commands.saveMenu">Save</summary>
+            <div class="ritual-header-popup" id="saveMenu">
+              <button id="saveButton" type="button" data-i18n="commands.savePng">Archive PNG</button>
+              <button id="saveExampleButton" type="button" data-i18n="commands.saveExample">Save as example</button>
+              <button id="saveSpellButton" type="button" aria-controls="spellSaveDialog" data-i18n="commands.saveSpell">Save spell</button>
+            </div>
+          </details>
+          <details class="ritual-header-menu">
+            <summary data-i18n="commands.transferMenu">Import / Export</summary>
+            <div class="ritual-header-popup" id="transferMenu">
+              <details class="ritual-header-submenu">
+                <summary data-i18n="commands.importMenu">Import</summary>
+                <div id="importMenu">
+                  <button id="circleImportButton" type="button" aria-controls="photoImportDialog" aria-expanded="false" data-i18n="import.toggle">Import circle</button>
+                </div>
+              </details>
+              <details class="ritual-header-submenu">
+                <summary data-i18n="commands.exportMenu">Export</summary>
+                <div id="exportMenu">
+                  <button id="circleJsonExportButton" type="button" data-i18n="import.exportJson">Export JSON</button>
+                </div>
+              </details>
+            </div>
+          </details>
+        </nav>
         <div class="project-support-actions">
           <a class="community-profile-pill" href="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site/sign-in?return_to=%2Fauth%2Freturn-to-simulator" data-i18n-aria-label="nav.openProfile" data-i18n-title="nav.profile" data-community-profile-pill>
             <span class="community-profile-dot" aria-hidden="true"></span>
@@ -243,9 +270,6 @@
           </div>
         </div>
 
-        <details class="atelier-panels-menu" id="atelierPanelsMenu">
-          <summary data-i18n="atelier.panels">Panels</summary>
-          <div class="atelier-panels-list">
         <button class="symbol-island" id="symbolToggleButton" type="button" aria-controls="symbolDrawer" aria-expanded="false">
           <span aria-hidden="true">&#9671;</span>
           <span data-i18n="drawer.symbols">Sigils and signs</span>
@@ -275,8 +299,6 @@
           <span aria-hidden="true">&#9733;</span>
           <span data-i18n="drawer.gallery">Gallery</span>
         </button>
-          </div>
-        </details>
 
         <input type="file" id="photoFileInput" accept="image/*" hidden>
 
@@ -673,26 +695,6 @@
             <button class="command-button command-primary" id="activateButton" type="button" data-i18n="commands.activate">Activate</button>
             <button class="command-button command-history" id="undoButton" type="button" data-i18n="commands.undo">Undo</button>
             <button class="command-button command-danger" id="clearButton" type="button" data-i18n="commands.clear">Clear</button>
-            <details class="command-menu">
-              <summary data-i18n="commands.saveMenu">Save</summary>
-              <div class="command-menu-actions">
-                <button id="saveButton" type="button" data-i18n="commands.savePng">Archive PNG</button>
-                <button id="saveExampleButton" type="button" data-i18n="commands.saveExample">Save as example</button>
-                <button id="saveSpellButton" type="button" aria-controls="spellSaveDialog" data-i18n="commands.saveSpell">Save spell</button>
-              </div>
-            </details>
-            <details class="command-menu">
-              <summary data-i18n="commands.importMenu">Import</summary>
-              <div class="command-menu-actions">
-                <button id="circleImportButton" type="button" aria-controls="photoImportDialog" aria-expanded="false" data-i18n="import.toggle">Import circle</button>
-              </div>
-            </details>
-            <details class="command-menu">
-              <summary data-i18n="commands.exportMenu">Export</summary>
-              <div class="command-menu-actions">
-                <button id="circleJsonExportButton" type="button" data-i18n="import.exportJson">Export JSON</button>
-              </div>
-            </details>
             <button class="command-button command-tool" id="sharedCanvasButton" type="button" data-i18n="sharedCanvas.create">Create shared canvas</button>
             <button class="command-button command-community" id="publishCommunityButton" type="button" data-community-url="https://circle-commons-atelier.hwl-brothers-5311.chatgpt.site" data-i18n="commands.publishCommunity">Publish this circle</button>
           </div>
