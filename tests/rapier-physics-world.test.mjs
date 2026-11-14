@@ -245,6 +245,43 @@ test("a moving spell volume uses Rapier intersections and ignites combustible ta
   assert.ok(snapshot.contacts.includes("book"));
 });
 
+test("a directed effect only reacts with targets along its path", () => {
+  const RAPIER = makeFakeRapier();
+  const runtime = createSpellPhysicsRuntime(RAPIER, {
+    gravity: { x: 0, y: 0, z: 0 },
+    targets: [
+      { id: "ahead", position: { x: 0, y: 0, z: -0.7 }, radius: 0.1, collider: { type: "ball", radius: 0.1 } },
+      { id: "aside", position: { x: 0.7, y: 0, z: 0 }, radius: 0.1, collider: { type: "ball", radius: 0.1 } },
+      { id: "behind", position: { x: 0, y: 0, z: 0.7 }, radius: 0.1, collider: { type: "ball", radius: 0.1 } },
+    ],
+  });
+  runtime.setSpellField({
+    position: { x: 0, y: 0, z: 0 },
+    radiusMeters: 1,
+    forces: [{ type: "directed-impulse", direction: { x: 0, y: 0, z: -1 }, radiusMeters: 1, physicalImpulse: 0.5 }],
+  });
+  runtime.step(1 / 60);
+  assert.deepEqual(runtime.snapshot().contacts, ["ahead"]);
+  assert.equal(runtime.targets.get("ahead").reactionState, "pushed");
+  assert.equal(runtime.targets.get("aside").reactionState, "idle");
+  assert.equal(runtime.targets.get("behind").reactionState, "idle");
+});
+
+test("a target inside the broad spell volume stays idle outside the actual force radius", () => {
+  const runtime = createSpellPhysicsRuntime(makeFakeRapier(), {
+    gravity: { x: 0, y: 0, z: 0 },
+    targets: [{ id: "candle", position: { x: 0.7, y: 0, z: 0 }, radius: 0.1, collider: { type: "ball", radius: 0.1 } }],
+  });
+  runtime.setSpellField({
+    position: { x: 0, y: 0, z: 0 },
+    radiusMeters: 1,
+    forces: [{ type: "thermal-field", heat: 1, radiusMeters: 0.3 }],
+  });
+  runtime.step(1 / 60);
+  assert.equal(runtime.targets.get("candle").reactionState, "idle");
+  assert.deepEqual(runtime.snapshot().contacts, []);
+});
+
 test("water contact extinguishes a burning target without moving anchored bodies", () => {
   const RAPIER = makeFakeRapier();
   const runtime = createSpellPhysicsRuntime(RAPIER, {

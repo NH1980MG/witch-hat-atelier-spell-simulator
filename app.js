@@ -151,7 +151,7 @@ import {
 import {
   createSpellPhysicsRuntime,
   loadRapier3dCompat,
-} from "./rapier-physics-world.mjs?v=20260821-particle-material-v1";
+} from "./rapier-physics-world.mjs?v=20261114-contact-only-v1";
 import {
   cameraPreset,
   canManipulateTarget,
@@ -6307,8 +6307,6 @@ async function rebuildThreePhysicsRuntime({ preserveState = false } = {}) {
     });
     if (previousSnapshots.length > 0) {
       runtime.restoreSnapshots(previousSnapshots);
-    } else {
-      runtime.applySpellForces(threeSpellForcesForPhysics(profile?.spellForces || []));
     }
     threeView.physicsRuntime = runtime;
     threeView.physicsTargetMap = targetMap;
