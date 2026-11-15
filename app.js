@@ -1637,7 +1637,7 @@ const symbolBoardImageCache = new Map();
 const tintedSymbolBoardCache = new Map();
 const importedSymbolImageCache = new Map();
 const tintedImportedSymbolCache = new Map();
-const SYMBOL_BOARD_ASSET_VERSION = "20260726-central-weight-v2-aeriforme-0912";
+const SYMBOL_BOARD_ASSET_VERSION = "20261114-vent-rays";
 const SYMBOL_BOARD_RASTER_SIZE = 192;
 const SYMBOL_PICKER_VIEWBOX_SIZE = 48;
 
