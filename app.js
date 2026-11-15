@@ -118,7 +118,7 @@ import {
   reconcilePracticeStartIndex,
   updatePracticeDiagnostic,
 } from "./practice-session.mjs?v=20260809-handoff-layout-v2";
-import { analyzePhoto, recognizeGroup } from "./photo-import.mjs?v=20260905-local-recognition-v1";
+import { analyzePhoto, recognizeGroup } from "./photo-import.mjs?v=20261115-photo-angle-recognition-v1";
 import { mountRecognitionControls } from "./recognition-controls.mjs";
 import { createImageRecognitionSession, loadLocalRecognizer, photoRegionRecognition } from "./recognition-session.mjs";
 import { applyImageGroupSemantic } from "./symbol-recognition-groups.mjs";

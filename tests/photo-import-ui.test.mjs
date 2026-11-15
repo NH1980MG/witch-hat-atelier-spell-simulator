@@ -37,7 +37,7 @@ test("l'atelier expose l'import photo complet", async () => {
 test("l'atelier importe l'analyse photo", async () => {
   const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
   const photoSource = await readFile(new URL("../photo-import.mjs", import.meta.url), "utf8");
-  assert.match(source, /import \{ analyzePhoto, recognizeGroup \} from "\.\/photo-import\.mjs\?v=20260905-local-recognition-v1"/);
+  assert.match(source, /import \{ analyzePhoto, recognizeGroup \} from "\.\/photo-import\.mjs\?v=20261115-photo-angle-recognition-v1"/);
   assert.match(source, /analyzePhoto\(imageData, SYMBOL_PATHS, \{ recognizer \}\)/);
   assert.match(source, /import \{ imageFileFromPaste \} from "\.\/photo-clipboard\.mjs"/);
   assert.match(source, /from "\.\/guide-storage\.mjs\?v=20260809-handoff-layout-v2"/);
