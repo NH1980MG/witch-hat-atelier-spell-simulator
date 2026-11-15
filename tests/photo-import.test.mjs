@@ -423,12 +423,12 @@ test("le seuil de regroupement suit l'epaisseur d'encre mesuree", () => {
   assert.equal(groupComponents(thick, width, height, []).length, 1);
 });
 
-test("la reconnaissance couvre les rotations autour du cercle", () => {
-  for (const degrees of [-90, -12, 12, 90, 180]) {
+test("la reconnaissance distingue les rotations entre les orientations grossieres", () => {
+  for (const degrees of [-90, -12, 12, 19, 90, 180]) {
     const photo = blankPhoto(240, 240);
     inkGlyphWithDisconnectedStrokes(photo, "Feu", 50, 50, 140, degrees);
     const result = analyzePhoto(photo, SYMBOL_PATHS);
-    assert.equal(result.regions.length, 1);
+    assert.equal(result.regions.length, 1, `${degrees} degres`);
     assert.equal(result.regions[0].status, "accepted", `${degrees} degres: ${JSON.stringify(result.regions[0])}`);
     assert.equal(result.regions[0].candidates[0].name, "Feu");
     const detectedRotation = result.regions[0].candidates[0].rotation;
@@ -437,7 +437,18 @@ test("la reconnaissance couvre les rotations autour du cercle", () => {
       Math.sin(detectedRotation - expectedRotation),
       Math.cos(detectedRotation - expectedRotation),
     );
-    assert.ok(Math.abs(angleError) <= 12 * Math.PI / 180, `${degrees} degres detecte en ${detectedRotation * 180 / Math.PI}`);
+    assert.ok(Math.abs(angleError) <= 5 * Math.PI / 180, `${degrees} degres detecte en ${detectedRotation * 180 / Math.PI}`);
+  }
+});
+
+test("un signe a symetrie radiale garde son identite quand il est tourne", () => {
+  for (const degrees of [-90, -19, 7, 43, 90, 180]) {
+    const photo = blankPhoto(240, 240);
+    inkGlyphWithDisconnectedStrokes(photo, "Viseur", 50, 50, 140, degrees);
+    const result = analyzePhoto(photo, SYMBOL_PATHS);
+    assert.equal(result.regions.length, 1, `${degrees} degres`);
+    assert.equal(result.regions[0].status, "accepted", `${degrees} degres: ${JSON.stringify(result.regions[0])}`);
+    assert.equal(result.regions[0].candidates[0].name, "Viseur");
   }
 });
 

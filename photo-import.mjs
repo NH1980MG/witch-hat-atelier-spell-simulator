@@ -107,6 +107,11 @@ export function connectedComponents(mask, width, height, { minSize = 12 } = {}) 
     let right = -1;
     let bottom = -1;
     const pixelIndices = [];
+    let sumX = 0;
+    let sumY = 0;
+    let sumXX = 0;
+    let sumXY = 0;
+    let sumYY = 0;
     queue.push(start);
     labels[start] = id;
     while (queue.length) {
@@ -115,6 +120,11 @@ export function connectedComponents(mask, width, height, { minSize = 12 } = {}) 
       pixelIndices.push(index);
       const x = index % width;
       const y = (index - x) / width;
+      sumX += x;
+      sumY += y;
+      sumXX += x * x;
+      sumXY += x * y;
+      sumYY += y * y;
       left = Math.min(left, x);
       top = Math.min(top, y);
       right = Math.max(right, x);
@@ -136,6 +146,9 @@ export function connectedComponents(mask, width, height, { minSize = 12 } = {}) 
     if (size >= minSize) {
       const componentWidth = right - left + 1;
       const componentHeight = bottom - top + 1;
+      const covarianceXX = sumXX / size - (sumX / size) ** 2;
+      const covarianceXY = sumXY / size - (sumX / size) * (sumY / size);
+      const covarianceYY = sumYY / size - (sumY / size) ** 2;
       components.push({
         id,
         size,
@@ -145,6 +158,7 @@ export function connectedComponents(mask, width, height, { minSize = 12 } = {}) 
         bottom,
         width: componentWidth,
         height: componentHeight,
+        angle: 0.5 * Math.atan2(2 * covarianceXY, covarianceXX - covarianceYY),
         strokeWidth: estimateStrokeWidth(pixelIndices, width, left, top, componentWidth, componentHeight),
       });
     }
@@ -305,57 +319,57 @@ export function groupComponents(components, imageWidth, imageHeight, rings) {
     x: (component.left + component.right) / 2,
     y: (component.top + component.bottom) / 2,
   });
-  const majorSpan = (component, orientation) => (
-    orientation === "vertical" ? component.height : component.width
-  );
-  const isOriented = (component, orientation) => (
-    orientation === "vertical"
-      ? component.height >= component.width * 2
-      : component.width >= component.height * 2
-  );
+  const axisAngle = (component) => Number.isFinite(component.angle)
+    ? component.angle
+    : (component.height >= component.width ? Math.PI / 2 : 0);
+  const axisDifference = (a, b) => {
+    const difference = Math.abs(a - b) % Math.PI;
+    return Math.min(difference, Math.PI - difference);
+  };
+  const majorSpan = (component) => Math.hypot(component.width, component.height);
   const crosshairGap = Math.min(
     Math.min(imageWidth, imageHeight) * 0.25,
     Math.max(imageGapCap * 5, medianStrokeWidth * 14),
   );
   const alignmentTolerance = Math.max(5, medianStrokeWidth * 2);
-  const opposingPairs = (orientation) => {
+  const opposingPairs = () => {
     const pairs = [];
     for (let first = 0; first < components.length; first += 1) {
-      if (!isOriented(components[first], orientation)) continue;
       for (let second = first + 1; second < components.length; second += 1) {
-        if (!isOriented(components[second], orientation)) continue;
         const a = components[first];
         const b = components[second];
         const centerA = centerOf(a);
         const centerB = centerOf(b);
-        const alignment = orientation === "vertical"
-          ? Math.abs(centerA.x - centerB.x)
-          : Math.abs(centerA.y - centerB.y);
-        if (alignment > alignmentTolerance) continue;
-        const gap = orientation === "vertical"
-          ? Math.max(0, a.top - b.bottom - 1, b.top - a.bottom - 1)
-          : Math.max(0, a.left - b.right - 1, b.left - a.right - 1);
-        if (gap <= maxGap || gap > crosshairGap) continue;
-        const shorter = Math.min(majorSpan(a, orientation), majorSpan(b, orientation));
-        const longer = Math.max(majorSpan(a, orientation), majorSpan(b, orientation));
+        const dx = centerB.x - centerA.x;
+        const dy = centerB.y - centerA.y;
+        const centerDistance = Math.hypot(dx, dy);
+        if (centerDistance <= 0) continue;
+        const pairAngle = Math.atan2(dy, dx);
+        if (axisDifference(axisAngle(a), pairAngle) > Math.PI / 9
+          || axisDifference(axisAngle(b), pairAngle) > Math.PI / 9) continue;
+        const gap = centerDistance - (majorSpan(a) + majorSpan(b)) / 2;
+        if (gap <= maxGap || gap > crosshairGap + maxGap) continue;
+        const shorter = Math.min(majorSpan(a), majorSpan(b));
+        const longer = Math.max(majorSpan(a), majorSpan(b));
         if (shorter < minSpanForCrosshair(medianStrokeWidth) || longer > shorter * 2.2) continue;
         pairs.push({
           indices: [first, second],
-          center: orientation === "vertical"
-            ? { x: (centerA.x + centerB.x) / 2, y: (Math.max(a.top, b.top) + Math.min(a.bottom, b.bottom)) / 2 }
-            : { x: (Math.max(a.left, b.left) + Math.min(a.right, b.right)) / 2, y: (centerA.y + centerB.y) / 2 },
+          center: { x: (centerA.x + centerB.x) / 2, y: (centerA.y + centerB.y) / 2 },
+          angle: pairAngle,
         });
       }
     }
     return pairs;
   };
-  const verticalPairs = opposingPairs("vertical");
-  const horizontalPairs = opposingPairs("horizontal");
+  const pairs = opposingPairs();
   const centerTolerance = Math.max(alignmentTolerance * 2, crosshairGap * 0.28);
-  for (const vertical of verticalPairs) {
-    for (const horizontal of horizontalPairs) {
-      if (Math.hypot(vertical.center.x - horizontal.center.x, vertical.center.y - horizontal.center.y) > centerTolerance) continue;
-      const indices = [...vertical.indices, ...horizontal.indices];
+  for (let first = 0; first < pairs.length; first += 1) {
+    for (let second = first + 1; second < pairs.length; second += 1) {
+      const pairA = pairs[first];
+      const pairB = pairs[second];
+      if (Math.abs(axisDifference(pairA.angle, pairB.angle) - Math.PI / 2) > Math.PI / 9) continue;
+      if (Math.hypot(pairA.center.x - pairB.center.x, pairA.center.y - pairB.center.y) > centerTolerance) continue;
+      const indices = [...pairA.indices, ...pairB.indices];
       for (let index = 1; index < indices.length; index += 1) unite(indices[0], indices[index]);
     }
   }
@@ -635,50 +649,110 @@ const GROUP_ROTATIONS = Array.from({ length: 30 }, (_, index) => -180 + index * 
 const PHOTO_IMPORT_ACCEPTED_SCORE = 58;
 const PHOTO_IMPORT_ACCEPTED_MARGIN = 6;
 
-function rotateMask(mask, degrees, size = TEMPLATE_SIZE) {
-  if (degrees === 0) return mask;
-  const out = new Float32Array(size * size);
+function rotateAndNormalizeGroupMask(mask, width, height, degrees) {
+  let inkCount = 0;
+  for (const value of mask) inkCount += Number(Boolean(value));
+  if (inkCount / mask.length > 0.6) return normalizeGroupMask(mask, width, height);
+  const size = Math.ceil(Math.hypot(width, height)) + 2;
+  const rotated = new Uint8Array(size * size);
   const radians = degrees * Math.PI / 180;
   const cosine = Math.cos(radians);
   const sine = Math.sin(radians);
   const center = (size - 1) / 2;
+  const offsetX = (size - width) / 2;
+  const offsetY = (size - height) / 2;
   for (let y = 0; y < size; y += 1) {
     for (let x = 0; x < size; x += 1) {
       const dx = x - center;
       const dy = y - center;
-      const sourceX = Math.round(center + dx * cosine + dy * sine);
-      const sourceY = Math.round(center - dx * sine + dy * cosine);
-      if (sourceX >= 0 && sourceY >= 0 && sourceX < size && sourceY < size) {
-        out[y * size + x] = mask[sourceY * size + sourceX];
+      const sourceX = Math.round(center + dx * cosine + dy * sine - offsetX);
+      const sourceY = Math.round(center - dx * sine + dy * cosine - offsetY);
+      if (sourceX >= 0 && sourceY >= 0 && sourceX < width && sourceY < height) {
+        rotated[y * size + x] = mask[sourceY * width + sourceX];
       }
     }
   }
-  return out;
+  let left = size;
+  let top = size;
+  let right = -1;
+  let bottom = -1;
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      if (!rotated[y * size + x]) continue;
+      left = Math.min(left, x);
+      top = Math.min(top, y);
+      right = Math.max(right, x);
+      bottom = Math.max(bottom, y);
+    }
+  }
+  if (right < left || bottom < top) return new Float32Array(TEMPLATE_SIZE * TEMPLATE_SIZE);
+  const cropWidth = right - left + 1;
+  const cropHeight = bottom - top + 1;
+  const crop = new Uint8Array(cropWidth * cropHeight);
+  for (let y = 0; y < cropHeight; y += 1) {
+    for (let x = 0; x < cropWidth; x += 1) {
+      crop[y * cropWidth + x] = rotated[(top + y) * size + left + x];
+    }
+  }
+  return normalizeGroupMask(crop, cropWidth, cropHeight);
 }
 
 export function recognizeGroup(groupMask, width, height, symbolPaths) {
-  const normalized = skeletonizeMask(normalizeGroupMask(groupMask, width, height));
-  const rotations = GROUP_ROTATIONS.map((degrees) => ({
-    degrees,
-    mask: rotateMask(normalized, degrees),
-  }));
-  for (const rotation of rotations) rotation.dist = distanceTransform(rotation.mask);
+  const rotationCache = new Map();
+  const getRotation = (degrees) => {
+    if (!rotationCache.has(degrees)) {
+      const normalized = rotateAndNormalizeGroupMask(groupMask, width, height, degrees);
+      const mask = skeletonizeMask(normalized);
+      rotationCache.set(degrees, { degrees, mask, dist: distanceTransform(mask) });
+    }
+    return rotationCache.get(degrees);
+  };
+  const rotations = GROUP_ROTATIONS.map(getRotation);
   const candidates = templateMasks(symbolPaths).map(({ name, skeleton, skeletonDist }) => {
     const matches = rotations.map(({ degrees, mask, dist }) => ({
       degrees,
       score: rasterMatchScore(mask, skeleton, skeletonDist, dist),
     }));
+    const coarsePeaks = matches
+      .filter((match, index) => {
+        const previous = matches[(index + matches.length - 1) % matches.length];
+        const next = matches[(index + 1) % matches.length];
+        return match.score >= previous.score && match.score >= next.score
+          && (match.score > previous.score || match.score > next.score);
+      })
+      .sort((a, b) => b.score - a.score || Math.abs(a.degrees) - Math.abs(b.degrees));
+    const peaksToRefine = [];
+    for (const peak of coarsePeaks) {
+      const isDistinct = peaksToRefine.every((selected) => {
+        const difference = Math.abs(peak.degrees - selected.degrees) % 360;
+        return Math.min(difference, 360 - difference) >= 12;
+      });
+      if (isDistinct) peaksToRefine.push(peak);
+      if (peaksToRefine.length === 4) break;
+    }
+    const fallbackPeak = [...matches].sort((a, b) => b.score - a.score || Math.abs(a.degrees) - Math.abs(b.degrees))[0];
+    for (const peak of peaksToRefine.length ? peaksToRefine : [fallbackPeak]) {
+      for (let offset = -6; offset <= 6; offset += 1) {
+        const degrees = peak.degrees + offset;
+        const rotation = getRotation(degrees);
+        matches.push({
+          degrees,
+          score: rasterMatchScore(rotation.mask, skeleton, skeletonDist, rotation.dist),
+        });
+      }
+    }
     matches.sort((a, b) => b.score - a.score || Math.abs(a.degrees) - Math.abs(b.degrees));
-    return {
-      name,
-      score: matches[0].score,
-      // `degrees` aligne la photo sur le modele; l'action recreee reprend
-      // l'angle inverse, c'est-a-dire l'orientation originale du dessin.
-      rotation: -matches[0].degrees * Math.PI / 180,
-    };
+    return { name, match: matches[0] };
   });
-  candidates.sort((a, b) => b.score - a.score);
-  const topCandidates = candidates.slice(0, 3);
+  const candidatesWithScores = candidates.map(({ name, match }) => ({
+    name,
+    score: match.score,
+    // `degrees` aligne la photo sur le modele; l'action recreee reprend
+    // l'angle inverse, c'est-a-dire l'orientation originale du dessin.
+    rotation: -match.degrees * Math.PI / 180,
+  }));
+  candidatesWithScores.sort((a, b) => b.score - a.score);
+  const topCandidates = candidatesWithScores.slice(0, 3);
   const bestScore = topCandidates[0]?.score || 0;
   const secondScore = topCandidates[1]?.score || 0;
   const scoreMargin = bestScore - secondScore;
