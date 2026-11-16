@@ -56,7 +56,7 @@
   "outputStrokeWidth": {
     "minimum": 6.3148,
     "maximum": 6.4498,
-    "mean": 6.4267
+    "mean": 6.4269
   },
   "entries": [
     {
@@ -110,16 +110,16 @@
     {
       "name": "Vent",
       "asset": "assets/symbol-glyphs/vent.png",
-      "sourceStrokeWidth": 3.3535,
-      "outputStrokeWidth": 6.4358,
-      "dilationRadius": 1.332,
-      "sourceOpenings": 4,
-      "outputOpenings": 4,
+      "sourceStrokeWidth": 3.48,
+      "outputStrokeWidth": 6.4414,
+      "dilationRadius": 1.3945,
+      "sourceOpenings": 0,
+      "outputOpenings": 0,
       "preservedOpenings": true,
-      "sourceSha256": "debe75f6a44ab298ef59c9742ccdabd1b1f511f913e386583d46ac4011a3de1a",
-      "outputSha256": "77e10abebb535503efd7bece7ec03eceacef54bc53fcb8176a5cb1efeea4e853",
+      "sourceSha256": "bdd8688baff0ebcae34608216f1be83a2089b8293eb109e5a3962f2085cf1e70",
+      "outputSha256": "dc48d7f7c43f986918d0ec69dcdbdaf53251e29803d34616a70f496a7642325a",
       "sourceBoard": "docs/generated/air-aeriform-symbol-reference.png",
-      "sourceBoardSha256": "c40ec947c798382f6cef703db0db9823812b66fe715c01fb99a830b6d14d09d5",
+      "sourceBoardSha256": "46bc62c8d5d4e85008e840359a1b96e952b92b3a6543f38235df706f43d82079",
       "width": 192,
       "height": 192
     },
@@ -167,7 +167,7 @@
       "sourceSha256": "1f2925eb39c2f89a6c3c588fa96c028ccaf9e7e00b88e1db43166b7d6c801e75",
       "outputSha256": "dc8d8d9343a61dfb951e68533817ed406cdf6ffcb669edc1593c767f40da56c1",
       "sourceBoard": "docs/generated/air-aeriform-symbol-reference.png",
-      "sourceBoardSha256": "c40ec947c798382f6cef703db0db9823812b66fe715c01fb99a830b6d14d09d5",
+      "sourceBoardSha256": "46bc62c8d5d4e85008e840359a1b96e952b92b3a6543f38235df706f43d82079",
       "width": 192,
       "height": 192
     },
