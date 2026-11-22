@@ -22,7 +22,11 @@ async function collect(directory) {
 for (const file of await collect(root)) {
   const relative = path.relative(root, file);
   const content = await readFile(file, "utf8");
-  const isVendoredRapier = relative === path.join("vendor", "rapier", "rapier3d-compat.module.js");
+  const canonicalRapier = path.join("vendor", "rapier", "rapier3d-compat.module.js");
+  const isVendoredRapier = relative === canonicalRapier || (
+    relative === path.join("duel", canonicalRapier) &&
+    content === await readFile(path.join(root, canonicalRapier), "utf8")
+  );
   const checks = [
     [/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/, "private key"],
     [/\b(?:ghp|github_pat)_[A-Za-z0-9_]{20,}\b/, "GitHub token"],

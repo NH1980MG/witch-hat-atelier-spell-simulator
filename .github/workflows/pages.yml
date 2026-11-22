@@ -42,6 +42,9 @@ jobs:
           cp -R assets/library-schematics public/assets/library-schematics
           cp -R assets/symbol-glyphs public/assets/symbol-glyphs
           cp -R vendor public/vendor
+          mkdir -p public/duel
+          cp duel/*.html duel/*.css duel/*.mjs public/duel/
+          cp -R duel/assets duel/vendor public/duel/
           touch public/.nojekyll
 
       - name: Audit public artifact

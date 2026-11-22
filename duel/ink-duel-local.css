@@ -1,0 +1,11 @@
+.local-section{padding:14px 0;border-bottom:1px solid var(--line)}.local-section h2{font:700 17px Georgia,serif;margin:0 0 12px}.local-section output{display:block;font-size:12px;line-height:1.4;overflow-wrap:anywhere}.local-actions{display:grid;grid-template-columns:36px 1fr 36px;gap:6px;margin:12px 0}.local-actions button{padding:5px}.actions{grid-template-columns:1fr 1fr}.local-section .field{margin-top:12px}.local-section .angle output{font-size:11px}#exampleImage{display:block;margin:12px auto}#stamp{width:100%}#exampleStatus{margin-top:8px}#zoomValue{font-size:11px;align-self:center;background:#f3f5ee;padding:5px}#candidates{display:grid;gap:8px;margin-bottom:18px}#candidates button{display:flex;align-items:center;gap:12px}#candidates img{width:40px;height:40px}#selectionLabel{min-height:18px}#regionStatus{color:#8b641c;min-height:35px}.tools{max-width:calc(100% - 140px)}.camera-tools{right:8px}.workbench>details{margin:0}.workbench{overscroll-behavior:contain}
+@media(max-width:600px){.local-section{grid-column:1/-1}.camera-tools{bottom:55px}.tools{max-width:none}.duel-header .solo{display:block;font-size:9px}.duel-header h1{font-size:20px}}
+body{grid-template-rows:64px 76px minmax(0,1fr) auto;min-width:0}
+footer{min-width:0;flex-wrap:wrap;gap:6px 12px}
+#networkStatus{min-width:0;overflow-wrap:anywhere;flex:1 1 150px}
+#opponents{font-size:11px;min-height:28px;padding:3px 8px}
+#lobbyDialog input{width:100%;min-width:0}
+#lobbyDialog .dialog-actions>*{flex:1 1 110px}
+#lobbyStatus{overflow-wrap:anywhere}
+@media(max-width:850px){body{grid-template-rows:56px 65px minmax(0,1fr) auto}}
+@media(max-width:600px){body{grid-template-rows:56px 65px 1fr auto}}
