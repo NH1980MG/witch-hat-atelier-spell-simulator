@@ -13,7 +13,18 @@
 <details class="local-section" id="examplePanel"><summary>Exemples <output id="exampleRemaining"></output></summary><label class="field"><span>Symbole ou signe</span><select id="example"></select></label><img id="exampleImage" width="64" height="64" alt="Symbole choisi"><button id="stamp">Placer l'exemple</button><output id="exampleStatus"></output></details>
 <div class="seal-list" id="sealList"></div></aside></main>
 <footer><button id="opponents">Adversaire</button><span id="networkStatus" role="status">Contre un bot</span><span id="matchStatus">Preparation libre</span><span id="activeCount">0 / 3</span><span id="performance"></span></footer>
-<dialog id="lobbyDialog"><h2>Choisir un adversaire</h2><div class="dialog-actions"><button id="playBot">Contre un bot</button><button id="createRoom">Creer un salon</button><button id="quickMatch">Partie rapide</button></div><label class="field">Code du salon<input id="roomCode" maxlength="16" autocomplete="off" spellcheck="false"></label><button id="joinRoom">Rejoindre</button><p id="lobbyStatus" role="status"></p><div class="dialog-actions"><button id="copyRoom" hidden>Copier le code</button><button id="cancelSearch">Annuler / Fermer</button></div></dialog>
+<dialog id="lobbyDialog" aria-labelledby="lobbyTitle">
+  <div class="lobby-heading"><img src="assets/brand/atelier-mark.svg" width="36" height="44" alt=""><div><span class="lobby-eyebrow">DUEL LIBRE</span><h2 id="lobbyTitle">Choisir une partie</h2></div></div>
+  <section class="lobby-section lobby-mode"><h3>Solo</h3><button id="playBot">Jouer contre le bot</button></section>
+  <section class="lobby-section lobby-mode"><h3>Partie en ligne</h3><button id="quickMatch">Chercher un adversaire</button></section>
+  <section class="lobby-section lobby-private">
+    <div class="lobby-mode"><h3>Salon prive</h3><button id="createRoom">Creer un salon</button></div>
+    <div class="lobby-join"><label for="roomCode">Code du salon</label><input id="roomCode" maxlength="16" autocomplete="off" spellcheck="false" autocapitalize="characters" placeholder="Code d'invitation"><button id="joinRoom">Rejoindre</button></div>
+    <button id="copyRoom" hidden>Copier le code</button>
+  </section>
+  <p id="lobbyStatus" role="status" aria-live="polite"></p>
+  <div class="lobby-footer"><button id="cancelSearch">Annuler / Fermer</button></div>
+</dialog>
 <dialog id="recognitionDialog"><h2>Analyse du dessin</h2><p id="recognitionStatus"></p><div id="candidates"></div><button id="keepDrawing">Continuer le dessin</button></dialog>
 <dialog id="optionsDialog"><form method="dialog"><h2>Options du duel</h2><label class="setting"><span>Regles experimentales (prochaine partie)</span><input id="experimental" type="checkbox"></label><label class="setting"><span>Effets attenues</span><input id="reduced" type="checkbox"></label><label class="setting"><span>Qualite des effets</span><select id="quality"><option value="1">Haute</option><option value="0.5">Moyenne</option><option value="0.25">Basse</option></select></label><div class="dialog-actions"><button id="restart" type="button">Nouvelle partie</button><button>Fermer</button></div></form></dialog>
 <dialog id="resultDialog"><h2 id="resultTitle"></h2><p id="resultScore"></p><button id="again">Nouvelle partie</button></dialog></body></html>
