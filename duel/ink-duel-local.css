@@ -4,8 +4,24 @@ body{grid-template-rows:64px 76px minmax(0,1fr) auto;min-width:0}
 footer{min-width:0;flex-wrap:wrap;gap:6px 12px}
 #networkStatus{min-width:0;overflow-wrap:anywhere;flex:1 1 150px}
 #opponents{font-size:11px;min-height:28px;padding:3px 8px}
-#lobbyDialog input{width:100%;min-width:0}
-#lobbyDialog .dialog-actions>*{flex:1 1 110px}
-#lobbyStatus{overflow-wrap:anywhere}
+#lobbyDialog{width:560px;max-width:calc(100% - 24px);max-height:calc(100dvh - 32px);padding:28px;overflow:auto;box-shadow:0 20px 70px #102e2c44}
+.lobby-heading{display:flex;align-items:center;gap:14px;padding-bottom:22px;border-bottom:2px solid #b99a57}
+.lobby-heading img{flex:none}
+.lobby-eyebrow{font-size:10px;font-weight:700;color:var(--muted)}
+#lobbyTitle{font-size:26px;line-height:1.2;margin:4px 0 0}
+.lobby-section{padding:20px 0;border-bottom:1px solid var(--line)}
+.lobby-mode{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,240px);align-items:center;gap:16px}
+.lobby-section h3{font-size:14px;font-weight:650;margin:0;line-height:1.4}
+#lobbyDialog button{min-height:44px;font-size:13px;white-space:normal;overflow-wrap:anywhere}
+#quickMatch{background:var(--accent);border-color:var(--accent);color:white}
+#quickMatch:hover{background:#106873}
+.lobby-join{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:20px}
+.lobby-join label{grid-column:1/-1;font-size:12px;color:var(--muted)}
+#roomCode{width:100%;min-width:0;min-height:44px;padding:10px 12px;border:1px solid #9eafa5;border-radius:5px;background:white;color:var(--ink);font-size:14px;font-family:ui-monospace,monospace;letter-spacing:0}
+#copyRoom{margin-top:10px;width:100%}
+#lobbyStatus{overflow-wrap:anywhere;min-height:20px;margin:14px 0;font-size:12px;line-height:1.5;color:var(--muted)}
+.lobby-footer{display:flex;justify-content:flex-end}
+#cancelSearch{background:transparent}
+@media(max-width:480px){#lobbyDialog{padding:20px}.lobby-mode{grid-template-columns:minmax(0,1fr);gap:10px}.lobby-heading{padding-bottom:18px}#lobbyTitle{font-size:23px}.lobby-section{padding:16px 0}.lobby-join{grid-template-columns:minmax(0,1fr)}.lobby-footer button{width:100%}}
 @media(max-width:850px){body{grid-template-rows:56px 65px minmax(0,1fr) auto}}
 @media(max-width:600px){body{grid-template-rows:56px 65px 1fr auto}}
