@@ -23,7 +23,7 @@ for (const file of await collect(root)) {
   const relative = path.relative(root, file);
   const content = await readFile(file, "utf8");
   const canonicalRapier = path.join("vendor", "rapier", "rapier3d-compat.module.js");
-  const isVendoredRapier = relative === canonicalRapier || (
+  const isVendoredRapier = relative === path.join("vendor", "rapier", "rapier3d-compat.module.js") || (
     relative === path.join("duel", canonicalRapier) &&
     content === await readFile(path.join(root, canonicalRapier), "utf8")
   );
