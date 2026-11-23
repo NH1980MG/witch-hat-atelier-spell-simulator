@@ -6,7 +6,7 @@ import {
   SYMBOL_AUDIT,
   SYMBOL_BOARD_ASSET,
   SYMBOL_PATHS,
-} from "./symbol-catalog.mjs?v=20260809-handoff-layout-v2-aeriforme-0912";
+} from "./symbol-catalog.mjs?v=20261114-vent-rays";
 import { createElementalMixturePresentation } from "./elemental-mixtures.mjs?v=20260812-particle-field-v1";
 import { RAW_ENERGY_PROFILE, SIGN_PROFILES, SIGIL_PROFILES, composeSpellRecipe } from "./spell-grammar.mjs?v=20260905-local-recognition-v1";
 import { createActivationSnapshot, selectPrimarySigil } from "./spell-model.mjs?v=20260905-local-recognition-v1";
@@ -1637,7 +1637,7 @@ const symbolBoardImageCache = new Map();
 const tintedSymbolBoardCache = new Map();
 const importedSymbolImageCache = new Map();
 const tintedImportedSymbolCache = new Map();
-const SYMBOL_BOARD_ASSET_VERSION = "20260726-central-weight-v2-aeriforme-0912";
+const SYMBOL_BOARD_ASSET_VERSION = "20261114-vent-rays";
 const SYMBOL_BOARD_RASTER_SIZE = 192;
 const SYMBOL_PICKER_VIEWBOX_SIZE = 48;
 

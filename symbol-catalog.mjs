@@ -5,6 +5,9 @@ const circle = (cx, cy, radius) =>
 
 // Editable traces reconstructed from the exact cells listed in
 // SYMBOL_BOARD_CELL below. The generated air board supplies Vent and Aeriforme.
+// Vent keeps the S with three short outward rays per side traced from capture
+// 10 (Earth and Wind); the air board renders that vector in its Vent cell. It
+// must stay distinct from Aeriforme, whose arrows point inward.
 const BOARD_TRACED_PATHS = Object.freeze({
   Feu: paths(
     "M24 6 L10 35 L38 35 Z",
@@ -23,11 +26,7 @@ const BOARD_TRACED_PATHS = Object.freeze({
   ),
   Vent: paths(
     "M28 13 C31 10 30 6 26 6 C20 6 18 12 20 17 C22 22 30 23 32 28 C35 35 30 42 23 42 C18 42 15 38 16 34 C17 30 21 28 25 30 C28 32 28 36 25 38",
-    "M6 12 L16 20 M4 20 H16 M6 29 L16 20 M42 12 L32 20 M44 20 H32 M42 29 L32 20",
-    circle(7, 8, 1.5),
-    circle(7, 37, 1.5),
-    circle(41, 8, 1.5),
-    circle(41, 37, 1.5),
+    "M13 17 L8 12 M12 24 H5 M13 31 L8 36 M35 17 L40 12 M36 24 H43 M35 31 L40 36",
   ),
   Lumiere: paths(
     "M14 14 H34 V34 H14 Z",

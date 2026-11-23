@@ -2,8 +2,11 @@
 
 The September 12, 2026 `aeriforme-imagegen-reference.png` is the generated
 source for Aeriforme. `air-aeriform-symbol-reference.png` embeds this image in
-its top-right cell and the previous local Aeriforme drawing as Vent in its
-bottom-left cell. The other air sigils keep their existing runtime boards.
+its top-right cell, and renders the runtime Vent vector in its bottom-left
+cell. Since November 14, 2026 that Vent vector is again the capture 10 trace
+(an S with three short outward rays per side). From September 12 to November
+14 the cell reused the previous Aeriforme drawing, which made Vent a near
+duplicate of Aeriforme. The other air sigils keep their existing runtime boards.
 To rebuild these two masks, run `node scripts/render-air-symbol-board.mjs`
 then `node scripts/generate-symbol-board-assets.mjs Vent Aeriforme` with Sharp
 available. The reference caption is excluded from the runtime mask.

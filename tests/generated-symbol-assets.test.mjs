@@ -63,7 +63,7 @@ const SOURCE_OPENING_COUNTS = Object.freeze({
   Lumiere: 5,
   Cristal: 4,
   Aeriforme: 0,
-  Vent: 4,
+  Vent: 0,
   "Vent sous pied": 4,
   Repetition: 1,
   Fumee: 0,
@@ -280,7 +280,7 @@ test("le selecteur et le parchemin utilisent les masques issus des planches", as
   assert.match(app, /SYMBOL_BOARD_ASSET/);
   assert.match(app, /class="symbol-board-glyph"/);
   assert.match(app, /function symbolBoardImage\(/);
-  assert.match(app, /SYMBOL_BOARD_ASSET_VERSION = "20260726-central-weight-v2-aeriforme-0912"/);
+  assert.match(app, /SYMBOL_BOARD_ASSET_VERSION = "20261114-vent-rays"/);
   assert.match(app, /runtimeSymbolBoardAsset\(element\.name\)/);
   assert.match(app, /ctx\.drawImage\(tintedGlyph/);
   assert.match(css, /\.symbol-board-glyph\s*\{/);

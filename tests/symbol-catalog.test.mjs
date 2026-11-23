@@ -139,9 +139,11 @@ test("les glyphes issus des planches utilisent les masques epaissis partages", a
 test("les symboles corriges utilisent les nouveaux traces partages", () => {
   assert.equal(SYMBOL_PATHS["Vent sous pied"].length, 4);
   assert.match(SYMBOL_PATHS["Vent sous pied"][0], /M24 5 C31 5/);
-  assert.equal(SYMBOL_PATHS.Vent.length, 6);
+  assert.equal(SYMBOL_PATHS.Vent.length, 2);
   assert.match(SYMBOL_PATHS.Vent[0], /M28 13 C31 10/);
-  assert.match(SYMBOL_PATHS.Vent[1], /M6 12 L16 20/);
+  // Vent: S with three outward rays per side (capture 10), never the inward
+  // arrows of Aeriforme.
+  assert.match(SYMBOL_PATHS.Vent[1], /M13 17 L8 12/);
   assert.equal(SYMBOL_PATHS.Aeriforme.length, 4);
   assert.match(SYMBOL_PATHS.Aeriforme[0], /M26 12 C21 13/);
   assert.equal(SYMBOL_PATHS.Eau.length, 3);
@@ -152,8 +154,8 @@ test("le navigateur charge la nouvelle version du catalogue partage", async () =
   const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 
-  assert.match(app, /symbol-catalog\.mjs\?v=20260809-handoff-layout-v2-aeriforme-0912/);
-  assert.match(html, /app\.js\?v=20261114-contact-only-v1/);
+  assert.match(app, /symbol-catalog\.mjs\?v=20261114-vent-rays/);
+  assert.match(html, /app\.js\?v=20261114-vent-rays/);
   assert.match(html, /styles\.css\?v=20261114-grimoire-groups/);
 });
 
