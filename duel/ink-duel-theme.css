@@ -1,0 +1,61 @@
+/* Match the simulator's visual tokens without importing its workspace layout. */
+:root {
+  --ink: #243044;
+  --gold: #c79736;
+  --paper: #f6ecd8;
+  --line: #d1bd92;
+  --edge: #8c6b3f;
+  --muted: #6b6255;
+  --button: #fff8ea;
+  --accent: #397c81;
+  --enemy: #a3445c;
+}
+
+body { background: var(--paper); font-family: Georgia, "Times New Roman", serif; }
+button, select, input { font: inherit; }
+button {
+  border-color: var(--line);
+  background: var(--button);
+  border-radius: 6px;
+  box-shadow: 0 1px 0 #ffffff88 inset;
+  transition: background-color .15s, border-color .15s;
+}
+button:hover { background: #f4e3bd; border-color: var(--edge); }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 3px;
+}
+.duel-header { background: var(--ink); color: var(--gold); border-bottom-color: var(--gold); }
+.duel-header small { color: #fff8ea; }
+.duel-header button { border-color: #a58a55; color: #fff8ea; }
+.duel-header button:hover { background: #37445a; }
+.solo { color: #fff8ea; border-color: #a58a55; }
+.scoreboard { background: #fffbf2; }
+.clock span { color: var(--edge); }
+.score output, .clock strong, .ink-stock output, #zoomValue { font-family: system-ui, sans-serif; }
+.workbench { background: #fbf5e8; }
+.local-section h2 { color: var(--ink); }
+meter::-webkit-meter-bar { background: #e7decb; }
+.field select, .setting select { background: var(--button); border: 1px solid var(--line); color: var(--ink); border-radius: 4px; }
+.arena-shell { background: var(--ink); }
+#loading { color: var(--button); }
+.arena-top > span { color: var(--button); background: var(--ink); border-color: var(--edge); }
+.tools, .camera-tools button { background: #fff8eaf5; border-color: var(--line); box-shadow: 0 4px 14px #24304422; }
+.tools input:checked + span { background: var(--ink); color: var(--gold); }
+.tools input:focus-visible + span { outline-color: var(--gold); }
+#zoomValue { background: var(--button); color: var(--ink); border-radius: 4px; }
+#toast { background: #243044f5; color: var(--button); }
+#pauseOverlay { background: #243044b8; }
+footer { background: var(--ink); color: var(--button); border-top: 1px solid var(--gold); }
+footer button { background: transparent; color: var(--button); border-color: #a58a55; }
+footer button:hover { background: #37445a; }
+dialog { background: #fffbf2; border-color: var(--line); color: var(--ink); box-shadow: 0 16px 50px #24304433; }
+dialog::backdrop { background: #24304499; backdrop-filter: blur(3px); }
+#lobbyDialog { box-shadow: 0 20px 70px #24304444; }
+.lobby-heading { border-bottom-color: var(--gold); }
+.lobby-eyebrow { color: var(--edge); }
+#roomCode { border-color: var(--line); background: #fffefb; }
+#quickMatch { background: var(--ink); border-color: var(--ink); color: var(--button); }
+#quickMatch:hover { background: #37445a; border-color: var(--gold); }
+#cancelSearch:hover { background: #f4e3bd; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
