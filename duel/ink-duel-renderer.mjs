@@ -7,7 +7,7 @@ const FX={fire:['#fff2b3','#ff983c','#ef3e36'],water:['#dbffff','#57d9ef','#247c
 export class DuelRenderer {
   constructor(container){
     this.container=container;this.renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));this.renderer.setClearColor('#172c2b');
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));this.renderer.setClearColor('#243044');
     this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace=THREE.SRGBColorSpace;
     container.append(this.renderer.domElement);this.renderer.domElement.setAttribute('aria-label','Duel d encre');this.renderer.domElement.setAttribute('role','img');
@@ -63,10 +63,10 @@ export class DuelRenderer {
   }
   drawPaper(s){
     const c=this.ctx,k=this.paper.width/(this.camera.right-this.camera.left),ky=this.paper.height/(this.camera.top-this.camera.bottom);
-    c.setTransform(1,0,0,1,0,0);c.fillStyle='#172c2b';c.fillRect(0,0,this.paper.width,this.paper.height);
-    c.setTransform(k,0,0,ky,-(24+this.pan.x+this.camera.left)*k,-(14+this.pan.y-this.camera.top)*ky);c.fillStyle='#e5e9dd';c.fillRect(0,0,s.rules.width,s.rules.height);
+    c.setTransform(1,0,0,1,0,0);c.fillStyle='#243044';c.fillRect(0,0,this.paper.width,this.paper.height);
+    c.setTransform(k,0,0,ky,-(24+this.pan.x+this.camera.left)*k,-(14+this.pan.y-this.camera.top)*ky);c.fillStyle='#f6ecd8';c.fillRect(0,0,s.rules.width,s.rules.height);
     const left=Math.max(0,Math.floor((24+this.pan.x+this.camera.left)*2)/2),right=Math.min(s.rules.width,24+this.pan.x+this.camera.right),top=Math.max(0,Math.floor((14+this.pan.y-this.camera.top)*2)/2),bottom=Math.min(s.rules.height,14+this.pan.y-this.camera.bottom);
-    c.strokeStyle='#d8dfd4';c.lineWidth=.012;c.beginPath();for(let x=left;x<=right;x+=.5){c.moveTo(x,top);c.lineTo(x,bottom);}for(let y=top;y<=bottom;y+=.5){c.moveTo(left,y);c.lineTo(right,y);}c.stroke();
+    c.strokeStyle='#d1bd92';c.lineWidth=.012;c.beginPath();for(let x=left;x<=right;x+=.5){c.moveTo(x,top);c.lineTo(x,bottom);}for(let y=top;y<=bottom;y+=.5){c.moveTo(left,y);c.lineTo(right,y);}c.stroke();
     c.strokeStyle='#81918a';c.lineWidth=.025;c.strokeRect(.18,.18,s.rules.width-.36,s.rules.height-.36);
     c.save();c.strokeStyle='#387d7066';c.lineWidth=.03;c.setLineDash([.2,.2]);c.beginPath();c.arc(s.players[0].x,s.players[0].y,8,0,Math.PI*2);c.stroke();c.restore();
     for(const p of s.resources){c.fillStyle=p.material==='water'?'#43a9b452':'#a79c7655';c.beginPath();c.ellipse(p.x,p.y,1.1,.7,0,0,Math.PI*2);c.fill();c.fillStyle='#3c5457';c.font='.18px monospace';c.textAlign='center';c.fillText(`${Math.ceil(p.amount)}`,p.x,p.y+.06);}
